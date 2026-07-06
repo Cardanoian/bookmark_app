@@ -1,0 +1,35 @@
+<% content_for :title, "케어 상점 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-amber-600">케어 상점</p>
+      <h1 class="text-2xl font-bold text-gray-900">몬스터를 위한 아이템</h1>
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-gray-500">내 포인트</p>
+      <p class="text-xl font-bold text-amber-600"><span id="points_balance"><%= @balance %></span>P</p>
+    </div>
+  </header>
+
+  <div id="shop_flash" class="mb-4"></div>
+
+  <% if @items_by_category.empty? %>
+    <%= render "shared/empty_state", message: "상점 아이템을 준비 중이에요.", icon: "🛒" %>
+  <% else %>
+    <% @items_by_category.each do |category, items| %>
+      <section class="mb-6">
+        <h2 class="mb-2 text-sm font-semibold text-gray-700"><%= category_label(category) %></h2>
+        <div class="space-y-2">
+          <% items.each do |item| %>
+            <%= render "shops/shop_item", item: item, purchase: @inventory[item.id] %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% end %>
+
+  <p class="mt-6 text-center text-sm">
+    <%= link_to "← 도감으로", monsters_path, class: "text-gray-500 hover:text-gray-700" %>
+  </p>
+</div>

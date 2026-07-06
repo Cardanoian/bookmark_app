@@ -1,0 +1,41 @@
+<% content_for :title, "몬스터 도감 · 책갈피" %>
+
+<div class="w-full max-w-4xl mx-auto" data-controller="dex">
+  <%= turbo_stream_from current_user, :active_monster %>
+
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-amber-600">몬스터 도감</p>
+      <h1 class="text-2xl font-bold text-gray-900">함께 성장하는 반려 몬스터</h1>
+    </div>
+    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <div class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="sm:col-span-2">
+      <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
+    </div>
+    <div class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+      <p class="text-xs font-medium text-gray-500">도감 완성도</p>
+      <p class="text-2xl font-bold text-gray-900"><%= @dex_count %> <span class="text-base text-gray-400">/ <%= @design_lines %></span></p>
+      <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+        <div class="h-full rounded-full bg-amber-400" style="width: <%= (@dex_count.to_f / @design_lines * 100).round %>%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-4 flex flex-wrap gap-2">
+    <button type="button" data-dex-target="filter" data-element="all"
+            data-action="dex#filter"
+            class="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700">전체</button>
+    <% MonsterSpecies.elements.keys.each do |element| %>
+      <button type="button" data-dex-target="filter" data-element="<%= element %>"
+              data-action="dex#filter"
+              class="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium <%= element_badge_classes(element) %>">
+        <%= element_label(element) %>
+      </button>
+    <% end %>
+  </div>
+
+  <%= render "monsters/dex_grid", lines: @lines, owned: @owned, evolvable_ids: @evolvable_ids %>
+</div>

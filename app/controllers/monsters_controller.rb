@@ -1,0 +1,124 @@
+# 몬스터 도감·진화·발견 연출(P4.5/P4.7). 라인(dex_no) 단위로 조회하며 제자리 진화한다.
+class MonstersController < ApplicationController
+  before_action :set_user_monster, only: [ :evolve, :set_active, :feed ]
+
+  # 도감: 시드된 12 라인 그리드 + 완성도(분모 24 고정).
+  def index
+    authorize :monster, :index?
+    @lines = MonsterSpecies.where(stage: 1).order(:dex_no).to_a
+    @owned = current_user.user_monsters.includes(:monster_species).index_by(&:dex_no)
+    @evolvable_ids = current_user.evolvable_monsters.map(&:id).to_set
+    @dex_count = current_user.user_monsters.distinct.count(:dex_no)
+    @design_lines = MonsterSpecies::DESIGN_LINE_COUNT
+  end
+
+  # 상세: 종·단계·진화 조건 진행률(ReadingStats 대비)·케어 상태.
+  def show
+    authorize :monster, :show?
+    @dex_no = params[:id].to_i
+    @line = MonsterSpecies.where(dex_no: @dex_no).order(:stage).to_a
+    raise ActiveRecord::RecordNotFound, "unknown dex_no #{@dex_no}" if @line.empty?
+
+    @user_monster = current_user.user_monsters.find_by(dex_no: @dex_no)
+    @current_species = @user_monster&.monster_species || @line.first
+    @stats = ReadingStats.new(current_user)
+    @evolvable = @user_monster&.evolvable? || false
+    @foods = current_user.purchases.includes(:shop_item)
+                         .select { |purchase| purchase.quantity.positive? && feed_item?(purchase.shop_item) }
+  end
+
+  # 스타터 선택(온보딩). 보유 0 인 학생만. 잘못/중복 선택 거부(가챠/랜덤 없음).
+  def choose_starter
+    authorize :monster, :choose_starter?
+    if current_user.user_monsters.exists?
+      return redirect_to monsters_path, alert: "이미 반려 몬스터를 보유하고 있어요."
+    end
+
+    monster = MonsterAcquisition.new(current_user).choose_starter!(params[:key])
+    redirect_to monster_path(monster.dex_no), notice: "#{monster.species.name}와(과) 함께 모험을 시작해요!"
+  rescue MonsterAcquisition::InvalidStarter, MonsterAcquisition::AlreadyOwned
+    redirect_to monsters_path, alert: "스타터를 선택할 수 없어요."
+  end
+
+  # 진화: 조건 충족 시 제자리 진화 + 헤더/상세 실시간 갱신 + 뱃지 갱신.
+  def evolve
+    authorize @user_monster, :evolve?, policy_class: MonsterPolicy
+
+    unless @user_monster.evolvable?
+      return redirect_to monster_path(@user_monster.dex_no), alert: "아직 진화 조건을 충족하지 못했어요."
+    end
+
+    form = advance_evolution(@user_monster)
+    broadcast_active_monster if active?(@user_monster)
+    flash[:celebrate] = "evolve"
+    redirect_to monster_path(@user_monster.dex_no), notice: "#{form.name}(으)로 진화했어요! ✨"
+  end
+
+  # 대표(활성) 몬스터 지정.
+  def set_active
+    authorize @user_monster, :set_active?, policy_class: MonsterPolicy
+    current_user.update!(active_monster: @user_monster)
+    broadcast_active_monster
+    redirect_to monster_path(@user_monster.dex_no), notice: "#{@user_monster.species.name}(을)를 대표 몬스터로 정했어요."
+  end
+
+  # 먹이주기: 먹이/진화의 돌 소비(수량 -1) → 케어 상태 갱신(effect json 반영).
+  def feed
+    authorize @user_monster, :feed?, policy_class: MonsterPolicy
+    item = ShopItem.find(params[:shop_item_id])
+    purchase = current_user.purchases.find_by(shop_item: item)
+
+    unless feed_item?(item) && purchase&.quantity.to_i.positive?
+      return redirect_to monster_path(@user_monster.dex_no), alert: "먹이가 부족해요. 상점에서 먼저 구매해 주세요."
+    end
+
+    purchase.decrement!(:quantity)
+    apply_care(item)
+    redirect_to monster_path(@user_monster.dex_no), notice: "#{item.name}(으)로 몬스터를 돌봤어요. 🍪"
+  end
+
+  private
+
+  def set_user_monster
+    @user_monster = current_user.user_monsters.find_by(dex_no: params[:id])
+  end
+
+  def active?(monster)
+    current_user.active_monster_id == monster.id
+  end
+
+  # 활성 몬스터면 뱃지 연쇄가 붙은 User#evolve_active_monster! 를, 아니면 제자리 진화 후 뱃지 갱신.
+  def advance_evolution(monster)
+    if active?(monster)
+      current_user.evolve_active_monster!
+    else
+      form = monster.evolve!
+      current_user.refresh_badges!
+      form
+    end
+  end
+
+  def broadcast_active_monster
+    monster = current_user.active_monster
+    return unless monster
+
+    monster.broadcast_replace_to(
+      [ current_user, :active_monster ],
+      target: "active_monster",
+      partial: "monsters/active_monster",
+      locals: { monster: monster, user: current_user }
+    )
+  end
+
+  def feed_item?(item)
+    item.food? || item.evolution_stone?
+  end
+
+  def apply_care(item)
+    care = (@user_monster.care || {}).dup
+    care["fed_count"] = care["fed_count"].to_i + 1
+    care["last_fed_at"] = Time.current.iso8601
+    care["evolve_boost"] = care["evolve_boost"].to_i + 1 if item.effect.is_a?(Hash) && item.effect["evolve_boost"]
+    @user_monster.update!(care: care)
+  end
+end

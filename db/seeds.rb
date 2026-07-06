@@ -15,3 +15,8 @@ if superadmin.new_record?
 else
   puts "Superadmin already exists: #{superadmin.name}"
 end
+
+# Gamification catalog (반려 몬스터 도감 + 뱃지 + 케어/진화 상점).
+Rake::Task["monsters:seed"].invoke
+Rake::Task["badges:seed"].invoke
+Rake::Task["shop_items:seed"].invoke
