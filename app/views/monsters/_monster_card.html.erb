@@ -1,0 +1,17 @@
+<%# locals: (line:, owned:, evolvable: false) %>
+<% species = owned&.monster_species || line %>
+<%= link_to monster_path(line.dex_no),
+      class: "relative block rounded-xl border border-gray-200 p-4 text-center transition hover:border-amber-300 hover:shadow-sm",
+      data: { dex_target: "card", element: line.element } do %>
+  <% if evolvable %>
+    <span class="absolute right-2 top-2 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-white">진화 가능!</span>
+  <% end %>
+  <div class="text-4xl <%= "opacity-20 grayscale" unless owned %>" aria-hidden="true">
+    <%= owned ? monster_emoji(species) : "❔" %>
+  </div>
+  <p class="mt-2 text-xs text-gray-400">No.<%= format("%02d", line.dex_no) %></p>
+  <p class="text-sm font-semibold text-gray-900"><%= owned ? species.name : "???" %></p>
+  <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium <%= element_badge_classes(line.element) %>">
+    <%= element_label(line.element) %>
+  </span>
+<% end %>

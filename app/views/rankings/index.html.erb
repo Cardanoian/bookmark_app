@@ -1,0 +1,94 @@
+<% content_for :title, "랭킹 · 책갈피" %>
+
+<% tabs = { "class" => "우리 반", "school" => "우리 학교", "nation" => "전국", "challenge" => "챌린지", "hall" => "명예의 전당" } %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">랭킹</h1>
+    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <nav class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+    <% tabs.each do |key, label| %>
+      <%= link_to label, rankings_path(tab: key),
+            class: "rounded-full px-3 py-1 text-sm font-medium #{@tab == key ? "bg-amber-500 text-white" : "text-gray-500 hover:text-gray-700"}" %>
+    <% end %>
+  </nav>
+
+  <% case @tab %>
+  <% when "class" %>
+    <% if current_user.classroom %>
+      <%= turbo_stream_from current_user.classroom, :ranking %>
+    <% end %>
+    <% if @ranking.any? %>
+      <%= render "rankings/podium", podium: @podium %>
+      <div class="space-y-2">
+        <% @ranking.each_with_index do |student, index| %>
+          <%= render "rankings/ranking_row", user: student, rank: index + 1 %>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "아직 학급 랭킹이 없어요.", icon: "🏫" %>
+    <% end %>
+
+  <% when "school", "nation" %>
+    <% if @ranking.any? %>
+      <div class="space-y-2">
+        <% @ranking.each_with_index do |entry, index| %>
+          <div class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
+              <span class="text-sm font-medium text-gray-900">
+                <%= entry.subject.respond_to?(:label) ? "#{entry.subject.school.name} #{entry.subject.label}" : entry.subject.name %>
+              </span>
+            </div>
+            <span class="text-sm font-bold text-amber-600"><%= entry.score %>P</span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "집계할 데이터가 아직 없어요.", icon: "📊" %>
+    <% end %>
+
+  <% when "challenge" %>
+    <% if @challenge && @ranking.any? %>
+      <p class="mb-4 text-sm font-medium text-gray-700"><%= @challenge.title %></p>
+      <div class="space-y-2">
+        <% @ranking.each_with_index do |entry, index| %>
+          <div class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
+              <span class="text-sm font-medium text-gray-900"><%= entry.subject.name %></span>
+            </div>
+            <span class="text-sm font-bold text-amber-600"><%= entry.score %>회 참여</span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "진행 중인 챌린지 참여 기록이 없어요.", icon: "🔥" %>
+    <% end %>
+
+  <% when "hall" %>
+    <% if @ranking.any? %>
+      <div class="space-y-2">
+        <% @ranking.each_with_index do |entry, index| %>
+          <div class="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
+              <span class="text-2xl" aria-hidden="true">
+                <%= entry.subject.active_monster ? monster_emoji(entry.subject.active_monster.species) : "🥚" %>
+              </span>
+              <div>
+                <p class="text-sm font-medium text-gray-900"><%= entry.subject.name %></p>
+                <p class="text-xs text-gray-500">도감 <%= entry.meta[:dex] %> · 완전형 <%= entry.meta[:complete] %></p>
+              </div>
+            </div>
+            <span class="text-sm font-bold text-amber-600">성장 <%= entry.score %></span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "아직 명예의 전당 주인공이 없어요. 도감을 채워 보세요!", icon: "👑" %>
+    <% end %>
+  <% end %>
+</div>

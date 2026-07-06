@@ -1,0 +1,16 @@
+<%# locals: (line:, current: nil) %>
+<%# 3단계 진화 로드맵. current(UserMonster/Species) 이하 단계만 공개. %>
+<% current_stage = current.respond_to?(:species) ? current.species&.stage : current&.stage %>
+<div class="flex items-center justify-center gap-2">
+  <% line.each_with_index do |species, index| %>
+    <% reached = current_stage.present? && species.stage <= current_stage %>
+    <div class="text-center <%= "opacity-30" unless reached %>">
+      <div class="text-3xl" aria-hidden="true"><%= reached ? monster_emoji(species) : "❔" %></div>
+      <p class="text-xs font-medium text-gray-800"><%= reached ? species.name : "???" %></p>
+      <p class="text-[10px] text-gray-400"><%= species.stage %>단계</p>
+    </div>
+    <% unless index == line.size - 1 %>
+      <span class="text-lg text-gray-300" aria-hidden="true">→</span>
+    <% end %>
+  <% end %>
+</div>

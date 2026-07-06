@@ -1,0 +1,20 @@
+<%# locals: (item:, purchase: nil) %>
+<div id="<%= dom_id(item, :shop) %>" class="flex items-center justify-between rounded-xl border border-gray-200 p-4">
+  <div class="flex items-center gap-3">
+    <span class="text-3xl" aria-hidden="true"><%= item.icon %></span>
+    <div>
+      <p class="text-sm font-semibold text-gray-900"><%= item.name %></p>
+      <p class="text-xs text-gray-500"><%= item.cost %>P
+        <% if item.consumable? && purchase&.quantity.to_i.positive? %>
+          · 보유 <%= purchase.quantity %>개
+        <% end %>
+      </p>
+    </div>
+  </div>
+  <% if !item.consumable? && purchase.present? %>
+    <span class="rounded-lg bg-gray-100 px-3 py-2 text-xs font-medium text-gray-500">보유 중</span>
+  <% else %>
+    <%= button_to "구매", purchases_path, params: { shop_item_id: item.id },
+          class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+  <% end %>
+</div>

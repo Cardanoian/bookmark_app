@@ -1,0 +1,11 @@
+<%= turbo_stream.update "points_balance", @balance %>
+
+<%= turbo_stream.replace dom_id(@item, :shop) do %>
+  <%= render "shops/shop_item", item: @item, purchase: @purchase %>
+<% end %>
+
+<%= turbo_stream.update "shop_flash" do %>
+  <p class="rounded-lg px-4 py-2 text-sm <%= @ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700" %>">
+    <%= @message %>
+  </p>
+<% end %>

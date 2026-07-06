@@ -15,6 +15,27 @@ Rails.application.routes.draw do
   end
   resource :ocr, only: [ :create ], controller: "ocr"
 
+  # 게임화 — 몬스터 도감·진화, 케어 상점, 랭킹, 미션·챌린지
+  resources :monsters, only: [ :index, :show ] do
+    member do
+      post :evolve
+      post :set_active
+      post :feed
+    end
+    collection do
+      post :choose_starter
+    end
+  end
+  resource  :shop, only: [ :show ]
+  resources :purchases, only: [ :create ]
+  resources :rankings, only: [ :index ]
+  resources :missions, only: [ :index, :show ] do
+    member { post :join }
+  end
+  resources :challenges, only: [ :index, :show ] do
+    member { post :join }
+  end
+
   # 담임교사 — 검토 큐·5축 조정·승인·진위 확인
   namespace :teacher do
     resources :reviews, only: [ :index, :show, :update ] do

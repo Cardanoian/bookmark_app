@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -39,6 +39,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "badges", force: :cascade do |t|
+    t.string "condition_desc"
+    t.datetime "created_at", null: false
+    t.string "icon"
+    t.string "key"
+    t.string "name"
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_badges_on_key", unique: true
+  end
+
   create_table "books", force: :cascade do |t|
     t.string "author"
     t.integer "category", default: 0, null: false
@@ -54,6 +64,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
     t.index ["title"], name: "index_books_on_title"
   end
 
+  create_table "challenges", force: :cascade do |t|
+    t.integer "book_id"
+    t.datetime "created_at", null: false
+    t.date "ends_on"
+    t.integer "school_id"
+    t.integer "scope", default: 0
+    t.date "starts_on"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["school_id"], name: "index_challenges_on_school_id"
+  end
+
   create_table "classrooms", force: :cascade do |t|
     t.integer "class_no"
     t.datetime "created_at", null: false
@@ -65,6 +87,48 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
     t.index ["school_id", "grade", "class_no"], name: "index_classrooms_on_school_id_and_grade_and_class_no", unique: true
     t.index ["school_id"], name: "index_classrooms_on_school_id"
     t.index ["teacher_id"], name: "index_classrooms_on_teacher_id"
+  end
+
+  create_table "missions", force: :cascade do |t|
+    t.integer "book_id"
+    t.integer "classroom_id", null: false
+    t.datetime "created_at", null: false
+    t.date "end_date"
+    t.date "start_date"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_missions_on_book_id"
+    t.index ["classroom_id"], name: "index_missions_on_classroom_id"
+  end
+
+  create_table "monster_species", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "dex_no"
+    t.integer "element", default: 0
+    t.json "evolve_condition"
+    t.integer "evolves_from_id"
+    t.string "image_key"
+    t.string "key"
+    t.string "name"
+    t.integer "rarity", default: 0
+    t.integer "stage"
+    t.datetime "updated_at", null: false
+    t.index ["dex_no"], name: "index_monster_species_on_dex_no"
+    t.index ["evolves_from_id"], name: "index_monster_species_on_evolves_from_id"
+    t.index ["key"], name: "index_monster_species_on_key", unique: true
+  end
+
+  create_table "purchases", force: :cascade do |t|
+    t.datetime "bought_at"
+    t.datetime "created_at", null: false
+    t.integer "quantity", default: 1, null: false
+    t.integer "shop_item_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["shop_item_id"], name: "index_purchases_on_shop_item_id"
+    t.index ["user_id", "shop_item_id"], name: "index_purchases_on_user_id_and_shop_item_id", unique: true
+    t.index ["user_id"], name: "index_purchases_on_user_id"
   end
 
   create_table "reports", force: :cascade do |t|
@@ -116,6 +180,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
     t.index ["neis_code"], name: "index_schools_on_neis_code", unique: true
   end
 
+  create_table "seasons", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "ends_on"
+    t.string "name"
+    t.integer "school_id"
+    t.integer "scope", default: 0
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "shop_items", force: :cascade do |t|
+    t.integer "category", default: 0
+    t.boolean "consumable", default: false, null: false
+    t.integer "cost", default: 0
+    t.datetime "created_at", null: false
+    t.json "effect"
+    t.string "icon"
+    t.string "image_key"
+    t.string "name"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "user_badges", force: :cascade do |t|
+    t.integer "badge_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "earned_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["badge_id"], name: "index_user_badges_on_badge_id"
+    t.index ["user_id", "badge_id"], name: "index_user_badges_on_user_id_and_badge_id", unique: true
+    t.index ["user_id"], name: "index_user_badges_on_user_id"
+  end
+
+  create_table "user_monsters", force: :cascade do |t|
+    t.json "care"
+    t.datetime "created_at", null: false
+    t.integer "dex_no"
+    t.datetime "evolved_at"
+    t.integer "monster_species_id", null: false
+    t.string "nickname"
+    t.datetime "obtained_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["dex_no"], name: "index_user_monsters_on_dex_no"
+    t.index ["monster_species_id"], name: "index_user_monsters_on_monster_species_id"
+    t.index ["user_id", "dex_no"], name: "index_user_monsters_on_user_id_and_dex_no", unique: true
+    t.index ["user_id"], name: "index_user_monsters_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.integer "active_monster_id"
     t.integer "classroom_id"
@@ -138,10 +250,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_133035) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "classrooms", "schools"
   add_foreign_key "classrooms", "users", column: "teacher_id"
+  add_foreign_key "missions", "classrooms"
+  add_foreign_key "monster_species", "monster_species", column: "evolves_from_id"
+  add_foreign_key "purchases", "shop_items"
+  add_foreign_key "purchases", "users"
   add_foreign_key "reports", "books"
+  add_foreign_key "reports", "challenges"
   add_foreign_key "reports", "classrooms"
+  add_foreign_key "reports", "missions"
   add_foreign_key "reports", "reports", column: "revision_of_id"
   add_foreign_key "reports", "users"
+  add_foreign_key "user_badges", "badges"
+  add_foreign_key "user_badges", "users"
+  add_foreign_key "user_monsters", "monster_species", column: "monster_species_id"
+  add_foreign_key "user_monsters", "users"
   add_foreign_key "users", "classrooms"
   add_foreign_key "users", "schools"
+  add_foreign_key "users", "user_monsters", column: "active_monster_id"
 end
