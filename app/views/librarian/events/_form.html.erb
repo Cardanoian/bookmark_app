@@ -1,0 +1,35 @@
+<%# 이달의 책·행사 폼. local: event %>
+<%= form_with model: event, url: (event.persisted? ? librarian_event_path(event) : librarian_events_path),
+      class: "space-y-4 rounded-lg border border-gray-200 p-5" do |f| %>
+  <% if event.errors.any? %>
+    <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+      <%= event.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, "제목", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_field :title, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+
+  <div>
+    <%= f.label :description, "설명", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_area :description, rows: 4, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :event_on, "행사일", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.date_field :event_on, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :book_id, "추천 도서 ID (선택)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.number_field :book_id, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+    <%= link_to "취소", librarian_events_path, class: "text-sm text-gray-500" %>
+  </div>
+<% end %>

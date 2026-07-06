@@ -1,0 +1,38 @@
+<% content_for :title, "새 퀴즈 · 책갈피" %>
+
+<div class="mx-auto w-full max-w-xl space-y-4">
+  <h1 class="text-2xl font-bold text-gray-900">새 퀴즈</h1>
+  <p class="text-sm text-gray-500">도서를 고르면 AI가 초안 문항을 만들어 줘요(오프라인 시 템플릿).</p>
+
+  <%= form_with model: @quiz, url: teacher_quizzes_path, class: "space-y-4 rounded-lg border border-gray-200 p-5" do |f| %>
+    <% if @quiz.errors.any? %>
+      <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <%= @quiz.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <div>
+      <%= f.label :title, "퀴즈 제목", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.text_field :title, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    </div>
+
+    <div>
+      <%= f.label :book_id, "도서(선택)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.collection_select :book_id, @books, :id, :title, { include_blank: "도서 없음" },
+            class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    </div>
+
+    <% if @classrooms.size > 1 %>
+      <div>
+        <%= f.label :classroom_id, "학급", class: "mb-1 block text-sm font-medium text-gray-700" %>
+        <%= f.collection_select :classroom_id, @classrooms, :id, :label, {},
+              class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      </div>
+    <% end %>
+
+    <div class="flex items-center gap-3">
+      <%= f.submit "초안 만들기", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+      <%= link_to "취소", teacher_quizzes_path, class: "text-sm text-gray-500" %>
+    </div>
+  <% end %>
+</div>

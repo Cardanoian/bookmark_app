@@ -1,0 +1,16 @@
+<% content_for :title, "#{@mission.title} · 책갈피" %>
+
+<div class="mx-auto w-full max-w-xl space-y-4">
+  <h1 class="text-2xl font-bold text-gray-900"><%= @mission.title %></h1>
+  <div class="rounded-lg border border-gray-200 p-5 text-sm text-gray-700">
+    <p><span class="text-gray-500">학급:</span> <%= @mission.classroom&.label %></p>
+    <% if @mission.book %>
+      <p><span class="text-gray-500">도서:</span> <%= @mission.book.title %></p>
+    <% end %>
+    <p><span class="text-gray-500">기간:</span> <%= @mission.start_date %> ~ <%= @mission.end_date %></p>
+  </div>
+  <div class="flex items-center gap-3">
+    <%= link_to "수정", edit_teacher_mission_path(@mission), class: "text-sm text-indigo-600" %>
+    <%= link_to "목록", teacher_missions_path, class: "text-sm text-gray-500" %>
+  </div>
+</div>

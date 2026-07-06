@@ -63,8 +63,10 @@ Rails.application.routes.draw do
     member { post :join }
   end
 
-  # 담임교사 — 검토 큐·5축 조정·승인·진위 확인
+  # 담임교사 — 검토 큐·5축 조정·승인·진위 확인 + 대시보드·학생관리·미션·퀴즈·루브릭·문서출력
   namespace :teacher do
+    resource  :dashboard, only: [ :show ]
+
     resources :reviews, only: [ :index, :show, :update ] do
       member do
         post :approve
@@ -72,6 +74,46 @@ Rails.application.routes.draw do
       end
       collection do
         post :batch_approve
+      end
+    end
+
+    resources :students, only: [ :index, :create, :destroy ] do
+      member do
+        post :reset_password
+        post :give_points
+      end
+    end
+
+    resources :missions
+    resources :quizzes
+    resource  :rubric_config, only: [ :edit, :update ]
+
+    # 문서 출력(대회요건 연구06 원자료 CSV + 인쇄용 HTML)
+    get "exports/reports_csv", to: "exports#reports_csv", as: :exports_reports_csv
+    resources :prints, only: [] do
+      collection do
+        get :award         # 표창장
+        get :home_letter   # 가정통신문
+        get :portfolio     # 독서 포트폴리오
+        get :class_report  # 학급 성장 리포트
+      end
+    end
+  end
+
+  # 교무관리자 — 전교 통계 + NEIS 생기부 자동요약(자기 학교 경계). (P6.4)
+  namespace :school_admin do
+    resource  :stats, only: [ :show ]
+    resources :neis, only: [ :index ]
+  end
+
+  # 사서 — 도서관 대시보드 + 인기대출(정보나루/CSV) + 이달의 책·행사(자기 학교 경계). (P6.5)
+  namespace :librarian do
+    resource  :dashboard, only: [ :show ]
+    resources :events
+    resources :loans, only: [ :index, :create ] do
+      collection do
+        post :sync_data4library
+        post :import_csv
       end
     end
   end

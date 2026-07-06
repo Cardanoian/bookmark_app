@@ -1,0 +1,25 @@
+<%# 교사 콘솔 사이드바 네비. local: active (심볼) %>
+<aside class="hidden w-52 shrink-0 md:block">
+  <p class="mb-1 text-sm font-medium text-indigo-600">교사</p>
+  <p class="mb-4 text-lg font-bold text-gray-900"><%= current_user.name %></p>
+  <nav>
+    <ul class="space-y-1 text-sm font-medium">
+      <% nav_items = [
+           [ :dashboard, "대시보드", teacher_dashboard_path ],
+           [ :reviews, "검토", teacher_reviews_path ],
+           [ :students, "학생관리", teacher_students_path ],
+           [ :missions, "미션", teacher_missions_path ],
+           [ :quizzes, "퀴즈", teacher_quizzes_path ],
+           [ :rubric, "루브릭", edit_teacher_rubric_config_path ]
+         ] %>
+      <% nav_items.each do |key, label, path| %>
+        <li class="rounded-lg px-3 py-2 <%= active == key ? "bg-gray-100 text-gray-900" : "text-gray-500" %>">
+          <%= link_to label, path, class: "hover:text-gray-700" %>
+        </li>
+      <% end %>
+      <li class="rounded-lg px-3 py-2 text-gray-500">
+        <%= link_to "CSV 내보내기", teacher_exports_reports_csv_path, class: "hover:text-gray-700" %>
+      </li>
+    </ul>
+  </nav>
+</aside>

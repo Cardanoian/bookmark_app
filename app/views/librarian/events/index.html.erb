@@ -1,0 +1,27 @@
+<%# 이달의 책·행사 목록(P6.5). 사서의 소속 학교 행사만 표시. %>
+<div class="mx-auto max-w-4xl space-y-6 p-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">이달의 책·행사</h1>
+    <%= link_to "행사 등록", new_librarian_event_path,
+          class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+  </div>
+
+  <% if @events.empty? %>
+    <%= render "shared/empty_state", message: "아직 등록된 행사가 없어요." %>
+  <% else %>
+    <ul class="space-y-3">
+      <% @events.each do |event| %>
+        <li class="rounded-lg border border-gray-200 p-4">
+          <div class="flex items-center justify-between">
+            <%= link_to event.title, librarian_event_path(event),
+                  class: "font-medium text-gray-900 hover:underline" %>
+            <span class="text-sm text-gray-500"><%= event.event_on&.strftime("%Y-%m-%d") %></span>
+          </div>
+          <% if event.description.present? %>
+            <p class="mt-1 line-clamp-2 text-sm text-gray-600"><%= event.description %></p>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>
