@@ -1,0 +1,21 @@
+<% content_for :title, "골든벨 서바이벌 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">🔔 골든벨 서바이벌</h1>
+      <p class="mt-1 text-sm text-gray-500"><%= @quiz.title %> · 끝까지 살아남아 골든벨을 울려 보세요!</p>
+    </div>
+    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <% if flash[:notice] %>
+    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><%= flash[:notice] %></div>
+  <% end %>
+
+  <div class="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+    한 문제씩 신중하게 풀어 보세요. 많이 맞힐수록 더 많은 포인트를 얻어요.
+  </div>
+
+  <%= render "games/quiz_form", quiz: @quiz, game: "golden", submit_label: "골든벨 도전!" %>
+</div>

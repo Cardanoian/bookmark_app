@@ -6,6 +6,8 @@ class Report < ApplicationRecord
   belongs_to :book, optional: true
   belongs_to :revision_of, class_name: "Report", optional: true
   has_many :revisions, class_name: "Report", foreign_key: :revision_of_id, dependent: :nullify
+  has_one :board_post, dependent: :destroy
+  has_many :stickers, dependent: :destroy
 
   has_one_attached :photo
   has_one_attached :drawing

@@ -15,6 +15,33 @@ Rails.application.routes.draw do
   end
   resource :ocr, only: [ :create ], controller: "ocr"
 
+  # 도서 검색·카탈로그 (P5.1/P5.2)
+  resources :books, only: [ :index, :show ] do
+    collection { get :search }
+  end
+
+  # 단계 학습 위저드 5단계 (P5.5) — 세션 진행 저장, 완료 시 독후감 초안 연결.
+  resources :learn, only: [ :index ] do
+    collection { post :advance }
+  end
+
+  # 독서게임 10종 (P5.6). quiz/golden/bingo 는 published 퀴즈를 소비하는 실동작 게임,
+  # 나머지 7종은 증분(라우트 + 플레이스홀더). 결과는 games/attempts 로 기록.
+  namespace :games do
+    resources :book, :classic, :battle, :balance, :quiz,
+              :golden, :bingo, :vocab, :whoami, :marathon, only: [ :show ]
+    resources :attempts, only: [ :create ]
+  end
+
+  # 커뮤니티 — 우수작 게시판(응원/스티커) + 토론방 (P5.3/P5.4)
+  resources :board_posts, only: [ :index, :show ] do
+    resources :cheers, only: [ :create, :destroy ]
+    resources :stickers, only: [ :create ]
+  end
+  resources :topics, only: [ :index, :show, :create ] do
+    resources :forum_posts, only: [ :create ]
+  end
+
   # 게임화 — 몬스터 도감·진화, 케어 상점, 랭킹, 미션·챌린지
   resources :monsters, only: [ :index, :show ] do
     member do

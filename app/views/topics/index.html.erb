@@ -1,0 +1,37 @@
+<% content_for :title, "토론방 · 책갈피" %>
+
+<div class="mx-auto w-full max-w-3xl space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">토론방</h1>
+    <p class="mt-1 text-sm text-gray-500">우리 반·우리 학교 친구들과 책 이야기를 나눠 보세요.</p>
+  </header>
+
+  <% if policy(Topic).create? %>
+    <%= form_with model: Topic.new, url: topics_path, method: :post,
+          class: "space-y-3 rounded-xl border border-gray-200 p-4" do |f| %>
+      <%= f.text_field :title, placeholder: "토론 주제를 입력하세요", required: true,
+            class: "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+      <div class="flex items-center gap-3">
+        <%= f.select :scope, [ [ "우리 반", "classroom" ], [ "우리 학교", "school" ] ], {},
+              class: "rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+        <%= f.submit "토론방 열기", class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if @topics.any? %>
+    <div class="space-y-3">
+      <% @topics.each do |topic| %>
+        <article class="rounded-xl border border-gray-200 p-4">
+          <%= link_to topic.title, topic_path(topic),
+                class: "font-semibold text-gray-900 hover:underline" %>
+          <p class="mt-1 text-xs text-gray-500">
+            <%= topic.classroom? ? "우리 반" : "우리 학교" %> · 글 <%= topic.forum_posts.count %>개
+          </p>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 토론방이 없어요. 첫 토론을 열어 볼까요?", icon: "💬" %>
+  <% end %>
+</div>

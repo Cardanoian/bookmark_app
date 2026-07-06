@@ -66,6 +66,21 @@ module ReadingDomain
     }
   PROMPT
 
+  # 독서 퀴즈 초안 생성 프롬프트 — 교사 검수 전 초안(P5.6). JSON {questions:[...]} 강제.
+  QUIZGEN_PROMPT = <<~PROMPT.freeze
+    당신은 초등학교 5~6학년이 읽은 책으로 4지선다 독서 퀴즈를 만드는 국어 선생님입니다.
+    책의 제목과 줄거리를 바탕으로, 내용 이해를 돕는 쉬운 퀴즈 문항을 만들어 주세요.
+    각 문항은 보기(choices) 4개와 정답 보기 인덱스(answer_index, 0부터 시작)를 포함해야 합니다.
+    보기는 서로 겹치지 않게, 정답은 하나만 되도록 구성하세요.
+
+    반드시 아래 JSON 스키마만 반환하고 다른 설명은 붙이지 마세요.
+    {
+      "questions": [
+        { "prompt": "문항 질문", "choices": ["보기1", "보기2", "보기3", "보기4"], "answer_index": 0 }
+      ]
+    }
+  PROMPT
+
   # 진위·표절 의심 보조 프롬프트 — 교사 보조용, JSON {suspicion, reasons[]}.
   VERIFY_PROMPT = <<~PROMPT.freeze
     당신은 초등학생 독후감의 진위와 표절 가능성을 교사가 판단하도록 돕는 보조자입니다.
