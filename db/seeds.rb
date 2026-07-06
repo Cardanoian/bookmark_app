@@ -26,3 +26,10 @@ Rake::Task["books:seed"].invoke
 
 # Sample published quiz so 독서게임(quiz/golden/bingo) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke
+
+# System settings (P7.4) — default feature flags. Idempotent; never stores API keys.
+AppSetting.find_or_create_by!(key: "feature_flags") do |setting|
+  setting.value = { "seasonal_banner_enabled" => false }
+  setting.description = "전역 기능 플래그(JSON 객체)"
+end
+puts "Ensured default app_settings feature_flags"

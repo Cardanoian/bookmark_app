@@ -118,6 +118,36 @@ Rails.application.routes.draw do
     end
   end
 
+  # 총괄관리자(superadmin) — 전용 /admin 네임스페이스. Admin::BaseController 가드로
+  # superadmin 이외 전 역할 403(정책 격리). (P7.1~P7.6)
+  namespace :admin do
+    root "analytics#show"
+
+    resources :schools
+    resources :users do
+      member do
+        post :suspend
+        post :unsuspend
+        post :reset_password
+        patch :role
+      end
+    end
+    resources :books
+    resources :quizzes
+    resources :badges
+    resources :shop_items
+    resources :monster_species
+    resources :moderation, only: [ :index ] do
+      member do
+        post :hide
+        post :unhide
+      end
+    end
+    resource :settings, only: [ :show, :update ]
+    resource :analytics, only: [ :show ]
+    get "analytics/export", to: "analytics#export", as: :analytics_export
+  end
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check

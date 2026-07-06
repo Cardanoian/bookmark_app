@@ -1,0 +1,28 @@
+<%# 전역 도서 CRUD(P7.3). %>
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">도서 관리</h1>
+    <%= link_to "도서 등록", new_admin_book_path, class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+  </div>
+
+  <%= form_with url: admin_books_path, method: :get, class: "flex gap-2" do |f| %>
+    <%= f.text_field :q, value: params[:q], placeholder: "제목 검색", class: "w-64 rounded-lg border border-gray-300 p-2 text-sm" %>
+    <%= f.submit "검색", class: "rounded-lg border border-gray-300 px-4 py-2 text-sm" %>
+  <% end %>
+
+  <table class="w-full text-left text-sm">
+    <thead class="border-b border-gray-200 text-gray-500">
+      <tr><th class="py-2 pr-4">제목</th><th class="py-2 pr-4">저자</th><th class="py-2 pr-4">분류</th><th class="py-2"></th></tr>
+    </thead>
+    <tbody>
+      <% @books.each do |book| %>
+        <tr class="border-b border-gray-100">
+          <td class="py-2 pr-4 font-medium text-gray-900"><%= link_to book.title, admin_book_path(book), class: "hover:underline" %></td>
+          <td class="py-2 pr-4 text-gray-600"><%= book.author %></td>
+          <td class="py-2 pr-4 text-gray-600"><%= book.category %></td>
+          <td class="py-2 text-right"><%= link_to "수정", edit_admin_book_path(book), class: "text-gray-500 hover:underline" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
