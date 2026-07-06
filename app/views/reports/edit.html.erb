@@ -1,0 +1,19 @@
+<% content_for :title, "독후감 수정 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <%= turbo_stream_from current_user, :report_editor %>
+
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">
+      <%= @report.revision? ? "고쳐쓰기" : "독후감 수정" %>
+    </h1>
+  </header>
+
+  <%= render "reports/form", report: @report %>
+
+  <% if ocr_available? %>
+    <div class="mt-6">
+      <%= render "reports/ocr_upload", report: @report %>
+    </div>
+  <% end %>
+</div>

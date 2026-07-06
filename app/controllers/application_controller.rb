@@ -10,11 +10,16 @@ class ApplicationController < ActionController::Base
   before_action :set_current_user
   before_action :require_login
 
-  helper_method :current_user, :logged_in?
+  helper_method :current_user, :logged_in?, :ocr_available?
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   private
+
+  # 사진(OCR) 입력 모드 사용 가능 여부. Gemini 키가 없으면 false (P3.5).
+  def ocr_available?
+    Ai::GeminiClient.available?
+  end
 
   def set_current_user
     Current.user = current_user

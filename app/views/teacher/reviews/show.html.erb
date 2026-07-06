@@ -1,0 +1,71 @@
+<% content_for :title, "독후감 검토 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto space-y-6">
+  <header class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold text-gray-900">
+        <%= @report.book&.title.presence || @report.book_title %>
+      </h1>
+      <p class="mt-1 text-sm text-gray-500">
+        <%= @report.user.name %> ·
+        유사도 <%= @report.similarity.present? ? "#{(@report.similarity * 100).round}%" : "-" %>
+      </p>
+    </div>
+    <%= level_badge(@report.level) %>
+  </header>
+
+  <section class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-2 text-sm font-semibold text-gray-500">학생이 쓴 글</h2>
+    <p class="whitespace-pre-wrap text-gray-800"><%= @report.body %></p>
+  </section>
+
+  <section class="rounded-lg border border-gray-200 p-4">
+    <h2 class="mb-3 text-lg font-semibold text-gray-900">AI 첨삭</h2>
+    <%= render "reports/rubric", report: @report %>
+  </section>
+
+  <% if @verify.present? %>
+    <section class="rounded-lg border border-rose-200 bg-rose-50 p-4">
+      <h2 class="mb-1 text-sm font-semibold text-rose-800">진위·표절 보조 결과</h2>
+      <p class="text-sm text-rose-900">
+        의심 정도: <%= @verify[:suspicion].present? ? @verify[:suspicion] : "판단 보류(키 없음)" %> ·
+        학급 내 최대 유사도: <%= (@verify[:similarity].to_f * 100).round %>%
+      </p>
+      <% if @verify[:reasons].present? %>
+        <ul class="mt-1 list-inside list-disc text-sm text-rose-900">
+          <% @verify[:reasons].each do |reason| %><li><%= reason %></li><% end %>
+        </ul>
+      <% end %>
+    </section>
+  <% end %>
+
+  <%= form_with model: @report, url: teacher_review_path(@report), method: :patch, class: "space-y-4 rounded-lg border border-indigo-200 p-4" do |f| %>
+    <h2 class="text-lg font-semibold text-indigo-900">5축 조정 · 코멘트</h2>
+    <% teacher_scores = @report.teacher_rubric_scores %>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <% @report.rubric_scores.each do |axis, score| %>
+        <label class="flex items-center justify-between gap-2 text-sm">
+          <span class="text-gray-600"><%= axis_label(axis) %> (AI <%= score %>)</span>
+          <%= number_field_tag "report[teacher_rubric][#{axis}]", teacher_scores[axis] || score,
+                in: 0..5, class: "w-20 rounded border border-gray-300 p-1 text-sm" %>
+        </label>
+      <% end %>
+    </div>
+
+    <div>
+      <%= label_tag "report_teacher_comment", "교사 코멘트", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= text_area_tag "report[teacher_comment]", @report.teacher_comment, rows: 3,
+            class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    </div>
+
+    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+  <% end %>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <%= button_to "승인", approve_teacher_review_path(@report), method: :post,
+          class: "rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white" %>
+    <%= button_to "진위 확인", verify_teacher_review_path(@report), method: :post,
+          class: "rounded-lg border border-rose-300 px-5 py-2 text-sm text-rose-700" %>
+    <%= link_to "큐로 돌아가기", teacher_reviews_path, class: "text-sm text-gray-500" %>
+  </div>
+</div>

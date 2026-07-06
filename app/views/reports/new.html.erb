@@ -1,0 +1,18 @@
+<% content_for :title, "새 독후감 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <%= turbo_stream_from current_user, :report_editor %>
+
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">새 독후감 쓰기</h1>
+    <p class="mt-1 text-sm text-gray-500">읽은 책을 떠올리며 생각과 느낌을 자유롭게 적어 보세요.</p>
+  </header>
+
+  <%= render "reports/form", report: @report %>
+
+  <% if ocr_available? %>
+    <div class="mt-6">
+      <%= render "reports/ocr_upload", report: @report %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,24 @@
+<% content_for :title, "독후감 · 책갈피" %>
+
+<div class="w-full max-w-3xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">독후감</h1>
+    <% if policy(Report).create? %>
+      <%= link_to "새 독후감 쓰기", new_report_path,
+            class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+    <% end %>
+  </header>
+
+  <% if current_user.student? %>
+    <%= turbo_stream_from current_user, :reports %>
+  <% end %>
+
+  <% if @reports.any? %>
+    <div id="reports" class="space-y-3">
+      <%= render partial: "reports/report", collection: @reports %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state",
+          message: "아직 독후감이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+  <% end %>
+</div>
