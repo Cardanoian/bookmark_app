@@ -1,0 +1,7 @@
+<%# 시즌 배너(P7.4). app_settings 의 seasonal_banner 가 설정되면 앱 전역에 노출된다. %>
+<% banner = AppSetting.get("seasonal_banner") %>
+<% if banner.present? %>
+  <div class="w-full bg-yellow-100 px-4 py-2 text-center text-sm font-medium text-yellow-900" data-role="seasonal-banner">
+    <%= banner %>
+  </div>
+<% end %>

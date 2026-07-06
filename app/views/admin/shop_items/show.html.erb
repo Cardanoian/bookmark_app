@@ -1,0 +1,17 @@
+<div class="max-w-lg space-y-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900"><%= @shop_item.name %></h1>
+    <div class="flex gap-2">
+      <%= link_to "수정", edit_admin_shop_item_path(@shop_item), class: "rounded-lg border border-gray-300 px-3 py-1.5 text-sm" %>
+      <%= button_to "삭제", admin_shop_item_path(@shop_item), method: :delete,
+            form: { data: { turbo_confirm: "정말 삭제할까요?" } },
+            class: "rounded-lg border border-rose-300 px-3 py-1.5 text-sm text-rose-600" %>
+    </div>
+  </div>
+  <dl class="rounded-lg border border-gray-200 bg-white p-4 text-sm">
+    <div class="flex justify-between py-1"><dt class="text-gray-500">분류</dt><dd><%= @shop_item.category %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-gray-500">가격</dt><dd><%= @shop_item.cost %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-gray-500">소모품</dt><dd><%= @shop_item.consumable? ? "예" : "아니오" %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-gray-500">효과</dt><dd class="font-mono text-xs"><%= @shop_item.effect %></dd></div>
+  </dl>
+</div>

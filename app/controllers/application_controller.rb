@@ -8,6 +8,7 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   before_action :set_current_user
+  before_action :enforce_not_suspended
   before_action :require_login
 
   helper_method :current_user, :logged_in?, :ocr_available?
@@ -37,6 +38,16 @@ class ApplicationController < ActionController::Base
     return if logged_in?
 
     redirect_to new_session_path, alert: "로그인이 필요합니다."
+  end
+
+  # 세션 도중 계정이 정지되면 즉시 로그아웃한다(P7.2).
+  def enforce_not_suspended
+    return unless current_user&.suspended?
+
+    reset_session
+    @current_user = nil
+    Current.user = nil
+    redirect_to new_session_path, alert: "정지된 계정입니다. 관리자에게 문의해 주세요."
   end
 
   def user_not_authorized

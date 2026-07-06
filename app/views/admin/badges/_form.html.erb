@@ -1,0 +1,31 @@
+<%# 뱃지 폼. local: badge %>
+<%= form_with model: badge, url: (badge.persisted? ? admin_badge_path(badge) : admin_badges_path),
+      class: "max-w-lg space-y-4 rounded-lg border border-gray-200 bg-white p-5" do |f| %>
+  <% if badge.errors.any? %>
+    <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+      <%= badge.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :key, "키(고유)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_field :key, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+  <div>
+    <%= f.label :name, "이름", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_field :name, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+  <div>
+    <%= f.label :icon, "아이콘", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_field :icon, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+  <div>
+    <%= f.label :condition_desc, "획득 조건 설명", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.text_field :condition_desc, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+    <%= link_to "취소", admin_badges_path, class: "text-sm text-gray-500" %>
+  </div>
+<% end %>
