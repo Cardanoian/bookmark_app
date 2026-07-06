@@ -1,0 +1,53 @@
+<div class="w-full max-w-md mx-auto">
+  <h1 class="text-2xl font-bold mb-6">로그인</h1>
+
+  <% if flash[:alert] %>
+    <div class="mb-4 rounded bg-red-100 px-4 py-2 text-red-800"><%= flash[:alert] %></div>
+  <% end %>
+
+  <%= form_with url: session_path, method: :post, local: true, class: "space-y-4" do |f| %>
+    <div>
+      <%= label_tag :q, "학교 검색", class: "block text-sm font-medium" %>
+      <%= text_field_tag :q, nil, list: "school_options",
+            placeholder: "학교 이름으로 검색", autocomplete: "off",
+            class: "mt-1 block w-full rounded border-gray-300" %>
+    </div>
+
+    <div>
+      <%= label_tag :school_id, "학교", class: "block text-sm font-medium" %>
+      <%= select_tag :school_id,
+            options_from_collection_for_select(@schools, :id, :name),
+            include_blank: "학교를 선택하세요",
+            class: "mt-1 block w-full rounded border-gray-300" %>
+      <datalist id="school_options">
+        <% @schools.each do |school| %>
+          <option value="<%= school.name %>"></option>
+        <% end %>
+      </datalist>
+    </div>
+
+    <div>
+      <%= label_tag :classroom_id, "학급 (선택)", class: "block text-sm font-medium" %>
+      <%= select_tag :classroom_id,
+            options_from_collection_for_select(@classrooms, :id, :label),
+            include_blank: "학급 없음",
+            class: "mt-1 block w-full rounded border-gray-300" %>
+    </div>
+
+    <div>
+      <%= label_tag :name, "이름", class: "block text-sm font-medium" %>
+      <%= text_field_tag :name, nil, class: "mt-1 block w-full rounded border-gray-300" %>
+    </div>
+
+    <div>
+      <%= label_tag :password, "비밀번호", class: "block text-sm font-medium" %>
+      <%= password_field_tag :password, nil, class: "mt-1 block w-full rounded border-gray-300" %>
+    </div>
+
+    <%= submit_tag "로그인", class: "w-full rounded bg-blue-600 px-4 py-2 text-white" %>
+  <% end %>
+
+  <p class="mt-4 text-sm text-center">
+    <%= link_to "학생·교사 회원가입", new_registration_path, class: "text-blue-600 underline" %>
+  </p>
+</div>
