@@ -1,4 +1,8 @@
 class ReportPolicy < ApplicationPolicy
+  def index?
+    user.present?
+  end
+
   def show?
     return false unless user
 
@@ -16,10 +20,46 @@ class ReportPolicy < ApplicationPolicy
     end
   end
 
+  def create?
+    user&.student?
+  end
+
+  def new?
+    create?
+  end
+
   def update?
     return false unless user
 
     record.user_id == user.id || teacher_of_classroom? || user.superadmin?
+  end
+
+  def edit?
+    update?
+  end
+
+  # 고쳐쓰기·공유는 작성자 본인만.
+  def revise?
+    user.present? && record.user_id == user.id
+  end
+
+  def share?
+    revise?
+  end
+
+  # 검토·승인·진위 확인은 학급 담임(또는 superadmin)만.
+  def review?
+    return false unless user
+
+    teacher_of_classroom? || user.superadmin?
+  end
+
+  def approve?
+    review?
+  end
+
+  def verify?
+    review?
   end
 
   private

@@ -15,11 +15,16 @@
   <nav class="mb-8 border-b border-gray-200">
     <ul class="flex gap-6 text-sm font-medium">
       <li class="border-b-2 border-amber-400 pb-3 text-gray-900">내 서재</li>
-      <li class="pb-3 text-gray-400">독후감</li>
+      <li class="pb-3 text-gray-400"><%= link_to "독후감", reports_path, class: "hover:text-gray-700" %></li>
       <li class="pb-3 text-gray-400">게임</li>
       <li class="pb-3 text-gray-400">랭킹</li>
     </ul>
   </nav>
+
+  <div class="mb-6">
+    <%= link_to "새 독후감 쓰기", new_report_path,
+          class: "inline-block rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+  </div>
 
   <%= render "shared/empty_state",
         message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>

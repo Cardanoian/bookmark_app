@@ -1,0 +1,32 @@
+<%# 내 서재 목록·승인 실시간 갱신 대상. local: report %>
+<article id="<%= dom_id(report) %>" class="rounded-lg border border-gray-200 p-4">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <%= link_to (report.book&.title.presence || report.book_title), report_path(report),
+            class: "font-semibold text-gray-900 hover:underline" %>
+      <p class="mt-1 line-clamp-2 text-sm text-gray-500"><%= truncate(report.body.to_s, length: 80) %></p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <%= level_badge(report.level) %>
+      <%= ai_status_badge(report) %>
+    </div>
+  </div>
+
+  <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+    <% if report.reviewed? %>
+      <span class="rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700">교사 승인 완료</span>
+    <% end %>
+    <% if report.revision? %>
+      <span class="rounded-full bg-purple-100 px-2 py-0.5 font-medium text-purple-700">고쳐쓰기</span>
+    <% end %>
+    <% if report.shared? %>
+      <span class="rounded-full bg-teal-100 px-2 py-0.5 font-medium text-teal-700">공유됨</span>
+    <% end %>
+  </div>
+
+  <% if report.teacher_comment.present? %>
+    <p class="mt-3 rounded-md bg-indigo-50 p-2 text-sm text-indigo-900">
+      선생님: <%= report.teacher_comment %>
+    </p>
+  <% end %>
+</article>

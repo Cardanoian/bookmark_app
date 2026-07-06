@@ -6,6 +6,28 @@ Rails.application.routes.draw do
   resources :registrations, only: [ :new, :create ]
   get "schools/search", to: "schools#search", as: :schools_search
 
+  # 학생 영역 — 독후감 CRUD + 3 입력 모드 + 고쳐쓰기·공유
+  resources :reports do
+    member do
+      post :revise
+      post :share
+    end
+  end
+  resource :ocr, only: [ :create ], controller: "ocr"
+
+  # 담임교사 — 검토 큐·5축 조정·승인·진위 확인
+  namespace :teacher do
+    resources :reviews, only: [ :index, :show, :update ] do
+      member do
+        post :approve
+        post :verify
+      end
+      collection do
+        post :batch_approve
+      end
+    end
+  end
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
