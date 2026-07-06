@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <title><%= content_for(:title) || "책갈피 인쇄" %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <style>
+      body { background: #ffffff; color: #111827; }
+      .print-toolbar { position: sticky; top: 0; }
+      @media print {
+        .no-print { display: none !important; }
+        @page { margin: 16mm; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      }
+    </style>
+  </head>
+
+  <body class="p-6">
+    <div class="print-toolbar no-print mb-6 flex items-center gap-3">
+      <button type="button" onclick="window.print()"
+              class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white">인쇄하기</button>
+      <a href="<%= teacher_dashboard_path %>" class="text-sm text-gray-500">대시보드로</a>
+    </div>
+
+    <main class="mx-auto max-w-3xl">
+      <%= yield %>
+    </main>
+  </body>
+</html>

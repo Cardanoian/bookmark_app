@@ -1,0 +1,39 @@
+<% content_for :title, "퀴즈 관리 · 책갈피" %>
+
+<div class="flex w-full gap-6">
+  <%= render "teacher/nav", active: :quizzes %>
+
+  <section class="min-w-0 flex-1 space-y-6">
+    <header class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-gray-900">퀴즈 관리</h1>
+      <%= link_to "새 퀴즈", new_teacher_quiz_path,
+            class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white" %>
+    </header>
+
+    <div class="rounded-lg border border-gray-200">
+      <% if @quizzes.any? %>
+        <ul class="divide-y divide-gray-100">
+          <% @quizzes.each do |quiz| %>
+            <li class="flex items-center justify-between gap-3 p-3">
+              <span class="min-w-0">
+                <span class="block font-medium text-gray-900"><%= quiz.title %></span>
+                <span class="block text-xs text-gray-500">
+                  문항 <%= quiz.quiz_questions.size %>개 ·
+                  <%= quiz.published? ? "게시됨" : "미게시" %>
+                </span>
+              </span>
+              <div class="flex shrink-0 items-center gap-2">
+                <%= link_to "편집", edit_teacher_quiz_path(quiz), class: "text-sm text-indigo-600" %>
+                <%= button_to "삭제", teacher_quiz_path(quiz), method: :delete,
+                      form: { data: { turbo_confirm: "삭제할까요?" } },
+                      class: "text-sm text-rose-600" %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="p-4 text-sm text-gray-500">등록된 퀴즈가 없어요.</p>
+      <% end %>
+    </div>
+  </section>
+</div>

@@ -8,6 +8,8 @@ class Quiz < ApplicationRecord
   has_many :quiz_questions, -> { order(:position) }, dependent: :destroy, inverse_of: :quiz
   has_many :quiz_attempts, dependent: :destroy
 
+  accepts_nested_attributes_for :quiz_questions, allow_destroy: true
+
   enum :scope, { classroom: 0, global: 1 }
 
   validates :title, presence: true

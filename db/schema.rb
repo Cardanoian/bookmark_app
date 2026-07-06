@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_000008) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000010) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -119,6 +119,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000008) do
     t.integer "user_id", null: false
     t.index ["topic_id"], name: "index_forum_posts_on_topic_id"
     t.index ["user_id"], name: "index_forum_posts_on_user_id"
+  end
+
+  create_table "library_events", force: :cascade do |t|
+    t.integer "book_id"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.date "event_on"
+    t.integer "school_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["school_id"], name: "index_library_events_on_school_id"
+  end
+
+  create_table "library_loans", force: :cascade do |t|
+    t.string "book_title"
+    t.integer "count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.string "isbn"
+    t.string "period"
+    t.integer "school_id"
+    t.integer "source", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["school_id", "book_title", "period"], name: "index_library_loans_on_school_id_and_book_title_and_period"
+    t.index ["school_id"], name: "index_library_loans_on_school_id"
   end
 
   create_table "missions", force: :cascade do |t|

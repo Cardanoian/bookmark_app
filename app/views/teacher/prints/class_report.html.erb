@@ -1,0 +1,56 @@
+<% content_for :title, "학급 성장 리포트 · 책갈피" %>
+
+<article class="space-y-6">
+  <header class="border-b border-gray-200 pb-4">
+    <p class="text-sm text-indigo-600">책갈피 학급 성장 리포트</p>
+    <h1 class="mt-1 text-2xl font-bold text-gray-900"><%= @classroom.label %></h1>
+    <p class="mt-1 text-sm text-gray-500">
+      학생 <%= @students.size %>명 · 독후감 <%= @reports.size %>편 · <%= Date.current.strftime("%Y년 %m월 %d일") %>
+    </p>
+  </header>
+
+  <section class="grid gap-6 md:grid-cols-2">
+    <div class="rounded-lg border border-gray-200 p-5">
+      <h2 class="mb-3 text-sm font-semibold text-gray-700">학급 5축 방사형</h2>
+      <div class="flex justify-center">
+        <%= radar_chart_svg(@axis_averages, labels: @axis_labels) %>
+      </div>
+    </div>
+    <div class="rounded-lg border border-gray-200 p-5">
+      <h2 class="mb-3 text-sm font-semibold text-gray-700">축별 평균</h2>
+      <ul class="space-y-2 text-sm text-gray-700">
+        <% @axis_averages.each do |axis, value| %>
+          <li class="flex items-center gap-3">
+            <span class="w-20 shrink-0"><%= axis_label(axis) %></span>
+            <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+              <span class="block h-full rounded-full bg-indigo-500" style="width: <%= (value.to_f * 20).round %>%"></span>
+            </span>
+            <span class="w-10 shrink-0 text-right font-medium text-indigo-600"><%= value %></span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="mb-2 text-sm font-semibold text-gray-700">학생별 요약</h2>
+    <table class="w-full border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 text-left text-gray-500">
+          <th class="py-2">학생</th>
+          <th class="py-2">독후감</th>
+          <th class="py-2">포인트</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @students.each do |student| %>
+          <tr class="border-b border-gray-100">
+            <td class="py-2 text-gray-800"><%= student.name %></td>
+            <td class="py-2 text-gray-600"><%= @reports.count { |r| r.user_id == student.id } %></td>
+            <td class="py-2 text-gray-600"><%= student.points %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+</article>

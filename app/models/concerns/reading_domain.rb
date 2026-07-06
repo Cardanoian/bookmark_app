@@ -25,6 +25,15 @@ module ReadingDomain
     spelling: "[6국04-06]"
   }.freeze
 
+  # 축별 약점 보완 추천 활동(교사 대시보드 인사이트). 가장 낮은 축 → 활동 + 성취기준 코드.
+  RECOMMENDED_ACTIVITIES = {
+    content: "책 속 인물·사건·배경을 짚어 요약하는 활동으로 내용 이해를 다져요.",
+    emotion: "인상 깊은 장면과 그 까닭을 함께 쓰는 감상 일기를 권해요.",
+    life: "책 내용을 자신의 경험·생활과 연결해 보는 글쓰기를 권해요.",
+    structure: "생각 그물(마인드맵)로 문단을 짜고 고쳐쓰기를 연습해요.",
+    spelling: "맞춤법·띄어쓰기 짝 점검 활동으로 표기를 다듬어요."
+  }.freeze
+
   # 등급별 지급 포인트.
   LEVEL_POINTS = { "A" => 30, "B" => 20, "C" => 10 }.freeze
 

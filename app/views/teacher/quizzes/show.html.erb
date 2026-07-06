@@ -1,0 +1,28 @@
+<% content_for :title, "#{@quiz.title} · 책갈피" %>
+
+<div class="mx-auto w-full max-w-2xl space-y-4">
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900"><%= @quiz.title %></h1>
+    <span class="text-sm text-gray-500"><%= @quiz.published? ? "게시됨" : "미게시" %></span>
+  </header>
+
+  <ol class="space-y-3">
+    <% @quiz.quiz_questions.each do |question| %>
+      <li class="rounded-lg border border-gray-200 p-4">
+        <p class="font-medium text-gray-900"><%= question.prompt %></p>
+        <ul class="mt-2 space-y-1 text-sm">
+          <% question.choice_list.each_with_index do |choice, index| %>
+            <li class="<%= index == question.answer_index ? "font-semibold text-emerald-600" : "text-gray-600" %>">
+              <%= index + 1 %>. <%= choice %>
+            </li>
+          <% end %>
+        </ul>
+      </li>
+    <% end %>
+  </ol>
+
+  <div class="flex items-center gap-3">
+    <%= link_to "편집", edit_teacher_quiz_path(@quiz), class: "text-sm text-indigo-600" %>
+    <%= link_to "목록", teacher_quizzes_path, class: "text-sm text-gray-500" %>
+  </div>
+</div>
