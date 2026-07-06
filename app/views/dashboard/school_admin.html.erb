@@ -1,0 +1,23 @@
+<% content_for :title, "교무 대시보드 · 책갈피" %>
+
+<div class="w-full max-w-3xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-teal-600">교무관리자</p>
+      <h1 class="text-2xl font-bold text-gray-900"><%= current_user.name %></h1>
+      <% if current_user.school %>
+        <p class="mt-1 text-sm text-gray-500"><%= current_user.school.name %></p>
+      <% end %>
+    </div>
+    <%= button_to "로그아웃", session_path, method: :delete,
+          class: "rounded-lg bg-gray-800 px-4 py-2 text-sm text-white" %>
+  </header>
+
+  <nav class="mb-8 flex gap-4 text-sm font-medium text-gray-500">
+    <span class="text-gray-900">전교 통계</span>
+    <span>계정 관리</span>
+  </nav>
+
+  <%= render "shared/empty_state",
+        message: "표시할 전교 통계가 아직 없습니다.", icon: "📊" %>
+</div>

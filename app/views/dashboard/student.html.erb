@@ -1,0 +1,26 @@
+<% content_for :title, "내 서재 · 책갈피" %>
+
+<div class="w-full max-w-3xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-amber-600">학생</p>
+      <h1 class="text-2xl font-bold text-gray-900">
+        <%= current_user.name %>님의 서재
+      </h1>
+    </div>
+    <%= button_to "로그아웃", session_path, method: :delete,
+          class: "rounded-lg bg-gray-800 px-4 py-2 text-sm text-white" %>
+  </header>
+
+  <nav class="mb-8 border-b border-gray-200">
+    <ul class="flex gap-6 text-sm font-medium">
+      <li class="border-b-2 border-amber-400 pb-3 text-gray-900">내 서재</li>
+      <li class="pb-3 text-gray-400">독후감</li>
+      <li class="pb-3 text-gray-400">게임</li>
+      <li class="pb-3 text-gray-400">랭킹</li>
+    </ul>
+  </nav>
+
+  <%= render "shared/empty_state",
+        message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+</div>
