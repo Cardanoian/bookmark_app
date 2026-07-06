@@ -38,13 +38,16 @@ class ReportPolicy < ApplicationPolicy
     update?
   end
 
-  # 고쳐쓰기·공유는 작성자 본인만.
+  # 고쳐쓰기는 작성자 본인만.
   def revise?
     user.present? && record.user_id == user.id
   end
 
+  # 우수작 공유는 작성자 본인 또는 담당 교사(총괄 포함).
   def share?
-    revise?
+    return false unless user
+
+    record.user_id == user.id || teacher_of_classroom? || user.superadmin?
   end
 
   # 검토·승인·진위 확인은 학급 담임(또는 superadmin)만.

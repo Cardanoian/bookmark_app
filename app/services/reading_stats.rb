@@ -63,14 +63,14 @@ class ReadingStats
     @user.reports.where.not(challenge_id: nil).distinct.count(:challenge_id)
   end
 
-  # 퀴즈/게임 플레이 수. Phase 5 도입 전까지 0.
+  # 퀴즈/게임 플레이 수(P5.6). 학생의 quiz_attempts 누적(독서게임 → 진화 조건 quizzes: 연동).
   def quizzes
-    0
+    @user.quiz_attempts.count
   end
 
-  # 토론 글 수. Phase 5 도입 전까지 0.
+  # 토론 글 수(작성한 forum_posts, P5.4).
   def topic_posts
-    0
+    @user.forum_posts.count
   end
 
   # 받은 응원 수 합계.

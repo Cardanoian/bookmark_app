@@ -1,0 +1,40 @@
+<% content_for :title, "독서 빙고 · 책갈피" %>
+
+<div class="w-full max-w-3xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">🎉 독서 빙고</h1>
+      <p class="mt-1 text-sm text-gray-500"><%= @quiz.title %> · 빙고판의 문제를 풀어 칸을 채워 보세요!</p>
+    </div>
+    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <% if flash[:notice] %>
+    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><%= flash[:notice] %></div>
+  <% end %>
+
+  <%= form_with url: games_attempts_path, method: :post, class: "space-y-5" do |f| %>
+    <%= f.hidden_field :quiz_id, value: @quiz.id %>
+    <%= f.hidden_field :game, value: "bingo" %>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <% @quiz.quiz_questions.each_with_index do |question, index| %>
+        <fieldset class="rounded-xl border border-indigo-200 bg-indigo-50/40 p-3">
+          <legend class="px-1 text-xs font-semibold text-indigo-900">
+            <%= index + 1 %>번 칸. <%= question.prompt %>
+          </legend>
+          <div class="mt-2 space-y-1.5">
+            <% question.choice_list.each_with_index do |choice, choice_index| %>
+              <label class="flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 text-xs text-gray-700 hover:bg-indigo-100">
+                <%= radio_button_tag "answers[#{question.id}]", choice_index, false, required: true, class: "text-indigo-500" %>
+                <%= choice %>
+              </label>
+            <% end %>
+          </div>
+        </fieldset>
+      <% end %>
+    </div>
+
+    <%= f.submit "빙고 완성!", class: "rounded-lg bg-indigo-500 px-5 py-2 text-sm font-medium text-white" %>
+  <% end %>
+</div>

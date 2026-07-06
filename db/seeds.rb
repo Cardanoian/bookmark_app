@@ -20,3 +20,9 @@ end
 Rake::Task["monsters:seed"].invoke
 Rake::Task["badges:seed"].invoke
 Rake::Task["shop_items:seed"].invoke
+
+# Book catalog (권장도서 + 고전).
+Rake::Task["books:seed"].invoke
+
+# Sample published quiz so 독서게임(quiz/golden/bingo) is playable in development (P5.6).
+Rake::Task["quizzes:seed"].invoke

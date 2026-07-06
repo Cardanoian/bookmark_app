@@ -1,0 +1,175 @@
+require "json"
+
+module Books
+  # 도서 검색(P5.1, RAILS_PLAN §9.6). Kakao → 실패 시 Naver 폴백, 결과를 정규화해
+  # `{ title, author, publisher, thumbnail, isbn, description }` 배열로 반환한다.
+  #
+  # 두 제공자 키가 모두 비어 있거나(placeholder) 모든 요청이 실패하면 로컬 캐시
+  # (`books` 테이블, title LIKE)로 graceful 폴백 — 네트워크 없이도 크래시하지 않는다.
+  # 원격 결과는 `category: :searched` 로 `books` 에 isbn upsert 캐시한다.
+  class SearchService
+    KAKAO_BASE = "https://dapi.kakao.com".freeze
+    KAKAO_PATH = "/v3/search/book".freeze
+    NAVER_BASE = "https://openapi.naver.com".freeze
+    NAVER_PATH = "/v1/search/book.json".freeze
+
+    # connection 들은 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단)한다.
+    def initialize(
+      kakao_key: Rails.application.credentials.dig(:kakao, :rest_key),
+      naver_id: Rails.application.credentials.dig(:naver, :client_id),
+      naver_secret: Rails.application.credentials.dig(:naver, :client_secret),
+      kakao_connection: nil,
+      naver_connection: nil
+    )
+      @kakao_key = kakao_key.to_s
+      @naver_id = naver_id.to_s
+      @naver_secret = naver_secret.to_s
+      @kakao_connection = kakao_connection
+      @naver_connection = naver_connection
+    end
+
+    # 키가 하나라도 있으면 원격 검색 가능(네트워크 호출 없음).
+    def self.available?
+      new.available?
+    end
+
+    def available?
+      kakao_configured? || naver_configured?
+    end
+
+    # 정규화된 결과 배열을 반환. 원격 성공 시 캐시, 실패/무키 시 로컬 폴백.
+    def call(query)
+      term = query.to_s.strip
+      return [] if term.blank?
+
+      results = fetch_from_kakao(term) || fetch_from_naver(term)
+      if results
+        cache(results)
+        results
+      else
+        local_matches(term)
+      end
+    end
+
+    private
+
+    def kakao_configured?
+      @kakao_key.present?
+    end
+
+    def naver_configured?
+      @naver_id.present? && @naver_secret.present?
+    end
+
+    # 성공 시 정규화 배열, 미설정/실패 시 nil(다음 제공자로 폴백).
+    def fetch_from_kakao(query)
+      return nil unless kakao_configured?
+
+      response = kakao_connection.get(KAKAO_PATH) do |req|
+        req.params["query"] = query
+        req.headers["Authorization"] = "KakaoAK #{@kakao_key}"
+      end
+      return nil unless response.success?
+
+      normalize_kakao(response.body)
+    rescue Faraday::Error
+      nil
+    end
+
+    def fetch_from_naver(query)
+      return nil unless naver_configured?
+
+      response = naver_connection.get(NAVER_PATH) do |req|
+        req.params["query"] = query
+        req.headers["X-Naver-Client-Id"] = @naver_id
+        req.headers["X-Naver-Client-Secret"] = @naver_secret
+      end
+      return nil unless response.success?
+
+      normalize_naver(response.body)
+    rescue Faraday::Error
+      nil
+    end
+
+    def normalize_kakao(body)
+      Array(parse(body)["documents"]).map do |doc|
+        {
+          title: doc["title"].to_s,
+          author: Array(doc["authors"]).join(", "),
+          publisher: doc["publisher"].to_s,
+          thumbnail: doc["thumbnail"].to_s,
+          isbn: pick_isbn(doc["isbn"]),
+          description: doc["contents"].to_s
+        }
+      end
+    end
+
+    def normalize_naver(body)
+      Array(parse(body)["items"]).map do |item|
+        {
+          title: item["title"].to_s,
+          author: item["author"].to_s.tr("^", ",").squeeze(",").gsub(",", ", ").strip,
+          publisher: item["publisher"].to_s,
+          thumbnail: item["image"].to_s,
+          isbn: pick_isbn(item["isbn"]),
+          description: item["description"].to_s
+        }
+      end
+    end
+
+    # 로컬 캐시 폴백: 제목 부분 일치. 정규화 형식으로 반환.
+    def local_matches(query)
+      pattern = "%#{Book.sanitize_sql_like(query)}%"
+      Book.where("title LIKE ?", pattern).order(:title).limit(20).map do |book|
+        {
+          title: book.title.to_s,
+          author: book.author.to_s,
+          publisher: book.publisher.to_s,
+          thumbnail: book.cover_url.to_s,
+          isbn: book.isbn.to_s,
+          description: book.summary.to_s
+        }
+      end
+    end
+
+    # 원격 결과를 books 에 isbn upsert 캐시(category: :searched). 빈 isbn 은 건너뛴다.
+    def cache(results)
+      results.each do |attrs|
+        isbn = attrs[:isbn]
+        next if isbn.blank?
+
+        book = Book.find_or_initialize_by(isbn: isbn)
+        book.title = attrs[:title] if attrs[:title].present?
+        book.author = attrs[:author]
+        book.publisher = attrs[:publisher]
+        book.cover_url = attrs[:thumbnail]
+        book.summary = attrs[:description]
+        book.category = :searched if book.new_record?
+        book.save
+      end
+    end
+
+    # kakao/naver 는 "ISBN10 ISBN13" 처럼 공백 구분 문자열을 주기도 한다. 긴 쪽(ISBN13) 우선.
+    def pick_isbn(raw)
+      raw.to_s.split.max_by(&:length).to_s
+    end
+
+    def parse(body)
+      body.is_a?(String) ? JSON.parse(body) : body
+    rescue JSON::ParserError
+      {}
+    end
+
+    def kakao_connection
+      @kakao_connection ||= Faraday.new(url: KAKAO_BASE) do |faraday|
+        faraday.adapter Faraday.default_adapter
+      end
+    end
+
+    def naver_connection
+      @naver_connection ||= Faraday.new(url: NAVER_BASE) do |faraday|
+        faraday.adapter Faraday.default_adapter
+      end
+    end
+  end
+end

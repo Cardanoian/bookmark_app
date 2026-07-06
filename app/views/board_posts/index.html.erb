@@ -1,0 +1,16 @@
+<% content_for :title, "우수작 게시판 · 책갈피" %>
+
+<div class="mx-auto w-full max-w-3xl space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">우수작 게시판</h1>
+    <p class="mt-1 text-sm text-gray-500">친구들의 멋진 독후감에 응원과 스티커를 남겨 보세요.</p>
+  </header>
+
+  <% if @board_posts.any? %>
+    <div class="space-y-3">
+      <%= render partial: "board_posts/board_post", collection: @board_posts, as: :board_post %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 공유된 우수작이 없어요.", icon: "🏅" %>
+  <% end %>
+</div>

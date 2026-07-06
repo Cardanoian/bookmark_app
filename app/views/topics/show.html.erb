@@ -1,0 +1,24 @@
+<% content_for :title, "#{@topic.title} · 책갈피" %>
+
+<div class="mx-auto w-full max-w-2xl space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900"><%= @topic.title %></h1>
+    <p class="mt-1 text-sm text-gray-500"><%= @topic.classroom? ? "우리 반 토론" : "우리 학교 토론" %></p>
+  </header>
+
+  <section class="space-y-3">
+    <% if @forum_posts.any? %>
+      <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post %>
+    <% else %>
+      <p class="text-sm text-gray-500">첫 글을 남겨 보세요.</p>
+    <% end %>
+  </section>
+
+  <%= form_with model: @forum_post, url: topic_forum_posts_path(@topic), method: :post, class: "space-y-2" do |f| %>
+    <%= f.text_area :text, rows: 3, required: true, placeholder: "생각을 나눠 보세요",
+          class: "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+    <%= f.submit "글 남기기", class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+  <% end %>
+
+  <%= link_to "목록으로", topics_path, class: "text-sm text-gray-500" %>
+</div>

@@ -84,9 +84,21 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 0, @stats.streak_days
   end
 
-  test "quizzes and topic_posts return 0 (Phase 5 not yet wired)" do
+  test "quizzes counts the user's quiz_attempts (P5.6 wired)" do
     assert_equal 0, @stats.quizzes
+    teacher = User.create!(school: @school, classroom: @classroom, name: "지표교사", password: "password", role: :teacher)
+    quiz = Quiz.create!(title: "지표 퀴즈", created_by: teacher, scope: :global)
+    quiz.quiz_attempts.create!(user: @user, score: 2, answers: {}, played_at: Time.current)
+    quiz.quiz_attempts.create!(user: @user, score: 3, answers: {}, played_at: Time.current)
+    assert_equal 2, ReadingStats.new(@user).quizzes
+  end
+
+  test "topic_posts counts the user's forum posts (P5.4 wired)" do
     assert_equal 0, @stats.topic_posts
+    topic = Topic.create!(scope: :classroom, classroom: @classroom, title: "토론 주제")
+    topic.forum_posts.create!(user: @user, text: "첫 글")
+    topic.forum_posts.create!(user: @user, text: "둘째 글")
+    assert_equal 2, ReadingStats.new(@user).topic_posts
   end
 
   test "dex_count counts distinct owned dex lines" do

@@ -12,7 +12,7 @@ class ReportsController < ApplicationController
   end
 
   def new
-    @report = Current.user.reports.new(input_mode: params[:input_mode].presence || "keyboard")
+    @report = Current.user.reports.new(prefill_attributes)
     authorize @report
   end
 
@@ -67,16 +67,25 @@ class ReportsController < ApplicationController
     end
   end
 
+  # 우수작 공유(P5.3): report.shared 를 켜고 게시판 게시물을 만든다(report 당 1개).
   def share
     authorize @report, :share?
-    @report.update(shared: !@report.shared)
-    redirect_to @report, notice: @report.shared? ? "우수작 게시판에 공유했어요." : "공유를 취소했어요."
+    @report.update!(shared: true)
+    board_post = BoardPost.find_or_create_by!(report: @report)
+    redirect_to board_post_path(board_post), notice: "우수작 게시판에 공유했어요."
   end
 
   private
 
   def set_report
     @report = Report.find(params[:id])
+  end
+
+  # 새 독후감 기본값 + 위저드(P5.5) 초안 프리필(book_title/body).
+  def prefill_attributes
+    attrs = { input_mode: params[:input_mode].presence || "keyboard" }
+    attrs.merge!(params.require(:report).permit(:book_title, :body).to_h) if params[:report].present?
+    attrs
   end
 
   # 미션/챌린지 참여 후 첫 작성 글에 mission_id/challenge_id 를 연결한다(P4.11).

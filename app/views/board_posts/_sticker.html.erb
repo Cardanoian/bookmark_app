@@ -1,0 +1,7 @@
+<%# 문장 스티커(P5.3). local: sticker %>
+<span id="<%= dom_id(sticker) %>" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm">
+  <span><%= sticker.emoji %></span>
+  <% if sticker.label.present? %>
+    <span class="text-xs text-gray-600"><%= sticker.label %></span>
+  <% end %>
+</span>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000008) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -49,6 +49,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
     t.index ["key"], name: "index_badges_on_key", unique: true
   end
 
+  create_table "board_posts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "hidden", default: false, null: false
+    t.integer "hidden_by_id"
+    t.integer "report_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hidden_by_id"], name: "index_board_posts_on_hidden_by_id"
+    t.index ["report_id"], name: "index_board_posts_on_report_id", unique: true
+  end
+
   create_table "books", force: :cascade do |t|
     t.string "author"
     t.integer "category", default: 0, null: false
@@ -76,6 +86,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
     t.index ["school_id"], name: "index_challenges_on_school_id"
   end
 
+  create_table "cheers", force: :cascade do |t|
+    t.integer "board_post_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["board_post_id", "user_id"], name: "index_cheers_on_board_post_id_and_user_id", unique: true
+    t.index ["board_post_id"], name: "index_cheers_on_board_post_id"
+    t.index ["user_id"], name: "index_cheers_on_user_id"
+  end
+
   create_table "classrooms", force: :cascade do |t|
     t.integer "class_no"
     t.datetime "created_at", null: false
@@ -87,6 +107,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
     t.index ["school_id", "grade", "class_no"], name: "index_classrooms_on_school_id_and_grade_and_class_no", unique: true
     t.index ["school_id"], name: "index_classrooms_on_school_id"
     t.index ["teacher_id"], name: "index_classrooms_on_teacher_id"
+  end
+
+  create_table "forum_posts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "hidden", default: false, null: false
+    t.integer "likes_count", default: 0, null: false
+    t.text "text"
+    t.integer "topic_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["topic_id"], name: "index_forum_posts_on_topic_id"
+    t.index ["user_id"], name: "index_forum_posts_on_user_id"
   end
 
   create_table "missions", force: :cascade do |t|
@@ -129,6 +161,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
     t.index ["shop_item_id"], name: "index_purchases_on_shop_item_id"
     t.index ["user_id", "shop_item_id"], name: "index_purchases_on_user_id_and_shop_item_id", unique: true
     t.index ["user_id"], name: "index_purchases_on_user_id"
+  end
+
+  create_table "quiz_attempts", force: :cascade do |t|
+    t.json "answers"
+    t.datetime "created_at", null: false
+    t.datetime "played_at"
+    t.integer "quiz_id", null: false
+    t.integer "score"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["quiz_id"], name: "index_quiz_attempts_on_quiz_id"
+    t.index ["user_id"], name: "index_quiz_attempts_on_user_id"
+  end
+
+  create_table "quiz_questions", force: :cascade do |t|
+    t.integer "answer_index"
+    t.json "choices"
+    t.datetime "created_at", null: false
+    t.integer "position"
+    t.text "prompt"
+    t.integer "quiz_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_id"], name: "index_quiz_questions_on_quiz_id"
+  end
+
+  create_table "quizzes", force: :cascade do |t|
+    t.integer "book_id"
+    t.integer "classroom_id"
+    t.datetime "created_at", null: false
+    t.integer "created_by_id", null: false
+    t.boolean "published", default: false, null: false
+    t.integer "scope", default: 0, null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_quizzes_on_book_id"
+    t.index ["classroom_id"], name: "index_quizzes_on_classroom_id"
+    t.index ["created_by_id"], name: "index_quizzes_on_created_by_id"
   end
 
   create_table "reports", force: :cascade do |t|
@@ -201,6 +270,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "stickers", force: :cascade do |t|
+    t.integer "by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.string "emoji"
+    t.string "label"
+    t.integer "position"
+    t.integer "report_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["by_user_id"], name: "index_stickers_on_by_user_id"
+    t.index ["report_id"], name: "index_stickers_on_report_id"
+  end
+
+  create_table "topics", force: :cascade do |t|
+    t.integer "book_id"
+    t.integer "classroom_id"
+    t.datetime "created_at", null: false
+    t.boolean "hidden", default: false, null: false
+    t.integer "school_id"
+    t.integer "scope", default: 0, null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["classroom_id"], name: "index_topics_on_classroom_id"
+    t.index ["school_id"], name: "index_topics_on_school_id"
+  end
+
   create_table "user_badges", force: :cascade do |t|
     t.integer "badge_id", null: false
     t.datetime "created_at", null: false
@@ -248,18 +342,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_06_140011) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "board_posts", "reports"
+  add_foreign_key "board_posts", "users", column: "hidden_by_id"
+  add_foreign_key "cheers", "board_posts"
+  add_foreign_key "cheers", "users"
   add_foreign_key "classrooms", "schools"
   add_foreign_key "classrooms", "users", column: "teacher_id"
+  add_foreign_key "forum_posts", "topics"
+  add_foreign_key "forum_posts", "users"
   add_foreign_key "missions", "classrooms"
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id"
   add_foreign_key "purchases", "shop_items"
   add_foreign_key "purchases", "users"
+  add_foreign_key "quiz_attempts", "quizzes"
+  add_foreign_key "quiz_attempts", "users"
+  add_foreign_key "quiz_questions", "quizzes"
+  add_foreign_key "quizzes", "users", column: "created_by_id"
   add_foreign_key "reports", "books"
   add_foreign_key "reports", "challenges"
   add_foreign_key "reports", "classrooms"
   add_foreign_key "reports", "missions"
   add_foreign_key "reports", "reports", column: "revision_of_id"
   add_foreign_key "reports", "users"
+  add_foreign_key "stickers", "reports"
+  add_foreign_key "stickers", "users", column: "by_user_id"
   add_foreign_key "user_badges", "badges"
   add_foreign_key "user_badges", "users"
   add_foreign_key "user_monsters", "monster_species", column: "monster_species_id"

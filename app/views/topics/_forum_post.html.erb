@@ -1,0 +1,9 @@
+<%# 토론 글(P5.4). local: forum_post %>
+<article id="<%= dom_id(forum_post) %>" class="rounded-lg border border-gray-200 p-3">
+  <p class="whitespace-pre-wrap text-sm text-gray-800"><%= forum_post.text %></p>
+  <p class="mt-2 flex items-center gap-2 text-xs text-gray-500">
+    <span><%= forum_post.user.name %></span>
+    <span>·</span>
+    <span>👍 <%= forum_post.likes_count %></span>
+  </p>
+</article>
