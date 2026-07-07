@@ -69,9 +69,48 @@ class ReportTest < ActiveSupport::TestCase
     assert report.errors[:audio].any?
   end
 
+  test "rejects an upload whose multipart content-type is spoofed as an image" do
+    # 텍스트 파일이지만 멀티파트 Content-Type 을 image/png 로 위조 → 서버 재식별으로 거부.
+    report = build_report(book_title: "스푸핑 첨부")
+    report.photo.attach(io: StringIO.new("this is really plain text, not an image"),
+                        filename: "evil.txt", content_type: "image/png")
+    assert_not report.valid?, "위조된 content-type 은 통과하면 안 된다"
+    assert report.errors[:photo].any?
+  end
+
+  test "accepts a genuine image identified by its magic bytes despite a mislabeled type" do
+    report = build_report(book_title: "진짜 이미지")
+    report.photo.attach(io: StringIO.new(png_bytes), filename: "cover.bin", content_type: "application/octet-stream")
+    assert report.valid?, report.errors.full_messages.to_sentence
+  end
+
+  test "accepts a genuine audio file identified by its magic bytes" do
+    report = build_report(book_title: "진짜 오디오")
+    report.audio.attach(io: StringIO.new(wav_bytes), filename: "voice.dat", content_type: "application/octet-stream")
+    assert report.valid?, report.errors.full_messages.to_sentence
+  end
+
+  test "a genuine image saves and uploads intact after server-side identification" do
+    report = build_report(book_title: "저장되는 이미지")
+    report.photo.attach(io: StringIO.new(png_bytes), filename: "cover.png", content_type: "image/png")
+    assert report.save, report.errors.full_messages.to_sentence
+    report.reload
+    assert report.photo.attached?
+    assert_equal png_bytes.bytesize, report.photo.blob.byte_size, "재식별 시 IO 를 읽어도 업로드가 잘리지 않는다"
+  end
+
   private
 
   def build_report(attrs = {})
     Report.new({ user: @user, classroom: @classroom, book_title: "기본 제목" }.merge(attrs))
+  end
+
+  # 실제 매직바이트를 가진 최소 미디어 페이로드.
+  def png_bytes
+    [ 137, 80, 78, 71, 13, 10, 26, 10 ].pack("C*") + ("\x00" * 64)
+  end
+
+  def wav_bytes
+    "RIFF" + [ 36 ].pack("V") + "WAVE" + "fmt " + ("\x00" * 32)
   end
 end

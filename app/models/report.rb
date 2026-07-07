@@ -113,12 +113,45 @@ class Report < ApplicationRecord
     return unless attachment.attached?
 
     blob = attachment.blob
-    unless allowed_prefixes.any? { |prefix| blob.content_type.to_s.start_with?(prefix) }
+    content_type = server_identified_content_type(name, blob)
+    unless allowed_prefixes.any? { |prefix| content_type.to_s.start_with?(prefix) }
       errors.add(name, "허용되지 않는 파일 형식입니다.")
     end
 
     if blob.byte_size.to_i > max_bytes
       errors.add(name, "파일 크기가 너무 큽니다.")
+    end
+  end
+
+  # 멀티파트로 신고된 content_type 은 스푸핑 가능하므로 신뢰하지 않는다(§2.10).
+  # 업로드된 실제 바이트의 매직바이트 + 파일명으로 서버에서 재식별한다(declared_type
+  # 미사용). 매직바이트가 명확하면 우선하고, 불명확하면 확장자로 폴백한다. 이렇게 하면
+  # 클라이언트가 Content-Type 헤더만 image/*·audio/* 로 위조해도 통과할 수 없다.
+  # (잔여 리스크: 확장자까지 맞춘 비미디어 파일은 통과 가능 — 브라우저는 선언 타입으로
+  #  무해하게 렌더하며 스크립트 실행 벡터가 아니므로 LOW.)
+  def server_identified_content_type(name, blob)
+    io = pending_upload_io(name)
+    return blob.content_type unless io
+
+    io.rewind if io.respond_to?(:rewind)
+    Marcel::MimeType.for(io, name: blob.filename.to_s)
+  ensure
+    io.rewind if io.respond_to?(:rewind)
+  end
+
+  # 저장 전(업로드 전) 첨부의 원본 IO 를 구한다. 컨트롤러 업로드는 UploadedFile,
+  # 테스트/내부 attach 는 { io: } 해시 형태다. 이미 업로드된 blob·signed id 는
+  # 재식별 대상이 아니므로 nil 을 돌려 저장된 식별값으로 폴백하게 한다.
+  def pending_upload_io(name)
+    attachable = attachment_changes[name.to_s]&.attachable
+    case attachable
+    when Hash
+      io = attachable[:io]
+      io if io.respond_to?(:read)
+    when ActiveStorage::Blob, String, NilClass
+      nil
+    else
+      attachable if attachable.respond_to?(:read)
     end
   end
 end

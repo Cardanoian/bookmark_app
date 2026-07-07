@@ -74,6 +74,14 @@ module Ai
 
     def connection
       @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 8 }) do |faraday|
+        # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(진위검증/퀴즈 초안 생성)
+        # 양쪽에서 쓰인다. max: 2 로 상한을 타이트하게 잡아 동기 경로 최악 대기시간을
+        # timeout(8s) * (시도 1 + 재시도 2) = 24s 이내로 묶는다 — 저빈도 교사 액션이라 허용 가능.
+        # generateContent 호출은 POST 라서 methods 기본값(idempotent 메서드만)엔 없다 — 명시해야 실제로 재시도된다.
+        faraday.request :retry, max: 2, interval: 0.3, backoff_factor: 2,
+                                 methods: [ :post ],
+                                 retry_statuses: [ 429, 503 ],
+                                 exceptions: [ Faraday::TimeoutError, Faraday::ConnectionFailed ]
         faraday.adapter Faraday.default_adapter
       end
     end

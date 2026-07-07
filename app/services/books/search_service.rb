@@ -68,9 +68,14 @@ module Books
     end
 
     def normalize_naver(body)
-      Array(parse(body)["items"]).map do |item|
+      Array(parse(body)["items"]).filter_map do |item|
+        next unless item.is_a?(Hash)
+
+        title = item["title"].to_s
+        next if title.blank?
+
         {
-          title: item["title"].to_s,
+          title: title,
           author: item["author"].to_s.tr("^", ",").squeeze(",").gsub(",", ", ").strip,
           publisher: item["publisher"].to_s,
           thumbnail: item["image"].to_s,

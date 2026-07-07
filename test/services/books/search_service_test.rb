@@ -70,6 +70,39 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
     assert_equal [], Books::SearchService.new(naver_id: "N", naver_secret: "S").call("")
   end
 
+  test "skips items with a blank title so a malformed item can't pollute results" do
+    connection = stub_connection do |stub|
+      stub.get("/v1/search/book.json") do
+        [ 200, {}, {
+          "items" => [
+            { "title" => "", "author" => "익명", "isbn" => "9783333333333" },
+            { "title" => "정상책", "author" => "정상작가", "isbn" => "9784444444444" }
+          ]
+        }.to_json ]
+      end
+    end
+    service = Books::SearchService.new(naver_id: "N", naver_secret: "S", naver_connection: connection)
+
+    results = service.call("검색어")
+
+    assert_equal 1, results.size, "제목이 빈 항목은 건너뛰어야 한다"
+    assert_equal "정상책", results.first[:title]
+  end
+
+  test "skips non-Hash items in the naver response without crashing" do
+    connection = stub_connection do |stub|
+      stub.get("/v1/search/book.json") do
+        [ 200, {}, { "items" => [ "malformed-string-item", { "title" => "정상책" } ] }.to_json ]
+      end
+    end
+    service = Books::SearchService.new(naver_id: "N", naver_secret: "S", naver_connection: connection)
+
+    results = service.call("검색어")
+
+    assert_equal 1, results.size, "Hash 가 아닌 항목은 건너뛰어야 한다"
+    assert_equal "정상책", results.first[:title]
+  end
+
   # 동기 웹요청 경로(도서 검색)의 스레드 고갈을 막기 위해 실 Faraday 연결에 타임아웃을 설정한다(§0.4).
   test "real naver connection is configured with http timeouts (open 3s / read 8s)" do
     connection = Books::SearchService.new(naver_id: "N", naver_secret: "S").send(:naver_connection)

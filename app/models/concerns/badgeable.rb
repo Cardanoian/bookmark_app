@@ -21,7 +21,10 @@ module Badgeable
     when "levelA" then stats.a_grades >= 1
     when "tripleA" then stats.a_grades >= 3
     when "reviser" then stats.revisions >= 1
-    when "grower" then stats.revisions >= 1
+    # grower(성장의 증거)는 reviser(고쳐쓰기 1회)보다 강한 이정표 — 향상된 고쳐쓰기 3회 이상.
+    # (monsters.md §6.3 은 grower 임계값을 명시하지 않아, 두 뱃지가 항상 동시 해제되지 않도록
+    #  reviser=1 과 구분되는 상위 임계값을 둔다.)
+    when "grower" then stats.revisions >= 3
     when "challenger" then stats.challenges >= 1
     when "ocr" then reports.ocr.exists?
     when "first_evolve" then user_monsters.where.not(evolved_at: nil).exists?

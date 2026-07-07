@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_000014) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000015) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -380,12 +380,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000014) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "reports"
   add_foreign_key "board_posts", "users", column: "hidden_by_id"
+  add_foreign_key "challenges", "books", on_delete: :nullify
+  add_foreign_key "challenges", "schools", on_delete: :nullify
   add_foreign_key "cheers", "board_posts"
   add_foreign_key "cheers", "users"
   add_foreign_key "classrooms", "schools"
   add_foreign_key "classrooms", "users", column: "teacher_id"
   add_foreign_key "forum_posts", "topics"
   add_foreign_key "forum_posts", "users"
+  add_foreign_key "library_events", "books", on_delete: :nullify
+  add_foreign_key "library_events", "schools", on_delete: :nullify
+  add_foreign_key "library_loans", "schools", on_delete: :nullify
+  add_foreign_key "missions", "books", on_delete: :nullify
   add_foreign_key "missions", "classrooms"
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id"
   add_foreign_key "purchases", "shop_items"
@@ -393,6 +399,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000014) do
   add_foreign_key "quiz_attempts", "quizzes"
   add_foreign_key "quiz_attempts", "users"
   add_foreign_key "quiz_questions", "quizzes"
+  add_foreign_key "quizzes", "books", on_delete: :nullify
+  add_foreign_key "quizzes", "classrooms", on_delete: :nullify
   add_foreign_key "quizzes", "users", column: "created_by_id"
   add_foreign_key "reports", "books"
   add_foreign_key "reports", "challenges"
@@ -400,8 +408,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000014) do
   add_foreign_key "reports", "missions"
   add_foreign_key "reports", "reports", column: "revision_of_id"
   add_foreign_key "reports", "users"
+  add_foreign_key "seasons", "schools", on_delete: :nullify
   add_foreign_key "stickers", "reports"
   add_foreign_key "stickers", "users", column: "by_user_id"
+  add_foreign_key "topics", "books", on_delete: :nullify
+  add_foreign_key "topics", "classrooms", on_delete: :nullify
+  add_foreign_key "topics", "schools", on_delete: :nullify
   add_foreign_key "user_badges", "badges"
   add_foreign_key "user_badges", "users"
   add_foreign_key "user_monsters", "monster_species"

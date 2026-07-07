@@ -7,8 +7,12 @@ class CheersController < ApplicationController
     @cheer = @board_post.cheers.build(user: current_user)
     authorize @cheer
 
-    if @cheer.save
-      @board_post.report.increment!(:cheers_count)
+    begin
+      @board_post.report.increment!(:cheers_count) if @cheer.save
+    rescue ActiveRecord::RecordNotUnique
+      # 동시 더블클릭이 유니크 인덱스에 걸린 경우 — 이미 응원한 것으로 간주해
+      # 500 없이 조용히 성공 처리하고, 카운터는 재증가하지 않는다(중복 카운트 방지).
+      @cheer = @board_post.cheers.find_by(user: current_user)
     end
 
     respond_with_button

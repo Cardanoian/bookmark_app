@@ -45,6 +45,17 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
     assert_equal [], result[:reasons]
   end
 
+  test "logs a warning on ApiError so ops can see why authenticity came back neutral (no PII)" do
+    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("gemini responded with status 500"))
+    report = create_report(body: "민감한 학생 본문 내용")
+
+    logged = capture_log_output { Ai::VerifyService.new(client: client).call(report) }
+
+    assert_match(/VerifyService API failure/, logged)
+    assert_match(/ApiError/, logged)
+    assert_no_match(/민감한 학생 본문 내용/, logged, "report.body(개인정보) 는 로그에 남으면 안 된다")
+  end
+
   test "max_similarity is zero when the classroom has no other reports" do
     report = create_report(body: "혼자 있는 글입니다.")
     assert_equal 0.0, Ai::VerifyService.max_similarity(report)
@@ -69,5 +80,16 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
 
   def create_report(body:)
     Report.create!(user: @user, classroom: @classroom, book_title: "책", body: body)
+  end
+
+  # Rails.logger 출력을 캡처해 검사한다(테스트가 끝나면 원래 로거로 복원).
+  def capture_log_output
+    previous_logger = Rails.logger
+    io = StringIO.new
+    Rails.logger = Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = previous_logger
   end
 end

@@ -46,6 +46,25 @@ class Library::Data4libraryServiceTest < ActiveSupport::TestCase
     assert_equal 123, loans.first[:count]
   end
 
+  test "popular_loans skips docs with a blank isbn13 (never emits a 0/empty row)" do
+    connection = stub_connection do |stub|
+      stub.get("/api/loanItemSrch") do
+        [ 200, {}, {
+          "response" => { "docs" => [
+            { "doc" => { "bookname" => "정상책", "isbn13" => "9781111111111", "loan_count" => "10" } },
+            { "doc" => { "bookname" => "isbn없는책", "isbn13" => "", "loan_count" => "9" } }
+          ] }
+        }.to_json ]
+      end
+    end
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    loans = service.popular_loans
+
+    assert_equal 1, loans.size, "isbn13 이 빈 문서는 제외돼야 한다"
+    assert_equal "정상책", loans.first[:book_title]
+  end
+
   test "popular_loans returns [] on a non-200 response (never crashes)" do
     connection = stub_connection { |stub| stub.get("/api/loanItemSrch") { [ 500, {}, "err" ] } }
     service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)

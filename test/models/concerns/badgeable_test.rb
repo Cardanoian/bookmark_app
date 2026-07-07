@@ -31,10 +31,18 @@ class BadgeableTest < ActiveSupport::TestCase
     assert_includes keys, "tripleA"
   end
 
-  test "reviser granted when an improved revision exists" do
+  test "reviser granted with one improved revision but grower is NOT (grower needs 3)" do
     report(reviewed: true, improvement: 2.0)
     @user.refresh_badges!
     assert_includes keys, "reviser"
+    assert_not_includes keys, "grower", "grower 는 reviser 와 분리된 상위 이정표(향상 3회)"
+  end
+
+  test "grower granted once three improved revisions exist (and reviser too)" do
+    3.times { report(reviewed: true, improvement: 1.0) }
+    @user.refresh_badges!
+    assert_includes keys, "reviser"
+    assert_includes keys, "grower"
   end
 
   test "challenger granted by challenge participation" do

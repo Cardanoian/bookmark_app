@@ -63,9 +63,10 @@ module Library
       docs.filter_map do |entry|
         doc = entry.is_a?(Hash) ? (entry["doc"] || entry) : {}
         title = doc["bookname"].to_s.strip
-        next if title.blank?
+        isbn = doc["isbn13"].to_s.strip
+        next if title.blank? || isbn.blank?
 
-        { book_title: title, isbn: doc["isbn13"].to_s.strip, count: doc["loan_count"].to_i }
+        { book_title: title, isbn: isbn, count: doc["loan_count"].to_i }
       end
     rescue JSON::ParserError
       @last_error = "정보나루 응답 파싱 실패"

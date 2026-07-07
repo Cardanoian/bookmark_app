@@ -104,6 +104,54 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     assert_equal 0, @report.reload.cheers_count
   end
 
+  test "a concurrent duplicate cheer does not 500 and does not double-count" do
+    board_post = BoardPost.create!(report: @report)
+    login_as @peer
+    post board_post_cheers_path(board_post), as: :turbo_stream
+    assert_equal 1, @report.reload.cheers_count
+
+    # 동시 더블클릭 재현: 유니크 검증은 통과했으나 DB 유니크 인덱스가 거부해
+    # RecordNotUnique 가 나는 경쟁 상황. save 를 잠시 바꿔 강제로 재현한다.
+    Cheer.class_eval do
+      alias_method :__orig_save, :save
+      def save(*)
+        raise ActiveRecord::RecordNotUnique, "duplicate index"
+      end
+    end
+    begin
+      post board_post_cheers_path(board_post), as: :turbo_stream
+      assert_response :success, "중복 응원이 500 을 내지 않는다"
+    ensure
+      Cheer.class_eval do
+        remove_method :save
+        alias_method :save, :__orig_save
+        remove_method :__orig_save
+      end
+    end
+
+    assert_equal 1, @report.reload.cheers_count, "중복 요청은 카운터를 재증가시키지 않는다"
+    assert_equal 1, Cheer.where(board_post_id: board_post.id, user_id: @peer.id).count
+  end
+
+  test "a student cannot cheer a hidden board post" do
+    hidden = BoardPost.create!(report: @report, hidden: true)
+    login_as @peer
+    assert_no_difference "Cheer.count" do
+      post board_post_cheers_path(hidden), as: :turbo_stream
+    end
+    assert_response :forbidden
+  end
+
+  test "a student cannot place a sticker on a hidden board post" do
+    hidden = BoardPost.create!(report: @report, hidden: true)
+    login_as @peer
+    assert_no_difference "Sticker.count" do
+      post board_post_stickers_path(hidden),
+           params: { sticker: { emoji: "👍", label: "멋져요", position: 0 } }, as: :turbo_stream
+    end
+    assert_response :forbidden
+  end
+
   test "a student can place a sentence sticker on a shared report" do
     board_post = BoardPost.create!(report: @report)
     login_as @peer

@@ -27,6 +27,8 @@ gem "pundit"
 
 # HTTP client for external APIs (Gemini / Kakao / Naver / data4library) [https://github.com/lostisland/faraday]
 gem "faraday"
+# Retry middleware for Faraday (transient 429/503/timeout backoff) [https://github.com/lostisland/faraday-retry]
+gem "faraday-retry"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

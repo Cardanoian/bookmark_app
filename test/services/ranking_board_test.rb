@@ -81,4 +81,25 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal @s2, ranking.second.subject
     assert_equal 1, ranking.second.score
   end
+
+  # P2.7 — counts 에 담긴 user_id 가 조회에서 빠지면(유저 삭제/스코프 제외) subject 가 nil 인
+  # Entry 가 생겨 뷰의 entry.subject.name 에서 크래시한다. nil subject 는 제외되어야 한다.
+  test "challenge ranking skips entries whose user is missing without crashing" do
+    challenge = Challenge.create!(title: "겨울 챌린지")
+    2.times { |i| Report.create!(user: @s1, classroom: @class1, book_title: "챌#{i}", challenge_id: challenge.id) }
+    Report.create!(user: @s2, classroom: @class1, book_title: "챌", challenge_id: challenge.id)
+
+    # @s2 의 User 레코드만 제거해 report 를 고아로 만든다 → users[@s2.id] == nil 인 실제 상황 재현.
+    # FK 검사는 커밋까지 지연되고(disable_referential_integrity), 테스트 트랜잭션은 롤백되므로 안전.
+    ActiveRecord::Base.connection.disable_referential_integrity do
+      User.where(id: @s2.id).delete_all
+    end
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert(ranking.none? { |entry| entry.subject.nil? }, "nil subject 엔트리는 만들어지면 안 된다")
+    assert_equal 1, ranking.size
+    assert_equal @s1, ranking.first.subject
+    assert_equal 2, ranking.first.score
+  end
 end

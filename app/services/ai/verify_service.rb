@@ -17,7 +17,9 @@ module Ai
         response_json: true
       )
       { suspicion: response["suspicion"], reasons: Array(response["reasons"]).map(&:to_s) }
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError
+    rescue GeminiClient::NotConfigured, GeminiClient::ApiError => e
+      # report.body(개인정보 소지)는 로그에 남기지 않는다 — 예외 메시지는 상태코드/클래스 정보뿐이다.
+      Rails.logger.warn("VerifyService API failure: #{e.class}: #{e.message}")
       NEUTRAL.dup
     end
 

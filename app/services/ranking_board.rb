@@ -44,8 +44,12 @@ class RankingBoard
 
     counts = Report.where(challenge_id: challenge.id).group(:user_id).count
     users = User.where(id: counts.keys).index_by(&:id)
-    counts.map { |user_id, count| Entry.new(subject: users[user_id], score: count, meta: {}) }
-          .sort_by { |entry| -entry.score }
+    # users[user_id] 가 nil(유저 삭제/스코프 제외)이면 subject 가 nil 인 Entry 가 만들어져
+    # 뷰의 entry.subject.name 에서 크래시한다 → nil subject 는 건너뛴다(P2.7).
+    counts.filter_map do |user_id, count|
+      subject = users[user_id]
+      Entry.new(subject: subject, score: count, meta: {}) if subject
+    end.sort_by { |entry| -entry.score }
   end
 
   # 명예의 전당 — 성장 신호 = 도감 완성도(보유 라인) + 진화 성취(완전형 수).

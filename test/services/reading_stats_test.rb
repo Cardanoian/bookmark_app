@@ -168,4 +168,36 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert @stats.meets?(points: 100, reports: 3)
     assert @stats.meets?("points" => 100, "reports" => 3)
   end
+
+  # P2.2 — 지표 메모이제이션은 값을 바꾸지 않고 재계산만 없앤다.
+  test "memoization preserves every numeric stat value and to_h" do
+    classic = Book.create!(title: "고전", category: :classic)
+    report(reviewed: true, level: "A", improvement: 2.0, book: classic)
+    report(reviewed: true, level: "B")
+    stats = ReadingStats.new(@user)
+
+    # 메모이즈 전(첫 호출)과 후(둘째 호출)의 값이 동일해야 한다.
+    before = stats.to_h
+    after = stats.to_h
+    assert_equal before, after
+    # 신선 인스턴스가 계산한 참조값과도 일치(메모이즈가 값을 왜곡하지 않음).
+    assert_equal ReadingStats.new(@user).to_h, before
+    assert_equal 320, before[:points]
+    assert_equal 2, before[:reports]
+    assert_equal 1, before[:a_grades]
+    assert_equal 2, before[:b_or_better]
+    assert_equal 1, before[:classics]
+    assert_equal 1, before[:revisions]
+  end
+
+  test "each stat method issues no query on a repeated call (memoized)" do
+    report(reviewed: true)
+    stats = ReadingStats.new(@user)
+    ReadingStats::NUMERIC_KEYS.each do |key|
+      stats.public_send(key) # 메모 워밍(첫 호출에서 1회 쿼리)
+      assert_no_queries do
+        assert_not_nil stats.public_send(key), "#{key} 재호출은 메모값을 쿼리 없이 반환해야 한다"
+      end
+    end
+  end
 end
