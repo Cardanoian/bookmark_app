@@ -30,6 +30,8 @@ class SessionsController < ApplicationController
              only: :create
 
   skip_before_action :require_login, only: [ :new, :create ]
+  # 로그인/로그아웃 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
+  skip_after_action :verify_authorized
 
   def new
     load_form_collections

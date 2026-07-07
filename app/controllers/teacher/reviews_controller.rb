@@ -1,5 +1,7 @@
 class Teacher::ReviewsController < ApplicationController
   before_action :set_report, only: [ :show, :update, :approve, :verify ]
+  # index·batch_approve 는 ensure_reviewer! 역할 게이트로 담임 큐를 스코프한다(개별 리소스 authorize 없음).
+  skip_after_action :verify_authorized, only: [ :index, :batch_approve ]
 
   # 담임 학급의 미검토 큐(첨삭 완료된 독후감).
   def index

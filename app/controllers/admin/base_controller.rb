@@ -4,6 +4,8 @@ class Admin::BaseController < ApplicationController
   layout "admin"
 
   before_action :require_superadmin!
+  # Admin::* 네임스페이스는 require_superadmin! 역할 게이트로 일괄 인가한다(per-action Pundit 아님).
+  skip_after_action :verify_authorized
 
   private
 

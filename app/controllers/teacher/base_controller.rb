@@ -2,6 +2,8 @@
 # 담임 학급 스코프·소유 검증·5축 집계 같은 공통 로직을 제공한다. 비담임/타역할 → 403.
 class Teacher::BaseController < ApplicationController
   before_action :require_teacher!
+  # Teacher::* 네임스페이스는 require_teacher! 역할 게이트로 일괄 인가한다(per-action Pundit 아님).
+  skip_after_action :verify_authorized
 
   private
 

@@ -3,6 +3,8 @@
 # 로그인할 수 없다(세션 게이트). 가입 즉시 로그인시키지 않는다.
 class RegistrationsController < ApplicationController
   skip_before_action :require_login, only: [ :new, :create ]
+  # 공개 교사 신청 진입점 — 인가할 리소스가 없다(가입 전 비로그인 흐름).
+  skip_after_action :verify_authorized
 
   def new
     load_form_collections

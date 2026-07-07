@@ -20,7 +20,8 @@ class Teacher::QuizzesController < Teacher::BaseController
   def create
     @quiz = Quiz.new(quiz_params)
     @quiz.created_by = Current.user
-    @quiz.classroom = target_classroom
+    # 소유 학급만 배정 — 타 학급 id 주입 시 403(교차-학급 퀴즈 주입 방지, missions 패턴과 동일).
+    @quiz.classroom = owned_classroom!(target_classroom)
     @quiz.scope = :classroom
 
     if @quiz.save
@@ -35,7 +36,9 @@ class Teacher::QuizzesController < Teacher::BaseController
   end
 
   def update
-    if @quiz.update(quiz_params)
+    # classroom_id 는 수정으로 변경 불가 — 소유 퀴즈를 타 학급으로 재배정하는 경로를 차단
+    # (missions#update 와 동일한 방어). 학급은 생성 시점에만 소유 검증하에 정해진다.
+    if @quiz.update(quiz_params.except(:classroom_id))
       redirect_to edit_teacher_quiz_path(@quiz), notice: "퀴즈를 저장했어요."
     else
       render :edit, status: :unprocessable_entity

@@ -16,6 +16,11 @@ class ApplicationController < ActionController::Base
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
+  # 인가 안전망(2.9): 액션이 authorize 를 호출하지 않으면 예외로 실패시킨다(fail-closed).
+  # 향후 authorize 누락 액션이 조용히 열리는 fail-open 을 예방한다. 공개·역할게이트·
+  # 표현용 액션은 각 컨트롤러에서 이유를 달아 skip_after_action 으로 제외한다.
+  after_action :verify_authorized
+
   private
 
   # 사진(OCR) 입력 모드 사용 가능 여부. Gemini 키가 없으면 false (P3.5).

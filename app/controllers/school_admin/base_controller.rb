@@ -2,6 +2,8 @@
 # 모든 조회는 자기 학교로 스코프한다(경계). 타역할·타학교 → 403.
 class SchoolAdmin::BaseController < ApplicationController
   before_action :require_school_admin!
+  # SchoolAdmin::* 네임스페이스는 require_school_admin! 역할 게이트로 일괄 인가한다(per-action Pundit 아님).
+  skip_after_action :verify_authorized
 
   private
 

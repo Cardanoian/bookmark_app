@@ -2,6 +2,8 @@
 # 자기 학교로 스코프한다(경계). 타역할·타학교 → 403.
 class Librarian::BaseController < ApplicationController
   before_action :require_librarian!
+  # Librarian::* 네임스페이스는 require_librarian! 역할 게이트로 일괄 인가한다(per-action Pundit 아님).
+  skip_after_action :verify_authorized
 
   private
 
