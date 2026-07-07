@@ -41,11 +41,12 @@ class Ai::GeminiClientTest < ActiveSupport::TestCase
     end
   end
 
-  # 동기 웹요청 경로의 스레드 고갈을 막기 위해 실 Faraday 연결에 타임아웃을 설정한다(§0.4).
-  test "real connection is configured with http timeouts (open 3s / read 8s)" do
+  # 실 Faraday 연결에 타임아웃을 설정해 스레드 고갈을 막는다(§0.4). read 타임아웃은 5축 첨삭(RUBRIC)
+  # 실측 지연(~16s)을 덮도록 30s — 과거 8s 는 첨삭 매 시도를 타임아웃시켜 규칙기반으로만 폴백됐다.
+  test "real connection is configured with http timeouts (open 3s / read 30s)" do
     connection = Ai::GeminiClient.new.send(:connection)
     assert_equal 3, connection.options.open_timeout
-    assert_equal 8, connection.options.timeout
+    assert_equal 30, connection.options.timeout
   end
 
   # generateContent 호출(POST)에 429/503·타임아웃에 대한 재시도가 타이트한 상한으로 걸려 있는지 확인한다(§2.4).

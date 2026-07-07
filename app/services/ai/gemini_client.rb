@@ -54,12 +54,21 @@ module Ai
 
     def request_body(contents, system_instruction, response_json, generation_config)
       body = { contents: contents }
-      body[:systemInstruction] = system_instruction if system_instruction.present?
+      body[:systemInstruction] = system_instruction_content(system_instruction) if system_instruction.present?
 
       config = generation_config.to_h.dup
       config[:responseMimeType] = "application/json" if response_json
       body[:generationConfig] = config if config.any?
       body
+    end
+
+    # Gemini 는 systemInstruction 을 Content 객체({ parts: [{ text: }] })로 요구한다.
+    # 문자열을 그대로 넣으면 HTTP 400(INVALID_ARGUMENT)이므로 감싸 준다.
+    # 이미 구조화된 Hash(Content)면 그대로 통과시킨다.
+    def system_instruction_content(instruction)
+      return instruction if instruction.is_a?(Hash)
+
+      { parts: [ { text: instruction.to_s } ] }
     end
 
     def parse_candidate(raw_body)
@@ -73,10 +82,11 @@ module Ai
     end
 
     def connection
-      @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 8 }) do |faraday|
+      @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 30 }) do |faraday|
         # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(진위검증/퀴즈 초안 생성)
-        # 양쪽에서 쓰인다. max: 2 로 상한을 타이트하게 잡아 동기 경로 최악 대기시간을
-        # timeout(8s) * (시도 1 + 재시도 2) = 24s 이내로 묶는다 — 저빈도 교사 액션이라 허용 가능.
+        # 양쪽에서 쓰인다. timeout 은 5축 첨삭(RUBRIC) 실측 지연(~16s, gemini-2.5-flash thinking 포함)을
+        # 여유 있게 덮도록 30s 로 잡는다 — 과거 8s 는 첨삭 매 시도를 타임아웃시켜 규칙기반으로만 폴백됐다.
+        # 동기 경로(진위/퀴즈 초안)는 실측 8s 미만이라 이 상한에 실질적으로 닿지 않는다.
         # generateContent 호출은 POST 라서 methods 기본값(idempotent 메서드만)엔 없다 — 명시해야 실제로 재시도된다.
         faraday.request :retry, max: 2, interval: 0.3, backoff_factor: 2,
                                  methods: [ :post ],

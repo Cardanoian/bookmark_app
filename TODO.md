@@ -29,13 +29,16 @@
 - [ ] **학교 전량 시드** — 현재 축소 개발 시드(17개 시도 대표교). 실서비스는 전국 6,331교 필요 → 원본 데이터 확보 후 `lib/tasks/schools.rake` 전량 적재.
 - [ ] **도서 카탈로그 확장** — 현재 추천 24 + 고전 10 = 34권. 학년·교과 연계 도서 확대 검토.
 
-## 🔵 외부 API 실연동 검증 (키 주입됨 · 실호출 미검증)
+## 🔵 외부 API 실연동 검증 (2026-07-07 실호출 완료)
 
-> 키는 넣었지만 **아직 실제 API를 한 번도 호출하지 않았다.** 응답 필드 매핑은 문서 기반 가정이므로 첫 실호출 때 검증 필요. 실패해도 폴백(로컬 캐시·규칙기반·CSV)은 무중단 동작.
+> 세 API 모두 **실제로 호출해 응답 필드 매핑을 검증**했다. 검증 중 Gemini 경로에서 치명 결함 2건을 발견·수정(아래). 실패 시 폴백(로컬 캐시·규칙기반·CSV)은 여전히 무중단 동작.
 
-- [ ] **Gemini 실응답 검증** — 실제 호출 시 첨삭 5축 파싱 / OCR / 진위 / 퀴즈 응답 JSON 구조가 `Ai::*` 서비스의 파싱과 일치하는지 확인.
-- [ ] **네이버 도서검색 실응답 검증** — 필드 매핑(title/author/image/isbn) 실데이터 확인. `app/services/books/search_service.rb`.
-- [ ] **정보나루 실응답 검증** — `loanItemSrch` 응답(`docs[].doc`: bookname/isbn13/loan_count) + 직전 달 `startDt/endDt` 파라미터 실동작 확인. `app/services/library/data4library_service.rb`.
+- [x] **Gemini 실응답 검증** — 5축 첨삭/퀴즈/진위 응답 JSON 구조가 `Ai::*` 파싱과 일치 확인(rubric 5축 content·emotion·life·structure·spelling, questions[prompt/choices/answer_index], suspicion/reasons). **검증 중 결함 2건 수정:**
+  - 🐞 **systemInstruction 형식 오류** — `GeminiClient` 가 `systemInstruction` 을 문자열로 보내 **모든** system_instruction 사용 호출(첨삭·퀴즈·진위·OCR)이 HTTP 400 → 조용히 폴백. 즉 AI 기능 전부가 규칙기반/오프라인으로만 동작 중이었음. `{ parts: [{ text: }] }` Content 구조체로 감싸 수정.
+  - 🐞 **타임아웃 과소(8s)** — 5축 첨삭 실측 지연 ~16s 인데 per-attempt 8s 라 위 수정 후에도 첨삭은 매 시도 타임아웃 → 폴백. 30s 로 상향(첨삭·OCR 은 백그라운드 잡, 동기 경로는 8s 미만이라 무영향).
+  - ⏳ **OCR(사진→텍스트) 실이미지 검증 미완** — 실 이미지 인코딩이 필요해 라이브 미검증. `response["text"]` 매핑 자체는 코드 확인. 실사진 업로드로 첫 검증 필요.
+- [x] **네이버 도서검색 실응답 검증** — HTTP 200, `items[]` 의 title/author/publisher/image/isbn/description 6개 필드 전부 존재·매핑 일치. isbn13 단일값 정상. `app/services/books/search_service.rb`.
+- [x] **정보나루 실응답 검증** — 과거 확정 기간(예: 2025-06) HTTP 200, `response.docs[].doc` 의 bookname/isbn13/loan_count 매핑 일치(loan_count 는 문자열→`.to_i`). **주의:** 직전 달 데이터가 아직 미집계면 8s 타임아웃 → CSV 폴백(정상 열화). `app/services/library/data4library_service.rb`.
 
 ## 🟢 기능 마무리·개선
 
