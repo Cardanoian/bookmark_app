@@ -65,6 +65,17 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     assert_equal "replace", broadcasts.first["action"]
   end
 
+  test "approving a report grants the student's reading badge (approval fires the badge cascade)" do
+    seed_badges!
+    login_as @teacher
+
+    assert_not_includes @student.badges.pluck(:key), "first"
+    post approve_teacher_review_path(@report)
+
+    assert_includes @student.badges.reload.pluck(:key), "first",
+      "승인 시점에 first(독후감 1편) 뱃지가 부여돼야 한다"
+  end
+
   test "verify exposes the similarity signal to the teacher" do
     login_as @teacher
     post verify_teacher_review_path(@report)

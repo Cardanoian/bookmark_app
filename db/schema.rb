@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_000011) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000012) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -247,6 +247,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000011) do
     t.integer "input_mode", default: 0, null: false
     t.string "level", limit: 1
     t.integer "mission_id"
+    t.integer "points_awarded", default: 0, null: false
     t.float "prev_avg"
     t.boolean "reviewed", default: false, null: false
     t.datetime "reviewed_at"

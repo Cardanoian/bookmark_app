@@ -82,6 +82,25 @@ class AiReviewJobTest < ActiveJob::TestCase
     end
   end
 
+  test "re-review awards only the delta, not full points again (idempotent, anti-farming)" do
+    AiReviewJob.perform_now(@report)
+    first_award = @user.reload.points
+    awarded = @report.reload.points_awarded
+    assert_operator awarded, :>, 0
+    assert_equal awarded, first_award
+
+    # 재첨삭(동일 본문 재평가) — 등급이 같으면 차액 0, 포인트 재지급 없음.
+    AiReviewJob.perform_now(@report)
+    assert_equal first_award, @user.reload.points, "재첨삭이 포인트를 이중 지급하면 안 된다"
+  end
+
+  test "review points go through award_points so the ranking hook fires (not raw increment)" do
+    # award_points 는 학생의 학급 랭킹 행을 실시간 갱신한다. increment! 였다면 방송이 없다.
+    assert_turbo_stream_broadcasts([ @classroom, :ranking ]) do
+      AiReviewJob.perform_now(@report)
+    end
+  end
+
   private
 
   # Minitest 6 dropped minitest/mock; temporarily swap `.new` on a service class

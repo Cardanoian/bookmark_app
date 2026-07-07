@@ -25,14 +25,14 @@ class BadgeableTest < ActiveSupport::TestCase
   end
 
   test "levelA and tripleA granted by A-grade counts" do
-    3.times { report(level: "A") }
+    3.times { report(reviewed: true, level: "A") }
     @user.refresh_badges!
     assert_includes keys, "levelA"
     assert_includes keys, "tripleA"
   end
 
   test "reviser granted when an improved revision exists" do
-    report(improvement: 2.0)
+    report(reviewed: true, improvement: 2.0)
     @user.refresh_badges!
     assert_includes keys, "reviser"
   end

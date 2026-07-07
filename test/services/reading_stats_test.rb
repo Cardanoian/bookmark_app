@@ -32,11 +32,12 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 2, @stats.distinct_genres
   end
 
-  test "a_grades and b_or_better count by level" do
-    report(level: "A")
-    report(level: "A")
-    report(level: "B")
-    report(level: "C")
+  test "a_grades and b_or_better count by level among reviewed reports" do
+    report(reviewed: true, level: "A")
+    report(reviewed: true, level: "A")
+    report(reviewed: true, level: "B")
+    report(reviewed: true, level: "C")
+    report(reviewed: false, level: "A") # 미승인은 제외(승인 전 인플레이션 방지)
     assert_equal 2, @stats.a_grades
     assert_equal 3, @stats.b_or_better
   end
@@ -49,10 +50,11 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 1, @stats.classics
   end
 
-  test "revisions counts reports with positive improvement" do
-    report(improvement: 1.5)
-    report(improvement: 0.0)
-    report(improvement: nil)
+  test "revisions counts reviewed reports with positive improvement" do
+    report(reviewed: true, improvement: 1.5)
+    report(reviewed: true, improvement: 0.0)
+    report(reviewed: true, improvement: nil)
+    report(reviewed: false, improvement: 2.0) # 미승인은 제외
     assert_equal 1, @stats.revisions
   end
 
