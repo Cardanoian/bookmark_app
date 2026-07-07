@@ -12,11 +12,13 @@ class SessionsController < ApplicationController
       name: params[:name]
     )
 
-    if user&.authenticate(params[:password]) && user.suspended?
+    authenticated = user&.authenticate(params[:password])
+
+    if authenticated && user.suspended?
       load_form_collections
       flash.now[:alert] = "정지된 계정입니다. 관리자에게 문의해 주세요."
       render :new, status: :forbidden
-    elsif user&.authenticate(params[:password])
+    elsif authenticated
       reset_session
       session[:user_id] = user.id
       redirect_to root_path

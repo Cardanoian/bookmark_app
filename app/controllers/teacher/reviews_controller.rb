@@ -26,8 +26,7 @@ class Teacher::ReviewsController < ApplicationController
   def approve
     authorize @report, :approve?
 
-    @report.update!(reviewed: true, reviewed_at: Time.current)
-    broadcast_to_student(@report)
+    finalize_approval(@report)
     redirect_to teacher_reviews_path, notice: "#{@report.user.name} 학생의 독후감을 승인했어요."
   end
 
@@ -46,13 +45,21 @@ class Teacher::ReviewsController < ApplicationController
     pending_scope.where(id: Array(params[:report_ids])).find_each do |report|
       next unless ReportPolicy.new(Current.user, report).approve?
 
-      report.update!(reviewed: true, reviewed_at: Time.current)
-      broadcast_to_student(report)
+      finalize_approval(report)
     end
     redirect_to teacher_reviews_path, notice: "선택한 독후감을 승인했어요."
   end
 
   private
+
+  # 승인 확정: reviewed 기록 + 학생 실시간 갱신 + 승인 시점에 바뀌는 승인-기준
+  # 진화/뱃지 조건(reports·a_grades 등) 재계산.
+  def finalize_approval(report)
+    report.update!(reviewed: true, reviewed_at: Time.current)
+    broadcast_to_student(report)
+    report.user.refresh_badges!
+    report.user.check_evolution!
+  end
 
   def set_report
     @report = Report.find(params[:id])

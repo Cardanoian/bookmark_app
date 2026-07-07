@@ -27,14 +27,14 @@ class ReadingStats
         .distinct.count(:category)
   end
 
-  # A등급 첨삭 수.
+  # A등급 첨삭 수(승인된 독후감 기준 — 다른 품질 지표와 일관, 승인 전 인플레이션 방지).
   def a_grades
-    @user.reports.where(level: "A").count
+    approved_reports.where(level: "A").count
   end
 
-  # B등급 이상(A/B) 수.
+  # B등급 이상(A/B) 수(승인된 독후감 기준).
   def b_or_better
-    @user.reports.where(level: %w[A B]).count
+    approved_reports.where(level: %w[A B]).count
   end
 
   # 완독한 고전 수(category: classic 연동 승인 독후감).
@@ -42,9 +42,9 @@ class ReadingStats
     approved_reports.joins(:book).merge(Book.classic).count
   end
 
-  # 향상된 고쳐쓰기 수(improvement > 0).
+  # 향상된 고쳐쓰기 수(improvement > 0, 승인된 독후감 기준).
   def revisions
-    @user.reports.where("improvement > 0").count
+    approved_reports.where("improvement > 0").count
   end
 
   # 최장 연속 제출일(마라톤 스트릭). 제출일(created_at) 기준 연속 달력일의 최대 길이.
