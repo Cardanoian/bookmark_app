@@ -1,10 +1,16 @@
 class ReportsController < ApplicationController
   before_action :set_report, only: [ :show, :edit, :update, :revise, :share ]
 
-  # 학생은 자기 글, 교사는 담당 학급 글(정책 스코프).
+  PER_PAGE = 20
+
+  # 학생은 자기 글, 교사는 담당 학급 글(정책 스코프). 무제한 목록을 페이지네이션한다.
   def index
-    @reports = policy_scope(Report).includes(:book, :user).order(created_at: :desc)
     authorize Report
+    @page = [ params[:page].to_i, 1 ].max
+    records = policy_scope(Report).includes(:book, :user).order(created_at: :desc)
+                .limit(PER_PAGE + 1).offset((@page - 1) * PER_PAGE).to_a
+    @has_next_page = records.size > PER_PAGE
+    @reports = records.first(PER_PAGE)
   end
 
   def show

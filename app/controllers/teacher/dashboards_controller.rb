@@ -3,30 +3,39 @@ class Teacher::DashboardsController < Teacher::BaseController
   def show
     @classrooms = teacher_classrooms.order(:grade, :class_no).to_a
     classroom_ids = @classrooms.map(&:id)
-    @reports = Report.where(classroom_id: classroom_ids).includes(:user, :book).to_a
+    # 전체 리포트 본문을 메모리에 적재하지 않는다. 단순 집계는 SQL COUNT/SUM 으로,
+    # 5축 평균은 rubric 컬럼만 적재(본문 제외)해 계산한다(§3.4, 성능E).
+    reports = Report.where(classroom_id: classroom_ids)
     @students = User.where(classroom_id: classroom_ids, role: :student)
 
-    @total_reports = @reports.size
-    @pending_count = @reports.count { |report| !report.reviewed? }
-    @a_ratio = a_ratio(@reports)
+    @total_reports = reports.count
+    @pending_count = reports.where(reviewed: false).count
+    @a_ratio = a_ratio(reports)
     @avg_points = @students.average(:points).to_f.round(1)
 
-    @axis_averages = axis_averages(@reports)
+    @axis_averages = axis_averages(rubric_reports(reports))
     @axis_labels = ReadingDomain::RUBRIC_AXES.map { |axis| ReadingDomain::AXIS_LABELS[axis] }
     @weakness = weakness_insight(@axis_averages)
-    @improvement_avg = improvement_summary(@reports)
-    @review_queue = @reports.select { |report| !report.reviewed? && report.rubric.present? }
-                            .sort_by(&:created_at).first(5)
+    @improvement_avg = improvement_summary(reports)
+    @review_queue = reports.where(reviewed: false).where.not(rubric: nil)
+                           .includes(:user, :book).order(:created_at).limit(5).to_a
   end
 
   private
 
-  # A등급 비율(%). 채점된(level 있는) 독후감 기준.
-  def a_ratio(reports)
-    scored = reports.select { |report| report.level.present? }
-    return 0 if scored.empty?
+  # 5축 집계용 경량 로드: 본문(body) 등 큰 컬럼 없이 rubric 만 적재한다. rubric 이
+  # 비어(NULL) 있는 리포트는 axis_averages 에서 어차피 제외되므로 미리 걸러 로드한다.
+  # (axis_averages 는 Teacher::BaseController 공용 메서드로 Array 를 그대로 받는다.)
+  def rubric_reports(reports)
+    reports.where.not(rubric: nil).select(:id, :rubric).to_a
+  end
 
-    (scored.count { |report| report.level == "A" } * 100.0 / scored.size).round
+  # A등급 비율(%). 채점된(level 있는) 독후감 기준. 로우 적재 없이 SQL COUNT 로 집계.
+  def a_ratio(reports)
+    scored = reports.where.not(level: [ nil, "" ]).count
+    return 0 if scored.zero?
+
+    (reports.where(level: "A").count * 100.0 / scored).round
   end
 
   # 가장 낮은 5축 → 추천 활동 + 성취기준 코드.
@@ -43,11 +52,12 @@ class Teacher::DashboardsController < Teacher::BaseController
     }
   end
 
-  # 고쳐쓰기 향상도 평균(improvement 기록된 것만).
+  # 고쳐쓰기 향상도 평균(improvement 기록된 것만). 로우 적재 없이 SQL COUNT/SUM 으로 집계.
   def improvement_summary(reports)
-    improved = reports.select { |report| report.improvement.present? }
-    return nil if improved.empty?
+    scoped = reports.where.not(improvement: nil)
+    count = scoped.count
+    return nil if count.zero?
 
-    (improved.sum(&:improvement) / improved.size).round(2)
+    (scoped.sum(:improvement) / count).round(2)
   end
 end

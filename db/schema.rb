@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_07_000015) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_000017) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -321,6 +321,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000015) do
     t.integer "book_id"
     t.integer "classroom_id"
     t.datetime "created_at", null: false
+    t.integer "forum_posts_count", default: 0, null: false
     t.boolean "hidden", default: false, null: false
     t.integer "school_id"
     t.integer "scope", default: 0, null: false
@@ -370,9 +371,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_07_000015) do
     t.integer "school_id"
     t.boolean "suspended", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["classroom_id", "role", "points"], name: "index_users_on_classroom_role_points"
     t.index ["classroom_id"], name: "index_users_on_classroom_id"
     t.index ["role"], name: "index_users_on_role"
     t.index ["school_id", "classroom_id", "name"], name: "index_users_on_tuple_identity", unique: true
+    t.index ["school_id", "role", "points"], name: "index_users_on_school_role_points"
     t.index ["school_id"], name: "index_users_on_school_id"
   end
 

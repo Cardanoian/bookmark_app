@@ -1,6 +1,6 @@
 # 토론 글(P5.4). likes_count 는 좋아요 카운터.
 class ForumPost < ApplicationRecord
-  belongs_to :topic
+  belongs_to :topic, counter_cache: true
   belongs_to :user
 
   validates :text, presence: true

@@ -43,6 +43,17 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     assert_match ReadingDomain::ACHIEVEMENT_STANDARDS[:spelling], response.body
   end
 
+  test "dashboard improvement average matches the SQL aggregate" do
+    # improvement 기록이 있는 리포트 2개 → 평균 향상도 = (0.5 + 1.5) / 2 = 1.0
+    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐1", improvement: 0.5, avg: 3.0, level: "B", ai_status: :done)
+    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐2", improvement: 1.5, avg: 3.0, level: "B", ai_status: :done)
+    login_as @teacher
+
+    get teacher_dashboard_path
+    assert_response :success
+    assert_match "1.0점", response.body
+  end
+
   test "a student is forbidden from the teacher dashboard" do
     login_as @student
     get teacher_dashboard_path

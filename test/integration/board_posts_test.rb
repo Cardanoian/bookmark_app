@@ -166,6 +166,24 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     assert_equal @report, sticker.report
   end
 
+  test "board posts index paginates shared reports into 20-per-page slices" do
+    25.times do |i|
+      report = Report.create!(user: @author, classroom: @classroom, book_title: "우수작#{format('%02d', i)}", body: "본문")
+      BoardPost.create!(report: report)
+    end
+    login_as @peer
+
+    get board_posts_path
+    assert_response :success
+    assert_select "article", 20
+    assert_match "다음", response.body
+
+    get board_posts_path(page: 2)
+    assert_response :success
+    assert_select "article", 5
+    assert_match "이전", response.body
+  end
+
   test "hidden board posts are excluded from the index for students" do
     visible = BoardPost.create!(report: @report)
     hidden_report = Report.create!(user: @author, classroom: @classroom, book_title: "숨김글", body: "숨겨진 글")

@@ -26,12 +26,27 @@
           <%= link_to topic.title, topic_path(topic),
                 class: "font-semibold text-gray-900 hover:underline" %>
           <p class="mt-1 text-xs text-gray-500">
-            <%= topic.classroom? ? "우리 반" : "우리 학교" %> · 글 <%= topic.forum_posts.count %>개
+            <%= topic.classroom? ? "우리 반" : "우리 학교" %> · 글 <%= topic.forum_posts_count %>개
           </p>
         </article>
       <% end %>
     </div>
   <% else %>
     <%= render "shared/empty_state", message: "아직 토론방이 없어요. 첫 토론을 열어 볼까요?", icon: "💬" %>
+  <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="flex items-center justify-between text-sm">
+      <% if @page > 1 %>
+        <%= link_to "← 이전", topics_path(page: @page - 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to "다음 →", topics_path(page: @page + 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
   <% end %>
 </div>

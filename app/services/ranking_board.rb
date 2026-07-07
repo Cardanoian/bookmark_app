@@ -22,19 +22,34 @@ class RankingBoard
   end
 
   # 학교 내 학급 집계(학생 포인트 합) 순위.
+  # 학급당 SUM/COUNT/SUM(3쿼리, 포인트 이중 합산)을 한 번의 그룹 집계로 접는다(P3.1).
+  # 출력(주체·순서·합계·평균)은 종전과 동일하다 — 학생 없는 학급도 합계 0·평균 0 으로 포함.
   def school_ranking
     school = @user.school
     return [] unless school
 
-    school.classrooms.map do |classroom|
-      Entry.new(subject: classroom, score: classroom_total(classroom), meta: { avg: classroom_avg(classroom) })
+    classrooms = school.classrooms.to_a
+    classroom_ids = classrooms.map(&:id)
+    students = User.where(role: :student, classroom_id: classroom_ids)
+    totals = students.group(:classroom_id).sum(:points)
+    counts = students.group(:classroom_id).count
+
+    classrooms.map do |classroom|
+      total = totals[classroom.id] || 0
+      count = counts[classroom.id] || 0
+      avg = count.zero? ? 0 : (total.to_f / count).round(1)
+      Entry.new(subject: classroom, score: total, meta: { avg: avg })
     end.sort_by { |entry| -entry.score }
   end
 
   # 전국 학교 집계(소속 학생 포인트 합) 순위.
+  # 학교당 SUM 1쿼리(N+1)를 한 번의 그룹 집계로 접는다(P3.1). 학생이 없는 학교도
+  # 종전처럼 합계 0 으로 포함한다. 출력(주체·순서·합계)은 종전과 동일하다.
   def nation_ranking
+    totals = User.where(role: :student).group(:school_id).sum(:points)
+
     School.all.map do |school|
-      Entry.new(subject: school, score: school.users.where(role: :student).sum(:points), meta: {})
+      Entry.new(subject: school, score: totals[school.id] || 0, meta: {})
     end.sort_by { |entry| -entry.score }
   end
 
@@ -53,30 +68,22 @@ class RankingBoard
   end
 
   # 명예의 전당 — 성장 신호 = 도감 완성도(보유 라인) + 진화 성취(완전형 수).
+  # 대상 범위는 종전과 동일하게 전교(전체 학생) — 스코프 불변. 학생당 2쿼리(도감/완전형)를
+  # 두 번의 그룹 집계로 접어 학생 수에 무관한 상수 쿼리로 만든다(P3.1). user_monsters 는
+  # 학생에게만 달리므로 그룹 결과를 학생별로 조회해도 출력은 종전 per-student 계산과 동일하다.
   def hall_of_fame(limit: 10)
-    User.where(role: :student).includes(:active_monster).map do |student|
-      dex = student.user_monsters.distinct.count(:dex_no)
-      complete = complete_form_count(student)
+    students = User.where(role: :student).includes(:active_monster).to_a
+    dex_counts = UserMonster.group(:user_id).distinct.count(:dex_no)
+    complete_counts = UserMonster.joins(:monster_species)
+                                 .where(monster_species: { stage: MonsterSpecies::MAX_STAGE })
+                                 .group(:user_id).count
+
+    students.map do |student|
+      dex = dex_counts[student.id] || 0
+      complete = complete_counts[student.id] || 0
       Entry.new(subject: student, score: dex + complete, meta: { dex: dex, complete: complete })
     end.select { |entry| entry.score.positive? }
         .sort_by { |entry| [ -entry.score, entry.subject.name ] }
         .first(limit)
-  end
-
-  private
-
-  def classroom_total(classroom)
-    classroom.users.where(role: :student).sum(:points)
-  end
-
-  def classroom_avg(classroom)
-    students = classroom.users.where(role: :student)
-    count = students.count
-    count.zero? ? 0 : (students.sum(:points).to_f / count).round(1)
-  end
-
-  def complete_form_count(student)
-    student.user_monsters.joins(:monster_species)
-           .where(monster_species: { stage: MonsterSpecies::MAX_STAGE }).count
   end
 end

@@ -77,6 +77,21 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_equal "append", broadcasts.first["action"]
   end
 
+  test "reports index paginates the student's own reports into 20-per-page slices" do
+    25.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "책#{format('%02d', i)}") }
+    login_as @student
+
+    get reports_path
+    assert_response :success
+    assert_select "article", 20
+    assert_match "다음", response.body
+
+    get reports_path(page: 2)
+    assert_response :success
+    assert_select "article", 5
+    assert_match "이전", response.body
+  end
+
   private
 
   def login_as(user)

@@ -46,6 +46,31 @@ class TopicsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "topics index shows the forum post count from the counter cache" do
+    topic = Topic.create!(scope: :classroom, classroom: @class1, title: "카운트 토론")
+    2.times { |i| topic.forum_posts.create!(user: @student1, text: "글 #{i}") }
+    login_as @student1
+
+    get topics_path
+    assert_response :success
+    assert_match "글 2개", response.body
+  end
+
+  test "topics index paginates classroom topics into 20-per-page slices" do
+    25.times { |i| Topic.create!(scope: :classroom, classroom: @class1, title: "토픽#{format('%02d', i)}") }
+    login_as @student1
+
+    get topics_path
+    assert_response :success
+    assert_select "article", 20
+    assert_match "다음", response.body
+
+    get topics_path(page: 2)
+    assert_response :success
+    assert_select "article", 5
+    assert_match "이전", response.body
+  end
+
   test "forum post like increments likes_count" do
     topic = Topic.create!(scope: :classroom, classroom: @class1, title: "토론")
     message = topic.forum_posts.create!(user: @student1, text: "좋아요 대상 글")

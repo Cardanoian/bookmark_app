@@ -21,4 +21,19 @@
     <%= render "shared/empty_state",
           message: "아직 독후감이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
   <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="mt-6 flex items-center justify-between text-sm">
+      <% if @page > 1 %>
+        <%= link_to "← 이전", reports_path(page: @page - 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to "다음 →", reports_path(page: @page + 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
+  <% end %>
 </div>

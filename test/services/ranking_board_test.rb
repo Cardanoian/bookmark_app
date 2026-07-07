@@ -102,4 +102,92 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal @s1, ranking.first.subject
     assert_equal 2, ranking.first.score
   end
+
+  # P3.1 행동보존 — 학생이 없는 학교/학급도 종전처럼 합계 0(평균 0)으로 포함되어야 한다.
+  test "nation ranking includes schools with no students at score 0" do
+    empty_school = School.create!(name: "무학생학교")
+
+    ranking = RankingBoard.new(@s1).nation_ranking
+    entry = ranking.find { |e| e.subject == empty_school }
+
+    assert_not_nil entry, "학생이 없는 학교도 전국 순위에 포함되어야 한다"
+    assert_equal 0, entry.score
+  end
+
+  test "school ranking includes an empty classroom at score 0 and avg 0" do
+    empty_class = Classroom.create!(school: @school, grade: 6, class_no: 9)
+
+    ranking = RankingBoard.new(@s1).school_ranking
+    entry = ranking.find { |e| e.subject == empty_class }
+
+    assert_not_nil entry, "학생이 없는 학급도 학교 순위에 포함되어야 한다"
+    assert_equal 0, entry.score
+    assert_equal 0, entry.meta[:avg]
+  end
+
+  # P3.1 성능 — 그룹 SQL 전환으로 집계 쿼리가 데이터셋 규모(학교/학급/학생 수)에
+  # 비례해 증가하지 않음(N+1 회귀 감지). 규모를 키운 전후 쿼리 수가 같아야 한다.
+  test "nation_ranking query count does not grow with the number of schools" do
+    baseline = count_queries { RankingBoard.new(@s1).nation_ranking }
+
+    10.times do |i|
+      s = School.create!(name: "대량학교#{i}")
+      c = Classroom.create!(school: s, grade: 6, class_no: i + 1)
+      User.create!(school: s, classroom: c, name: "대량학생#{i}", points: 10, password: "password")
+    end
+
+    scaled = count_queries { RankingBoard.new(@s1).nation_ranking }
+
+    assert_equal baseline, scaled, "학교 수가 늘어도 쿼리 수가 증가하면 안 된다(N+1 회귀)"
+    assert_operator scaled, :<=, 2, "nation_ranking 은 상수 쿼리(로드 + 그룹 SUM)여야 한다"
+  end
+
+  test "school_ranking query count does not grow with the number of classrooms" do
+    # 매 측정마다 school.classrooms 연관 캐시를 비워(cold) 실제 로드 쿼리를 재현한다.
+    # (@user.school 은 @school 과 동일 객체라 캐시가 재사용되면 측정이 왜곡됨.)
+    @school.classrooms.reset
+    baseline = count_queries { RankingBoard.new(@s1).school_ranking }
+
+    10.times { |i| Classroom.create!(school: @school, grade: 6, class_no: i + 1) }
+
+    @school.classrooms.reset
+    scaled = count_queries { RankingBoard.new(@s1).school_ranking }
+
+    assert_equal baseline, scaled, "학급 수가 늘어도 쿼리 수가 증가하면 안 된다(N+1 회귀)"
+    assert_operator scaled, :<=, 3, "school_ranking 은 상수 쿼리(학급 로드 + SUM/COUNT 그룹집계)여야 한다"
+  end
+
+  test "hall_of_fame query count does not grow with the number of students" do
+    line = MonsterSpecies.where(stage: 1).order(:dex_no).first
+    @s1.user_monsters.create!(monster_species: line, dex_no: line.dex_no, obtained_at: Time.current)
+
+    baseline = count_queries { RankingBoard.new(@s1).hall_of_fame }
+
+    10.times do |i|
+      extra = User.create!(school: @school, classroom: @class1, name: "전당대량#{i}", points: 5, password: "password")
+      extra.user_monsters.create!(monster_species: line, dex_no: line.dex_no, obtained_at: Time.current)
+    end
+
+    scaled = count_queries { RankingBoard.new(@s1).hall_of_fame }
+
+    assert_equal baseline, scaled, "학생 수가 늘어도 쿼리 수가 증가하면 안 된다(N+1 회귀)"
+    assert_operator scaled, :<=, 4, "hall_of_fame 은 상수 쿼리(학생 로드 + 그룹집계 2회)여야 한다"
+  end
+
+  private
+
+  # 순수 SQL 쿼리 수를 센다(스키마·트랜잭션·캐시 쿼리 제외). N+1 회귀 감지용.
+  def count_queries
+    queries = 0
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      next if payload[:name] == "SCHEMA" || payload[:cached]
+      next if payload[:sql].match?(/\A\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)/i)
+
+      queries += 1
+    end
+    yield
+    queries
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber)
+  end
 end

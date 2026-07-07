@@ -1,8 +1,14 @@
 # 토론방(P5.4). 목록은 정책 스코프(자기 학급 + 자기 학교 스코프 토픽)로 제한된다.
 class TopicsController < ApplicationController
+  PER_PAGE = 20
+
   def index
     authorize :topic, :index?
-    @topics = policy_scope(Topic).includes(:book).order(created_at: :desc)
+    @page = [ params[:page].to_i, 1 ].max
+    records = policy_scope(Topic).includes(:book).order(created_at: :desc)
+                .limit(PER_PAGE + 1).offset((@page - 1) * PER_PAGE).to_a
+    @has_next_page = records.size > PER_PAGE
+    @topics = records.first(PER_PAGE)
   end
 
   def show
