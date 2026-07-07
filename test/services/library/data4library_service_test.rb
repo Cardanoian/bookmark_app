@@ -53,4 +53,46 @@ class Library::Data4libraryServiceTest < ActiveSupport::TestCase
     service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
     assert_equal [], service.popular_loans
   end
+
+  test "popular_loans passes the date range to the API (startDt/endDt)" do
+    captured = {}
+    connection = stub_connection do |stub|
+      stub.get("/api/loanItemSrch") do |env|
+        captured.merge!(Faraday::Utils.parse_query(env.url.query.to_s))
+        [ 200, {}, { "response" => { "docs" => [] } }.to_json ]
+      end
+    end
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    service.popular_loans(from: "2026-06-01", to: "2026-06-30")
+
+    assert_equal "2026-06-01", captured["startDt"]
+    assert_equal "2026-06-30", captured["endDt"]
+  end
+
+  test "last_error stays nil after a successful sync (distinguishes empty from failure)" do
+    connection = stub_connection do |stub|
+      stub.get("/api/loanItemSrch") { [ 200, {}, { "response" => { "docs" => [] } }.to_json ] }
+    end
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    assert_equal [], service.popular_loans
+    assert_nil service.last_error, "빈 결과(성공)는 실패가 아니어야 한다"
+  end
+
+  test "last_error is set on a non-200 response" do
+    connection = stub_connection { |stub| stub.get("/api/loanItemSrch") { [ 500, {}, "err" ] } }
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    service.popular_loans
+    assert_not_nil service.last_error
+  end
+
+  test "last_error is set on malformed JSON" do
+    connection = stub_connection { |stub| stub.get("/api/loanItemSrch") { [ 200, {}, "not json" ] } }
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    service.popular_loans
+    assert_not_nil service.last_error
+  end
 end

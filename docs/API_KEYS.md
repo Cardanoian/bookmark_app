@@ -19,18 +19,17 @@
 | credentials 키 | 발급처 | 켜지는 기능 | 없을 때(기본) 폴백 |
 |---|---|---|---|
 | `gemini.api_key` | **Google AI Studio** (aistudio.google.com) | ① 손글씨 사진 **OCR**<br>② AI **5축 첨삭**<br>③ 진위·표절 보조<br>④ 퀴즈 초안 생성 | ① 사진 OCR **모드 비활성**(키보드·원고지만)<br>② **규칙기반 첨삭**으로 무중단 채점<br>③ 중립 결과<br>④ 템플릿 기반 오프라인 퀴즈 |
-| `kakao.rest_key` | **Kakao Developers** (developers.kakao.com) | 도서 검색(1순위) | Naver로 폴백 → 둘 다 없으면 로컬 캐시(`books` LIKE 검색) |
-| `naver.client_id`<br>`naver.client_secret` | **Naver Developers** (developers.naver.com) — 검색 API | 도서 검색(Kakao 실패 시 2순위) | 로컬 캐시 검색으로 폴백 |
-| `data4library.api_key` | **정보나루** (data4library.kr) | 사서 대시보드 **인기대출 동기화** | CSV 업로드로 대체(`import_csv`) |
+| `naver.client_id`<br>`naver.client_secret` | **Naver Developers** (developers.naver.com) — 검색 API | 도서 검색(**단독 제공자**) | 로컬 캐시(`books` LIKE 검색)로 폴백 |
+| `data4library.api_key` | **정보나루** (data4library.kr) | 사서 대시보드 **인기대출 동기화**(직전 달 집계) | CSV 업로드로 대체(`import_csv`) |
 
-> **하나의 Gemini 키가 4개 AI 기능을 모두 켠다.** 도서 검색은 Kakao→Naver 순으로 시도하므로 둘 중 하나만 있어도 된다.
+> **하나의 Gemini 키가 4개 AI 기능을 모두 켠다.** 도서 검색은 **네이버 단독**이며, 키가 없으면 로컬 캐시로 폴백한다.
 
 ### 1.1 각 키가 읽히는 코드 위치
 
 | 키 | 읽는 파일 | 판정 |
 |---|---|---|
 | `gemini.api_key` | `app/services/ai/gemini_client.rb` | `Ai::GeminiClient.available?` |
-| `kakao.rest_key` / `naver.*` | `app/services/books/search_service.rb` | `Books::SearchService#available?` |
+| `naver.client_id` / `naver.client_secret` | `app/services/books/search_service.rb` | `Books::SearchService#available?` |
 | `data4library.api_key` | `app/services/library/data4library_service.rb` | `Library::Data4libraryService.available?` |
 
 ---
@@ -46,8 +45,6 @@ secret_key_base: "…(자동 생성됨)…"
 # 외부 API 키 — 값이 "" 이면 폴백 경로가 기본 동작
 gemini:
   api_key: ""
-kakao:
-  rest_key: ""
 naver:
   client_id: ""
   client_secret: ""
@@ -127,7 +124,7 @@ kamal app exec 'bin/rails runner "puts Ai::GeminiClient.available?"'
 
 ## 6. 부록 — deploy.yml 의 ENV 시크릿 항목에 대하여
 
-`config/deploy.yml` 의 `env.secret` 에는 `RAILS_MASTER_KEY` 외에 `GEMINI_API_KEY`·`KAKAO_REST_KEY`·`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`·`DATA4LIBRARY_KEY` 가 선언되어 있고, `.kamal/secrets` 가 이를 셸 ENV(`${VAR}`, 미설정 시 빈 값)에서 주입한다.
+`config/deploy.yml` 의 `env.secret` 에는 `RAILS_MASTER_KEY` 외에 `GEMINI_API_KEY`·`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`·`DATA4LIBRARY_KEY` 가 선언되어 있고, `.kamal/secrets` 가 이를 셸 ENV(`${VAR}`, 미설정 시 빈 값)에서 주입한다.
 
 > **중요**: 현재 앱 코드는 이 키들을 **credentials 에서 읽으며 ENV 를 직접 읽지 않는다**(§1.1). 따라서 deploy.yml 의 ENV 항목은 **운영자가 ENV 로 키를 공급하고 싶을 때를 위한 예약 후크**이며, 지금은 실동작에 영향을 주지 않는다. 실제 주입은 **§3 의 credentials 경로**를 사용하라.
 >

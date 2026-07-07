@@ -27,6 +27,7 @@ class Librarian::LoansController < Librarian::BaseController
   end
 
   # 정보나루 인기대출 동기화(전국 NULL 스코프). 키 없음 → graceful CSV 폴백 안내.
+  # 직전 달(집계 완료 구간)을 조회해 period 라벨과 실제 질의 기간을 일치시킨다.
   def sync_data4library
     service = Library::Data4libraryService.new
 
@@ -35,11 +36,21 @@ class Librarian::LoansController < Librarian::BaseController
       return
     end
 
-    period = Date.current.strftime("%Y-%m")
-    loans = service.popular_loans
-    loans.each { |attrs| upsert_loan(attrs.merge(source: :data4library, period: period), school_id: nil) }
+    month = Date.current.prev_month
+    period = month.strftime("%Y-%m")
+    loans = service.popular_loans(
+      from: month.beginning_of_month.strftime("%Y-%m-%d"),
+      to: month.end_of_month.strftime("%Y-%m-%d")
+    )
 
-    redirect_to librarian_loans_path, notice: "정보나루 인기대출 #{loans.size}건을 동기화했어요."
+    if service.last_error
+      redirect_to librarian_loans_path,
+        alert: "정보나루 동기화 실패: #{service.last_error} — CSV 업로드로 대체할 수 있어요."
+      return
+    end
+
+    loans.each { |attrs| upsert_loan(attrs.merge(source: :data4library, period: period), school_id: nil) }
+    redirect_to librarian_loans_path, notice: "정보나루 인기대출 #{loans.size}건을 동기화했어요 (#{period})."
   end
 
   # 교육청 DLS CSV 업로드(자기 학교 스코프). 수동 RFC 4180 파싱 후 upsert.

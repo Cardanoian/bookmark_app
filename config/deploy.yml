@@ -45,7 +45,6 @@ env:
     # 빈 값으로 남아 폴백 경로가 기본 동작한다(사진 OCR 비활성, AI 첨삭 규칙기반).
     - RAILS_MASTER_KEY
     - GEMINI_API_KEY
-    - KAKAO_REST_KEY
     - NAVER_CLIENT_ID
     - NAVER_CLIENT_SECRET
     - DATA4LIBRARY_KEY

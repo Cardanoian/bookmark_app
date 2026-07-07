@@ -4,9 +4,13 @@ require "test_helper"
 class LibrarianLoansTest < ActionDispatch::IntegrationTest
   # 네트워크 없이 available? 를 흉내내는 스텁 서비스.
   class StubData4library
-    def initialize(loans) = @loans = loans
+    def initialize(loans, last_error: nil)
+      @loans = loans
+      @last_error = last_error
+    end
     def available? = true
-    def popular_loans(*) = @loans
+    def popular_loans(*, **) = @loans
+    def last_error = @last_error
   end
 
   setup do
@@ -50,6 +54,17 @@ class LibrarianLoansTest < ActionDispatch::IntegrationTest
     assert loan
     assert_nil loan.school_id, "정보나루 인기대출은 전국(NULL) 스코프여야 한다"
     assert_equal 555, loan.count
+  end
+
+  test "sync_data4library surfaces an API failure instead of a misleading 0-record success" do
+    swap_service(StubData4library.new([], last_error: "정보나루 응답 오류 (HTTP 500)")) do
+      login_as @librarian
+      assert_no_difference -> { LibraryLoan.count } do
+        post sync_data4library_librarian_loans_path
+      end
+      follow_redirect!
+    end
+    assert_match "동기화 실패", response.body
   end
 
   test "import_csv parses a CSV upload into loan rows (manual RFC 4180 parse)" do

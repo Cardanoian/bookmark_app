@@ -1,5 +1,5 @@
 # 도서 카탈로그·검색(P5.1/P5.2). index=카탈로그(카테고리 필터), show=상세,
-# search=Kakao/Naver 자동완성 JSON(무키/실패 시 로컬 캐시 폴백).
+# search=네이버 도서검색 자동완성 JSON(무키/실패 시 로컬 캐시 폴백).
 class BooksController < ApplicationController
   def index
     authorize :book, :index?

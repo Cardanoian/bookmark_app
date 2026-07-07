@@ -1,40 +1,34 @@
 require "json"
 
 module Books
-  # 도서 검색(P5.1, RAILS_PLAN §9.6). Kakao → 실패 시 Naver 폴백, 결과를 정규화해
+  # 도서 검색(P5.1, RAILS_PLAN §9.6). 네이버 도서 검색 API 로 조회하고, 결과를 정규화해
   # `{ title, author, publisher, thumbnail, isbn, description }` 배열로 반환한다.
   #
-  # 두 제공자 키가 모두 비어 있거나(placeholder) 모든 요청이 실패하면 로컬 캐시
-  # (`books` 테이블, title LIKE)로 graceful 폴백 — 네트워크 없이도 크래시하지 않는다.
+  # 키가 비어 있거나(placeholder) 요청이 실패하면 로컬 캐시(`books` 테이블, title LIKE)로
+  # graceful 폴백 — 네트워크 없이도 크래시하지 않는다.
   # 원격 결과는 `category: :searched` 로 `books` 에 isbn upsert 캐시한다.
   class SearchService
-    KAKAO_BASE = "https://dapi.kakao.com".freeze
-    KAKAO_PATH = "/v3/search/book".freeze
     NAVER_BASE = "https://openapi.naver.com".freeze
     NAVER_PATH = "/v1/search/book.json".freeze
 
-    # connection 들은 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단)한다.
+    # connection 은 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단)한다.
     def initialize(
-      kakao_key: Rails.application.credentials.dig(:kakao, :rest_key),
       naver_id: Rails.application.credentials.dig(:naver, :client_id),
       naver_secret: Rails.application.credentials.dig(:naver, :client_secret),
-      kakao_connection: nil,
       naver_connection: nil
     )
-      @kakao_key = kakao_key.to_s
       @naver_id = naver_id.to_s
       @naver_secret = naver_secret.to_s
-      @kakao_connection = kakao_connection
       @naver_connection = naver_connection
     end
 
-    # 키가 하나라도 있으면 원격 검색 가능(네트워크 호출 없음).
+    # 네이버 키가 모두 있으면 원격 검색 가능(네트워크 호출 없음).
     def self.available?
       new.available?
     end
 
     def available?
-      kakao_configured? || naver_configured?
+      naver_configured?
     end
 
     # 정규화된 결과 배열을 반환. 원격 성공 시 캐시, 실패/무키 시 로컬 폴백.
@@ -42,7 +36,7 @@ module Books
       term = query.to_s.strip
       return [] if term.blank?
 
-      results = fetch_from_kakao(term) || fetch_from_naver(term)
+      results = fetch_from_naver(term)
       if results
         cache(results)
         results
@@ -53,29 +47,11 @@ module Books
 
     private
 
-    def kakao_configured?
-      @kakao_key.present?
-    end
-
     def naver_configured?
       @naver_id.present? && @naver_secret.present?
     end
 
-    # 성공 시 정규화 배열, 미설정/실패 시 nil(다음 제공자로 폴백).
-    def fetch_from_kakao(query)
-      return nil unless kakao_configured?
-
-      response = kakao_connection.get(KAKAO_PATH) do |req|
-        req.params["query"] = query
-        req.headers["Authorization"] = "KakaoAK #{@kakao_key}"
-      end
-      return nil unless response.success?
-
-      normalize_kakao(response.body)
-    rescue Faraday::Error
-      nil
-    end
-
+    # 성공 시 정규화 배열, 미설정/실패 시 nil(로컬 폴백).
     def fetch_from_naver(query)
       return nil unless naver_configured?
 
@@ -89,19 +65,6 @@ module Books
       normalize_naver(response.body)
     rescue Faraday::Error
       nil
-    end
-
-    def normalize_kakao(body)
-      Array(parse(body)["documents"]).map do |doc|
-        {
-          title: doc["title"].to_s,
-          author: Array(doc["authors"]).join(", "),
-          publisher: doc["publisher"].to_s,
-          thumbnail: doc["thumbnail"].to_s,
-          isbn: pick_isbn(doc["isbn"]),
-          description: doc["contents"].to_s
-        }
-      end
     end
 
     def normalize_naver(body)
@@ -149,7 +112,7 @@ module Books
       end
     end
 
-    # kakao/naver 는 "ISBN10 ISBN13" 처럼 공백 구분 문자열을 주기도 한다. 긴 쪽(ISBN13) 우선.
+    # 네이버는 "ISBN10 ISBN13" 처럼 공백 구분 문자열을 주기도 한다. 긴 쪽(ISBN13) 우선.
     def pick_isbn(raw)
       raw.to_s.split.max_by(&:length).to_s
     end
@@ -158,12 +121,6 @@ module Books
       body.is_a?(String) ? JSON.parse(body) : body
     rescue JSON::ParserError
       {}
-    end
-
-    def kakao_connection
-      @kakao_connection ||= Faraday.new(url: KAKAO_BASE) do |faraday|
-        faraday.adapter Faraday.default_adapter
-      end
     end
 
     def naver_connection
