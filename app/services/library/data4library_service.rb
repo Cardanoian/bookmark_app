@@ -8,7 +8,7 @@ module Library
   # 실패 사유는 `last_error` 로 노출해 호출자가 "0건 성공" 과 "동기화 실패" 를 구분한다.
   # 반환 형식: `[{ book_title:, isbn:, count: }, ...]`.
   class Data4libraryService
-    BASE_URL = "http://data4library.kr".freeze
+    BASE_URL = "https://data4library.kr".freeze
     PATH = "/api/loanItemSrch".freeze
 
     # 직전 popular_loans 호출의 실패 사유. 성공·무키 시 nil.
@@ -36,6 +36,8 @@ module Library
       return [] unless available?
 
       response = connection.get(PATH) do |req|
+        # 정보나루 API 는 헤더 인증을 지원하지 않고 authKey 쿼리 파라미터만 문서화되어 있다.
+        # BASE_URL 이 https 이므로 쿼리 문자열은 TLS 로 보호된다(과거 http 로 노출된 키는 회전할 것).
         req.params["authKey"] = @api_key
         req.params["format"] = "json"
         req.params["pageSize"] = page_size

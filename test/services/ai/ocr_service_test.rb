@@ -33,4 +33,28 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
 
     assert_equal "인식된 손글씨 본문", service.call(@report.photo.blob)
   end
+
+  test "handles a String response from the client without crashing" do
+    client = StubClient.new(configured: true, response: "인식된 손글씨 본문")
+    service = Ai::OcrService.new(client: client)
+
+    assert_equal "인식된 손글씨 본문", service.call(@report.photo.blob)
+  end
+
+  test "handles an Array response from the client without crashing" do
+    response = [ "인식된", "손글씨" ]
+    client = StubClient.new(configured: true, response: response)
+    service = Ai::OcrService.new(client: client)
+
+    assert_equal response.to_s, service.call(@report.photo.blob)
+  end
+
+  test "raises GeminiClient::ApiError instead of saving a blank OCR body" do
+    client = StubClient.new(configured: true, response: { "text" => "" })
+    service = Ai::OcrService.new(client: client)
+
+    assert_raises(Ai::GeminiClient::ApiError) do
+      service.call(@report.photo.blob)
+    end
+  end
 end

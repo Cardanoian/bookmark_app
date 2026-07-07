@@ -3,6 +3,9 @@ class MonsterSpecies < ApplicationRecord
   MAX_STAGE = 3
   # 도감 완성도·dex 뱃지 분모(설계 라인 수 — 시드된 12가 아니라 24 고정, monsters.md §6.3).
   DESIGN_LINE_COUNT = 24
+  # evolve_condition 에서 허용하는 조건 키(ReadingStats 가 아는 지표 + badge).
+  # meets? 의 화이트리스트(NUMERIC_KEYS)와 단일 진실을 공유한다(P1.5 방어 심화).
+  ALLOWED_CONDITION_KEYS = (ReadingStats::NUMERIC_KEYS.map(&:to_s) + %w[badge]).freeze
 
   enum :element, { story: 0, knowledge: 1, emotion: 2, adventure: 3, nature: 4, imagination: 5 }
   enum :rarity, { common: 0, rare: 1, epic: 2 }
@@ -14,6 +17,7 @@ class MonsterSpecies < ApplicationRecord
 
   validates :key, presence: true, uniqueness: true
   validate :evolve_condition_must_be_valid_json
+  validate :evolve_condition_keys_must_be_known
   validate :evolves_from_must_not_be_self
   validate :stage_after_evolves_from
 
@@ -49,6 +53,40 @@ class MonsterSpecies < ApplicationRecord
     self.evolve_condition = JSON.parse(raw)
   rescue JSON::ParserError
     errors.add(:evolve_condition, "은(는) 올바른 JSON 형식이어야 합니다")
+  end
+
+  # evolve_condition 의 키를 화이트리스트로 강제한다(P1.5). 관리자 자유 편집 JSON 의 오타 키가
+  # 학생 도감(evolvable? → ReadingStats#meets?)에서 500 을 내기 전에 저장 시점에 막는다.
+  # evolve_condition_must_be_valid_json 뒤에 선언돼 파싱된 값을 검증한다. 값은 badge=문자열,
+  # 그 외=0 이상 정수만 허용(meets? 의 target.to_i 비교와 정합).
+  def evolve_condition_keys_must_be_known
+    return if evolve_condition.blank?
+
+    unless evolve_condition.is_a?(Hash)
+      errors.add(:evolve_condition, "은(는) 키-값 객체여야 합니다")
+      return
+    end
+
+    evolve_condition.each do |key, target|
+      key = key.to_s
+      unless ALLOWED_CONDITION_KEYS.include?(key)
+        errors.add(:evolve_condition, "에 알 수 없는 조건 키가 있어요: #{key}")
+        next
+      end
+
+      if key == "badge"
+        errors.add(:evolve_condition, "의 badge 조건 값이 비어 있어요") if target.blank?
+      elsif !non_negative_integer_target?(target)
+        errors.add(:evolve_condition, "의 ‘#{key}’ 값은 0 이상의 정수여야 해요")
+      end
+    end
+  end
+
+  # 조건 목표값이 0 이상 정수로 해석되는지(문자열 "3" 도 허용, 시드/관리자 입력 정합).
+  def non_negative_integer_target?(value)
+    Integer(value.to_s, 10) >= 0
+  rescue ArgumentError, TypeError
+    false
   end
 
   # 진화체인 무결성: 자기 자신으로 진화할 수 없다.

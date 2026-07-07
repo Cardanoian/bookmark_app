@@ -21,7 +21,11 @@ module Ai
         response_json: true,
         generation_config: { temperature: 0.1 }
       )
-      response["text"].to_s
+      # generate 는 JSON.parse 결과를 그대로 돌려주므로 Hash 가 아닐 수도 있다(String/Array).
+      text = response.is_a?(Hash) ? response["text"].to_s : response.to_s
+      raise GeminiClient::ApiError, "gemini ocr response text was blank" if text.blank?
+
+      text
     end
 
     private

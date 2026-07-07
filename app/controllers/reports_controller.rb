@@ -67,12 +67,23 @@ class ReportsController < ApplicationController
     end
   end
 
-  # 우수작 공유(P5.3): report.shared 를 켜고 게시판 게시물을 만든다(report 당 1개).
+  # 우수작 공유(P5.3): 실제 토글. 공유 중이면 해제(게시물 파기), 아니면 공유(게시물 1개 생성).
+  # 뷰 버튼 라벨("공유 취소"/"우수작 공유")과 동작을 일치시킨다.
   def share
     authorize @report, :share?
-    @report.update!(shared: true)
-    board_post = BoardPost.find_or_create_by!(report: @report)
-    redirect_to board_post_path(board_post), notice: "우수작 게시판에 공유했어요."
+
+    if @report.shared?
+      # board_post 파기 → 응원(cheers)이 cascade 삭제된다. 스티커는 report 소속이라 유지.
+      # cheers_count 는 콜백 없는 수동 카운터라 여기서 0 으로 초기화해야 재공유·스탯 집계가
+      # 어긋나지 않는다(ReadingStats#cheers_received 과대 집계 방지).
+      @report.board_post&.destroy
+      @report.update!(shared: false, cheers_count: 0)
+      redirect_to @report, notice: "공유를 취소했어요."
+    else
+      @report.update!(shared: true)
+      board_post = BoardPost.find_or_create_by!(report: @report)
+      redirect_to board_post_path(board_post), notice: "우수작으로 공유했어요."
+    end
   end
 
   private

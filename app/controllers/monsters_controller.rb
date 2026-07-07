@@ -68,11 +68,18 @@ class MonstersController < ApplicationController
     item = ShopItem.find(params[:shop_item_id])
     purchase = current_user.purchases.find_by(shop_item: item)
 
-    unless feed_item?(item) && purchase&.quantity.to_i.positive?
+    unless feed_item?(item) && purchase
       return redirect_to monster_path(@user_monster.dex_no), alert: "먹이가 부족해요. 상점에서 먼저 구매해 주세요."
     end
 
-    purchase.decrement!(:quantity)
+    # 원자적 조건부 차감: precheck→decrement 의 read-modify-write 는 동시 요청 두 건이
+    # 수량 1 을 모두 통과시켜 이중 소비/음수를 만든다(lost update). 수량>0 을 WHERE 로 걸어
+    # 실제 감소한 행이 있을 때만 케어 효과를 적용한다. 정적 SQL 문자열(주입 표면 없음).
+    decremented = Purchase.where(id: purchase.id).where("quantity > 0").update_all("quantity = quantity - 1")
+    if decremented.zero?
+      return redirect_to monster_path(@user_monster.dex_no), alert: "먹이가 부족해요. 상점에서 먼저 구매해 주세요."
+    end
+
     apply_care(item)
     redirect_to monster_path(@user_monster.dex_no), notice: "#{item.name}(으)로 몬스터를 돌봤어요. 🍪"
   end

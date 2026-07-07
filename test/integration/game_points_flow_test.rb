@@ -17,10 +17,7 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
     @student.update!(active_monster: @monster)
 
     # 5문항 게시 퀴즈(문항당 정답 5포인트 → 만점 25점/판).
-    @quiz = Quiz.create!(title: "게임포인트 퀴즈", created_by: @teacher, book: @book, scope: :global, published: true)
-    5.times do |i|
-      @quiz.quiz_questions.create!(prompt: "문제#{i}", choices: %w[정답 오답1 오답2 오답3], answer_index: 0, position: i + 1)
-    end
+    @quiz = build_quiz("게임포인트 퀴즈")
   end
 
   test "owl line is not evolvable before any game is played" do
@@ -30,12 +27,11 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
 
   test "playing games raises points, increments quizzes, and unlocks the quizzes: evolution" do
     login_as @student
-    all_correct = @quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
 
-    # 4판 만점 → 포인트 100, quizzes 4 (owl_1 조건 points:100 + quizzes:3 충족).
-    4.times do
-      post games_attempts_path, params: { quiz_id: @quiz.id, game: "quiz", answers: all_correct }
-    end
+    # 서로 다른 퀴즈 4개 만점 → 포인트 100, quizzes 4 (owl_1 조건 points:100 + quizzes:3 충족).
+    # 같은 퀴즈 재플레이는 파밍 방지로 적립이 0 이라, 100점은 서로 다른 퀴즈에서 모은다.
+    quizzes = [ @quiz ] + Array.new(3) { |i| build_quiz("게임포인트 퀴즈 추가#{i}") }
+    quizzes.each { |quiz| play_all_correct(quiz) }
 
     @student.reload
     assert_equal 100, @student.points, "게임 포인트가 누적된다"
@@ -51,14 +47,29 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
 
   test "the awarded game points actually advance the evolution in place" do
     login_as @student
-    all_correct = @quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
-    4.times do
-      post games_attempts_path, params: { quiz_id: @quiz.id, game: "quiz", answers: all_correct }
-    end
+    quizzes = [ @quiz ] + Array.new(3) { |i| build_quiz("진화 퀴즈 추가#{i}") }
+    quizzes.each { |quiz| play_all_correct(quiz) }
 
     new_form = @student.reload.evolve_active_monster!
     assert_equal "owl_2", new_form.key, "게임 포인트로 owl_1 → owl_2 진화"
     assert_equal 6, @monster.reload.dex_no, "제자리 진화(같은 라인)"
+  end
+
+  # §1.2 파밍 차단 회귀 방지 — 같은 퀴즈를 반복 제출해도 최고점 이상은 적립되지 않는다.
+  test "replaying the same quiz does not farm points beyond the best score" do
+    login_as @student
+
+    play_all_correct(@quiz)
+    assert_equal 25, @student.reload.points, "첫 만점은 전액 적립"
+    assert_match "25포인트를 얻었어요", flash[:notice], "첫 만점은 획득 안내"
+
+    play_all_correct(@quiz)
+    assert_equal 25, @student.reload.points, "같은 퀴즈 재플레이는 추가 적립 없음(파밍 차단)"
+    assert_match "추가 포인트는 없어요", flash[:notice], "재플레이 델타 0 은 정직하게 안내(획득 문구 금지)"
+    refute_match "얻었어요", flash[:notice], "델타 0 일 때 '얻었어요'라고 말하지 않는다"
+
+    play_all_correct(@quiz)
+    assert_equal 3, ReadingStats.new(@student).quizzes, "플레이 횟수(quizzes) 자체는 계속 증가"
   end
 
   def login_as(user)
@@ -66,5 +77,19 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
       school_id: user.school_id, classroom_id: user.classroom_id,
       name: user.name, password: "password"
     }
+  end
+
+  # 만점 25점(정답 5포인트 × 5문항) 게시 퀴즈 1개.
+  def build_quiz(title)
+    quiz = Quiz.create!(title: title, created_by: @teacher, book: @book, scope: :global, published: true)
+    5.times do |i|
+      quiz.quiz_questions.create!(prompt: "문제#{i}", choices: %w[정답 오답1 오답2 오답3], answer_index: 0, position: i + 1)
+    end
+    quiz
+  end
+
+  def play_all_correct(quiz)
+    answers = quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
+    post games_attempts_path, params: { quiz_id: quiz.id, game: "quiz", answers: answers }
   end
 end

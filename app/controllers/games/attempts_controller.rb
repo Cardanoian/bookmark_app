@@ -7,11 +7,20 @@ module Games
       authorize QuizAttempt.new(quiz: quiz, user: current_user), :create?
 
       attempt = QuizPlay.new(quiz: quiz, user: current_user).record!(submitted_answers)
-      redirect_to game_path(params[:game], quiz),
-                  notice: "#{attempt.score}문제 정답! #{attempt.score * QuizPlay::POINTS_PER_CORRECT}포인트를 얻었어요."
+      redirect_to game_path(params[:game], quiz), notice: result_notice(attempt)
     end
 
     private
+
+    # 실제 지급된 델타 기준의 정직한 안내(§1.2). 재플레이로 추가 포인트가 0이면
+    # "얻었어요"라고 말하지 않는다 — 파밍 차단 취지와 UX 를 일치시킨다.
+    def result_notice(attempt)
+      if attempt.awarded_delta.to_i.positive?
+        "#{attempt.score}문제 정답! #{attempt.awarded_delta}포인트를 얻었어요."
+      else
+        "#{attempt.score}문제 정답! 이미 받은 최고 기록이라 추가 포인트는 없어요."
+      end
+    end
 
     # answers[question_id] = 선택 보기 인덱스. 인덱스만 정수로 사용(모델 대량 대입 아님).
     def submitted_answers

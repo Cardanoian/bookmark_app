@@ -139,4 +139,33 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_not @stats.meets?(nil)
     assert_not @stats.meets?({})
   end
+
+  # P1.5 — evolve_condition 은 관리자 자유 편집 JSON. 화이트리스트 밖(오타) 키가 public_send 에서
+  # NoMethodError 를 내면 학생 도감이 500 난다. 미충족(false)으로 처리하고 절대 raise 하지 않는다.
+  test "meets? treats an unknown key as unmet and never raises" do
+    report(reviewed: true)
+    report(reviewed: true)
+    report(reviewed: true)
+
+    assert_nothing_raised do
+      # "reprots" 는 "reports" 오타. 조건이 참이면 안 되고 예외도 없어야 한다.
+      assert_not @stats.meets?("reprots" => 3)
+    end
+  end
+
+  test "meets? with a mix of valid and unknown keys is unmet (AND fails on the unknown key)" do
+    report(reviewed: true)
+    report(reviewed: true)
+    report(reviewed: true)
+    # points 320 >= 100 은 참이지만, 알 수 없는 키가 하나라도 있으면 전체가 미충족.
+    assert_not @stats.meets?("points" => 100, "bogus_metric" => 1)
+  end
+
+  test "meets? still evaluates whitelisted symbol and string keys correctly" do
+    report(reviewed: true)
+    report(reviewed: true)
+    report(reviewed: true)
+    assert @stats.meets?(points: 100, reports: 3)
+    assert @stats.meets?("points" => 100, "reports" => 3)
+  end
 end

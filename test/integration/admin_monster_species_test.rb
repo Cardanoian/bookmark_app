@@ -18,11 +18,21 @@ class AdminMonsterSpeciesTest < ActionDispatch::IntegrationTest
 
   test "editing an evolve rule persists as parsed JSON" do
     species = MonsterSpecies.create!(key: "evo_1", name: "진화체", dex_no: 201, stage: 1)
+    # 키는 화이트리스트(ReadingStats 지표) 내여야 한다(P1.5) — 파싱·영속 자체를 검증하는 테스트라 유효 키 사용.
     patch admin_monster_species_path(species), params: { monster_species: {
-      evolve_condition_json: '{"level": 10, "item": "stone"}'
+      evolve_condition_json: '{"points": 450, "reports": 8}'
     } }
     species.reload
-    assert_equal({ "level" => 10, "item" => "stone" }, species.evolve_condition)
+    assert_equal({ "points" => 450, "reports" => 8 }, species.evolve_condition)
+  end
+
+  test "an evolve rule with an unknown condition key is rejected (P1.5 whitelist)" do
+    species = MonsterSpecies.create!(key: "evo_bad_key", name: "오타체", dex_no: 206, stage: 1)
+    patch admin_monster_species_path(species), params: { monster_species: {
+      evolve_condition_json: '{"reprots": 3}'
+    } }
+    assert_response :unprocessable_entity
+    assert_nil species.reload.evolve_condition
   end
 
   test "invalid JSON evolve_condition is rejected (validation error, not a crash)" do

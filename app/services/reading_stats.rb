@@ -94,14 +94,19 @@ class ReadingStats
   end
 
   # 조건 해시의 모든 키 충족 여부(AND). 숫자 키는 >=, badge 는 보유 여부.
+  # 화이트리스트(NUMERIC_KEYS + badge) 밖의 키는 크래시 대신 미충족(false)으로 처리한다.
+  # evolve_condition 은 관리자 자유 편집 JSON 이라, 오타 키가 public_send 에서 NoMethodError
+  # 를 내면 학생 도감(monsters#index → evolvable?)이 500 나기 때문(P1.5).
   def meets?(condition)
     return false if condition.blank?
 
     condition.all? do |key, target|
       if key.to_s == "badge"
         badge?(target)
-      else
+      elsif NUMERIC_KEYS.include?(key.to_s.to_sym)
         public_send(key) >= target.to_i
+      else
+        false
       end
     end
   end

@@ -2,4 +2,8 @@
 class QuizAttempt < ApplicationRecord
   belongs_to :quiz
   belongs_to :user
+
+  # 이번 판에서 실제 지급된 포인트(멱등 델타). 영속 컬럼이 아니라 record! 가
+  # 채워 주는 임시 속성으로, 컨트롤러가 정직한 안내 메시지를 만들 때 쓴다(§1.2).
+  attr_accessor :awarded_delta
 end

@@ -8,6 +8,10 @@ class Library::Data4libraryServiceTest < ActiveSupport::TestCase
     Faraday.new { |faraday| faraday.adapter :test, stubs }
   end
 
+  test "BASE_URL uses https (authKey travels over TLS)" do
+    assert_equal "https://data4library.kr", Library::Data4libraryService::BASE_URL
+  end
+
   test "available? is false when the api key is blank (placeholder credential)" do
     assert_not Library::Data4libraryService.new(api_key: "").available?
   end

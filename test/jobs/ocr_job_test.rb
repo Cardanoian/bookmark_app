@@ -19,8 +19,26 @@ class OcrJobTest < ActiveJob::TestCase
     end
   end
 
+  class RaisingStub
+    def initialize(error)
+      @error = error
+    end
+
+    def call(_blob)
+      raise @error
+    end
+  end
+
   test "marks the report failed when OCR is unavailable (blank key, no network)" do
     OcrJob.perform_now(@report)
+    assert @report.reload.failed?
+  end
+
+  test "marks the report failed (not stuck pending) when OcrService raises a Gemini API error" do
+    stub_new(Ai::OcrService, RaisingStub.new(Ai::GeminiClient::ApiError.new("gemini boom"))) do
+      OcrJob.perform_now(@report)
+    end
+
     assert @report.reload.failed?
   end
 

@@ -41,4 +41,54 @@ class MonsterSpeciesTest < ActiveSupport::TestCase
     assert species.story?
     assert species.common?
   end
+
+  # P1.5 방어 심화 — evolve_condition 키를 화이트리스트로 강제해, 오타 키가 학생 도감(evolvable?)에서
+  # 500 나기 전에 저장 시점에 막는다.
+  test "evolve_condition with a whitelisted key is accepted" do
+    species = MonsterSpecies.new(key: "cond_ok_1", stage: 1, dex_no: 300, evolve_condition: { "points" => 100, "reports" => 3 })
+    assert species.valid?, species.errors.full_messages.to_sentence
+  end
+
+  test "evolve_condition with a badge key is accepted" do
+    species = MonsterSpecies.new(key: "cond_badge_1", stage: 1, dex_no: 301, evolve_condition: { "badge" => "reviser" })
+    assert species.valid?, species.errors.full_messages.to_sentence
+  end
+
+  test "evolve_condition with an unknown key is rejected" do
+    species = MonsterSpecies.new(key: "cond_bad_1", stage: 1, dex_no: 302, evolve_condition: { "reprots" => 3 })
+    assert_not species.valid?
+    assert species.errors[:evolve_condition].any?
+  end
+
+  test "evolve_condition with a non-integer numeric target is rejected" do
+    species = MonsterSpecies.new(key: "cond_bad_2", stage: 1, dex_no: 303, evolve_condition: { "points" => "many" })
+    assert_not species.valid?
+    assert species.errors[:evolve_condition].any?
+  end
+
+  test "evolve_condition with a negative numeric target is rejected" do
+    species = MonsterSpecies.new(key: "cond_bad_3", stage: 1, dex_no: 304, evolve_condition: { "points" => -5 })
+    assert_not species.valid?
+    assert species.errors[:evolve_condition].any?
+  end
+
+  test "an unknown key entered via the JSON writer is rejected as a validation error, not a crash" do
+    species = MonsterSpecies.new(key: "cond_json_bad", stage: 1, dex_no: 305)
+    species.evolve_condition_json = '{"level": 10}'
+    assert_not species.valid?
+    assert species.errors[:evolve_condition].any?
+  end
+
+  test "blank evolve_condition (stage 3) is valid" do
+    species = MonsterSpecies.new(key: "cond_blank", stage: 3, dex_no: 306)
+    assert species.valid?, species.errors.full_messages.to_sentence
+  end
+
+  # 시더가 적재하는 모든 실제 진화 조건이 새 화이트리스트 검증을 통과해야 한다(회귀 방지).
+  test "all seeded evolve_conditions satisfy the key whitelist" do
+    seed_monster_species!
+    MonsterSpecies.where.not(evolve_condition: nil).find_each do |species|
+      assert species.valid?, "#{species.key}: #{species.errors.full_messages.to_sentence}"
+    end
+  end
 end

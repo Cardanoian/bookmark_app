@@ -20,12 +20,45 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     assert_redirected_to board_post_path(BoardPost.find_by(report: @report))
   end
 
-  test "sharing is idempotent — one board post per report" do
+  test "share is a real toggle — sharing again unshares and removes the board post" do
     login_as @author
     post share_report_path(@report)
-    assert_no_difference "BoardPost.count" do
+    assert @report.reload.shared?
+    board_post = BoardPost.find_by(report: @report)
+
+    assert_difference "BoardPost.count", -1 do
       post share_report_path(@report)
     end
+    assert_not @report.reload.shared?, "다시 누르면 공유가 취소된다"
+    assert_not BoardPost.exists?(board_post.id), "연결된 게시물이 파기된다"
+    assert_redirected_to report_path(@report)
+  end
+
+  test "unsharing resets cheers_count and destroys cheers so the counter is not stale" do
+    login_as @author
+    post share_report_path(@report)
+    board_post = BoardPost.find_by(report: @report)
+
+    login_as @peer
+    post board_post_cheers_path(board_post)
+    assert_equal 1, @report.reload.cheers_count
+
+    login_as @author
+    post share_report_path(@report) # unshare
+    assert_equal 0, @report.reload.cheers_count, "공유 취소 시 수동 카운터도 0 으로 초기화"
+    assert_equal 0, Cheer.where(board_post_id: board_post.id).count, "응원 행도 cascade 삭제"
+    assert_equal 0, ReadingStats.new(@author).cheers_received, "스탯 집계가 stale 하지 않다"
+  end
+
+  test "sharing again after unsharing recreates the board post" do
+    login_as @author
+    post share_report_path(@report) # share
+    post share_report_path(@report) # unshare
+
+    assert_difference "BoardPost.count", 1 do
+      post share_report_path(@report) # re-share
+    end
+    assert @report.reload.shared?
   end
 
   test "a non-author non-teacher student cannot share" do
