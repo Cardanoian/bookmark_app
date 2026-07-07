@@ -50,7 +50,7 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
   private
 
   def create_user(name:, classroom:, role: :student)
-    User.create!(school: @school, classroom: classroom, name: name, role: role, password: "password")
+    User.create!(school: @school, classroom: classroom, name: name, role: role, password: "password", approved: true)
   end
 
   def login_as(user)

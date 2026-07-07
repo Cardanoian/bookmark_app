@@ -95,4 +95,11 @@ class Library::Data4libraryServiceTest < ActiveSupport::TestCase
     service.popular_loans
     assert_not_nil service.last_error
   end
+
+  # 동기 웹요청 경로(정보나루 대출)의 스레드 고갈을 막기 위해 실 Faraday 연결에 타임아웃을 설정한다(§0.4).
+  test "real connection is configured with http timeouts (open 3s / read 8s)" do
+    connection = Library::Data4libraryService.new(api_key: "KEY").send(:connection)
+    assert_equal 3, connection.options.open_timeout
+    assert_equal 8, connection.options.timeout
+  end
 end

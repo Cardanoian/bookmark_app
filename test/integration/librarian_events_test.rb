@@ -49,7 +49,7 @@ class LibrarianEventsTest < ActionDispatch::IntegrationTest
 
   test "a teacher is forbidden from librarian events" do
     classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    teacher = User.create!(school: @school, classroom: classroom, name: "행사교사", role: :teacher, password: "password")
+    teacher = User.create!(school: @school, classroom: classroom, name: "행사교사", role: :teacher, password: "password", approved: true)
     login_as teacher
     get librarian_events_path
     assert_response :forbidden

@@ -6,11 +6,11 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "검토통합학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "검토담임", role: :teacher, password: "password")
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "검토담임", role: :teacher, password: "password", approved: true)
     @classroom.update!(teacher: @teacher)
 
     @other_classroom = Classroom.create!(school: @school, grade: 5, class_no: 2)
-    @other_teacher = User.create!(school: @school, classroom: @other_classroom, name: "다른담임", role: :teacher, password: "password")
+    @other_teacher = User.create!(school: @school, classroom: @other_classroom, name: "다른담임", role: :teacher, password: "password", approved: true)
     @other_classroom.update!(teacher: @other_teacher)
 
     @student = User.create!(school: @school, classroom: @classroom, name: "검토학생", password: "password")

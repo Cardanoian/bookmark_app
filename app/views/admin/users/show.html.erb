@@ -10,6 +10,9 @@
     <div class="flex justify-between py-1"><dt class="text-gray-500">학교</dt><dd><%= @user.school&.name %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-gray-500">포인트</dt><dd><%= @user.points %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-gray-500">상태</dt><dd><%= @user.suspended? ? "정지" : "활성" %></dd></div>
+    <% if @user.teacher? %>
+      <div class="flex justify-between py-1"><dt class="text-gray-500">승인</dt><dd><%= @user.approved? ? "승인됨" : "승인 대기" %></dd></div>
+    <% end %>
   </dl>
 
   <div class="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-4">
@@ -18,8 +21,15 @@
     <% else %>
       <%= button_to "계정 정지", suspend_admin_user_path(@user), class: "rounded-lg bg-rose-600 px-3 py-1.5 text-sm text-white" %>
     <% end %>
+    <% if @user.teacher? %>
+      <% if @user.approved? %>
+        <%= button_to "승인 취소", unapprove_admin_user_path(@user), class: "rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800" %>
+      <% else %>
+        <%= button_to "가입 승인", approve_admin_user_path(@user), class: "rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white" %>
+      <% end %>
+    <% end %>
     <%= button_to "비밀번호 초기화", reset_password_admin_user_path(@user),
-          form: { data: { turbo_confirm: "비밀번호를 1234로 초기화할까요?" } },
+          form: { data: { turbo_confirm: "임시 비밀번호로 초기화할까요?" } },
           class: "rounded-lg border border-gray-300 px-3 py-1.5 text-sm" %>
   </div>
 

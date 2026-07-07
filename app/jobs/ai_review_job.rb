@@ -36,9 +36,13 @@ class AiReviewJob < ApplicationJob
   # 음수(재첨삭으로 등급 하락)는 잔액을 조정한 뒤 뱃지를 재계산(멱등)한다.
   def award_points_delta(user, delta)
     if delta.positive?
+      # award_points 가 원자 증가(update_counters)+reload+후크를 담당 — 여기서 이중 적용하지 않는다.
       user.award_points(delta, reason: "report_review")
     elsif delta.negative?
-      user.update!(points: [ user.points + delta, 0 ].max)
+      # 음수 델타는 0 바닥의 원자 차감으로 비원자 read-modify-write 경합을 없앤다.
+      # (포인트 임계 뱃지 조건은 없어 refresh_badges! 전 reload 는 필수는 아니나, 최신값 기준으로 재계산하도록 유지.)
+      User.where(id: user.id).update_all("points = MAX(points - #{delta.abs.to_i}, 0)")
+      user.reload
       user.refresh_badges!
     end
   end

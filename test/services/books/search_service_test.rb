@@ -69,4 +69,11 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
   test "returns an empty array for a blank query" do
     assert_equal [], Books::SearchService.new(naver_id: "N", naver_secret: "S").call("")
   end
+
+  # 동기 웹요청 경로(도서 검색)의 스레드 고갈을 막기 위해 실 Faraday 연결에 타임아웃을 설정한다(§0.4).
+  test "real naver connection is configured with http timeouts (open 3s / read 8s)" do
+    connection = Books::SearchService.new(naver_id: "N", naver_secret: "S").send(:naver_connection)
+    assert_equal 3, connection.options.open_timeout
+    assert_equal 8, connection.options.timeout
+  end
 end

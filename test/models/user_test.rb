@@ -59,6 +59,23 @@ class UserTest < ActiveSupport::TestCase
     assert_nil admin.school_id
   end
 
+  test "rejects a password shorter than six characters" do
+    assert_not build_user(password: "12345").valid?
+    assert build_user(password: "123456").valid?
+  end
+
+  test "generate_temporary_password returns a random password of at least six characters" do
+    one = User.generate_temporary_password
+    two = User.generate_temporary_password
+    assert one.length >= 6
+    assert_not_equal one, two
+    assert_not_equal "1234", one
+    # 생성된 임시 비밀번호로 실제 인증이 되는지 확인한다.
+    user = build_user(password: one)
+    assert user.save
+    assert user.authenticate(one)
+  end
+
   private
 
   def build_user(attrs = {})

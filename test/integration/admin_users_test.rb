@@ -39,12 +39,49 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_not @student.reload.suspended?
   end
 
-  test "reset_password stores a working hashed default password" do
+  test "reset_password stores a working hashed random password surfaced to the admin" do
     login_as @superadmin
     post reset_password_admin_user_path(@student)
     @student.reload
-    assert @student.authenticate("1234"), "default password should authenticate"
-    assert_not_equal "1234", @student.password_digest, "password must be hashed, not plaintext"
+
+    temp = flash[:notice][/임시 비밀번호 ‘([A-Za-z0-9]+)’/, 1]
+    assert temp.present?, "임시 비밀번호가 안내 메시지에 노출돼야 한다"
+    assert_not_equal "1234", temp, "기본 비밀번호 1234 는 더 이상 쓰지 않는다"
+    assert @student.authenticate(temp), "random password should authenticate"
+    assert_not_equal temp, @student.password_digest, "password must be hashed, not plaintext"
+  end
+
+  test "approve lets a pending teacher log in" do
+    teacher = User.create!(school: @school, classroom: @classroom, name: "승인대기교사", role: :teacher, password: "password", approved: false)
+    login_as @superadmin
+    post approve_admin_user_path(teacher)
+    assert teacher.reload.approved?
+
+    # 승인 후에는 로그인 가능해야 한다.
+    reset!
+    post session_path, params: {
+      school_id: teacher.school_id, classroom_id: teacher.classroom_id,
+      name: teacher.name, password: "password"
+    }
+    assert_redirected_to root_path
+    assert_equal teacher.id, session[:user_id]
+  end
+
+  test "unapprove blocks a previously approved teacher" do
+    teacher = User.create!(school: @school, classroom: @classroom, name: "승인취소교사", role: :teacher, password: "password", approved: true)
+    login_as @superadmin
+    post unapprove_admin_user_path(teacher)
+    assert_not teacher.reload.approved?
+  end
+
+  test "pending filter lists only unapproved teachers" do
+    pending = User.create!(school: @school, classroom: @classroom, name: "필터대기교사", role: :teacher, password: "password", approved: false)
+    approved = User.create!(school: @school, classroom: @classroom, name: "필터승인교사", role: :teacher, password: "password", approved: true)
+    login_as @superadmin
+    get admin_users_path(pending: 1)
+    assert_response :success
+    assert_match pending.name, response.body
+    assert_no_match approved.name, response.body
   end
 
   test "role change updates the role" do

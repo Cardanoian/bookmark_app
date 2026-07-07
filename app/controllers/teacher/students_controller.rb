@@ -2,9 +2,6 @@
 class Teacher::StudentsController < Teacher::BaseController
   before_action :set_student, only: [ :destroy, :reset_password, :give_points ]
 
-  # 신규·초기화 시 부여하는 기본 비밀번호(has_secure_password 로 해시 저장).
-  DEFAULT_PASSWORD = "1234"
-
   def index
     @classrooms = teacher_classrooms.order(:grade, :class_no).to_a
     @students = User.where(classroom_id: @classrooms.map(&:id), role: :student).order(:name)
@@ -12,16 +9,18 @@ class Teacher::StudentsController < Teacher::BaseController
 
   def create
     classroom = owned_classroom!(target_classroom)
+    temporary_password = User.generate_temporary_password
     @student = User.new(
       name: student_params[:name],
       classroom: classroom,
       school_id: classroom.school_id,
       role: :student,
-      password: DEFAULT_PASSWORD
+      approved: true,
+      password: temporary_password
     )
 
     if @student.save
-      redirect_to teacher_students_path, notice: "#{@student.name} 학생을 추가했어요. (기본 비밀번호 #{DEFAULT_PASSWORD})"
+      redirect_to teacher_students_path, notice: "#{@student.name} 학생을 추가했어요. (임시 비밀번호 #{temporary_password})"
     else
       redirect_to teacher_students_path, alert: @student.errors.full_messages.to_sentence
     end
@@ -34,8 +33,9 @@ class Teacher::StudentsController < Teacher::BaseController
   end
 
   def reset_password
-    @student.update!(password: DEFAULT_PASSWORD)
-    redirect_to teacher_students_path, notice: "#{@student.name} 학생의 비밀번호를 초기화했어요."
+    temporary_password = User.generate_temporary_password
+    @student.update!(password: temporary_password)
+    redirect_to teacher_students_path, notice: "#{@student.name} 학생의 비밀번호를 초기화했어요. (임시 비밀번호 #{temporary_password})"
   end
 
   def give_points

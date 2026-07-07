@@ -128,6 +128,8 @@ Rails.application.routes.draw do
       member do
         post :suspend
         post :unsuspend
+        post :approve
+        post :unapprove
         post :reset_password
         patch :role
       end

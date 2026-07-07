@@ -5,7 +5,7 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "퀴즈학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "퀴즈담임", role: :teacher, password: "password")
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "퀴즈담임", role: :teacher, password: "password", approved: true)
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "퀴즈학생", password: "password")
     @book = Book.create!(title: "마당을 나온 암탉", author: "황선미", summary: "잎싹 이야기", category: :recommended)

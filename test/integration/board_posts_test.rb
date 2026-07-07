@@ -4,7 +4,7 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "게시판통합초")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "게시판교사", role: :teacher, password: "password")
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "게시판교사", role: :teacher, password: "password", approved: true)
     @classroom.update!(teacher: @teacher)
     @author = User.create!(school: @school, classroom: @classroom, name: "글쓴이", password: "password")
     @peer = User.create!(school: @school, classroom: @classroom, name: "응원친구", password: "password")

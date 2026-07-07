@@ -71,7 +71,7 @@ module Library
     end
 
     def connection
-      @connection ||= Faraday.new(url: BASE_URL) do |faraday|
+      @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 8 }) do |faraday|
         faraday.adapter Faraday.default_adapter
       end
     end

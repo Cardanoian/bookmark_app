@@ -37,7 +37,7 @@ class SchoolAdminStatsTest < ActionDispatch::IntegrationTest
   end
 
   test "a teacher is forbidden from school_admin stats" do
-    teacher = User.create!(school: @school, classroom: @classroom, name: "교사X", role: :teacher, password: "password")
+    teacher = User.create!(school: @school, classroom: @classroom, name: "교사X", role: :teacher, password: "password", approved: true)
     login_as teacher
     get school_admin_stats_path
     assert_response :forbidden

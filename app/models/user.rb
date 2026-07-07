@@ -24,4 +24,11 @@ class User < ApplicationRecord
 
   validates :name, presence: true
   validates :name, uniqueness: { scope: [ :school_id, :classroom_id ] }
+  validates :password, length: { minimum: 6 }, allow_nil: true
+
+  # 계정 생성·비밀번호 초기화 시 부여하는 랜덤 임시 비밀번호(0.5). 기본비번 "1234" 대체.
+  # 최소 길이(6) 이상을 보장하며, 호출부에서 교사/관리자에게 노출해 학생에게 전달한다.
+  def self.generate_temporary_password
+    SecureRandom.alphanumeric(10)
+  end
 end

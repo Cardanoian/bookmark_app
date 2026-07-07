@@ -59,6 +59,39 @@ class ShopPurchaseTest < ActionDispatch::IntegrationTest
     assert_match "points_balance", response.body
   end
 
+  test "insufficient balance is rejected with shortage message and unchanged committed balance" do
+    @student.update!(points: 10)
+    login_as @student
+
+    post purchases_path, params: { shop_item_id: @food.id }, as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_match "포인트가 부족해요", response.body
+    assert_equal 10, @student.reload.points, "실패 시 커밋된 잔액은 그대로여야 한다"
+    assert_equal 0, @student.purchases.count, "실패한 구매 행은 남지 않는다"
+  end
+
+  # 구매 트랜잭션 정합: 원자 차감이 실패(경쟁 패배자)하면 롤백돼 무료 아이템도, 포인트 유실도 없다.
+  # 컨트롤러 #buy 의 트랜잭션 패턴과 동일 — precheck 가 아니라 원자 가드가 최종 권위다.
+  test "a failed atomic spend rolls back the purchase (no free item, no point loss)" do
+    @student.update!(points: 30)
+    pricey = ShopItem.create!(name: "비싼 배경", category: :decoration, cost: 40, consumable: false, effect: {})
+
+    ok = false
+    @student.transaction do
+      if @student.spend_points!(pricey.cost)
+        @student.purchases.create!(shop_item: pricey, quantity: 1, bought_at: Time.current)
+        ok = true
+      else
+        raise ActiveRecord::Rollback
+      end
+    end
+
+    assert_not ok
+    assert_equal 30, @student.reload.points, "실패한 차감은 포인트를 잃지 않는다"
+    assert_equal 0, @student.purchases.where(shop_item: pricey).count, "실패한 구매 행은 남지 않는다"
+  end
+
   private
 
   def login_as(user)

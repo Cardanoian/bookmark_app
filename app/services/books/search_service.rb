@@ -124,7 +124,7 @@ module Books
     end
 
     def naver_connection
-      @naver_connection ||= Faraday.new(url: NAVER_BASE) do |faraday|
+      @naver_connection ||= Faraday.new(url: NAVER_BASE, request: { open_timeout: 3, timeout: 8 }) do |faraday|
         faraday.adapter Faraday.default_adapter
       end
     end

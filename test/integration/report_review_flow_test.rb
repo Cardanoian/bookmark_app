@@ -8,7 +8,7 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "플로우학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "플로우담임", role: :teacher, password: "password")
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "플로우담임", role: :teacher, password: "password", approved: true)
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "플로우학생", password: "password")
   end

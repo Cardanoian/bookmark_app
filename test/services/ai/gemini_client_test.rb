@@ -41,6 +41,13 @@ class Ai::GeminiClientTest < ActiveSupport::TestCase
     end
   end
 
+  # 동기 웹요청 경로의 스레드 고갈을 막기 위해 실 Faraday 연결에 타임아웃을 설정한다(§0.4).
+  test "real connection is configured with http timeouts (open 3s / read 8s)" do
+    connection = Ai::GeminiClient.new.send(:connection)
+    assert_equal 3, connection.options.open_timeout
+    assert_equal 8, connection.options.timeout
+  end
+
   private
 
   def build_client(&block)
