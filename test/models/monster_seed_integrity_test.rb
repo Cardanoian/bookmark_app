@@ -4,9 +4,13 @@ require "test_helper"
 class MonsterSeedIntegrityTest < ActiveSupport::TestCase
   setup { seed_monster_species! }
 
-  test "seeds exactly 36 forms (12 Phase 1 lines x 3 stages)" do
-    assert_equal 36, MonsterSpecies.count
-    assert_equal 12, MonsterSpecies.distinct.count(:dex_no)
+  test "seeds exactly 72 forms (24 lines x 3 stages)" do
+    assert_equal 72, MonsterSpecies.count
+    assert_equal 24, MonsterSpecies.distinct.count(:dex_no)
+  end
+
+  test "seeds all 24 dex_no lines 1..24 (both phases)" do
+    assert_equal (1..24).to_a, MonsterSpecies.distinct.order(:dex_no).pluck(:dex_no)
   end
 
   test "every seeded line has stages 1, 2 and 3" do
@@ -45,6 +49,18 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
     assert_equal({ "points" => 100, "distinct_genres" => 2 }, MonsterSpecies.find_by(key: "cat_1").evolve_condition)
   end
 
+  test "phase 2 lines are seeded (dragon line present with docs conditions)" do
+    dragon1 = MonsterSpecies.find_by(key: "dragon_1")
+    assert_equal 24, dragon1.dex_no
+    assert_equal "imagination", dragon1.element
+    assert_equal "epic", dragon1.rarity
+    assert_equal({ "points" => 250, "dex_count" => 5 }, dragon1.evolve_condition)
+    assert_equal(
+      { "points" => 1000, "dex_count" => 10, "a_grades" => 3, "classics" => 2 },
+      MonsterSpecies.find_by(key: "dragon_2").evolve_condition
+    )
+  end
+
   test "image_key equals the form key" do
     species = MonsterSpecies.find_by(key: "hedgehog_1")
     assert_equal "hedgehog_1", species.image_key
@@ -52,6 +68,6 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
 
   test "seeding is idempotent" do
     seed_monster_species!
-    assert_equal 36, MonsterSpecies.count
+    assert_equal 72, MonsterSpecies.count
   end
 end

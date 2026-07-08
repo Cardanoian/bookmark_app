@@ -1,16 +1,43 @@
-# Phase 1 몬스터 도감 시드 로직(docs/monsters.md §7 YAML → monster_species).
-# rake `monsters:seed` 와 테스트가 공유하는 단일 진실. phase:1 라인만 적재(12라인×3=36폼).
-# evolves_from 은 stage 순서로 자동 연결. 멱등(find_or_initialize_by key). 적재 폼 수 반환.
+# 반려 몬스터 도감 시드 로직(docs/monsters.md §7 YAML → monster_species).
+# rake `monsters:seed` 와 테스트가 공유하는 단일 진실. 기본은 24라인×3=72폼 전량 적재로
+# 도감 완성(dex_complete, 분모 24) 보상 루프가 닫히게 한다. phase 별 부분 적재도 지원
+# (에셋 배포를 나눠야 할 때). evolves_from 은 stage 순서로 자동 연결. 멱등(find_or_initialize_by
+# key). 적재한 폼 수를 반환한다.
 class MonsterSeeder
   SEED_PATH = Rails.root.join("db/seeds/monsters.yml")
+
+  def self.seed_all!
+    new.seed_all!
+  end
 
   def self.seed_phase1!
     new.seed_phase1!
   end
 
+  def self.seed_phase2!
+    new.seed_phase2!
+  end
+
+  # 설계된 24라인(72폼) 전량 적재.
+  def seed_all!
+    seed_lines(all_lines)
+  end
+
+  # Phase 1 라인만(12라인×3=36폼) — 하위호환·부분 배포용.
   def seed_phase1!
+    seed_lines(lines_for_phase(1))
+  end
+
+  # Phase 2 라인만(12라인×3=36폼) — Phase 1 위에 증분 적재용.
+  def seed_phase2!
+    seed_lines(lines_for_phase(2))
+  end
+
+  private
+
+  def seed_lines(lines)
     seeded = 0
-    phase1_lines.each do |line|
+    lines.each do |line|
       previous = nil
       forms_for(line).each do |form|
         previous = seed_form(line, form, previous)
@@ -20,14 +47,16 @@ class MonsterSeeder
     seeded
   end
 
-  private
-
   def data
     @data ||= YAML.load_file(SEED_PATH)
   end
 
-  def phase1_lines
-    data.fetch("monster_lines").select { |line| line["phase"] == 1 }
+  def all_lines
+    data.fetch("monster_lines")
+  end
+
+  def lines_for_phase(phase)
+    all_lines.select { |line| line["phase"] == phase }
   end
 
   def forms_for(line)

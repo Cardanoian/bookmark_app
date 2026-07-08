@@ -33,11 +33,11 @@ module ActiveSupport
 
     # Add more helper methods to be used by all tests here...
 
-    # Seed the Phase 1 monster species (36 forms) via the shared seeder — the same
-    # code path the `monsters:seed` rake task runs. Rolled back with each test's
-    # transaction; idempotent so it is safe to call in every setup.
+    # Seed the full monster dex (24 lines × 3 stages = 72 forms) via the shared
+    # seeder — the same code path the `monsters:seed` rake task runs. Rolled back
+    # with each test's transaction; idempotent so it is safe to call in every setup.
     def seed_monster_species!
-      MonsterSeeder.seed_phase1!
+      MonsterSeeder.seed_all!
     end
 
     # Seed the 13 badge catalog rows (needed to grant/trigger badges).

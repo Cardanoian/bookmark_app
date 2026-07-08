@@ -13,7 +13,7 @@
 - **컨셉**: 일상에서 볼 수 있는 **친숙한 동물·사물**을 몬스터화(동물 위주 + 사물 소수). 아이들이 "내 반려동물" 같은 애착을 느끼도록 하되, 각 종은 속성별 독서 습관과 연결된다(§2).
 - **수집(도감) 방식**: 학생마다 도감을 채워 나감. 첫 **스타터 1종 선택**(서로 다른 속성 후보 중), 이후 트레이너 레벨업·챌린지·뱃지 등 **마일스톤마다 신규 몬스터 발견**(가챠 없음).
 - **진화**: 포인트 임계 **+ 독서 행동 조건** 조합. 라인마다 성격이 달라 서로 다른 독서 습관을 유도한다(§4, §5).
-- **에셋 물량 관리**: **Phase 1은 12라인(36폼)만 시드**(§6), 이후 24라인으로 확장.
+- **시드 상태**: **데이터(종·진화라인·조건)는 24라인 72폼 전량 시드 완료**(2026-07-08). 아트 에셋(PNG)만 Phase 1(12라인) → Phase 2(나머지 12라인)로 물량을 나눠 제작(§6). `phase:` 필드는 아트 제작 배치를 표시할 뿐, 시더는 전량 적재한다.
 - 이 문서의 각 항목은 `monster_species` 스키마(dex_no·stage·key·name·element·rarity·evolves_from·evolve_condition·image_key·description)에 1:1 매핑된다.
 
 ---
@@ -277,19 +277,17 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 
 > 유니콘(`unicorn_1`)·곰(`bear_1`)·햄스터(`hamster_1`)는 초반 마일스톤 해금 후보로 두어 선택지 다양성 확보.
 
-### 6.2 Phase 1 시드(12라인 = 36폼)
-에셋 물량을 고려해 각 속성 대표 2라인부터 제작·시드.
+### 6.2 아트 제작 단계(Phase) — 데이터는 전량 시드
+데이터(종·진화조건)는 24라인 전량 시드됐다. 아래 Phase 구분은 **AI 이미지(PNG) 제작 배치**를 뜻하며(`monster_lines[].phase`), 시더(`MonsterSeeder.seed_all!`)는 phase 무관 전량 적재한다.
 
-| 속성 | Phase 1 라인 |
-|------|--------------|
-| story | 강아지(1) · 앵무새(2) |
-| knowledge | 고양이(5) · 부엉이(6) |
-| emotion | 햄스터(9) · 고래(10) |
-| adventure | 곰(13) · 병아리(14) |
-| nature | 고슴도치(17) · 개구리(18) |
-| imagination | 도깨비(23) · 유니콘(21) |
-
-Phase 2에서 나머지 12라인(연필·여우·로봇·거북이·토끼·사슴·펭귄·공룡·다람쥐·버섯·나비·용) 확장.
+| 속성 | Phase 1 라인(에셋 우선) | Phase 2 라인 |
+|------|--------------|--------------|
+| story | 강아지(1) · 앵무새(2) | 연필(3) · 여우(4) |
+| knowledge | 고양이(5) · 부엉이(6) | 로봇(7) · 거북이(8) |
+| emotion | 햄스터(9) · 고래(10) | 토끼(11) · 사슴(12) |
+| adventure | 곰(13) · 병아리(14) | 펭귄(15) · 공룡(16) |
+| nature | 고슴도치(17) · 개구리(18) | 다람쥐(19) · 버섯(20) |
+| imagination | 도깨비(23) · 유니콘(21) | 나비(22) · 용(24) |
 
 ### 6.3 뱃지 연동(`RAILS_PLAN.md` §13.3)
 - `first_evolve` 첫 진화 · `final_form` 첫 완전진화 · `dex_half` 도감 절반(12/24) · `dex_complete` 도감 완성(24/24).
@@ -326,6 +324,7 @@ monster_lines:
   - dex_no: 3
     element: story
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: pencil_1, name: "뾰족이", evolve_condition: { points: 150, topic_posts: 2 } }
       - { stage: 2, key: pencil_2, name: "또각연필", evolve_condition: { points: 450, a_grades: 2 } }
@@ -333,6 +332,7 @@ monster_lines:
   - dex_no: 4
     element: story
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: fox_1, name: "도담여우", evolve_condition: { points: 150, distinct_genres: 2 } }
       - { stage: 2, key: fox_2, name: "이야기여우", evolve_condition: { points: 700, classics: 1, reports: 8 } }
@@ -359,6 +359,7 @@ monster_lines:
   - dex_no: 7
     element: knowledge
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: robot_1, name: "도르리", evolve_condition: { points: 150, missions: 1 } }
       - { stage: 2, key: robot_2, name: "째깍로봇", evolve_condition: { points: 700, distinct_genres: 5, quizzes: 5 } }
@@ -366,6 +367,7 @@ monster_lines:
   - dex_no: 8
     element: knowledge
     rarity: epic
+    phase: 2
     forms:
       - { stage: 1, key: turtle_1, name: "조각등", evolve_condition: { points: 250, classics: 1 } }
       - { stage: 2, key: turtle_2, name: "지식거북", evolve_condition: { points: 1000, classics: 3, distinct_genres: 5 } }
@@ -392,6 +394,7 @@ monster_lines:
   - dex_no: 11
     element: emotion
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: rabbit_1, name: "몽실토끼", evolve_condition: { points: 150, cheers_received: 5 } }
       - { stage: 2, key: rabbit_2, name: "뭉게토끼", evolve_condition: { points: 700, a_grades: 3, cheers_received: 15 } }
@@ -399,6 +402,7 @@ monster_lines:
   - dex_no: 12
     element: emotion
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: deer_1, name: "새싹사슴", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: deer_2, name: "꽃봉사슴", evolve_condition: { points: 450, a_grades: 2, revisions: 1 } }
@@ -425,6 +429,7 @@ monster_lines:
   - dex_no: 15
     element: adventure
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: penguin_1, name: "붕붕펭", evolve_condition: { points: 150, quizzes: 3 } }
       - { stage: 2, key: penguin_2, name: "슝슝펭", evolve_condition: { points: 700, streak_days: 10, challenges: 1 } }
@@ -432,6 +437,7 @@ monster_lines:
   - dex_no: 16
     element: adventure
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: dino_1, name: "알록공", evolve_condition: { points: 150, reports: 5 } }
       - { stage: 2, key: dino_2, name: "티라돌", evolve_condition: { points: 700, missions: 3, streak_days: 7 } }
@@ -458,6 +464,7 @@ monster_lines:
   - dex_no: 19
     element: nature
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: squirrel_1, name: "도토리", evolve_condition: { points: 100, missions: 1 } }
       - { stage: 2, key: squirrel_2, name: "볼록이", evolve_condition: { points: 450, distinct_genres: 3, reports: 8 } }
@@ -465,6 +472,7 @@ monster_lines:
   - dex_no: 20
     element: nature
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: mushroom_1, name: "몽글버섯", evolve_condition: { points: 150, streak_days: 3 } }
       - { stage: 2, key: mushroom_2, name: "우산버섯", evolve_condition: { points: 700, revisions: 2, streak_days: 7 } }
@@ -483,6 +491,7 @@ monster_lines:
   - dex_no: 22
     element: imagination
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: butterfly_1, name: "물감애벌레", evolve_condition: { points: 150, distinct_genres: 3 } }
       - { stage: 2, key: butterfly_2, name: "무지개고치", evolve_condition: { points: 700, dex_count: 6, revisions: 1 } }
@@ -498,6 +507,7 @@ monster_lines:
   - dex_no: 24
     element: imagination
     rarity: epic
+    phase: 2
     forms:
       - { stage: 1, key: dragon_1, name: "알드래", evolve_condition: { points: 250, dex_count: 5 } }
       - { stage: 2, key: dragon_2, name: "뭉치용", evolve_condition: { points: 1000, dex_count: 10, a_grades: 3, classics: 2 } }

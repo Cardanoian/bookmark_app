@@ -25,6 +25,7 @@ monster_lines:
   - dex_no: 3
     element: story
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: pencil_1, name: "뾰족이", evolve_condition: { points: 150, topic_posts: 2 } }
       - { stage: 2, key: pencil_2, name: "또각연필", evolve_condition: { points: 450, a_grades: 2 } }
@@ -32,6 +33,7 @@ monster_lines:
   - dex_no: 4
     element: story
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: fox_1, name: "도담여우", evolve_condition: { points: 150, distinct_genres: 2 } }
       - { stage: 2, key: fox_2, name: "이야기여우", evolve_condition: { points: 700, classics: 1, reports: 8 } }
@@ -58,6 +60,7 @@ monster_lines:
   - dex_no: 7
     element: knowledge
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: robot_1, name: "도르리", evolve_condition: { points: 150, missions: 1 } }
       - { stage: 2, key: robot_2, name: "째깍로봇", evolve_condition: { points: 700, distinct_genres: 5, quizzes: 5 } }
@@ -65,6 +68,7 @@ monster_lines:
   - dex_no: 8
     element: knowledge
     rarity: epic
+    phase: 2
     forms:
       - { stage: 1, key: turtle_1, name: "조각등", evolve_condition: { points: 250, classics: 1 } }
       - { stage: 2, key: turtle_2, name: "지식거북", evolve_condition: { points: 1000, classics: 3, distinct_genres: 5 } }
@@ -91,6 +95,7 @@ monster_lines:
   - dex_no: 11
     element: emotion
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: rabbit_1, name: "몽실토끼", evolve_condition: { points: 150, cheers_received: 5 } }
       - { stage: 2, key: rabbit_2, name: "뭉게토끼", evolve_condition: { points: 700, a_grades: 3, cheers_received: 15 } }
@@ -98,6 +103,7 @@ monster_lines:
   - dex_no: 12
     element: emotion
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: deer_1, name: "새싹사슴", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: deer_2, name: "꽃봉사슴", evolve_condition: { points: 450, a_grades: 2, revisions: 1 } }
@@ -124,6 +130,7 @@ monster_lines:
   - dex_no: 15
     element: adventure
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: penguin_1, name: "붕붕펭", evolve_condition: { points: 150, quizzes: 3 } }
       - { stage: 2, key: penguin_2, name: "슝슝펭", evolve_condition: { points: 700, streak_days: 10, challenges: 1 } }
@@ -131,6 +138,7 @@ monster_lines:
   - dex_no: 16
     element: adventure
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: dino_1, name: "알록공", evolve_condition: { points: 150, reports: 5 } }
       - { stage: 2, key: dino_2, name: "티라돌", evolve_condition: { points: 700, missions: 3, streak_days: 7 } }
@@ -157,6 +165,7 @@ monster_lines:
   - dex_no: 19
     element: nature
     rarity: common
+    phase: 2
     forms:
       - { stage: 1, key: squirrel_1, name: "도토리", evolve_condition: { points: 100, missions: 1 } }
       - { stage: 2, key: squirrel_2, name: "볼록이", evolve_condition: { points: 450, distinct_genres: 3, reports: 8 } }
@@ -164,6 +173,7 @@ monster_lines:
   - dex_no: 20
     element: nature
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: mushroom_1, name: "몽글버섯", evolve_condition: { points: 150, streak_days: 3 } }
       - { stage: 2, key: mushroom_2, name: "우산버섯", evolve_condition: { points: 700, revisions: 2, streak_days: 7 } }
@@ -182,6 +192,7 @@ monster_lines:
   - dex_no: 22
     element: imagination
     rarity: rare
+    phase: 2
     forms:
       - { stage: 1, key: butterfly_1, name: "물감애벌레", evolve_condition: { points: 150, distinct_genres: 3 } }
       - { stage: 2, key: butterfly_2, name: "무지개고치", evolve_condition: { points: 700, dex_count: 6, revisions: 1 } }
@@ -197,6 +208,7 @@ monster_lines:
   - dex_no: 24
     element: imagination
     rarity: epic
+    phase: 2
     forms:
       - { stage: 1, key: dragon_1, name: "알드래", evolve_condition: { points: 250, dex_count: 5 } }
       - { stage: 2, key: dragon_2, name: "뭉치용", evolve_condition: { points: 1000, dex_count: 10, a_grades: 3, classics: 2 } }
