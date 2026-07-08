@@ -38,4 +38,7 @@
 !/app/assets/builds/.keep
 
 # oh-my-claudecode orchestration state (session PRDs, progress, logs)
-/.omc/
+.omc
+.venv
+__pycache__
+.env

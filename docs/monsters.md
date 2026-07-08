@@ -3,7 +3,7 @@
 > **목적**: `RAILS_PLAN.md` §13.5(반려 몬스터 도감·진화)의 **실제 콘텐츠 시드**. 아바타를 대체하는 수집형 반려 몬스터의 종·진화 라인·진화 조건·AI 이미지 생성 가이드를 착수 가능한 수준으로 정의한다.
 >
 > 대상: 초등 5~6학년. 포켓몬스터·디지몬처럼 아이들이 좋아할 크리처를 담되, **주변에서 흔히 보는 친숙한 동물·사물**(강아지·고양이·햄스터·펭귄, 연필·로봇 등)을 몬스터화한다. 판타지 종(용·유니콘·도깨비·나비)은 상상 속성에만 배치하고, 모든 종은 **완전 오리지널**(기존 IP 모방 금지 — 법적·대회 리스크)로 디자인한다.
-> 최종 수정: 2026-07-06
+> 최종 수정: 2026-07-08 (종 이름·생김새 묘사를 아트 파이프라인 `script/monster.json` 기준으로 통일)
 
 ---
 
@@ -86,7 +86,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
   `A cute original creature mascot for a children's reading app, "a tiny fluffy cream puppy with a lavender bookmark-ribbon tail, floppy ears, big round eyes", violet lavender cream color palette, soft cel-shading, thick clean outlines, big expressive eyes, chibi proportions, front three-quarter full-body view, centered, soft top lighting, flat transparent background, sticker-style, original design.`
 - **owl_2 (반짝부엉)**:
   `... "a small round owl with a glowing idea-lightbulb floating above its head, fluffy feathers", blue teal silver color palette, ... chibi proportions ...`
-- **dragon_3 (상상의대룡)**:
+- **dragon_3 (상상용)**:
   `... "a majestic small dragon with rainbow-iridescent scales, star-cloud wings, gentle glowing aura, regal but friendly", rainbow gold iris color palette, ... confident full-body pose ...`
 
 ---
@@ -127,15 +127,15 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 |----|------|------|------|-----|------|-------------|
 | 1 | 강아지 ★스타터 | common | 1 | `pup_1` | 갈피멍 | 라벤더 책갈피 리본 꼬리를 단 폭신한 아기 강아지 |
 | 1 | 강아지 | common | 2 | `pup_2` | 이야기멍 | 작은 이야기책을 입에 물고 리본 스카프를 두른 강아지 |
-| 1 | 강아지 | common | 3 | `pup_3` | 멍이야기왕 | 책장 망토와 빛나는 책갈피 리본을 두른 늠름한 수호견 |
-| 2 | 앵무새 | rare | 1 | `parrot_1` | 재잘옹 | 책장 무늬 깃털 하나를 단 동글동글 아기 앵무새 |
-| 2 | 앵무새 | rare | 2 | `parrot_2` | 조잘앵무 | 펼친 작은 책 위에 앉아 이야기하는 알록달록 앵무새 |
-| 2 | 앵무새 | rare | 3 | `parrot_3` | 이야기깃봉 | 펼친 책장 날개의 이야기 봉황 앵무새 |
-| 3 | 연필 | common | 1 | `pencil_1` | 뾰족이 | 둥근 심과 큰 눈의 작은 연필 정령 |
+| 1 | 강아지 | common | 3 | `pup_3` | 전설멍 | 책장 망토와 빛나는 책갈피 리본에 작은 왕관·금빛 장식을 두른 늠름한 수호견 |
+| 2 | 앵무새 | rare | 1 | `parrot_1` | 쫑알이 | 햇살 노랑 솜털에 청록빛 날개 끝, 책장 무늬 깃털 하나를 단 동글동글 아기 앵무새 |
+| 2 | 앵무새 | rare | 2 | `parrot_2` | 수다앵무 | 노랑·청록 깃털과 작은 볏을 뽐내며 펼친 책 위에서 이야기하는 앵무새 |
+| 2 | 앵무새 | rare | 3 | `parrot_3` | 이야기봉황 | 노랑·청록 깃털에 금빛이 어린, 펼친 책장처럼 빛나는 날개의 이야기 봉황 앵무새 |
+| 3 | 연필 | common | 1 | `pencil_1` | 뾰족이 | 라벤더빛 목재 몸통에 둥근 심과 큰 눈의 작은 연필 정령 |
 | 3 | 연필 | common | 2 | `pencil_2` | 또각연필 | 작은 팔로 공책을 든 키 큰 연필 친구 |
 | 3 | 연필 | common | 3 | `pencil_3` | 글씨봉 | 금빛 심과 흘러나오는 글자 리본을 두른 연필 마법사 |
 | 4 | 여우 | rare | 1 | `fox_1` | 도담여우 | 옛이야기 두루마리를 안은 작은 아기 여우 |
-| 4 | 여우 | rare | 2 | `fox_2` | 이야기여우 | 갓을 쓰고 두루마리를 든 영리한 여우 |
+| 4 | 여우 | rare | 2 | `fox_2` | 이야기여우 | 갓을 쓰고 한복 조끼를 입은 채 두 발로 서서 두루마리를 든 영리한 여우 |
 | 4 | 여우 | rare | 3 | `fox_3` | 만담여우 | 도포를 걸치고 빛나는 옛책을 든 다정한 여우 이야기꾼 |
 
 | dex | 계열 | 1→2 조건 | 2→3 조건 |
@@ -149,18 +149,18 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 
 | dex | 계열 | 등급 | 단계 | key | 이름 | 이미지 주제 |
 |----|------|------|------|-----|------|-------------|
-| 5 | 고양이 ★스타터 | common | 1 | `cat_1` | 아롱냥 | 큰 눈에 파란 목도리를 한 호기심 많은 아기 고양이 |
-| 5 | 고양이 | common | 2 | `cat_2` | 안경냥 | 동그란 안경을 쓴 똑똑한 고양이 |
-| 5 | 고양이 | common | 3 | `cat_3` | 지혜냥왕 | 별자리 지도 망토와 은빛 왕관을 두른 현자 고양이 |
+| 5 | 고양이 ★스타터 | common | 1 | `cat_1` | 아롱냥 | 은회색 털에 큰 파란 목도리를 두른 호기심 많은 아기 고양이 |
+| 5 | 고양이 | common | 2 | `cat_2` | 안경냥 | 은회색 털에 동그란 파란 안경과 목도리를 한 똑똑한 고양이 |
+| 5 | 고양이 | common | 3 | `cat_3` | 지혜냥 | 별자리 지도 망토와 은빛 왕관을 두른 현자 고양이 |
 | 6 | 부엉이 | common | 1 | `owl_1` | 동글부엉 | 큰 눈의 동글동글 아기 부엉이 |
 | 6 | 부엉이 | common | 2 | `owl_2` | 반짝부엉 | 머리 위에 반짝이는 아이디어 전구를 띄운 부엉이 |
-| 6 | 부엉이 | common | 3 | `owl_3` | 아이디어부엉왕 | 별똥별 깃털과 빛나는 전구 왕관의 지혜 부엉이 |
+| 6 | 부엉이 | common | 3 | `owl_3` | 아이디어부엉 | 별똥별 깃털과 빛나는 전구 왕관의 지혜 부엉이 |
 | 7 | 로봇 | rare | 1 | `robot_1` | 도르리 | 작은 톱니바퀴 몸통의 아기 로봇 |
 | 7 | 로봇 | rare | 2 | `robot_2` | 째깍로봇 | 태엽과 계기판 몸통의 발명 로봇 |
-| 7 | 로봇 | rare | 3 | `robot_3` | 발명로봇왕 | 기계 날개와 빛나는 안테나의 거대 발명 로봇 |
+| 7 | 로봇 | rare | 3 | `robot_3` | 발명로봇 | 기계 날개와 빛나는 안테나의 거대 발명 로봇 |
 | 8 | 거북이 | epic | 1 | `turtle_1` | 조각등 | 작은 수정 무늬 등껍질의 아기 거북 |
 | 8 | 거북이 | epic | 2 | `turtle_2` | 지식거북 | 책 문양이 새겨진 등껍질과 이끼 수염의 거북 |
-| 8 | 거북이 | epic | 3 | `turtle_3` | 만물거북선 | 지식 룬이 빛나는 거대한 등껍질의 현자 거북 |
+| 8 | 거북이 | epic | 3 | `turtle_3` | 만물거북 | 지식 룬이 빛나는 거대한 등껍질의 현자 거북 |
 
 | dex | 계열 | 1→2 조건 | 2→3 조건 |
 |----|------|----------|----------|
@@ -184,7 +184,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | 11 | 토끼 | rare | 3 | `rabbit_3` | 노을토끼 | 노을빛 긴 귀와 별 무늬의 다정한 큰 토끼 |
 | 12 | 사슴 | common | 1 | `deer_1` | 새싹사슴 | 잎 새싹 뿔이 돋은 아기 사슴 |
 | 12 | 사슴 | common | 2 | `deer_2` | 꽃봉사슴 | 반쯤 핀 꽃 뿔의 사슴 |
-| 12 | 사슴 | common | 3 | `deer_3` | 꽃사슴 | 활짝 핀 꽃뿔의 우아한 큰 사슴 |
+| 12 | 사슴 | common | 3 | `deer_3` | 만개사슴 | 활짝 핀 꽃뿔의 우아한 큰 사슴 |
 
 | dex | 계열 | 1→2 조건 | 2→3 조건 |
 |----|------|----------|----------|
@@ -202,7 +202,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | 13 | 곰 | common | 3 | `bear_3` | 곰선장 | 망토와 깃발을 든 대탐험가 곰 |
 | 14 | 병아리 | common | 1 | `chick_1` | 반디병아리 | 반딧불 같은 작은 불씨 볏의 아기 병아리 |
 | 14 | 병아리 | common | 2 | `chick_2` | 활활닭 | 불꽃 볏과 꽁지의 용감한 닭 |
-| 14 | 병아리 | common | 3 | `chick_3` | 불꽃장닭왕 | 불꽃빛 볏과 화려한 꽁지깃을 세운 용맹한 큰 장닭 |
+| 14 | 병아리 | common | 3 | `chick_3` | 불꽃장닭 | 불꽃빛 볏과 화려한 꽁지깃을 세운 용맹한 큰 장닭 |
 | 15 | 펭귄 | rare | 1 | `penguin_1` | 붕붕펭 | 작은 별 헬멧을 쓴 아기 펭귄 |
 | 15 | 펭귄 | rare | 2 | `penguin_2` | 슝슝펭 | 로켓 배낭을 멘 펭귄 우주비행사 |
 | 15 | 펭귄 | rare | 3 | `penguin_3` | 은하펭선장 | 은하 망토를 두른 우주 탐험 펭귄 |
@@ -226,7 +226,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | 17 | 고슴도치 | common | 3 | `hedgehog_3` | 숲지기도치 | 작은 나무가 자란 등의 숲지기 고슴도치 |
 | 18 | 개구리 | common | 1 | `frog_1` | 퐁당올챙 | 물방울 같은 작은 올챙이 |
 | 18 | 개구리 | common | 2 | `frog_2` | 시냇개구리 | 시냇물에서 노는 아기 개구리 |
-| 18 | 개구리 | common | 3 | `frog_3` | 강물개구리신 | 연잎 왕관을 쓰고 강을 다스리는 큰 개구리신 |
+| 18 | 개구리 | common | 3 | `frog_3` | 개굴대왕 | 연잎 왕관을 쓰고 강을 다스리는 큰 개구리신 |
 | 19 | 다람쥐 | common | 1 | `squirrel_1` | 도토리 | 도토리를 안은 아기 다람쥐 |
 | 19 | 다람쥐 | common | 2 | `squirrel_2` | 볼록이 | 볼이 빵빵한 다람쥐 |
 | 19 | 다람쥐 | common | 3 | `squirrel_3` | 숲요정다래 | 나뭇잎 왕관의 다람쥐 요정 |
@@ -251,12 +251,12 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | 22 | 나비 | rare | 1 | `butterfly_1` | 물감애벌레 | 알록달록 물감 무늬의 작은 애벌레 |
 | 22 | 나비 | rare | 2 | `butterfly_2` | 무지개고치 | 무지갯빛으로 빛나는 나비 번데기 |
 | 22 | 나비 | rare | 3 | `butterfly_3` | 무지개나비 | 무지개 물감 날개의 아름다운 큰 나비 |
-| 23 | 도깨비 | common | 1 | `dokkaebi_1` | 방울도깨비 | 작은 뿔과 방망이의 아기 도깨비 |
-| 23 | 도깨비 | common | 2 | `dokkaebi_2` | 뿔도깨비 | 뿔이 커진 장난꾸러기 도깨비 |
-| 23 | 도깨비 | common | 3 | `dokkaebi_3` | 도깨비대장 | 금방망이를 든 도깨비 대장 |
+| 23 | 도깨비 | common | 1 | `dokkaebi_1` | 방울깨비 | 적갈색 피부에 작은 뿔, 방울 달린 나무 방망이를 든 아기 도깨비 |
+| 23 | 도깨비 | common | 2 | `dokkaebi_2` | 뿔깨비 | 적갈색 피부에 커진 뿔, 호랑이 줄무늬 허리천과 못 박힌 방망이의 장난꾸러기 도깨비 |
+| 23 | 도깨비 | common | 3 | `dokkaebi_3` | 무쌍깨비 | 적갈색 피부에 큰 뿔, 호랑이 줄무늬 망토와 금빛 방망이를 든 도깨비 대장 |
 | 24 | 용 | epic | 1 | `dragon_1` | 알드래 | 무지개 용알에서 반쯤 나온 아기 용 |
 | 24 | 용 | epic | 2 | `dragon_2` | 뭉치용 | 구름 같은 몸의 새끼 용 |
-| 24 | 용 | epic | 3 | `dragon_3` | 상상의대룡 | 무지갯빛 거대한 상상의 용 |
+| 24 | 용 | epic | 3 | `dragon_3` | 상상용 | 무지갯빛 거대한 상상의 용 |
 
 | dex | 계열 | 1→2 조건 | 2→3 조건 |
 |----|------|----------|----------|
@@ -312,15 +312,15 @@ monster_lines:
     forms:
       - { stage: 1, key: pup_1, name: "갈피멍", evolve_condition: { points: 100, reports: 3 } }
       - { stage: 2, key: pup_2, name: "이야기멍", evolve_condition: { points: 450, a_grades: 1, b_or_better: 5 } }
-      - { stage: 3, key: pup_3, name: "멍이야기왕" }
+      - { stage: 3, key: pup_3, name: "전설멍" }
   - dex_no: 2
     element: story
     rarity: rare
     phase: 1
     forms:
-      - { stage: 1, key: parrot_1, name: "재잘옹", evolve_condition: { points: 100, reports: 5 } }
-      - { stage: 2, key: parrot_2, name: "조잘앵무", evolve_condition: { points: 700, reports: 12, a_grades: 2 } }
-      - { stage: 3, key: parrot_3, name: "이야기깃봉" }
+      - { stage: 1, key: parrot_1, name: "쫑알이", evolve_condition: { points: 100, reports: 5 } }
+      - { stage: 2, key: parrot_2, name: "수다앵무", evolve_condition: { points: 700, reports: 12, a_grades: 2 } }
+      - { stage: 3, key: parrot_3, name: "이야기봉황" }
   - dex_no: 3
     element: story
     rarity: common
@@ -347,7 +347,7 @@ monster_lines:
     forms:
       - { stage: 1, key: cat_1, name: "아롱냥", evolve_condition: { points: 100, distinct_genres: 2 } }
       - { stage: 2, key: cat_2, name: "안경냥", evolve_condition: { points: 450, distinct_genres: 4 } }
-      - { stage: 3, key: cat_3, name: "지혜냥왕" }
+      - { stage: 3, key: cat_3, name: "지혜냥" }
   - dex_no: 6
     element: knowledge
     rarity: common
@@ -355,7 +355,7 @@ monster_lines:
     forms:
       - { stage: 1, key: owl_1, name: "동글부엉", evolve_condition: { points: 100, quizzes: 3 } }
       - { stage: 2, key: owl_2, name: "반짝부엉", evolve_condition: { points: 450, quizzes: 8, a_grades: 1 } }
-      - { stage: 3, key: owl_3, name: "아이디어부엉왕" }
+      - { stage: 3, key: owl_3, name: "아이디어부엉" }
   - dex_no: 7
     element: knowledge
     rarity: rare
@@ -363,7 +363,7 @@ monster_lines:
     forms:
       - { stage: 1, key: robot_1, name: "도르리", evolve_condition: { points: 150, missions: 1 } }
       - { stage: 2, key: robot_2, name: "째깍로봇", evolve_condition: { points: 700, distinct_genres: 5, quizzes: 5 } }
-      - { stage: 3, key: robot_3, name: "발명로봇왕" }
+      - { stage: 3, key: robot_3, name: "발명로봇" }
   - dex_no: 8
     element: knowledge
     rarity: epic
@@ -371,7 +371,7 @@ monster_lines:
     forms:
       - { stage: 1, key: turtle_1, name: "조각등", evolve_condition: { points: 250, classics: 1 } }
       - { stage: 2, key: turtle_2, name: "지식거북", evolve_condition: { points: 1000, classics: 3, distinct_genres: 5 } }
-      - { stage: 3, key: turtle_3, name: "만물거북선" }
+      - { stage: 3, key: turtle_3, name: "만물거북" }
 
   # === EMOTION (분홍) ===
   - dex_no: 9
@@ -406,7 +406,7 @@ monster_lines:
     forms:
       - { stage: 1, key: deer_1, name: "새싹사슴", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: deer_2, name: "꽃봉사슴", evolve_condition: { points: 450, a_grades: 2, revisions: 1 } }
-      - { stage: 3, key: deer_3, name: "꽃사슴" }
+      - { stage: 3, key: deer_3, name: "만개사슴" }
 
   # === ADVENTURE (주황) ===
   - dex_no: 13
@@ -425,7 +425,7 @@ monster_lines:
     forms:
       - { stage: 1, key: chick_1, name: "반디병아리", evolve_condition: { points: 100, streak_days: 3 } }
       - { stage: 2, key: chick_2, name: "활활닭", evolve_condition: { points: 700, streak_days: 7 } }
-      - { stage: 3, key: chick_3, name: "불꽃장닭왕" }
+      - { stage: 3, key: chick_3, name: "불꽃장닭" }
   - dex_no: 15
     element: adventure
     rarity: rare
@@ -460,7 +460,7 @@ monster_lines:
     forms:
       - { stage: 1, key: frog_1, name: "퐁당올챙", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: frog_2, name: "시냇개구리", evolve_condition: { points: 450, revisions: 2 } }
-      - { stage: 3, key: frog_3, name: "강물개구리신" }
+      - { stage: 3, key: frog_3, name: "개굴대왕" }
   - dex_no: 19
     element: nature
     rarity: common
@@ -501,9 +501,9 @@ monster_lines:
     rarity: common
     phase: 1
     forms:
-      - { stage: 1, key: dokkaebi_1, name: "방울도깨비", evolve_condition: { points: 100, quizzes: 3 } }
-      - { stage: 2, key: dokkaebi_2, name: "뿔도깨비", evolve_condition: { points: 450, dex_count: 4, missions: 2 } }
-      - { stage: 3, key: dokkaebi_3, name: "도깨비대장" }
+      - { stage: 1, key: dokkaebi_1, name: "방울깨비", evolve_condition: { points: 100, quizzes: 3 } }
+      - { stage: 2, key: dokkaebi_2, name: "뿔깨비", evolve_condition: { points: 450, dex_count: 4, missions: 2 } }
+      - { stage: 3, key: dokkaebi_3, name: "무쌍깨비" }
   - dex_no: 24
     element: imagination
     rarity: epic
@@ -511,7 +511,7 @@ monster_lines:
     forms:
       - { stage: 1, key: dragon_1, name: "알드래", evolve_condition: { points: 250, dex_count: 5 } }
       - { stage: 2, key: dragon_2, name: "뭉치용", evolve_condition: { points: 1000, dex_count: 10, a_grades: 3, classics: 2 } }
-      - { stage: 3, key: dragon_3, name: "상상의대룡" }
+      - { stage: 3, key: dragon_3, name: "상상용" }
 ```
 
 ---

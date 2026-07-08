@@ -13,15 +13,15 @@ monster_lines:
     forms:
       - { stage: 1, key: pup_1, name: "갈피멍", evolve_condition: { points: 100, reports: 3 } }
       - { stage: 2, key: pup_2, name: "이야기멍", evolve_condition: { points: 450, a_grades: 1, b_or_better: 5 } }
-      - { stage: 3, key: pup_3, name: "멍이야기왕" }
+      - { stage: 3, key: pup_3, name: "전설멍" }
   - dex_no: 2
     element: story
     rarity: rare
     phase: 1
     forms:
-      - { stage: 1, key: parrot_1, name: "재잘옹", evolve_condition: { points: 100, reports: 5 } }
-      - { stage: 2, key: parrot_2, name: "조잘앵무", evolve_condition: { points: 700, reports: 12, a_grades: 2 } }
-      - { stage: 3, key: parrot_3, name: "이야기깃봉" }
+      - { stage: 1, key: parrot_1, name: "쫑알이", evolve_condition: { points: 100, reports: 5 } }
+      - { stage: 2, key: parrot_2, name: "수다앵무", evolve_condition: { points: 700, reports: 12, a_grades: 2 } }
+      - { stage: 3, key: parrot_3, name: "이야기봉황" }
   - dex_no: 3
     element: story
     rarity: common
@@ -48,7 +48,7 @@ monster_lines:
     forms:
       - { stage: 1, key: cat_1, name: "아롱냥", evolve_condition: { points: 100, distinct_genres: 2 } }
       - { stage: 2, key: cat_2, name: "안경냥", evolve_condition: { points: 450, distinct_genres: 4 } }
-      - { stage: 3, key: cat_3, name: "지혜냥왕" }
+      - { stage: 3, key: cat_3, name: "지혜냥" }
   - dex_no: 6
     element: knowledge
     rarity: common
@@ -56,7 +56,7 @@ monster_lines:
     forms:
       - { stage: 1, key: owl_1, name: "동글부엉", evolve_condition: { points: 100, quizzes: 3 } }
       - { stage: 2, key: owl_2, name: "반짝부엉", evolve_condition: { points: 450, quizzes: 8, a_grades: 1 } }
-      - { stage: 3, key: owl_3, name: "아이디어부엉왕" }
+      - { stage: 3, key: owl_3, name: "아이디어부엉" }
   - dex_no: 7
     element: knowledge
     rarity: rare
@@ -64,7 +64,7 @@ monster_lines:
     forms:
       - { stage: 1, key: robot_1, name: "도르리", evolve_condition: { points: 150, missions: 1 } }
       - { stage: 2, key: robot_2, name: "째깍로봇", evolve_condition: { points: 700, distinct_genres: 5, quizzes: 5 } }
-      - { stage: 3, key: robot_3, name: "발명로봇왕" }
+      - { stage: 3, key: robot_3, name: "발명로봇" }
   - dex_no: 8
     element: knowledge
     rarity: epic
@@ -72,7 +72,7 @@ monster_lines:
     forms:
       - { stage: 1, key: turtle_1, name: "조각등", evolve_condition: { points: 250, classics: 1 } }
       - { stage: 2, key: turtle_2, name: "지식거북", evolve_condition: { points: 1000, classics: 3, distinct_genres: 5 } }
-      - { stage: 3, key: turtle_3, name: "만물거북선" }
+      - { stage: 3, key: turtle_3, name: "만물거북" }
 
   # === EMOTION (분홍) ===
   - dex_no: 9
@@ -107,7 +107,7 @@ monster_lines:
     forms:
       - { stage: 1, key: deer_1, name: "새싹사슴", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: deer_2, name: "꽃봉사슴", evolve_condition: { points: 450, a_grades: 2, revisions: 1 } }
-      - { stage: 3, key: deer_3, name: "꽃사슴" }
+      - { stage: 3, key: deer_3, name: "만개사슴" }
 
   # === ADVENTURE (주황) ===
   - dex_no: 13
@@ -126,7 +126,7 @@ monster_lines:
     forms:
       - { stage: 1, key: chick_1, name: "반디병아리", evolve_condition: { points: 100, streak_days: 3 } }
       - { stage: 2, key: chick_2, name: "활활닭", evolve_condition: { points: 700, streak_days: 7 } }
-      - { stage: 3, key: chick_3, name: "불꽃장닭왕" }
+      - { stage: 3, key: chick_3, name: "불꽃장닭" }
   - dex_no: 15
     element: adventure
     rarity: rare
@@ -161,7 +161,7 @@ monster_lines:
     forms:
       - { stage: 1, key: frog_1, name: "퐁당올챙", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: frog_2, name: "시냇개구리", evolve_condition: { points: 450, revisions: 2 } }
-      - { stage: 3, key: frog_3, name: "강물개구리신" }
+      - { stage: 3, key: frog_3, name: "개굴대왕" }
   - dex_no: 19
     element: nature
     rarity: common
@@ -202,9 +202,9 @@ monster_lines:
     rarity: common
     phase: 1
     forms:
-      - { stage: 1, key: dokkaebi_1, name: "방울도깨비", evolve_condition: { points: 100, quizzes: 3 } }
-      - { stage: 2, key: dokkaebi_2, name: "뿔도깨비", evolve_condition: { points: 450, dex_count: 4, missions: 2 } }
-      - { stage: 3, key: dokkaebi_3, name: "도깨비대장" }
+      - { stage: 1, key: dokkaebi_1, name: "방울깨비", evolve_condition: { points: 100, quizzes: 3 } }
+      - { stage: 2, key: dokkaebi_2, name: "뿔깨비", evolve_condition: { points: 450, dex_count: 4, missions: 2 } }
+      - { stage: 3, key: dokkaebi_3, name: "무쌍깨비" }
   - dex_no: 24
     element: imagination
     rarity: epic
@@ -212,4 +212,4 @@ monster_lines:
     forms:
       - { stage: 1, key: dragon_1, name: "알드래", evolve_condition: { points: 250, dex_count: 5 } }
       - { stage: 2, key: dragon_2, name: "뭉치용", evolve_condition: { points: 1000, dex_count: 10, a_grades: 3, classics: 2 } }
-      - { stage: 3, key: dragon_3, name: "상상의대룡" }
+      - { stage: 3, key: dragon_3, name: "상상용" }
