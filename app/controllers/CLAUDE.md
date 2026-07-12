@@ -32,7 +32,7 @@
 ## 하위 폴더
 - [`admin/`](admin/CLAUDE.md) — 총괄관리자(superadmin) 전용 `/admin` 네임스페이스. 전역 CRUD·통계·모더레이션.
 - [`teacher/`](teacher/CLAUDE.md) — 담임교사 영역. 검토 큐·학생·미션·퀴즈·루브릭·문서출력·대시보드.
-- [`games/`](games/CLAUDE.md) — 독서게임 10종. quiz/golden/bingo 실동작 + 7종 증분 스텁.
+- [`games/`](games/CLAUDE.md) — 독서게임 5종(교육 다양성). quiz·classic·vocab·whoami(퀴즈 파이프라인) + book(소셜 도메인, Gemini 미호출).
 - [`librarian/`](librarian/CLAUDE.md) — 사서 영역. 대시보드·이달의 책/행사·인기대출(정보나루/CSV).
 - [`school_admin/`](school_admin/CLAUDE.md) — 교무관리자 영역. 전교 통계·NEIS 생기부 요약.
 

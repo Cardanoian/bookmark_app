@@ -1,11 +1,8 @@
 require "test_helper"
 
-# P5.6 — 독서게임: 교사 published 퀴즈(id) 플레이(quiz/golden/bingo) → QuizAttempt + 포인트.
+# P5.6 — 독서게임: 교사 published mcq 퀴즈(id) 플레이(quiz) → QuizAttempt + 포인트.
 # 온디맨드(book_id) 진입·matching·hint_reveal 등 Phase 3 편입은 games_ondemand_test.rb 참고.
 class GamesTest < ActionDispatch::IntegrationTest
-  # Phase 3 이후 남은 증분 스텁(book·battle=R3·marathon=R2). classic/vocab/whoami/balance 는 실동작화됨.
-  STUB_GAMES = %w[book battle marathon].freeze
-
   setup do
     seed_monster_species!
     seed_badges!
@@ -25,36 +22,18 @@ class GamesTest < ActionDispatch::IntegrationTest
     quiz
   end
 
-  test "playable game show routes resolve for a logged-in student and stubs render placeholder" do
+  test "the teacher quiz show route resolves for a logged-in student" do
     login_as @student
-
-    %w[quiz golden bingo].each do |game|
-      get public_send("games_#{game}_path", @quiz)
-      assert_response :success, "#{game} should render"
-    end
-
-    STUB_GAMES.each do |game|
-      get public_send("games_#{game}_path", 1)
-      assert_response :success, "#{game} stub should render"
-      assert_includes response.body, "준비 중"
-    end
-  end
-
-  test "stub games render a placeholder, not a crash" do
-    login_as @student
-    get games_marathon_path(99)
+    get games_quiz_path(@quiz)
     assert_response :success
-    assert_select "h1", /독서 마라톤/
   end
 
-  %w[quiz golden bingo].each do |game|
-    test "#{game} renders the published quiz questions" do
-      login_as @student
-      get public_send("games_#{game}_path", @quiz)
-      assert_response :success
-      assert_includes response.body, "문제0"
-      assert_select "input[type=radio]"
-    end
+  test "quiz show renders the published quiz questions" do
+    login_as @student
+    get games_quiz_path(@quiz)
+    assert_response :success
+    assert_includes response.body, "문제0"
+    assert_select "input[type=radio]"
   end
 
   # Phase 1 §1.2 회귀 — 플레이 뷰가 정답키를 유출하지 않는다(서버 채점·무유출).
@@ -82,19 +61,6 @@ class GamesTest < ActionDispatch::IntegrationTest
     assert_equal @student.id, attempt.user_id
     assert_equal 3, attempt.score
     assert_redirected_to games_quiz_path(@quiz)
-  end
-
-  test "golden and bingo also create attempts and route back to their game" do
-    login_as @student
-    answers = @quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
-
-    post games_attempts_path, params: { quiz_id: @quiz.id, game: "golden", answers: answers }
-    assert_redirected_to games_golden_path(@quiz)
-
-    post games_attempts_path, params: { quiz_id: @quiz.id, game: "bingo", answers: answers }
-    assert_redirected_to games_bingo_path(@quiz)
-
-    assert_equal 2, @student.reload.quiz_attempts.count
   end
 
   test "partially correct answers score only the correct ones" do

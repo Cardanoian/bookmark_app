@@ -7,6 +7,7 @@
 - `report_policy.rb` — 독후감. show/update/Scope를 role별 분기(총괄=전체, 교사=담당 학급, 학생=본인, 교무·사서=같은 학교). revise=작성자 본인, review/approve/verify=담당 교사·총괄.
 - `board_post_policy.rb` — 우수작 게시판. 숨김(hidden) 글은 모더레이터(교사·교무·총괄)만 열람. Scope도 동일 기준.
 - `book_policy.rb` — 도서 카탈로그·검색. 열람·검색 모두 로그인 사용자.
+- `book_intro_policy.rb` — 책 소개 대결. **경계=학급**: 소개 작성은 학급 소속 학생(`create?`), 투표는 같은 학급 또래의 소개만(`vote?`, 자기 소개 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 소개만 노출(크로스-학급 열람·투표 차단).
 - `challenge_policy.rb` — 챌린지. 열람은 로그인 사용자, 참여(join)는 학생.
 - `cheer_policy.rb` — 응원. 학생만 생성하되 대상 게시물이 보이는(BoardPostPolicy#show?) 경우만. 취소는 본인 응원만.
 - `classroom_policy.rb` — 학급. show/Scope를 role별 분기(총괄=전체, 교사=담임 학급, 학생=소속 학급, 교무·사서=같은 학교).

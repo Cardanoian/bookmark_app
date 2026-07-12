@@ -20,7 +20,7 @@ class Ai::QuizModeratorTest < ActiveSupport::TestCase
     @moderator = Ai::QuizModerator.new(client: StubClient.new(configured: false))
   end
 
-  # 정상 오프라인 세트는 4개 축 모두 통과(결정적·안전).
+  # 정상 오프라인 세트는 3개 축 모두 통과(결정적·안전).
   test "well-formed offline sets pass for every content axis" do
     ReadingDomain::CONTENT_COUNTS.each_key do |axis|
       set = @service.offline_set(@book, :g56, axis)
@@ -58,14 +58,6 @@ class Ai::QuizModeratorTest < ActiveSupport::TestCase
     result = @moderator.review(set, content_axis: :mcq)
     assert result.fail?
     assert(result.reasons.any? { |r| r.include?("중복") })
-  end
-
-  test "balance_vote with an answer (should be no-answer) is rejected" do
-    set = @service.offline_set(@book, :g56, :balance_vote)
-    set.first[:answer] = "정답있음"
-    result = @moderator.review(set, content_axis: :balance_vote)
-    assert result.fail?
-    assert(result.reasons.any? { |r| r.include?("무정답") })
   end
 
   test "hint_reveal without a target is rejected" do

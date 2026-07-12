@@ -1,4 +1,4 @@
-<%# 독서게임 공통 4지선다 폼(quiz/golden). locals: quiz, game, submit_label %>
+<%# 독서게임 공통 4지선다 폼(mcq 표면 quiz·classic 공유). locals: quiz, game, submit_label %>
 <%= form_with url: games_attempts_path, method: :post, class: "space-y-5" do |f| %>
   <%= f.hidden_field :quiz_id, value: quiz.id %>
   <%= f.hidden_field :game, value: game %>

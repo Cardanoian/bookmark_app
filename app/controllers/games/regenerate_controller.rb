@@ -27,11 +27,8 @@ module Games
     # 표면 → 온디맨드 play 경로(허용 목록만). whoami 는 play 가 attempt 를 새로 선생성한다.
     def regenerate_target(surface, book)
       case surface
-      when "golden" then games_golden_play_path(book_id: book.id)
-      when "bingo" then games_bingo_play_path(book_id: book.id)
       when "classic" then games_classic_play_path(book_id: book.id)
       when "vocab" then games_vocab_play_path(book_id: book.id)
-      when "balance" then games_balance_play_path(book_id: book.id)
       when "whoami" then games_whoami_play_path(book_id: book.id)
       else games_quiz_play_path(book_id: book.id)
       end

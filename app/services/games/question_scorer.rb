@@ -1,5 +1,5 @@
 module Games
-  # 문항 채점기 레지스트리(Phase 1 §1.2). question_type 5종을 서버 권위로 채점한다.
+  # 문항 채점기 레지스트리(Phase 1 §1.2). question_type 4종을 서버 권위로 채점한다.
   # `QuestionScorer.for(question)` 팩토리가 타입별 채점기를 돌려주고, 각 채점기의
   # `score(response, hints_used:)` 는 항상 `{ score:, correct:, partial:, participation: }` 를 반환한다.
   #
@@ -99,19 +99,11 @@ module Games
       end
     end
 
-    # balance_vote: 정답 없음 → 참여만(점수 0). 참여 포인트 부여는 Phase 4.
-    class BalanceVote < QuestionScorer
-      def score(response, hints_used: 0)
-        result(score: 0, participation: !response.nil? && response.to_s.present?)
-      end
-    end
-
     REGISTRY = {
       "mcq_single" => McqSingle,
       "mcq_multi" => McqMulti,
       "matching" => Matching,
-      "hint_reveal" => HintReveal,
-      "balance_vote" => BalanceVote
+      "hint_reveal" => HintReveal
     }.freeze
   end
 end

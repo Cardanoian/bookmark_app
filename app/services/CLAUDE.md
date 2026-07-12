@@ -11,7 +11,7 @@
 
 ## 하위 폴더
 - [`ai/`](ai/CLAUDE.md) — Google Gemini 연동 AI 서비스(5축 첨삭·OCR·퀴즈생성·진위확인)와 규칙기반 폴백.
-- [`games/`](games/CLAUDE.md) — 독서게임 서버 권위 채점(`question_scorer` 5종)·멱등 델타 적립(`point_award` origin 분기)·플레이 기록(`quiz_play`)·**콘텐츠축 캐시-우선 리졸버(`content_provider`, Phase 2b)**.
+- [`games/`](games/CLAUDE.md) — 독서게임 서버 권위 채점(`question_scorer` 4종)·멱등 델타 적립(`point_award` origin 분기)·플레이 기록(`quiz_play`)·**콘텐츠축 캐시-우선 리졸버(`content_provider`, Phase 2b)**.
 
 ## 단일 파일 하위 폴더 (별도 CLAUDE.md 없음)
 - `books/search_service.rb` — 도서 검색. 네이버 도서 API 조회·정규화 후 `books` 캐시 upsert(`category: searched`), 무키/실패 시 로컬 `books`(title LIKE) 폴백. **무한 증가 방어(#2)**: searched 행은 `BooksController#index` 카탈로그에서 제외(1차 방어)되고 로컬 검색 폴백에서만 쓰인다. 물리 TTL 정리는 독후감 참조(`reports.book_id`) 때문에 미참조 오래된 행만 비우는 후속 작업으로 다룬다(`cache` 주석 참고).

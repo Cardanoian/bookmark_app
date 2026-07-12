@@ -1,5 +1,5 @@
 module Games
-  # 독서게임(quiz/golden/bingo) 채점·기록(P5.6). 제출 답안을 published 퀴즈의 정답과
+  # 독서게임 채점·기록(P5.6). 제출 답안을 published 퀴즈의 정답과
   # 대조해 점수를 내고 QuizAttempt 를 남긴 뒤, User#award_points 로 포인트를 지급한다.
   # 포인트 지급이 Leveling/Evolvable/Badgeable 로 연쇄되어 Phase 4 게임화에 반영된다.
   class QuizPlay

@@ -76,24 +76,24 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     first = provider.resolve(book: @book, surface: "quiz", user: @student) # 미스로 오프라인 생성
 
     assert_no_enqueued_jobs do
-      second = provider.resolve(book: @book, surface: "golden", user: @student) # 같은 mcq 축 히트
+      second = provider.resolve(book: @book, surface: "classic", user: @student) # 같은 mcq 축 히트
       assert_equal first.id, second.id, "같은 콘텐츠축은 캐시 히트로 같은 행 반환"
     end
   end
 
-  # ── N1: 5표면이 mcq 를 공유 → 콘텐츠 단 1생성 ────────────────────────────
+  # ── N1: quiz·classic 이 mcq 를 공유 → 콘텐츠 단 1생성 ────────────────────────────
   test "N1 — sequential resolve across mcq surfaces generates the mcq content only once" do
     counting = CountingGeminiClient.new
     GenerateGameContentJob.draft_service_factory = -> { Ai::QuizDraftService.new(client: counting) }
 
     assert_enqueued_jobs 1, only: GenerateGameContentJob do
-      %w[quiz golden bingo battle classic].each do |surface|
+      %w[quiz classic].each do |surface|
         provider.resolve(book: @book, surface: surface, user: @student)
       end
     end
     perform_enqueued_jobs
 
-    assert_equal 1, counting.calls, "quiz/golden/bingo/battle/classic 5표면에 걸쳐 mcq 콘텐츠는 1회만 생성"
+    assert_equal 1, counting.calls, "quiz/classic 2표면에 걸쳐 mcq 콘텐츠는 1회만 생성"
     assert_equal 1, Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).where("content_version >= 2").count,
                  "워밍은 콘텐츠축당 1개의 새 버전만 만든다"
   end

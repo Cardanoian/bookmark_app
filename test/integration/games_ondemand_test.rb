@@ -1,6 +1,6 @@
 require "test_helper"
 
-# Phase 3 §3 — 온디맨드 게임 편입 e2e(무키 오프라인). 카탈로그 진입 + 7종 실동작 표면 플레이 +
+# Phase 3 §3 — 온디맨드 게임 편입 e2e(무키 오프라인). 카탈로그 진입 + 퀴즈 파이프라인 4종 표면 플레이 +
 # whoami 힌트 **서버 권위**(위조·stale-cookie replay 불변) + 재롤(새 버전·포인트 0) + 정직 안내.
 class GamesOndemandTest < ActionDispatch::IntegrationTest
   setup do
@@ -22,8 +22,8 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", games_whoami_play_path(book_id: @book.id)
   end
 
-  # ── 7종 실동작 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────
-  %w[quiz golden bingo classic vocab balance].each do |surface|
+  # ── 퀴즈 파이프라인 4종 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────
+  %w[quiz classic vocab].each do |surface|
     test "#{surface} on-demand play renders an offline system quiz immediately" do
       get public_send("games_#{surface}_play_path", book_id: @book.id)
       assert_response :success
@@ -75,19 +75,6 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     post games_attempts_path, params: { quiz_id: quiz.id, game: "vocab", answers: { question.id.to_s => question.answer } }
     attempt = QuizAttempt.where(quiz: quiz).last
     assert_equal question.answer.size * Games::QuestionScorer::POINTS_PER_CORRECT, attempt.points_awarded
-  end
-
-  # ── balance 온디맨드 제출(무정답 → 참여만, 0점) ─────────────────────────────
-  test "balance vote submission records participation without awarding points" do
-    get games_balance_play_path(book_id: @book.id)
-    quiz = Quiz.where(origin: :system, book_id: @book.id, content_axis: :balance_vote).last
-    answers = quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = 0 }
-
-    assert_difference -> { QuizAttempt.count }, 1 do
-      post games_attempts_path, params: { quiz_id: quiz.id, game: "balance", answers: answers }
-    end
-    assert_equal 0, @student.reload.points, "밸런스는 무정답 — 참여만(0점, 참여 포인트는 Phase 4)"
-    assert_redirected_to games_balance_play_path(book_id: @book.id)
   end
 
   # ── C1 whoami 힌트 서버 권위 — 위조/stale-cookie replay 로도 점수 불변 ───────

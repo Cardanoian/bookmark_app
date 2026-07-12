@@ -19,8 +19,8 @@ module ReadingDomain
   # content_axis(캐시축)별 고정 문항 수(Phase 1 §1.1, A6). 표면·버전이 달라도 같은 축이면
   # 문항 수가 같아야 콘텐츠축 상한(maximum(:points_awarded)) 비교의 스케일이 일관된다.
   # 생성(QuizDraftService#normalize, Phase 2a)과 검증이 이 상수를 강제한다.
-  #   mcq=객관식 문항 수 / matching=어휘↔뜻 쌍 수 / hint_reveal=힌트공개 타깃 수 / balance_vote=딜레마 수.
-  CONTENT_COUNTS = { mcq: 5, matching: 5, hint_reveal: 3, balance_vote: 3 }.freeze
+  #   mcq=객관식 문항 수 / matching=어휘↔뜻 쌍 수 / hint_reveal=힌트공개 타깃 수.
+  CONTENT_COUNTS = { mcq: 5, matching: 5, hint_reveal: 3 }.freeze
 
   # 5축 루브릭 키 (순서 고정 — 방사형 차트·가중치 계산에 사용). 학년군 무관.
   RUBRIC_AXES = %i[content emotion life structure spelling].freeze
@@ -222,7 +222,7 @@ module ReadingDomain
   end
 
   # content_axis(캐시축)별 게임 콘텐츠 생성 프롬프트 빌더(Phase 2a). build_quizgen_prompt(mcq 4지선다)의
-  # 일반화 — 4개 content_axis(mcq/matching/hint_reveal/balance_vote)를 모두 덮는다. 주입 요소:
+  # 일반화 — 3개 content_axis(mcq/matching/hint_reveal)를 모두 덮는다. 주입 요소:
   # (a) band 성취기준·눈높이(ACHIEVEMENT_STANDARDS_BY_BAND·PROMPT_META), (b) 난이도 티어,
   # (c) 오답 품질(그럴듯하나 분명히 틀림·상호배타·비슷한 길이), (d) 해설 강제, (e) 중복 방지(항목별 다른 초점),
   # (f) count 강제(CONTENT_COUNTS 참조), (g) 근거 한정·환각 억제(줄거리에 없는 사실 금지, 빈약하면 일반 독해),
@@ -285,17 +285,6 @@ module ReadingDomain
           ]
         }
       HINT
-    when :balance_vote
-      <<~BAL
-        [밸런스 투표(balance_vote)] 정답이 없는 딜레마 #{count}개를 만드세요.
-        각 딜레마는 두 개의 선택지(options)를 두되, 정답이 없으므로 오답을 표시하지 말고 두 선택지 모두 그럴듯하게 만드세요.
-        반드시 아래 JSON 스키마만 반환하고 다른 설명은 붙이지 마세요.
-        {
-          "dilemmas": [
-            { "prompt": "딜레마 질문", "options": ["선택지1", "선택지2"], "explanation": "왜 정답이 없는지 안내" }
-          ]
-        }
-      BAL
     else
       raise ArgumentError, "지원하지 않는 content_axis: #{content_axis.inspect}"
     end
@@ -305,7 +294,7 @@ module ReadingDomain
   RUBRIC_PROMPTS = BANDS.index_with { |band| build_rubric_prompt(band).freeze }.freeze
   QUIZGEN_PROMPTS = BANDS.index_with { |band| build_quizgen_prompt(band).freeze }.freeze
 
-  # (band × content_axis) 콘텐츠 프롬프트를 사전빌드·동결(Phase 2a). content_axis 는 CONTENT_COUNTS 의 4값.
+  # (band × content_axis) 콘텐츠 프롬프트를 사전빌드·동결(Phase 2a). content_axis 는 CONTENT_COUNTS 의 3값.
   CONTENT_PROMPTS = BANDS.index_with do |band|
     CONTENT_COUNTS.keys.index_with { |axis| build_content_prompt(band, axis).freeze }.freeze
   end.freeze

@@ -168,17 +168,6 @@ class Ai::QuizDraftServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "offline_set balance_vote has two options and no answer" do
-    set = Ai::QuizDraftService.new(client: StubClient.new(configured: false)).offline_set(@book, :g56, :balance_vote)
-
-    assert_equal ReadingDomain::CONTENT_COUNTS[:balance_vote], set.size
-    set.each do |question|
-      assert_equal "balance_vote", question[:question_type]
-      assert_nil question[:answer]
-      assert_equal 2, question[:content][:options].size
-    end
-  end
-
   test "offline_set is band-differentiated (g12 vs g56 differ) for every axis" do
     service = Ai::QuizDraftService.new(client: StubClient.new(configured: false))
     ReadingDomain::CONTENT_COUNTS.each_key do |axis|
@@ -242,15 +231,6 @@ class Ai::QuizDraftServiceTest < ActiveSupport::TestCase
     assert_equal "matching", question[:question_type]
     assert_equal 5, question[:content][:lefts].size
     assert question[:answer].is_a?(Hash)
-  end
-
-  test "content_set balance_vote rejects wrong option counts, falling back to offline" do
-    dilemmas = Array.new(3) { { "prompt" => "딜레마", "options" => [ "하나" ] } }
-    client = StubClient.new(configured: true, response: { "dilemmas" => dilemmas })
-    set = Ai::QuizDraftService.new(client: client).content_set(@book, :g56, :balance_vote)
-
-    assert_equal ReadingDomain::CONTENT_COUNTS[:balance_vote], set.size
-    set.each { |question| assert_nil question[:answer] }
   end
 
   test "content_set hint_reveal rejects targets without enough hints, falling back to offline" do

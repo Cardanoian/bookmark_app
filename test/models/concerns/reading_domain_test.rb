@@ -70,12 +70,11 @@ class ReadingDomainTest < ActiveSupport::TestCase
   end
 
   # Phase 2a: content_axis별 콘텐츠 프롬프트 — band 성취기준·눈높이 + 축별 JSON 스키마 키 +
-  # count/해설/오답 지시가 4 content_axis × 3 band 모두에 주입되는지(스냅샷) 검증한다.
+  # count/해설/오답 지시가 3 content_axis × 3 band 모두에 주입되는지(스냅샷) 검증한다.
   AXIS_SCHEMA_KEYS = {
     mcq: %w[questions choices answer_index explanation],
     matching: %w[pairs word meaning],
-    hint_reveal: %w[targets hints answer],
-    balance_vote: %w[dilemmas options]
+    hint_reveal: %w[targets hints answer]
   }.freeze
 
   test "build_content_prompt injects band standard, axis schema keys, count/해설/오답 rules for all bands×axes" do

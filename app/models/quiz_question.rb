@@ -1,15 +1,14 @@
-# 퀴즈 문항(P5.6 → Phase 1 다형화). question_type 으로 5종 채점타입을 표현한다.
+# 퀴즈 문항(P5.6 → Phase 1 다형화). question_type 으로 4종 채점타입을 표현한다.
 #   mcq_single  : choices 보기 배열 + answer_index 정답(하위호환).
 #   mcq_multi   : content 보기 + answer 정답 인덱스 배열.
 #   matching    : content 좌/우 항목 + answer 쌍맵(좌 인덱스 → 우 인덱스).
 #   hint_reveal : content 힌트 배열 + answer 타깃(정답). 채점은 서버 힌트 공개수 기반(§3.2b).
-#   balance_vote: content 두 선택지. 정답 없음(answer=null) → 참여만.
 class QuizQuestion < ApplicationRecord
   belongs_to :quiz
 
-  # 정수 백엔드 enum(명시 매핑 고정). content_axis(4값)와 달리 채점타입은 5값 —
+  # 정수 백엔드 enum(명시 매핑 고정). content_axis(3값)와 달리 채점타입은 4값 —
   # mcq content_axis 안에서도 mcq_single/mcq_multi 두 채점타입이 존재한다.
-  enum :question_type, { mcq_single: 0, mcq_multi: 1, matching: 2, hint_reveal: 3, balance_vote: 4 },
+  enum :question_type, { mcq_single: 0, mcq_multi: 1, matching: 2, hint_reveal: 3 },
        default: :mcq_single
   enum :source, { manual: 0, ai: 1, offline: 2 }, default: :manual
 
@@ -33,7 +32,7 @@ class QuizQuestion < ApplicationRecord
     (content || {}).with_indifferent_access
   end
 
-  # hint_reveal: 힌트 배열(어려움→쉬움). matching: 좌/우 항목. balance_vote: 두 선택지.
+  # hint_reveal: 힌트 배열(어려움→쉬움). matching: 좌/우 항목.
   def hints_list
     Array(content_hash[:hints])
   end
@@ -44,10 +43,6 @@ class QuizQuestion < ApplicationRecord
 
   def match_rights
     Array(content_hash[:rights])
-  end
-
-  def balance_options
-    Array(content_hash[:options])
   end
 
   # 타입별 채점을 QuestionScorer 에 위임한다(§1.2). hint_reveal 은 서버 권위 힌트수를 받는다.
@@ -68,8 +63,6 @@ class QuizQuestion < ApplicationRecord
       errors.add(:answer, "은(는) 비어있지 않은 쌍맵이어야 합니다") unless answer.is_a?(Hash) && answer.any?
     when "hint_reveal"
       errors.add(:answer, "은(는) 타깃 정답이 있어야 합니다") if answer.blank?
-    when "balance_vote"
-      errors.add(:answer, "은(는) 정답이 없어야 합니다(무정답)") if answer.present?
     end
   end
 end

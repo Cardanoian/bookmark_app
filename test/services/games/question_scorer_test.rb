@@ -1,6 +1,6 @@
 require "test_helper"
 
-# Phase 1 §1.2 — 문항 채점기 5종. 정답·부분점수·힌트 서버권위 차감·무정답 참여를 증명한다.
+# Phase 1 §1.2 — 문항 채점기 4종. 정답·부분점수·힌트 서버권위 차감을 증명한다.
 class Games::QuestionScorerTest < ActiveSupport::TestCase
   setup do
     @school = School.create!(name: "채점초")
@@ -101,22 +101,6 @@ class Games::QuestionScorerTest < ActiveSupport::TestCase
 
     assert_equal honest[:score], forged_but_server_knows[:score]
     assert_equal 2, honest[:score]
-  end
-
-  # ── balance_vote (무정답 → 참여만) ────────────────────────────────────────
-  test "balance_vote has no correct answer and only records participation" do
-    q = question(question_type: :balance_vote,
-                 content: { "options" => [ "A 선택지", "B 선택지" ] }, answer: nil)
-
-    voted = Games::QuestionScorer.for(q).score("A")
-    abstained = Games::QuestionScorer.for(q).score(nil)
-
-    assert_equal 0, voted[:score]
-    refute voted[:correct]
-    assert voted[:participation]
-
-    assert_equal 0, abstained[:score]
-    refute abstained[:participation]
   end
 
   test "for raises on an unknown question_type" do

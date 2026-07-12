@@ -1,4 +1,4 @@
-# test/ — Minitest + Capybara 테스트 스위트 (약 636 runs)
+# test/ — Minitest + Capybara 테스트 스위트 (약 665 runs)
 
 '책갈피'(Rails 8.1)의 전체 자동화 테스트 모음이다. 모델·정책·서비스 단위 테스트부터 역할별 화면·플로우를 검증하는 integration 테스트까지 포함한다. 테스트는 **외부 API를 절대 호출하지 않으며**(`test_helper.rb`가 credentials 키를 공란으로 강제 → 도서검색·정보나루·Gemini가 오프라인 폴백 경로를 탄다), 원격 성공 경로는 스텁 커넥션을 DI로 주입해 검증한다.
 
@@ -20,7 +20,7 @@
 ## integration/ 대표 그룹
 - **인증·역할 진입**: `registrations`(교사 신청+승인 게이트)·`sessions`·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`books_catalog`.
 - **독후감 파이프라인**: `report_review_flow`(Phase 3 완료 게이트)·`reports`·`ocr`(사진→텍스트)·`learn_wizard`(단계 학습 위저드).
-- **게임화·반려 몬스터**: `games`(독서게임 10종)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`.
+- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`.
 - **교사(P6)**: `teacher_dashboard`·`teacher_missions`·`teacher_quizzes`·`teacher_reviews`·`teacher_students`·`teacher_rubric_config`·`teacher_exports`(CSV)·`teacher_prints`(인쇄 문서).
 - **사서(P6.5)**: `librarian_dashboard`·`librarian_events`·`librarian_loans`(정보나루 동기화).
 - **교무관리자**: `school_admin_neis`(생기부 요약)·`school_admin_stats`(전교 통계·학교 경계).
@@ -29,7 +29,7 @@
 - **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약).
 
 ## 패턴·규칙
-- 실행: `bin/rails test` (전체, 약 497 runs). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
+- 실행: `bin/rails test` (전체, 약 665 runs). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
 - 품질 게이트: `bin/ci`가 순서대로 `bin/rubocop`(스타일) → `bin/bundler-audit`·`bin/importmap audit`·`bin/brakeman`(보안) → `bin/rails test`(테스트) → `db:seed:replant`(시드 재적재)를 실행. PR은 이 전 단계가 통과해야 한다.
 - 테스트는 병렬(`parallelize`) 실행되므로 전역 상태에 의존하지 말 것.
 - 몬스터/뱃지가 필요한 테스트는 `setup`에서 `seed_monster_species!`·`seed_badges!`를 호출(트랜잭션 롤백되며 멱등).

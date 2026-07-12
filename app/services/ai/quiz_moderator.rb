@@ -5,8 +5,8 @@ module Ai
   #
   # ⚠️ 정직화(과대주장 금지) — 이 검증기가 **보장하는 것은 정확히** 다음뿐이다:
   #   ① 구조 유효성: content_axis별 문항 수(CONTENT_COUNTS) 일치, 타입별 정답 형태
-  #      (mcq_single 정답 정확히 1개·범위 내 / matching 정답키 개수·범위 / hint_reveal 힌트+타깃 /
-  #      balance_vote 무정답), 보기/우측 상호 배타(중복 없음), 인덱스 범위.
+  #      (mcq_single 정답 정확히 1개·범위 내 / matching 정답키 개수·범위 / hint_reveal 힌트+타깃),
+  #      보기/우측 상호 배타(중복 없음), 인덱스 범위.
   #   ② 결정적 한국어 금칙어 denylist 차단.
   #   ③ (선택) LLM 자가검토 — API 키가 있을 때만. 키 없으면 완전히 생략(무키 무중단).
   #
@@ -31,7 +31,7 @@ module Ai
     end
 
     # set: QuizDraftService#content_set/offline_set 형태의 문항 해시 배열(symbol 키).
-    # content_axis: 기대 구조를 고르는 캐시축 심볼(:mcq/:matching/:hint_reveal/:balance_vote).
+    # content_axis: 기대 구조를 고르는 캐시축 심볼(:mcq/:matching/:hint_reveal).
     # 반환: Result(pass?/reasons). 실패 → 호출자는 게시하지 않고 오프라인 유지.
     def review(set, content_axis:)
       axis = content_axis.to_sym
@@ -44,7 +44,7 @@ module Ai
     private
 
     # ── ① 구조 유효성 ────────────────────────────────────────────────
-    # 주의: content_axis별 count 의미가 다르다. mcq/hint_reveal/balance_vote 는 "문항 수"이지만
+    # 주의: content_axis별 count 의미가 다르다. mcq/hint_reveal 은 "문항 수"이지만
     # matching 은 단일 문항 1개에 CONTENT_COUNTS[:matching]개의 **쌍**을 담는다(set.size=1).
     def structure_errors(set, axis)
       items = Array(set)
@@ -74,7 +74,6 @@ module Ai
       when :mcq          then mcq_errors(item, index)
       when :matching     then matching_errors(item, index)
       when :hint_reveal  then hint_reveal_errors(item, index)
-      when :balance_vote then balance_vote_errors(item, index)
       else [ "알 수 없는 content_axis: #{axis}" ]
       end
     end
@@ -121,15 +120,6 @@ module Ai
       errors
     end
 
-    def balance_vote_errors(item, index)
-      errors = []
-      content = symbolized(item[:content])
-      options = Array(content[:options]).reject { |option| option.to_s.blank? }
-      errors << "문항#{index} balance_vote 선택지 2개 아님(#{options.size})" unless options.size == 2
-      errors << "문항#{index} balance_vote 정답 존재(무정답이어야)" if item[:answer].present?
-      errors
-    end
-
     # ── ② 결정적 금칙어 denylist ─────────────────────────────────────
     def denylist_errors(set)
       haystack = Array(set).map { |item| item_text(item) }.join(" ")
@@ -145,7 +135,7 @@ module Ai
       [
         item[:prompt], item[:explanation], item[:answer],
         Array(item[:choices]),
-        Array(content[:hints]), Array(content[:options]),
+        Array(content[:hints]),
         Array(content[:lefts]), Array(content[:rights])
       ].flatten.compact.map(&:to_s).join(" ")
     end

@@ -62,7 +62,7 @@ module Ai
     end
 
     # ── Phase 2a: content_axis 세트 생성(AI→오프라인 폴백). Phase 2b GenerateGameContentJob 진입점.
-    # 반환은 콘텐츠축별 문항 해시 배열(mcq=5, matching=1문항×5쌍, hint_reveal=3, balance_vote=3).
+    # 반환은 콘텐츠축별 문항 해시 배열(mcq=5, matching=1문항×5쌍, hint_reveal=3).
     def content_set(book, band, content_axis)
       axis = content_axis.to_sym
       return offline_set(book, band, axis) unless @client.configured?
@@ -83,7 +83,6 @@ module Ai
       when :mcq          then offline_mcq(book, band, ReadingDomain::CONTENT_COUNTS[:mcq])
       when :matching     then offline_matching(book, band)
       when :hint_reveal  then offline_hint_reveal(book, band)
-      when :balance_vote then offline_balance_vote(book, band)
       else raise ArgumentError, "지원하지 않는 content_axis: #{content_axis.inspect}"
       end
     end
@@ -139,7 +138,6 @@ module Ai
       when :mcq          then normalize_mcq(response, band)
       when :matching     then normalize_matching(response, band)
       when :hint_reveal  then normalize_hint_reveal(response, band)
-      when :balance_vote then normalize_balance_vote(response, band)
       else raise ArgumentError, "지원하지 않는 content_axis: #{content_axis.inspect}"
       end
     end
@@ -212,34 +210,6 @@ module Ai
         prompt: "힌트를 보고 정답을 맞혀 보세요.",
         content: { hints: hints },
         answer: answer,
-        explanation: data[:explanation].to_s,
-        difficulty: clamp_difficulty(data[:difficulty]) || band_difficulty(band)
-      }
-    end
-
-    def normalize_balance_vote(response, band)
-      count = ReadingDomain::CONTENT_COUNTS[:balance_vote]
-      items = Array(response["dilemmas"]).filter_map { |raw| normalize_dilemma(raw, band) }
-                                         .uniq { |item| item[:prompt] }
-      raise InvalidResponse, "balance_vote needs #{count} valid dilemmas" if items.size < count
-
-      items.first(count)
-    end
-
-    # balance_vote 검증: 선택지 정확히 2개 + 무정답(answer=null 강제).
-    def normalize_dilemma(raw, band)
-      return nil unless raw.is_a?(Hash)
-
-      data = raw.symbolize_keys
-      prompt = data[:prompt].to_s
-      options = Array(data[:options]).map(&:to_s).reject(&:blank?)
-      return nil if prompt.blank? || options.size != 2
-
-      {
-        question_type: "balance_vote",
-        prompt: prompt,
-        content: { options: options },
-        answer: nil,
         explanation: data[:explanation].to_s,
         difficulty: clamp_difficulty(data[:difficulty]) || band_difficulty(band)
       }
@@ -366,29 +336,6 @@ module Ai
         explanation: "정답은 '#{text}'이에요.",
         difficulty: band_difficulty(band)
       }
-    end
-
-    # balance_vote: 책 테마 딜레마(무정답). 결정적·안전(정답이 없어 오채점 위험 없음).
-    def offline_balance_vote(book, band)
-      title = book.title.to_s
-      dilemmas = [
-        { prompt: "「#{title}」을(를) 친구에게 추천한다면 어떻게 할까요?",
-          options: [ "줄거리를 자세히 알려 준다", "스스로 읽고 발견하게 둔다" ] },
-        { prompt: "책을 읽을 때 나는 어떤 쪽인가요?",
-          options: [ "한 번에 끝까지 빠르게 읽는다", "천천히 곱씹으며 읽는다" ] },
-        { prompt: "독후감을 쓸 때 더 중요한 것은 무엇일까요?",
-          options: [ "책의 줄거리를 많이 담기", "나의 생각과 느낌을 많이 담기" ] }
-      ]
-      dilemmas.first(ReadingDomain::CONTENT_COUNTS[:balance_vote]).map do |dilemma|
-        {
-          question_type: "balance_vote",
-          prompt: dilemma[:prompt],
-          content: { options: dilemma[:options] },
-          answer: nil,
-          explanation: "정답이 없어요. 내 생각을 골라 친구들과 이야기해 보세요.",
-          difficulty: band_difficulty(band)
-        }
-      end
     end
 
     # ── 공통 헬퍼 ────────────────────────────────────────────────────

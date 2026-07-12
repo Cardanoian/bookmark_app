@@ -1,6 +1,6 @@
 module Games
-  # 독서게임 결과 기록(P5.6 → Phase 3). 7종 실동작 게임 공통 제출 엔드포인트.
-  # 채점 → QuizAttempt 생성/finalize → award_points(레벨·진화·뱃지 연쇄) 후 게임 화면으로 복귀.
+  # 독서게임 결과 기록(P5.6 → Phase 3). 퀴즈 파이프라인 4종(quiz·classic·vocab·whoami) 공통
+  # 제출 엔드포인트. 채점 → QuizAttempt 생성/finalize → award_points(레벨·진화·뱃지 연쇄) 후 복귀.
   class AttemptsController < BaseController
     def create
       quiz = Quiz.published.find(params[:quiz_id])
@@ -60,22 +60,16 @@ module Games
 
     def on_demand_play_path(game, book_id)
       case game
-      when "golden" then games_golden_play_path(book_id: book_id)
-      when "bingo" then games_bingo_play_path(book_id: book_id)
       when "classic" then games_classic_play_path(book_id: book_id)
       when "vocab" then games_vocab_play_path(book_id: book_id)
-      when "balance" then games_balance_play_path(book_id: book_id)
       when "whoami" then games_whoami_play_path(book_id: book_id)
       else games_quiz_play_path(book_id: book_id)
       end
     end
 
-    def teacher_show_path(game, quiz)
-      case game
-      when "golden" then games_golden_path(quiz)
-      when "bingo" then games_bingo_path(quiz)
-      else games_quiz_path(quiz)
-      end
+    # 교사 published mcq 퀴즈(id)는 quiz show 로 단일 재생한다.
+    def teacher_show_path(_game, quiz)
+      games_quiz_path(quiz)
     end
   end
 end

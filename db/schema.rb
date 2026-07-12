@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_12_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_12_000009) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -66,6 +66,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_12_000007) do
     t.datetime "updated_at", null: false
     t.index ["hidden_by_id"], name: "index_board_posts_on_hidden_by_id"
     t.index ["report_id"], name: "index_board_posts_on_report_id", unique: true
+  end
+
+  create_table "book_intro_votes", force: :cascade do |t|
+    t.integer "book_intro_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["book_intro_id", "user_id"], name: "index_book_intro_votes_on_book_intro_id_and_user_id", unique: true
+    t.index ["book_intro_id"], name: "index_book_intro_votes_on_book_intro_id"
+    t.index ["user_id"], name: "index_book_intro_votes_on_user_id"
+  end
+
+  create_table "book_intros", force: :cascade do |t|
+    t.text "body", null: false
+    t.integer "book_id", null: false
+    t.integer "classroom_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.integer "votes_count", default: 0, null: false
+    t.index ["book_id", "classroom_id"], name: "index_book_intros_on_book_id_and_classroom_id"
+    t.index ["book_id"], name: "index_book_intros_on_book_id"
+    t.index ["classroom_id"], name: "index_book_intros_on_classroom_id"
+    t.index ["user_id"], name: "index_book_intros_on_user_id"
   end
 
   create_table "books", force: :cascade do |t|
@@ -398,6 +422,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_12_000007) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "reports"
   add_foreign_key "board_posts", "users", column: "hidden_by_id"
+  add_foreign_key "book_intro_votes", "book_intros"
+  add_foreign_key "book_intro_votes", "users"
+  add_foreign_key "book_intros", "books"
+  add_foreign_key "book_intros", "classrooms"
+  add_foreign_key "book_intros", "users"
   add_foreign_key "challenges", "books", on_delete: :nullify
   add_foreign_key "challenges", "schools", on_delete: :nullify
   add_foreign_key "cheers", "board_posts"

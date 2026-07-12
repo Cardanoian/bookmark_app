@@ -5,7 +5,7 @@ module Games
   # generation_status 는 플레이어에게 노출되지 않는 내부 캐시 상태일 뿐, 게이트가 아니다.
   #
   # 흐름(resolve):
-  #   ① surface → content_axis (SURFACE_MAP; 5표면이 mcq 를 공유 → 콘텐츠축당 1생성).
+  #   ① surface → content_axis (SURFACE_MAP; quiz·classic 이 mcq 를 공유 → 콘텐츠축당 1생성).
   #   ② band = ReadingDomain.band_for(user.classroom&.grade) — **서버 결정**(사용자 입력 불신).
   #   ③ 캐시 HIT: origin=system·해당 축·최신 content_version·ready·미신고 → 즉시 반환(Gemini 0).
   #      단, 그 행이 AI 로 게시된 적 없이 **오프라인만으로 RETRY_GRACE 이상 지속**됐다면(첫 워밍이
@@ -21,12 +21,11 @@ module Games
   #    content_set 은 키가 있으면 동기 Gemini 호출로 아동을 대기시키므로 "미스=오프라인 즉시"
   #    불변식(A.1 P1)에 위배된다. AI 는 오직 워밍 잡에서만 붙는다.
   class ContentProvider
-    # 표면 → 콘텐츠축. mcq 를 5표면이 공유(N1 콘텐츠축 캐시 = 비용 봉인).
+    # 표면 → 콘텐츠축. quiz·classic 두 표면이 mcq 를 공유(N1 콘텐츠축 캐시 = 비용 봉인).
     SURFACE_MAP = {
-      "quiz" => :mcq, "golden" => :mcq, "bingo" => :mcq, "battle" => :mcq, "classic" => :mcq,
+      "quiz" => :mcq, "classic" => :mcq,
       "vocab" => :matching,
-      "whoami" => :hint_reveal,
-      "balance" => :balance_vote
+      "whoami" => :hint_reveal
     }.freeze
 
     # 온디맨드 게임 전역 kill switch + 스코프 플래그 키(C3).
@@ -164,7 +163,7 @@ module Games
     def warm!(book, scope: nil, bands: ReadingDomain::BANDS, axes: nil)
       return 0 unless @client.configured?
 
-      axes ||= ReadingDomain::CONTENT_COUNTS.keys # mcq/matching/hint_reveal/balance_vote
+      axes ||= ReadingDomain::CONTENT_COUNTS.keys # mcq/matching/hint_reveal
       enqueued = 0
       bands.each do |band|
         axes.each do |axis|
