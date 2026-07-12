@@ -1,5 +1,5 @@
 # 개발용 샘플 독서 퀴즈 시드(P5.6). 시드된 도서 1권에 대해 게시(published) 전역 퀴즈를
-# 하나 만들어 quiz/golden/bingo 게임을 곧바로 플레이할 수 있게 한다. 멱등(find_or_initialize_by title).
+# 하나 만들어 quiz(mcq) 게임을 곧바로 플레이할 수 있게 한다. 멱등(find_or_initialize_by title).
 namespace :quizzes do
   desc "Seed a sample published quiz for a seeded book"
   task seed: :environment do

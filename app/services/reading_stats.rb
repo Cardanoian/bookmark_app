@@ -51,7 +51,7 @@ class ReadingStats
     @revisions ||= approved_reports.where("improvement > 0").count
   end
 
-  # 최장 연속 제출일(마라톤 스트릭). 제출일(created_at) 기준 연속 달력일의 최대 길이.
+  # 최장 연속 제출일(연속 독서 스트릭). 제출일(created_at) 기준 연속 달력일의 최대 길이.
   def streak_days
     @streak_days ||= begin
       dates = @user.reports.pluck(:created_at).compact.map(&:to_date).uniq.sort

@@ -1,5 +1,5 @@
 # 콘텐츠축 캐시 키 + 멱등 델타 origin 분기 토대(Phase 1 §1.1).
-#   content_axis  : 캐시·dedup 키(4값: mcq/matching/hint_reveal/balance_vote). teacher 퀴즈는 nil 허용.
+#   content_axis  : 캐시·dedup 키(mcq/matching/hint_reveal). teacher 퀴즈는 nil 허용.
 #   band          : 학년군(g12/g34/g56). 콘텐츠축 상한 비교의 스케일 경계.
 #   origin        : teacher(현행 per-quiz 멱등) / system(콘텐츠축 캐시). 기본 teacher.
 #   generation_status : 내부 캐시 상태(ready/warming/failed). 기본 ready.
