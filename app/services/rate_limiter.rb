@@ -8,8 +8,9 @@
 # MemoryStore 를 주입한다(test 환경 기본 캐시는 null_store 라 무카운팅 → 무제한 허용).
 class RateLimiter
   # 워밍 방어 기본값. per-user 는 시간당, 글로벌 예산은 일당.
+  # 값 근거·운영 중 조정법은 TODO.md「재롤·워밍 rate limit/예산 운영 튜닝 가이드」참조.
   WARMING_PER_USER = { limit: 20, period: 1.hour }.freeze
-  WARMING_DAILY_BUDGET = { limit: 500, period: 1.day }.freeze
+  WARMING_DAILY_BUDGET = { limit: 5000, period: 1.day }.freeze
 
   def initialize(store: Rails.cache, now: -> { Time.current })
     @store = store

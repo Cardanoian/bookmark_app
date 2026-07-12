@@ -164,6 +164,38 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     assert_not replacement.reported?
   end
 
+  # ── 무게이트 롤아웃: 신고 임계(서로 다른 REPORT_HIDE_THRESHOLD 명) → 자동 숨김+재생성 ──
+  test "record_report! hides+regenerates only when distinct reporters reach the threshold" do
+    quiz = provider.resolve(book: @book, surface: "quiz", user: @student)
+    reporter2 = User.create!(school: @school, classroom: @room_a, name: "신고자2", password: "password")
+
+    assert_no_enqueued_jobs only: GenerateGameContentJob do
+      first = provider.record_report!(quiz, @student) # 1명 신고 → 임계 미달
+      assert first[:created]
+      assert_not first[:hidden]
+    end
+    assert_not quiz.reload.reported?
+    assert_equal 1, quiz.reports_count
+
+    assert_enqueued_jobs 1, only: GenerateGameContentJob do
+      second = provider.record_report!(quiz, reporter2) # 서로 다른 2번째 → 임계 도달
+      assert second[:hidden]
+    end
+    assert quiz.reload.reported?, "서로 다른 #{Games::ContentProvider::REPORT_HIDE_THRESHOLD}명 신고 시 자동 숨김"
+    assert_equal 2, quiz.reports_count
+  end
+
+  test "record_report! counts one report per user — a repeat report does not advance the threshold" do
+    quiz = provider.resolve(book: @book, surface: "quiz", user: @student)
+
+    assert provider.record_report!(quiz, @student)[:created]
+    repeat = provider.record_report!(quiz, @student) # 같은 사용자 재신고
+    assert_not repeat[:created], "같은 사용자의 재신고는 카운트되지 않는다(1인 1신고)"
+    assert_not repeat[:hidden]
+    assert_equal 1, quiz.reload.reports_count
+    assert_not quiz.reported?
+  end
+
   # ── §2b 검증 후속 [LOW] 오프라인 전용 축의 영구 고착 방지(재시도, 백오프) ──
   test "a freshly created offline-only HIT does not retry warming (within RETRY_GRACE)" do
     provider.resolve(book: @book, surface: "quiz", user: @student) # MISS → offline v1 + 1 job enqueued

@@ -14,7 +14,7 @@
 
 ## 파일 / 하위 리소스
 - `mailers/` — `application_mailer.rb` 하나. 앱 메일러의 공통 기반 클래스(별도 CLAUDE.md 없음)
-- `assets/` — 정적 자산. `tailwind/application.css`(Tailwind 진입점, `@import "tailwindcss"`)를 빌드해 `builds/tailwind.css` 생성, `images/`는 이미지 자산 경로(별도 CLAUDE.md 없음)
+- `assets/` — 정적 자산. `tailwind/application.css`(Tailwind 진입점, `@import "tailwindcss"`)를 빌드해 `builds/tailwind.css` 생성. `images/monsters/`에는 `image_key`로 참조하는 애니메이션 WebP 72종이 있으며 `monsters:install_assets`로 재설치한다(별도 CLAUDE.md 없음).
 
 ## 패턴·규칙
 - 프런트엔드는 Hotwire(Turbo + Stimulus) + Import Maps + Propshaft + Tailwind CSS 구성. 번들러·Node 빌드 없음.

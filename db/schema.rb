@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_12_000009) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_12_000010) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -251,6 +251,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_12_000009) do
     t.index ["quiz_id"], name: "index_quiz_questions_on_quiz_id"
   end
 
+  create_table "quiz_reports", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "quiz_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["quiz_id", "user_id"], name: "index_quiz_reports_on_quiz_id_and_user_id", unique: true
+    t.index ["quiz_id"], name: "index_quiz_reports_on_quiz_id"
+    t.index ["user_id"], name: "index_quiz_reports_on_user_id"
+  end
+
   create_table "quizzes", force: :cascade do |t|
     t.integer "band"
     t.integer "book_id"
@@ -263,6 +273,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_12_000009) do
     t.integer "origin", default: 0, null: false
     t.boolean "published", default: false, null: false
     t.boolean "reported", default: false, null: false
+    t.integer "reports_count", default: 0, null: false
     t.integer "scope", default: 0, null: false
     t.string "title"
     t.datetime "updated_at", null: false
@@ -446,6 +457,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_12_000009) do
   add_foreign_key "quiz_attempts", "quizzes"
   add_foreign_key "quiz_attempts", "users"
   add_foreign_key "quiz_questions", "quizzes"
+  add_foreign_key "quiz_reports", "quizzes"
+  add_foreign_key "quiz_reports", "users"
   add_foreign_key "quizzes", "books", on_delete: :nullify
   add_foreign_key "quizzes", "classrooms", on_delete: :nullify
   add_foreign_key "quizzes", "users", column: "created_by_id"

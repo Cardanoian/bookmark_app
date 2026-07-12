@@ -54,6 +54,20 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     assert_match "1.0점", response.body
   end
 
+  # 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠를 노출한다.
+  test "dashboard surfaces reported on-demand game content from the teacher's students" do
+    book = Book.create!(title: "신고책", category: :recommended)
+    quiz = Quiz.create!(title: "온디맨드 mcq", created_by: @teacher, book: book, scope: :global,
+                        published: true, origin: :system, content_axis: :mcq, band: :g56, generation_status: :ready)
+    QuizReport.create!(quiz: quiz, user: @student)
+
+    login_as @teacher
+    get teacher_dashboard_path
+    assert_response :success
+    assert_match "신고된 게임 콘텐츠", response.body
+    assert_match "신고책", response.body
+  end
+
   test "a student is forbidden from the teacher dashboard" do
     login_as @student
     get teacher_dashboard_path

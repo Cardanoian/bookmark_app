@@ -38,9 +38,15 @@
 - `forum_post.rb` — 토론 글. topic counter_cache, likes_count 좋아요.
 
 ### 퀴즈
-- `quiz.rb` — 독서 퀴즈. scope(classroom·global) enum, published 노출 통제, quiz_questions nested attributes. **온디맨드 콘텐츠축 캐시 메타(Phase 1)**: `content_axis`(mcq·matching·hint_reveal, 캐시·dedup 키) / `band`(g12·g34·g56) / `origin`(teacher·system, `scopes:false` — `Quiz.origins[:system]` 해시만 사용) / `generation_status`(ready·warming·failed) / `content_version` / `reported` enum·컬럼. 표면은 저장하지 않음. 정수 매핑 고정(Phase 2b 부분 유니크 인덱스·point_award 상한이 의존).
+- `quiz.rb` — 독서 퀴즈. scope(classroom·global) enum, published 노출 통제, quiz_questions nested attributes. **온디맨드 콘텐츠축 캐시 메타(Phase 1)**: `content_axis`(mcq·matching·hint_reveal, 캐시·dedup 키) / `band`(g12·g34·g56) / `origin`(teacher·system, `scopes:false` — `Quiz.origins[:system]` 해시만 사용) / `generation_status`(ready·warming·failed) / `content_version` / `reported` enum·컬럼 / `reports_count`(신고 카운터 캐시). 표면은 저장하지 않음. 정수 매핑 고정(Phase 2b 부분 유니크 인덱스·point_award 상한이 의존).
 - `quiz_question.rb` — 퀴즈 문항. `question_type`(mcq_single·mcq_multi·matching·hint_reveal) + `source`(manual·ai·offline) enum. mcq_single 은 choices+answer_index 하위호환, 다형 타입은 content(문항)/answer(정답)/explanation/difficulty. **첫 AR 검증**(question_type presence + 타입별 정답 유효성). `correct?`(mcq_single) 유지 + `score_for(response, hints_used:)`가 `Games::QuestionScorer`에 위임. **Phase 3 뷰 헬퍼**: `content_hash`(심볼/문자열 키 무관 indifferent 접근) 위에 `hints_list`(hint_reveal)·`match_lefts`/`match_rights`(matching) — 방금 build 된 행과 DB 재조회 행에서 뷰가 동일 동작.
 - `quiz_attempt.rb` — 퀴즈 플레이 1회 기록. `awarded_delta`는 멱등 지급 델타(비영속 임시 속성). 콘텐츠축 상한(origin=system)·per-quiz 상한(origin=teacher) 조회의 근거 행(`Games::PointAward`). **Phase 3 §3.2b**: `hint_reveals`(JSON `{question_id => 공개 힌트 수}`) 컬럼 + `revealed_count(question)` — whoami 힌트 공개수를 **세션쿠키 아니라 서버(DB)**에 두어 위조·stale-cookie replay 를 차단하는 hint_reveal 채점의 단일 진실(C1).
+
+### 게임 — 콘텐츠 신고(무게이트 롤아웃)
+- `quiz_report.rb` — 온디맨드 게임 콘텐츠 신고(무게이트 롤아웃 안전장치). `(quiz, user)` 유일성=**1인 1신고**(cheer 패턴), `quiz.reports_count` counter_cache. 서로 다른 신고자가 `Games::ContentProvider::REPORT_HIDE_THRESHOLD`(2)명에 도달하면 자동 숨김+재생성, 접수는 신고자 학급 담임 대시보드 "신고된 게임 콘텐츠" 섹션으로 사후 검토(교사 알림).
+
+### 게임 — 콘텐츠 신고(무게이트 롤아웃 안전장치)
+- `quiz_report.rb` — 온디맨드 게임 콘텐츠 신고. 콘텐츠축 캐시 quiz 당 **1인 1신고**(`(quiz, user)` unique, cheer/vote 패턴) + `quizzes.reports_count`(counter_cache). 서로 다른 `Games::ContentProvider::REPORT_HIDE_THRESHOLD`(2)명 신고 시 자동 숨김+재생성, 접수는 신고자 학급 담임 대시보드 "신고된 콘텐츠" 섹션으로 사후 검토된다.
 
 ### 게임 — 책 소개 대결(소셜)
 - `book_intro.rb` — 책 소개 대결 글(교육 다양성 5종의 소셜 도메인). `belongs_to :user·:book·:classroom`, `has_many :book_intro_votes, dependent: :destroy`. body presence + 길이(10..1000) 검증. scope `for_classroom(book, classroom)`·`ranked`(votes_count desc→created desc), `voted_by?(user)`. **경계 격리는 `BookIntroPolicy`가 학급 단위로 강제**(퀴즈 파이프라인 밖, Gemini/Quiz 미생성).

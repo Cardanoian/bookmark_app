@@ -198,6 +198,22 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     assert_equal "g12", quiz.band, "학년 미상 학생은 최저 밴드로 생성·인가가 일치해 플레이된다"
   end
 
+  # ── 무게이트 롤아웃: 콘텐츠 신고(서로 다른 2명 → 자동 숨김) ─────────────────
+  test "reporting on-demand content hides it only after two distinct students report" do
+    get games_quiz_play_path(book_id: @book.id)
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+
+    post games_content_reports_path, params: { quiz_id: quiz.id }
+    assert_response :redirect
+    assert_not quiz.reload.reported?, "1명 신고로는 숨기지 않는다"
+    assert_equal 1, quiz.reports_count
+
+    other = User.create!(school: @school, classroom: @classroom, name: "신고짝꿍", password: "password")
+    login_as other
+    post games_content_reports_path, params: { quiz_id: quiz.id }
+    assert quiz.reload.reported?, "서로 다른 2명 신고 시 자동 숨김"
+  end
+
   private
 
   def start_whoami

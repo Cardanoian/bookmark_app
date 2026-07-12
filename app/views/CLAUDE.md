@@ -14,7 +14,7 @@
 - `learn/` — 학습 홈(index)
 - `librarian/` — 사서 화면. `dashboards`·`events` CRUD·`loans`(대출 목록)
 - `missions/` — 미션 목록·상세
-- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial
+- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 이모지로 폴백한다.
 - `ocr/` — OCR 결과 반영 `create.turbo_stream.erb`(turbo_stream 전용)
 - `purchases/` — 구매 처리 `create.turbo_stream.erb`(turbo_stream 전용)
 - `pwa/` — PWA 자산. `manifest.json.erb`·`service-worker.js`

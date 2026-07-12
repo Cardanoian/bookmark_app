@@ -51,6 +51,11 @@ module Games
     # 과 별개로 **DB/스토리지가 무한 증식**한다. 오프라인 재생성 빈도 자체를 시간당 한도로 캡한다.
     REGENERATE_PER_USER = { limit: 10, period: 1.hour }.freeze
 
+    # 신고 자동 숨김 임계(무게이트 롤아웃 안전장치, TODO 후속 정밀화). **서로 다른** 신고자가 이 수에
+    # 도달하면 캐시 행을 숨기고 재생성한다. 단일 사용자 연타 악용은 quiz_reports 의 (quiz, user)
+    # 유니크(1인 1신고)로 이미 차단되므로, 이 값은 곧 "서로 다른 신고자 수" 임계다. 운영 튜닝은 TODO 참조.
+    REPORT_HIDE_THRESHOLD = 2
+
     # origin=system Quiz 의 소유자(created_by). seeds.rb 의 시스템 유저와 동일 신원 규약.
     SYSTEM_USER_NAME = "시스템".freeze
 
@@ -74,6 +79,10 @@ module Games
 
       def report!(quiz, **deps)
         new(**deps).report!(quiz)
+      end
+
+      def record_report!(quiz, reporter, **deps)
+        new(**deps).record_report!(quiz, reporter)
       end
 
       # 로그인 불가한 시스템 액터(온디맨드 캐시 소유자)를 멱등 확보한다. 프로세스 내 메모이즈.
@@ -175,6 +184,29 @@ module Games
         end
       end
       enqueued
+    end
+
+    # 신고 접수(무게이트 롤아웃 안전장치): 신고자를 **1인 1신고**로 기록하고(중복은 무시),
+    # **서로 다른** 신고자가 REPORT_HIDE_THRESHOLD 에 도달하면 report!(숨김+재생성)를 태운다.
+    # 반환 해시 { created:, hidden: } 로 컨트롤러가 정직한 안내를 만들고, 접수는 신고자 학급
+    # 담임의 대시보드 "신고된 콘텐츠" 섹션으로 사후 검토된다(교사 알림). 이미 숨김 처리된 행이면
+    # 3번째 이후 신고에서 재숨김/재재생성을 걸지 않는다.
+    def record_report!(quiz, reporter)
+      created =
+        begin
+          quiz.quiz_reports.create!(user: reporter)
+          true
+        rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+          false # 이미 신고한 사용자 — 카운트 중복 금지(1인 1신고)
+        end
+
+      hidden = false
+      if created && !quiz.reported? && quiz.reload.reports_count >= REPORT_HIDE_THRESHOLD
+        report!(quiz)
+        hidden = true
+      end
+
+      { created: created, hidden: hidden }
     end
 
     # 신고 경로(§2b.3): 학생/교사 신고 → 캐시 행 숨김(reported) + 새 버전 재생성 트리거.

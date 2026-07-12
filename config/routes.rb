@@ -55,6 +55,10 @@ Rails.application.routes.draw do
     # 가챠·랜덤 획득이 아니므로(포인트 상한 봉인) 경로명은 무가챠 가드 준수차 regenerate 로 둔다.
     post "regenerate", to: "regenerate#create", as: :regenerate
 
+    # 콘텐츠 신고(무게이트 롤아웃 안전장치) — 서로 다른 2명 신고 시 자동 숨김+재생성, 신고자 학급
+    # 담임이 대시보드에서 사후 검토. system(온디맨드) 판만 신고 대상(quiz_id 파라미터).
+    post "content_reports", to: "content_reports#create", as: :content_reports
+
     resources :attempts, only: [ :create ]
   end
 

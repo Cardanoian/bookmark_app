@@ -17,6 +17,7 @@
 - `whoami_controller.rb` — **나는 누구게?(hint_reveal 온디맨드, §3.2b)**. `play`(book_id)=리졸브+**attempt 선생성/재사용**(reveal_hint 가 :attempt 요구; 같은 퀴즈의 **미확정[played_at nil] attempt 는 재사용**해 0점 빈 attempt 누적·힌트 리셋 우회 차단)→attempt-키 `show` 로 리다이렉트. `show`(=attempt id)=이미 공개한 힌트만 서버 상태에서 렌더(정답·잔여수 무유출). **`reveal_hint`(POST /whoami/:attempt/reveal_hint)**=공개 요청마다 **서버 카운터(attempt.hint_reveals JSON, DB) 1 증가**(세션쿠키 아님 → stale-cookie replay 차단)→다시 show. 채점은 이 서버 카운트로만(C1).
 - `book_controller.rb` — **책 소개 대결(소셜 도메인, 퀴즈 파이프라인 밖)**. `play`(book_id)=도서 로드 + 같은 학급 소개 목록(득표순) + 작성 폼 + **정적 작성 가이드(`WRITING_TIPS` 상수, Gemini 호출 0)**. `create`=본인·학급으로 소개 작성(`authorize @intro`). `vote`/`unvote`=또래 소개 1인 1표(cheer 패턴, RecordNotUnique rescue). 경계 격리는 `BookIntroPolicy`(크로스-학급 차단). **Quiz/GenerateGameContentJob 를 만들지 않는다**(assert).
 - `regenerate_controller.rb` — **다시 뽑기(`create`, §3.4)**. `ContentProvider.regenerate` 로 **새 content_version** 재생성(rate limit·예산 하 워밍 재적재) 후 해당 표면(quiz·classic·vocab·whoami) play 로 복귀. 포인트는 콘텐츠축 상한이 이미 봉인(재생성 파밍 불가). 무가챠 라우트 가드 준수차 경로명은 `games_regenerate_path`.
+- `content_reports_controller.rb` — **콘텐츠 신고(`create`, 무게이트 롤아웃 안전장치)**. system(온디맨드) 판만 신고 대상(`quiz_id`), `authorize quiz, :show?`(플레이 경계 안 콘텐츠만) 후 `ContentProvider.record_report!` 로 1인 1신고 기록. 서로 다른 2명(`REPORT_HIDE_THRESHOLD`) 신고 시 자동 숨김+재생성. 접수는 신고자 학급 담임 대시보드로 사후 검토(교사 알림). 결과(중복/접수/숨김)에 맞춘 정직한 안내.
 
 ## 패턴·규칙
 - **온디맨드 진입(퀴즈 4종)**: 카탈로그 → 도서 선택 → `games_<표면>_play_path(book_id:)`. `resolve_on_demand` 가 표면→콘텐츠축 리졸브 + 이중 인가(BookPolicy·QuizPolicy)를 담당. 미스=오프라인 즉시(무대기).

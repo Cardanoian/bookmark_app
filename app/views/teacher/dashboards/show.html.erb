@@ -29,6 +29,28 @@
       </div>
     </div>
 
+    <%# 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠. %>
+    <% if @reported_content.any? %>
+      <div class="rounded-lg border border-rose-200 bg-rose-50 p-5">
+        <h2 class="mb-1 text-lg font-semibold text-rose-800">🚩 신고된 게임 콘텐츠 (<%= @reported_content.size %>)</h2>
+        <p class="mb-3 text-xs text-rose-700">
+          학생이 온디맨드 게임에서 신고한 문제예요. 서로 다른
+          <%= Games::ContentProvider::REPORT_HIDE_THRESHOLD %>명이 신고하면 자동으로 숨겨지고 새로 만들어져요. 내용을 확인해 주세요.
+        </p>
+        <ul class="divide-y divide-rose-100">
+          <% @reported_content.each do |report| %>
+            <li class="flex items-center justify-between gap-2 py-2 text-sm">
+              <span class="min-w-0 truncate text-rose-900">
+                <%= report.user.name %> · 「<%= report.quiz.book&.title.presence || "책 미상" %>」 온디맨드 게임
+                <% if report.quiz.reported? %><span class="ml-1 rounded bg-rose-200 px-1.5 py-0.5 text-xs text-rose-800">숨김 처리됨</span><% end %>
+              </span>
+              <span class="shrink-0 text-xs text-rose-400"><%= report.created_at.strftime("%-m/%-d %H:%M") %></span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
     <div class="grid gap-6 md:grid-cols-2">
       <div class="rounded-lg border border-gray-200 p-5">
         <h2 class="mb-3 text-lg font-semibold text-gray-900">학급 5축 평균</h2>

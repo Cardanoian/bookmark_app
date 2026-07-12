@@ -210,6 +210,7 @@ docs/            설계·구현·운영 문서 (아래)
 | [`DESIGN.md`](DESIGN.md) | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형) |
 | [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) | 설계·제작 계획(스키마·역할·라우트 근거) |
 | [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) | Phase 0~8 단계별 구현 계획 |
+| [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
 | [`docs/monsters.md`](docs/monsters.md) | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드 |
 | [`docs/API_KEYS.md`](docs/API_KEYS.md) | 외부 API 키 주입·폴백 가이드 |
 | [`TODO.md`](TODO.md) | 남은 작업(배포·에셋·모니터링) |

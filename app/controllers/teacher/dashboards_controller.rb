@@ -19,6 +19,12 @@ class Teacher::DashboardsController < Teacher::BaseController
     @improvement_avg = improvement_summary(reports)
     @review_queue = reports.where(reviewed: false).where.not(rubric: nil)
                            .includes(:user, :book).order(:created_at).limit(5).to_a
+
+    # 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠 최근 목록.
+    # 신고 2건이면 자동 숨김+재생성되지만, 1건만 있어도 교사가 콘텐츠 품질을 사후 점검하도록 노출한다.
+    @reported_content = QuizReport.where(user_id: @students.select(:id))
+                                  .includes(:user, quiz: :book)
+                                  .order(created_at: :desc).limit(10).to_a
   end
 
   private
