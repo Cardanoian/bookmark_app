@@ -41,7 +41,7 @@
 
 ## 하위 폴더 (별도 CLAUDE.md 불필요)
 
-- `environments/` — 환경별 오버라이드. `development.rb`(리로딩 on, memory_store 캐시), `production.rb`(eager_load, `force_ssl`·`assume_ssl`, `solid_cache_store`·`solid_queue` 어댑터, STDOUT 로깅), `test.rb`(리로딩 off, null_store, forgery 보호 off).
+- `environments/` — 환경별 오버라이드. `development.rb`(리로딩 on, memory_store 캐시), `production.rb`(eager_load, `force_ssl`·`assume_ssl`, **`trusted_proxies` 명시**[kamal/도커 사설대역+루프백 — 로그인 IP 스로틀의 `request.remote_ip` 신뢰경계 감사가능화, 배포 시 실 CIDR 로 좁힘], `solid_cache_store`·`solid_queue` 어댑터, STDOUT 로깅), `test.rb`(리로딩 off, null_store, forgery 보호 off).
 - `initializers/` — `assets.rb`(에셋 버전), `content_security_policy.rb`(전역 CSP — 리소스를 `:self` 로 제한, 인쇄 레이아웃 `onclick` 인라인 핸들러만 해시로 허용, 표지/OCR용 `img_src` https·blob 허용, script-src nonce), `filter_parameter_logging.rb`(로그에서 password·token 등 민감 파라미터 필터), `inflections.rb`(`monster_species` 를 불가산 처리해 라우트 헬퍼 정상화).
 - `locales/` — `en.yml`(i18n 기본 로케일, 현재 샘플만). UI 한국어는 뷰/모델에 직접 기술.
 

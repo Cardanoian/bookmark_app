@@ -14,6 +14,19 @@ class ReadingDomainTest < ActiveSupport::TestCase
     assert_equal :g56, ReadingDomain.band_for(0)
   end
 
+  # 게임 전용 밴드: band_for 와 달리 학년 미상(nil/0)을 **최저 밴드(g12)** 로 고정한다
+  # (5~6학년 콘텐츠 기본 매칭·밴드 경계 느슨함 제거, TODO 후속 정밀화). 명시 학년은 band_for 동일.
+  test "game_band_for fixes unknown grade to the lowest band (g12) while band_for keeps g56" do
+    assert_equal :g12, ReadingDomain.game_band_for(nil), "학년 미상은 최저 밴드로 고정"
+    assert_equal :g12, ReadingDomain.game_band_for(0)
+    assert_equal :g12, ReadingDomain.game_band_for(1)
+    assert_equal :g34, ReadingDomain.game_band_for(3)
+    assert_equal :g56, ReadingDomain.game_band_for(5)
+    assert_equal :g56, ReadingDomain.game_band_for(6)
+    # 첨삭·다학년 대시보드가 쓰는 band_for 는 여전히 미상=g56 로 기존 동작 보존(회귀 가드).
+    assert_equal :g56, ReadingDomain.band_for(nil)
+  end
+
   test "each band exposes all five axes with band-appropriate 성취기준 code prefixes" do
     { g12: "2국", g34: "4국", g56: "6국" }.each do |band, prefix|
       codes = ReadingDomain.achievement_standards(band)

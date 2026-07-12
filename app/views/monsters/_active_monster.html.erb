@@ -6,7 +6,7 @@
          data-controller="monster-care"
          data-monster-care-celebrate-value="<%= celebrate %>">
       <span class="text-5xl" aria-hidden="true" data-monster-care-target="sprite">
-        <%= monster_emoji(monster.species) %>
+        <%= monster_sprite(monster.species, img_class: "h-14 w-14 object-contain") %>
       </span>
       <div>
         <p class="text-xs font-medium text-amber-600">대표 몬스터</p>

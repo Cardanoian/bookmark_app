@@ -15,7 +15,7 @@
 - `schools_controller.rb` — 학교 전역 CRUD(이름 검색). index 페이지네이션(PER_PAGE=50).
 - `settings_controller.rb` — 시스템 설정(`show`/`update`): feature_flags·default_rubric_weights·seasonal_banner. API 키류 저장 금지(스크럽).
 - `shop_items_controller.rb` — 케어/진화 상점 아이템 CRUD. effect 는 JSON 텍스트로 안전 파싱.
-- `users_controller.rb` — 사용자 관리 CRUD + `suspend`/`unsuspend`·`approve`/`unapprove`·`reset_password`·`role`. role/suspended 는 전용 액션만(대량할당 차단). **포인트(:points)도 대량할당에서 제외**하고, update 시 목표값과의 차액을 `award_points` 델타(양수)·`spend_points!`(음수)로 조정해 뱃지·진화·랭킹 후크를 태운다(#9, raw 대입 우회 금지). index 페이지네이션(PER_PAGE=50).
+- `users_controller.rb` — 사용자 관리 CRUD + `suspend`/`unsuspend`·`approve`/`unapprove`·`reset_password`·`role`. role/suspended 는 전용 액션만(대량할당 차단). **포인트(:points)도 대량할당에서 제외**하고, update 시 목표값과의 차액을 `award_points` 델타(양수)·`spend_points!`(음수)로 조정해 뱃지·진화·랭킹 후크를 태운다(#9, raw 대입 우회 금지). **목표값은 0 이상 정수만 허용**(음수·소수·문자는 저장 없이 정확히 거부)하고 `spend_points!` 실패(잔액 초과) 시 거짓 "수정했어요" 대신 정직히 안내한다(후속 정밀화). index 페이지네이션(PER_PAGE=50).
 
 ## 패턴·규칙
 - **역할 격리**: `Admin::BaseController#require_superadmin!` 가 1차 게이트 — superadmin 외(교무관리자 포함) 전 역할을 `Pundit::NotAuthorizedError`(403)로 차단한다.

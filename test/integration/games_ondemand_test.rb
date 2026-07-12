@@ -157,6 +157,47 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     assert_equal best, @student.reload.points, "재롤 후 만점도 콘텐츠축 상한으로 추가 포인트 0"
   end
 
+  # ── whoami play 미확정 attempt 재사용(TODO 후속 정밀화) ─────────────────────
+  # play 재진입은 아직 제출하지 않은(played_at nil) 선생성 attempt 를 재사용한다 — ① 0점 빈 attempt
+  # 누적 방지, ② 힌트 공개 후 재진입으로 힌트 카운터 0 새 판을 얻는 페널티 우회(H2) 차단.
+  test "re-entering whoami play reuses the in-progress attempt (no pile-up, no hint-reset bypass)" do
+    get games_whoami_play_path(book_id: @book.id)
+    first = @student.quiz_attempts.order(:id).last
+    quiz = first.quiz
+    q1 = quiz.quiz_questions.first
+
+    reveal_hint(first, q1) # 서버 힌트 카운터 = 1 (제출은 안 함)
+    assert_equal 1, first.reload.revealed_count(q1)
+
+    assert_no_difference -> { @student.quiz_attempts.count } do
+      get games_whoami_play_path(book_id: @book.id) # 미확정 재진입
+    end
+    reused = @student.quiz_attempts.order(:id).last
+    assert_equal first.id, reused.id, "같은 미확정 attempt 로 돌아온다"
+    assert_redirected_to games_whoami_path(first)
+    assert_equal 1, reused.revealed_count(q1), "공개한 힌트가 그대로 남아 페널티 우회가 불가하다"
+  end
+
+  test "after submitting, whoami play starts a fresh attempt (finalized rows are not reused)" do
+    quiz, attempt = start_whoami
+    submit_whoami_all_correct(quiz, attempt) # played_at 세팅(확정)
+    assert_predicate attempt.reload.played_at, :present?
+
+    assert_difference -> { @student.quiz_attempts.count }, 1 do
+      get games_whoami_play_path(book_id: @book.id)
+    end
+  end
+
+  # ── item 2: 학급/학년 미상 학생도 최저 밴드로 무대기 플레이(리졸버·정책 밴드 일치, 403 없음) ──
+  test "a classroom-less student plays on-demand at the lowest band without a 403" do
+    orphan = User.create!(school: @school, name: "무학급", role: :student, password: "password")
+    login_as orphan
+    get games_quiz_play_path(book_id: @book.id)
+    assert_response :success
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+    assert_equal "g12", quiz.band, "학년 미상 학생은 최저 밴드로 생성·인가가 일치해 플레이된다"
+  end
+
   private
 
   def start_whoami

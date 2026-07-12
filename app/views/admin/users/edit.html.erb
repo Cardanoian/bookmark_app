@@ -13,7 +13,7 @@
   </div>
   <div>
     <%= f.label :points, "포인트", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= f.number_field :points, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    <%= f.number_field :points, min: 0, step: 1, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
   </div>
   <p class="text-xs text-gray-500">역할 변경과 계정 정지는 상세 화면의 전용 버튼에서 처리합니다.</p>
 

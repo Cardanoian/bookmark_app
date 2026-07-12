@@ -22,14 +22,28 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def update
-    requested_points = params.dig(:user, :points)
+    target = params.dig(:user, :points)
 
-    if @user.update(user_params)
-      adjust_points(@user, requested_points) if requested_points.present?
-      redirect_to admin_user_path(@user), notice: "계정 정보를 수정했어요."
-    else
-      render :edit, status: :unprocessable_entity
+    # 포인트 목표값은 0 이상의 정수만 허용한다. 음수·비정수는 저장 없이 정확히 거부한다 —
+    # 예전엔 음수 target 이면 spend_points! 가 조용히 실패(잔액 초과)하는데도 "수정했어요"라고
+    # 거짓 안내했다(#9 후속: 보안 무해, UX 정합).
+    if target.present? && !non_negative_integer?(target)
+      @user.assign_attributes(user_params)
+      # :base 로 담아 full_messages 가 속성명 접두사 없이 완결된 한국어 문장을 그대로 보이게 한다
+      # (edit 뷰가 errors.full_messages 를 렌더 — :points 로 담으면 "Points ..." 처럼 어색해짐).
+      @user.errors.add(:base, "포인트는 0 이상의 정수만 입력할 수 있어요.")
+      return render :edit, status: :unprocessable_entity
     end
+
+    return render :edit, status: :unprocessable_entity unless @user.update(user_params)
+
+    notice =
+      if target.present? && !adjust_points(@user, target)
+        "계정 정보는 저장했지만, 포인트는 잔액을 초과해 조정하지 못했어요."
+      else
+        "계정 정보를 수정했어요."
+      end
+    redirect_to admin_user_path(@user), notice: notice
   end
 
   def suspend
@@ -78,20 +92,30 @@ class Admin::UsersController < Admin::BaseController
   # 관리자 포인트 조정을 델타로 환산해 award_points 연쇄(뱃지·진화·랭킹)를 태운다(#9).
   # raw :points 대입은 게임 루프 후크를 우회하므로 금지 — 목표값과의 차액만 반영한다.
   # 진화는 단조라 음수 조정에서 check_evolution! 재평가는 불필요(ai_review_job 과 동일 정책).
+  # 반환값: 조정이 실제 반영되면 true, 잔액을 초과해 차감이 거부되면 false(정직한 안내용).
   def adjust_points(user, target)
     delta = target.to_i - user.points.to_i
-    return if delta.zero?
+    return true if delta.zero?
 
     if delta.positive?
       user.award_points(delta, reason: "admin_adjustment")
+      true
     else
       # 음수 조정은 도메인 원자 차감 프리미티브(spend_points!)로 처리한다(read-modify-write·raw SQL 회피).
-      # 잔액 이내(target ≥ 0)에서만 차감돼 정확히 목표값에 안착하고, 뱃지·랭킹을 재계산한다.
-      user.spend_points!(delta.abs)
+      # target ≥ 0 을 이미 검증했으므로 정상 흐름에선 잔액 이내라 성공하지만, 동시 변경 등으로 잔액을
+      # 초과하면 차감이 거부되고 false 를 돌려 호출자가 거짓 성공 대신 정직히 안내하게 한다.
+      return false unless user.spend_points!(delta.abs)
+
       user.reload
       user.refresh_badges!
       user.broadcast_ranking_change
+      true
     end
+  end
+
+  # 포인트 목표값 검증: 앞뒤 공백을 제외하고 0 이상의 정수 문자열만 참(음수·소수·문자 거부).
+  def non_negative_integer?(value)
+    value.to_s.strip.match?(/\A\d+\z/)
   end
 
   # 역할(role)·정지(suspended)는 전용 액션(role/suspend/unsuspend)에서만 변경한다.

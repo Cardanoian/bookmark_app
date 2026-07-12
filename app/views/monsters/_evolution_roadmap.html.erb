@@ -5,7 +5,7 @@
   <% line.each_with_index do |species, index| %>
     <% reached = current_stage.present? && species.stage <= current_stage %>
     <div class="text-center <%= "opacity-30" unless reached %>">
-      <div class="text-3xl" aria-hidden="true"><%= reached ? monster_emoji(species) : "❔" %></div>
+      <div class="text-3xl" aria-hidden="true"><%= reached ? monster_sprite(species, img_class: "h-10 w-10 object-contain") : "❔" %></div>
       <p class="text-xs font-medium text-gray-800"><%= reached ? species.name : "???" %></p>
       <p class="text-[10px] text-gray-400"><%= species.stage %>단계</p>
     </div>

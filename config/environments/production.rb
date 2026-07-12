@@ -1,4 +1,5 @@
 require "active_support/core_ext/integer/time"
+require "ipaddr"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
@@ -33,6 +34,23 @@ Rails.application.configure do
 
   # Skip http-to-https redirect for the default health check endpoint.
   config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+
+  # 신뢰 프록시 명시 — request.remote_ip 신뢰성(로그인 fail2ban IP 스로틀 키의 근거, Phase 6 #7 후속).
+  # 앱은 kamal-proxy(단일 리버스 프록시, 도커 사설 네트워크) 뒤에서만 구동되므로, 신뢰 프록시를
+  # 루프백 + 사설 대역으로 **명시**해 X-Forwarded-For 로부터 실제 클라이언트 IP를 뽑는 경계를
+  # 감사 가능하게 고정한다(암묵적 기본값 의존 제거). 배열을 지정하면 Rails 기본 목록을 대체하므로,
+  # kamal/도커가 쓰는 사설 대역(10/8·172.16/12·192.168/16)과 루프백을 모두 포함한다.
+  #   · 위조 저항: kamal-proxy 가 실제 소켓 IP를 XFF 에 덧붙이고 ip_spoofing_check(기본 on)가 켜져
+  #     있어, 공인 클라이언트가 보낸 위조 XFF 로 remote_ip 를 바꿀 수 없다.
+  #   · 계정축 스로틀(user.id 정규화)은 애초에 IP 위조와 무관해 표적 계정 브루트포스를 독립 차단한다.
+  # 실배포 시 도커 브리지의 실제 CIDR 로 더 좁힐 수 있다(현재는 토폴로지 전 범위를 보수적으로 포함).
+  config.action_dispatch.trusted_proxies = [
+    IPAddr.new("127.0.0.1"),
+    IPAddr.new("::1"),
+    IPAddr.new("10.0.0.0/8"),
+    IPAddr.new("172.16.0.0/12"),
+    IPAddr.new("192.168.0.0/16")
+  ].freeze
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]

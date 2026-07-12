@@ -8,10 +8,17 @@ module Games
   class WhoamiController < BaseController
     # play=온디맨드 진입(book_id)으로 attempt 선생성 후 안정적인 show(attempt id)로 이동.
     # 제출 후 새 판으로 올 때 결과 안내(flash)가 show 까지 살아남도록 keep 한다(play→show 이중 리다이렉트).
+    #
+    # 미확정 attempt 재사용(Phase 3 리뷰 LOW 후속): 같은 퀴즈에 **아직 제출하지 않은(played_at IS NULL)**
+    # 선생성 attempt 가 있으면 재사용한다. 이렇게 하면 ① play 재진입마다 0점 빈 attempt 가 누적되지 않고,
+    # ② 힌트를 공개한 뒤 play 로 재진입해 **힌트 카운터 0인 새 attempt** 로 페널티를 우회(H2)하는 구멍도
+    # 닫힌다(재진입해도 이미 공개한 힌트가 그대로 남는 같은 attempt 로 돌아옴). 확정된(제출된) attempt 는
+    # 재사용하지 않으므로 새 판을 시작하려면 정상적으로 새 attempt 가 생성된다.
     def play
       quiz = resolve_on_demand("whoami")
       authorize QuizAttempt.new(quiz: quiz, user: current_user), :create?
-      attempt = quiz.quiz_attempts.create!(user: current_user, hint_reveals: {}, score: 0, points_awarded: 0)
+      attempt = current_user.quiz_attempts.where(quiz: quiz, played_at: nil).order(:id).last ||
+                quiz.quiz_attempts.create!(user: current_user, hint_reveals: {}, score: 0, points_awarded: 0)
       flash.keep(:notice)
       redirect_to games_whoami_path(attempt)
     end

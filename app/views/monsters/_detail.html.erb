@@ -4,7 +4,7 @@
        data-controller="monster-care"
        data-monster-care-celebrate-value="<%= celebrate %>">
     <div class="text-6xl" aria-hidden="true" data-monster-care-target="sprite">
-      <%= user_monster ? monster_emoji(current_species) : "❔" %>
+      <%= user_monster ? monster_sprite(current_species, img_class: "h-20 w-20 object-contain") : "❔" %>
     </div>
     <p class="mt-2 text-xs text-gray-400">No.<%= format("%02d", dex_no) %></p>
     <h1 class="text-2xl font-bold text-gray-900"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>

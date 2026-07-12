@@ -6,7 +6,8 @@ module Games
   #
   # 흐름(resolve):
   #   ① surface → content_axis (SURFACE_MAP; quiz·classic 이 mcq 를 공유 → 콘텐츠축당 1생성).
-  #   ② band = ReadingDomain.band_for(user.classroom&.grade) — **서버 결정**(사용자 입력 불신).
+  #   ② band = ReadingDomain.game_band_for(user.classroom&.grade) — **서버 결정**(사용자 입력 불신).
+  #      게임 전용 밴드(학년 미상 → 최저 g12; 5~6학년 기본 매칭 금지). 정책(QuizPolicy#within_band?)과 동일.
   #   ③ 캐시 HIT: origin=system·해당 축·최신 content_version·ready·미신고 → 즉시 반환(Gemini 0).
   #      단, 그 행이 AI 로 게시된 적 없이 **오프라인만으로 RETRY_GRACE 이상 지속**됐다면(첫 워밍이
   #      거부/실패했거나 무키였던 경우 영구 오프라인에 갇히지 않도록) 축 단위 쿨다운 하에 재워밍을
@@ -119,7 +120,7 @@ module Games
       content_axis = SURFACE_MAP.fetch(surface.to_s) do
         raise ArgumentError, "지원하지 않는 surface: #{surface.inspect}"
       end
-      band = ReadingDomain.band_for(user.classroom&.grade) # 서버 결정(사용자 입력 불신)
+      band = ReadingDomain.game_band_for(user.classroom&.grade) # 서버 결정(게임 밴드, 학년 미상→g12)
 
       cached = fetch_ready(book.id, band, content_axis)
       if cached
@@ -141,7 +142,7 @@ module Games
       content_axis = SURFACE_MAP.fetch(surface.to_s) do
         raise ArgumentError, "지원하지 않는 surface: #{surface.inspect}"
       end
-      band = ReadingDomain.band_for(user.classroom&.grade)
+      band = ReadingDomain.game_band_for(user.classroom&.grade)
 
       quiz = create_new_offline_version(book, band, content_axis)
       maybe_enqueue_warming(book, band, content_axis, user)

@@ -1,4 +1,4 @@
-# 몬스터 도감 표시 헬퍼(이모지 스프라이트·속성 라벨/색). 시드 이미지 자산이 없어 이모지로 대체한다.
+# 몬스터 도감 표시 헬퍼(WebP 스프라이트·이모지 폴백·속성 라벨/색).
 module MonstersHelper
   EMOJI = {
     "pup" => "🐶", "cat" => "🐱", "hedgehog" => "🦔", "parrot" => "🦜",
@@ -27,6 +27,29 @@ module MonstersHelper
   def monster_emoji(species_or_key)
     key = species_or_key.respond_to?(:key) ? species_or_key.key : species_or_key.to_s
     EMOJI[key.to_s.sub(/_\d+\z/, "")] || "🥚"
+  end
+
+  # image_key 에 해당하는 WebP가 있으면 이미지 태그, 없으면 기존 이모지를 반환한다.
+  def monster_sprite(species_or_key, img_class: "h-full w-full object-contain", **html_options)
+    key = if species_or_key.respond_to?(:image_key) && species_or_key.image_key.present?
+      species_or_key.image_key
+    elsif species_or_key.respond_to?(:key)
+      species_or_key.key
+    else
+      species_or_key.to_s
+    end
+    logical_path = "monsters/#{key}.webp"
+
+    return monster_emoji(species_or_key) unless monster_asset_exists?(logical_path)
+
+    default_alt = species_or_key.respond_to?(:name) ? species_or_key.name : ""
+    image_tag logical_path, { alt: default_alt, class: img_class, loading: "lazy" }.merge(html_options)
+  end
+
+  def monster_asset_exists?(logical_path)
+    Rails.application.assets.load_path.find(logical_path).present?
+  rescue StandardError
+    false
   end
 
   def element_label(element)

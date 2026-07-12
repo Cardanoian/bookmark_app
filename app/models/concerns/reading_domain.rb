@@ -164,6 +164,17 @@ module ReadingDomain
     end
   end
 
+  # 온디맨드 **게임 플레이** 전용 밴드 판별. band_for 와 달리 학년 미상(nil/0)을 기본 최고
+  # 학년군(:g56)이 아니라 **최저 학년군(:g12)** 으로 고정한다. 학급/학년이 없는 학생에게
+  # 5~6학년 콘텐츠를 자동 매칭하면 ① 눈높이에 안 맞는 어려운 콘텐츠가 노출되고, ② 밴드 경계
+  # (QuizPolicy#within_band?)가 사실상 "학년 미상 = 최고 밴드 통과"로 느슨해진다. 명시된 학년은
+  # band_for 와 동일하게 매핑한다. 리졸버(ContentProvider)와 정책(QuizPolicy)이 같은 함수를 써야
+  # 생성 밴드와 인가 밴드가 일치한다. 5축 첨삭·다학년 대시보드는 기존대로 band_for(g56 폴백)를 쓴다
+  # (대상 학생은 학급이 있어 무영향).
+  def self.game_band_for(grade)
+    grade.to_i.zero? ? :g12 : band_for(grade)
+  end
+
   # 학년군별 성취기준/추천활동 접근자. 미지원 band → 기본(:g56).
   def self.achievement_standards(band = DEFAULT_BAND)
     ACHIEVEMENT_STANDARDS_BY_BAND.fetch(band, ACHIEVEMENT_STANDARDS_BY_BAND.fetch(DEFAULT_BAND))

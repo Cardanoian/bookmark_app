@@ -7,7 +7,7 @@
     <span class="absolute right-2 top-2 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-white">진화 가능!</span>
   <% end %>
   <div class="text-4xl <%= "opacity-20 grayscale" unless owned %>" aria-hidden="true">
-    <%= owned ? monster_emoji(species) : "❔" %>
+    <%= owned ? monster_sprite(species, img_class: "h-12 w-12 object-contain") : "❔" %>
   </div>
   <p class="mt-2 text-xs text-gray-400">No.<%= format("%02d", line.dex_no) %></p>
   <p class="text-sm font-semibold text-gray-900"><%= owned ? species.name : "???" %></p>

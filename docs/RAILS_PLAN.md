@@ -417,7 +417,7 @@ Active Storage 첨부: `has_one_attached :photo`, `:drawing`, `:audio`.
 | rarity | integer(enum) | | common/rare/epic (해금 순서·연출) |
 | evolves_from_id | integer FK→monster_species | nullable, index | 이전 단계 폼 |
 | evolve_condition | json | | 다음 단계 진화 조건(§13.5) 예: `{points:250, distinct_genres:3, a_grades:2, classics:1, streak_days:5, badge:"reviser"}` |
-| image_key | string | | AI 생성 이미지 에셋 키(투명 PNG) |
+| image_key | string | | AI 생성 애니메이션 WebP 에셋 키 |
 | description | text | | 도감 설명 |
 
 - ~20~30 진화 라인 × 3단계 = 60~90 폼. **초기엔 스타터 포함 12라인만 시드** 후 확장(에셋 물량 관리).
@@ -749,7 +749,7 @@ A/B/C 판정(등급 규칙도 학년군 눈높이로 분기, 포인트 A30/B20/C
 
 **컨셉**: 아바타 대신 학생마다 반려 몬스터를 **수집(도감)** 하고 **진화**시킨다. 성장의 시각 표현이자 지속 독서 동기 장치. 성장 6단계 식물 스프라이트를 대체.
 
-**도감 규모**: 진화 라인 20~30개(초기 12개 시드 → 확장). 각 라인 3단계(기본형→성장형→완전형). 이미지는 외부 이미지 생성 AI로 제작하되 **완전 오리지널**(포켓몬 등 기존 IP 모방 금지 — 법적·대회 리스크). 일관 아트 가이드: 투명 PNG, **5등신 비례**(최근 캐릭터 재설계와 정합), 통일된 라인·컬러 톤.
+**도감 규모**: 진화 라인 20~30개(초기 12개 시드 → 확장). 각 라인 3단계(기본형→성장형→완전형). 이미지는 외부 이미지 생성 AI로 제작하되 **완전 오리지널**(포켓몬 등 기존 IP 모방 금지 — 법적·대회 리스크). 일관 아트 가이드: 애니메이션 WebP, **5등신 비례**(최근 캐릭터 재설계와 정합), 통일된 라인·컬러 톤.
 
 **속성(element)**: story/knowledge/emotion/adventure/nature/imagination — 도서 카테고리·장르와 느슨히 연동(예: 상상=판타지, 지식=고전/비문학).
 

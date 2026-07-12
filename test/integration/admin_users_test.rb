@@ -132,6 +132,35 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_equal 120, @student.reload.points
   end
 
+  # 음수 target 은 저장 없이 정확히 거부한다 — 예전엔 spend_points! 가 조용히 실패해도
+  # "수정했어요"라고 거짓 안내했다(#9 후속: 보안 무해, UX 정합).
+  test "a negative points target is rejected with no change instead of a false success" do
+    @student.update_columns(points: 100)
+    login_as @superadmin
+    patch admin_user_path(@student), params: { user: { name: @student.name, points: -50 } }
+    assert_response :unprocessable_entity
+    assert_equal 100, @student.reload.points, "음수 target 은 반영되지 않는다"
+    assert_match "0 이상의 정수", response.body, "거짓 성공 대신 정확한 안내가 화면에 보인다"
+  end
+
+  # 비정수 target(소수·문자)도 거부한다.
+  test "a non-integer points target is rejected" do
+    @student.update_columns(points: 100)
+    login_as @superadmin
+    patch admin_user_path(@student), params: { user: { name: @student.name, points: "12.5" } }
+    assert_response :unprocessable_entity
+    assert_equal 100, @student.reload.points
+  end
+
+  # 0 으로의 하향(정상 경계)은 그대로 반영된다(잔액 이내 차감 성공).
+  test "lowering points to zero succeeds and lands on the target" do
+    @student.update_columns(points: 80)
+    login_as @superadmin
+    patch admin_user_path(@student), params: { user: { name: @student.name, points: 0 } }
+    assert_redirected_to admin_user_path(@student)
+    assert_equal 0, @student.reload.points
+  end
+
   test "a user suspended mid-session is logged out on the next request" do
     login_as @student
     get root_path

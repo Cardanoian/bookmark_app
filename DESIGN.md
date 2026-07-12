@@ -622,7 +622,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 - 제품 화면 목업은 `{rounded.xl}`(16px) + 옅은 드롭 섀도로 렌더
 - 우수작·성장 스토리 카드는 `{rounded.xxxl}`(28px) 풀블리드
 - 책 카드 썸네일은 `{rounded.xl}`(16px)
-- 몬스터 이미지는 투명 PNG를 몬스터 카드(28px) 중앙에 배치, 잠금 상태는 점선 보더
+- 몬스터 이미지는 애니메이션 WebP를 몬스터 카드(28px) 중앙에 배치, 잠금 상태는 점선 보더
 
 ## Components
 
@@ -782,7 +782,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 ### Image Behavior
 - 제품 목업은 종횡비 유지, 폴드 아래 lazy-load
 - 스토리 사진은 16:9 풀블리드
-- 몬스터 투명 PNG는 카드 중앙, 잠금 상태 실루엣
+- 몬스터 애니메이션 WebP는 카드 중앙, 잠금 상태 실루엣
 
 ## Iteration Guide
 

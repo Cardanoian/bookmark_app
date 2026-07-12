@@ -16,7 +16,7 @@
 - `mission_policy.rb` — 미션. 열람은 로그인 사용자, 참여(join)는 학생.
 - `monster_policy.rb` — 몬스터. 도감 열람은 로그인 사용자, 진화·대표지정·먹이주기는 보유자 본인만(owns_record?).
 - `purchase_policy.rb` — 구매. 학생 본인만 생성.
-- `quiz_policy.rb` — 퀴즈. published 퀴즈 열람·플레이 + 생성·수정은 교사·총괄만(manage?). **경계 클램프(Phase 3 §3.3, N2/#2/#3)**: 학생 `show?` 는 origin 별로 플레이 경계를 강제한다 — **system**(온디맨드 캐시)은 `record.band == band_for(학급 학년)` 서버계산 일치(다른 band 행을 id 로 치면 403), **teacher** 는 학급-스코프 퀴즈면 소속 학급만(전역은 전체). raw quiz_id 경로에도 적용되어 **선존 크로스-학급 published 퀴즈 id 플레이 구멍**을 닫는다. 교사·총괄은 클램프 면제(미리보기/관리). Scope 도 동일.
+- `quiz_policy.rb` — 퀴즈. published 퀴즈 열람·플레이 + 생성·수정은 교사·총괄만(manage?). **경계 클램프(Phase 3 §3.3, N2/#2/#3)**: 학생 `show?` 는 origin 별로 플레이 경계를 강제한다 — **system**(온디맨드 캐시)은 `record.band == game_band_for(학급 학년)` 서버계산 일치(다른 band 행을 id 로 치면 403; **학년 미상 학생은 최저 밴드 g12** 로 고정 — 리졸버와 동일 함수라 생성=인가 밴드 일치), **teacher** 는 학급-스코프 퀴즈면 소속 학급만(전역은 전체). raw quiz_id 경로에도 적용되어 **선존 크로스-학급 published 퀴즈 id 플레이 구멍**을 닫는다. 교사·총괄은 클램프 면제(미리보기/관리). Scope 도 동일.
 - `quiz_attempt_policy.rb` — 퀴즈 플레이 기록. `create?`(제출)·`update?`(whoami 힌트 공개)는 **대상 퀴즈의 플레이 경계를 QuizPolicy#show? 로 위임**해 한 곳에서 강제(band/학급 클램프 재사용). `update?` 는 본인 attempt 이면서 플레이 가능해야 함. 열람은 본인 기록만.
 - `ranking_policy.rb` — 랭킹. 로그인 사용자면 열람.
 - `sticker_policy.rb` — 문장 스티커. 학생만 생성하되 대상 report의 게시물이 보이는 경우만.

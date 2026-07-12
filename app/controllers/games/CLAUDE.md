@@ -14,7 +14,7 @@
 - `quiz_controller.rb` — mcq 실동작. `show`=교사 published mcq 퀴즈(id), `play`=온디맨드(book_id). 4지선다 UI.
 - `classic_controller.rb` — 고전 읽기 여행(mcq 온디맨드). `play` 만(book_id). quiz 와 콘텐츠축(mcq) 공유, 고전 카탈로그 한정이라는 별도 교육 가치로 유지.
 - `vocab_controller.rb` — 어휘 낚시(matching 온디맨드). `play` 만. 짝짓기 UI.
-- `whoami_controller.rb` — **나는 누구게?(hint_reveal 온디맨드, §3.2b)**. `play`(book_id)=리졸브+**attempt 선생성**(reveal_hint 가 :attempt 요구)→attempt-키 `show` 로 리다이렉트. `show`(=attempt id)=이미 공개한 힌트만 서버 상태에서 렌더(정답·잔여수 무유출). **`reveal_hint`(POST /whoami/:attempt/reveal_hint)**=공개 요청마다 **서버 카운터(attempt.hint_reveals JSON, DB) 1 증가**(세션쿠키 아님 → stale-cookie replay 차단)→다시 show. 채점은 이 서버 카운트로만(C1).
+- `whoami_controller.rb` — **나는 누구게?(hint_reveal 온디맨드, §3.2b)**. `play`(book_id)=리졸브+**attempt 선생성/재사용**(reveal_hint 가 :attempt 요구; 같은 퀴즈의 **미확정[played_at nil] attempt 는 재사용**해 0점 빈 attempt 누적·힌트 리셋 우회 차단)→attempt-키 `show` 로 리다이렉트. `show`(=attempt id)=이미 공개한 힌트만 서버 상태에서 렌더(정답·잔여수 무유출). **`reveal_hint`(POST /whoami/:attempt/reveal_hint)**=공개 요청마다 **서버 카운터(attempt.hint_reveals JSON, DB) 1 증가**(세션쿠키 아님 → stale-cookie replay 차단)→다시 show. 채점은 이 서버 카운트로만(C1).
 - `book_controller.rb` — **책 소개 대결(소셜 도메인, 퀴즈 파이프라인 밖)**. `play`(book_id)=도서 로드 + 같은 학급 소개 목록(득표순) + 작성 폼 + **정적 작성 가이드(`WRITING_TIPS` 상수, Gemini 호출 0)**. `create`=본인·학급으로 소개 작성(`authorize @intro`). `vote`/`unvote`=또래 소개 1인 1표(cheer 패턴, RecordNotUnique rescue). 경계 격리는 `BookIntroPolicy`(크로스-학급 차단). **Quiz/GenerateGameContentJob 를 만들지 않는다**(assert).
 - `regenerate_controller.rb` — **다시 뽑기(`create`, §3.4)**. `ContentProvider.regenerate` 로 **새 content_version** 재생성(rate limit·예산 하 워밍 재적재) 후 해당 표면(quiz·classic·vocab·whoami) play 로 복귀. 포인트는 콘텐츠축 상한이 이미 봉인(재생성 파밍 불가). 무가챠 라우트 가드 준수차 경로명은 `games_regenerate_path`.
 

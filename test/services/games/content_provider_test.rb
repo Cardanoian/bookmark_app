@@ -60,6 +60,14 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     assert_equal [ "offline" ], quiz.quiz_questions.pluck(:source).uniq, "미스 즉시 세트는 결정적 오프라인"
   end
 
+  # 학급/학년 미상 학생: 게임 밴드는 최저(g12)로 결정된다(5~6학년 기본 매칭 금지, TODO 후속 정밀화).
+  # 리졸버(생성 밴드)와 QuizPolicy(인가 밴드)가 game_band_for 를 공유하므로 g12 로 일치해 플레이 가능.
+  test "a student without a classroom resolves to the lowest band (g12), not g56" do
+    orphan = User.create!(school: @school, name: "무학급학생", role: :student, password: "password")
+    quiz = provider.resolve(book: @book, surface: "quiz", user: orphan)
+    assert_equal "g12", quiz.band, "학급/학년 미상 학생은 최저 밴드(g12)로 결정"
+  end
+
   # 아동 무대기: resolve 반환 시점엔 아직 어떤 generate 도 일어나지 않는다.
   test "the child never waits — resolve returns before any Gemini generation happens" do
     counting = CountingGeminiClient.new

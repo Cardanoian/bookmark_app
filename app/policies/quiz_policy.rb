@@ -46,8 +46,10 @@ class QuizPolicy < ApplicationPolicy
 
   # 온디맨드 system 퀴즈는 학생 학급 학년으로 서버계산한 band 와 일치해야 한다(사용자 입력 불신).
   # band 를 params 로 조작해도 리졸버가 서버계산하므로, 여기서 다른 band 행을 id 로 직접 치면 403.
+  # game_band_for(리졸버와 동일): 학년 미상 학생은 최저 밴드(g12)로 고정 — 학년 미상이 최고 밴드(g56)
+  # 콘텐츠를 기본 통과하던 느슨함을 제거하고, 생성 밴드와 인가 밴드를 한 함수로 일치시킨다.
   def within_band?
-    record.band == ReadingDomain.band_for(user.classroom&.grade).to_s
+    record.band == ReadingDomain.game_band_for(user.classroom&.grade).to_s
   end
 
   # 교사 퀴즈: 전역(global)은 전체 공개, 학급-스코프(classroom)는 소속 학급 학생만.

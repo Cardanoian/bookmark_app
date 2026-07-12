@@ -66,6 +66,15 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
     assert_equal "hedgehog_1", species.image_key
   end
 
+  test "every image_key has an installed WebP asset" do
+    expected = MonsterSpecies.order(:image_key).pluck(:image_key).map { |key| "#{key}.webp" }
+    actual = Rails.root.glob("app/assets/images/monsters/*.webp").map(&:basename).map(&:to_s).sort
+
+    assert_equal 72, expected.size
+    assert_equal expected, actual,
+                 "installed WebP assets must match all seeded image_keys without missing or stale files"
+  end
+
   test "seeding is idempotent" do
     seed_monster_species!
     assert_equal 72, MonsterSpecies.count
