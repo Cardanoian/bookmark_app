@@ -40,8 +40,10 @@
 
 ### 🟡 콘텐츠·데이터 완성
 
-- [ ] **학교 전량 시드** — 현재 축소 개발 시드(17개 시도 대표교). 실서비스는 전국 6,331교 필요 → 원본 데이터 확보 후 `lib/tasks/schools.rake` 전량 적재.
-- [ ] **도서 카탈로그 확장** — 현재 추천 24 + 고전 10 = 34권. 학년·교과 연계 도서 확대 검토.
+> **엔지니어링 완료(2026-07-13)** — 학교 전량 적재 파이프라인·다밴드 도서 카탈로그·6,300교 다운스트림 스케일 수정을 구현했다. 남은 것은 **실데이터 확보**뿐이며, 데이터가 없어도 축소 시드/no-op 로 앱은 정상 동작한다.
+
+- [ ] **학교 전량 시드 — 실데이터 적재 대기** — 파이프라인 구현 완료(`schools:fetch`→`db/seeds/schools.csv`→`schools:seed_full`(`upsert_all`), `Schools::GuParser`·`Schools::NeisFetcher`, `address` 컬럼, dev/test 축소 17교·prod no-op 가드). 다운스트림 스케일도 반영(가입/로그인 하이브리드 피커[시도→시군구+이름검색]·스코프 학급 엔드포인트·전국 랭킹 Top100+본인학교 행). **남은 일: NEIS OpenAPI authKey 발급(무료) → `bin/rails schools:fetch` → CSV 커밋 → prod 에서 `schools:seed_full` 1회.**
+- [ ] **도서 카탈로그 확장 — 목록 추가 확장 여지** — 34권 단일밴드 → **97권 3밴드(초등 1~2/3~4/5~6) 큐레이션**으로 확장(`Book::GRADE_BANDS` 표준화, `books:seed` 재작성) + 메타 자동보강 `books:enrich`(네이버, `Books::CatalogEnricher`) 추가. **남은 일: 학교도서관저널 전체 목록으로 큐레이션 배열 추가 확장(선택), 네이버 키로 `books:enrich` 실행해 표지/ISBN 채우기.**
 
 ### 🟢 기능 마무리·개선
 

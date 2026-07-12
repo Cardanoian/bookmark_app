@@ -13,9 +13,10 @@
 - [`ai/`](ai/CLAUDE.md) — Google Gemini 연동 AI 서비스(5축 첨삭·OCR·퀴즈생성·진위확인)와 규칙기반 폴백.
 - [`games/`](games/CLAUDE.md) — 독서게임 서버 권위 채점(`question_scorer` 4종)·멱등 델타 적립(`point_award` origin 분기)·플레이 기록(`quiz_play`)·**콘텐츠축 캐시-우선 리졸버(`content_provider`, Phase 2b)**.
 
-## 단일 파일 하위 폴더 (별도 CLAUDE.md 없음)
-- `books/search_service.rb` — 도서 검색. 네이버 도서 API 조회·정규화 후 `books` 캐시 upsert(`category: searched`), 무키/실패 시 로컬 `books`(title LIKE) 폴백. **무한 증가 방어(#2)**: searched 행은 `BooksController#index` 카탈로그에서 제외(1차 방어)되고 로컬 검색 폴백에서만 쓰인다. 물리 TTL 정리는 독후감 참조(`reports.book_id`) 때문에 미참조 오래된 행만 비우는 후속 작업으로 다룬다(`cache` 주석 참고).
+## 소규모 하위 폴더 (별도 CLAUDE.md 없음)
+- `books/` — 도서 검색·보강 2파일. `search_service.rb`(네이버 도서 API 조회·정규화 후 `books` 캐시 upsert(`category: searched`), 무키/실패 시 로컬 `books`(title LIKE) 폴백. **무한 증가 방어(#2)**: searched 행은 `BooksController#index` 카탈로그에서 제외(1차 방어)되고 로컬 검색 폴백에서만 쓰인다. 물리 TTL 정리는 독후감 참조(`reports.book_id`) 때문에 미참조 오래된 행만 비우는 후속 작업으로 다룬다(`cache` 주석 참고). **`#query`**[캐시 부작용 없는 순수 조회 — enrich 용으로 추가] 병행) + `catalog_enricher.rb`(큐레이션 도서(recommended·classic) 표지/ISBN/출판사를 네이버로 제자리 보강. `SearchService#query` 를 써서 별도 `:searched` 행을 만들지 않고, 보강 후 선존 동일 isbn `searched` 행은 reconcile 삭제. service·throttle DI, 무키 시 no-op).
 - `library/data4library_service.rb` — 정보나루(data4library.kr) 인기대출 OpenAPI 래퍼. 무키/실패 시 `[]` 반환(호출자는 CSV 업로드 폴백), 실패 사유는 `last_error` 로 노출.
+- `schools/` — NEIS 학교기본정보 연동 2파일. `gu_parser.rb`(NEIS 도로명주소 `ORG_RDNMA` → 시군구(gu) 추출 순수 PORO. 첫 시/군/구 토큰=기초자치단체, 도농복합시는 시 반환, 세종 등 단층제[`SINGLE_TIER_SIDO` 예외표]는 nil) + `neis_fetcher.rb`(NEIS 학교기본정보 OpenAPI `schoolInfo` 래퍼. 초등학교만 필터·페이지네이션·gu 파싱, connection DI, 무키/실패 시 `[]`). 파싱 로직을 dev 전용 rake(`schools:fetch`)에서 분리해 단위 테스트 가능.
 
 ## 패턴·규칙
 - **`available?` / graceful 폴백**: 외부 연동 서비스(`ai/*`·`books`·`library`)는 클래스 메서드 `self.available?`(내부 `configured?`/`available?`)로 **키 존재 여부만** 판단하며 네트워크를 호출하지 않는다. 키가 없거나 원격이 실패하면 규칙기반 첨삭·로컬 캐시·빈 배열 등으로 폴백한다.

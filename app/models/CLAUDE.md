@@ -6,7 +6,7 @@
 
 ### 사용자·학교
 - `user.rb` — 5개 role(student·teacher·school_admin·librarian·superadmin) enum + mode(normal·easy) enum. `has_secure_password`, school·classroom·active_monster 소속. Pointable·Leveling·Evolvable·Badgeable 4개 concern 포함(게임 루프 주체). 임시 비밀번호 생성 클래스 메서드 제공.
-- `school.rb` — 학교. classroom·user를 거느리며 neis_code 유일성 검증.
+- `school.rb` — 학교. classroom·user를 거느리며 neis_code 유일성 검증. `address`(NEIS 도로명주소 원본) 컬럼 보유.
 - `classroom.rb` — 학급. teacher(User) 담임 + 학생·독후감 소속. 학급별 루브릭 가중치(`rubric_config` JSON)를 기본값 주입·조회.
 - `current.rb` — `ActiveSupport::CurrentAttributes`. 요청 단위 user·classroom 저장, user→school 위임.
 - `application_record.rb` — 전 모델의 추상 베이스(`primary_abstract_class`).
@@ -15,7 +15,7 @@
 - `report.rb` — 독후감. RubricScorable 포함. input_mode(keyboard·wongoji·ocr)·ai_status(pending·processing·done·failed) enum, photo·drawing·audio 첨부(서버 매직바이트 재식별 검증), 5축 rubric/교사 조정 rubric 접근자, 고쳐쓰기(revision_of 자기참조)·diff 제공.
 
 ### 도서
-- `book.rb` — 도서. category(recommended·classic·searched) enum, report와 연결(`has_many :reports, dependent: :nullify`). **DB FK `reports.book_id → books` 도 `on_delete: :nullify` 로 정합화**(Phase 6 #6) — 도서 삭제 시 독후감을 남기고 참조만 끊는다(raw delete 경로 포함).
+- `book.rb` — 도서. category(recommended·classic·searched) enum, report와 연결(`has_many :reports, dependent: :nullify`). **DB FK `reports.book_id → books` 도 `on_delete: :nullify` 로 정합화**(Phase 6 #6) — 도서 삭제 시 독후감을 남기고 참조만 끊는다(raw delete 경로 포함). `GRADE_BANDS` 상수(초등 1~2/3~4/5~6 표준 라벨) — 표시·필터 전용이며, 게임 밴드(g12·g34·g56)는 학생 학년에서 파생되므로 이 상수와 무관.
 
 ### 반려몬스터
 - `monster_species.rb` — 도감 종 카탈로그(시드). element·rarity enum, 진화 라인(evolves_from 자기참조)×stage, `evolve_condition` JSON 규칙(허용 키 화이트리스트·JSON 검증). 도감 분모는 설계 라인 24 고정. `has_many :next_forms, dependent: :nullify` + **DB 자기참조 FK `evolves_from_id` 도 `on_delete: :nullify`**(Phase 6 #8) — 이전 폼 삭제 시 다음 폼의 참조만 끊는다.

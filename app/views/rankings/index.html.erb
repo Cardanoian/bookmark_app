@@ -35,11 +35,17 @@
     <% if @ranking.any? %>
       <div class="space-y-2">
         <% @ranking.each_with_index do |entry, index| %>
-          <div class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+          <% rank = entry.meta[:rank] || index + 1 %>
+          <% if entry.meta[:self] && rank > index + 1 %>
+            <div class="py-1 text-center text-gray-300" aria-hidden="true">⋯</div>
+          <% end %>
+          <% row_class = entry.meta[:self] ? "border-amber-300 bg-amber-50" : "border-gray-100" %>
+          <div class="flex items-center justify-between rounded-lg border px-4 py-3 <%= row_class %>">
             <div class="flex items-center gap-3">
-              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
+              <span class="w-8 text-center text-sm font-bold text-gray-400"><%= rank %></span>
               <span class="text-sm font-medium text-gray-900">
                 <%= entry.subject.respond_to?(:label) ? "#{entry.subject.school.name} #{entry.subject.label}" : entry.subject.name %>
+                <% if entry.meta[:self] %><span class="ml-1 text-xs font-normal text-amber-600">우리 학교</span><% end %>
               </span>
             </div>
             <span class="text-sm font-bold text-amber-600"><%= entry.score %>P</span>

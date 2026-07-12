@@ -45,6 +45,16 @@ module Books
       end
     end
 
+    # 캐시 부작용 없는 조회(books:enrich 용). `call` 은 성공 시 결과를 `category: :searched`
+    # 로 upsert 캐시하는데, 큐레이션 도서 메타보강은 큐레이션 행만 갱신해야 하므로(별도 searched
+    # 행 오염 방지, 계획 §3.2) 캐시하지 않는 이 경로를 쓴다. 무키/실패 시 [](로컬 폴백도 없음).
+    def query(term)
+      term = term.to_s.strip
+      return [] if term.blank?
+
+      fetch_from_naver(term) || []
+    end
+
     private
 
     def naver_configured?

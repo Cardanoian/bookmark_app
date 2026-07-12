@@ -9,6 +9,18 @@ class SessionsTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "login form renders the hybrid school picker with scoped classroom dropdown" do
+    School.create!(name: "로그인목록에없어야할초", region: "제주특별자치도교육청", gu: "제주시")
+
+    get new_session_path
+
+    assert_response :success
+    assert_includes response.body, 'data-controller="school-picker"'
+    assert_includes response.body, 'data-school-picker-target="classroom"', "로그인 폼은 스코프 학급 드롭다운을 포함"
+    assert_includes response.body, "제주특별자치도", "시도(교육청) 옵션은 서버 렌더"
+    assert_not_includes response.body, "로그인목록에없어야할초", "학교는 전량 서버 렌더하지 않는다(AJAX 로드)"
+  end
+
   test "successful login redirects to root and sets the session" do
     post session_path, params: {
       school_id: @school.id, classroom_id: @classroom.id,

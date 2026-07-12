@@ -18,11 +18,12 @@
 - `ocr/` — OCR 결과 반영 `create.turbo_stream.erb`(turbo_stream 전용)
 - `purchases/` — 구매 처리 `create.turbo_stream.erb`(turbo_stream 전용)
 - `pwa/` — PWA 자산. `manifest.json.erb`·`service-worker.js`
-- `rankings/` — 랭킹 화면 + `_podium`·`_ranking_row` partial
-- `registrations/` — 회원가입 `new`
+- `rankings/` — 랭킹 화면 + `_podium`·`_ranking_row` partial. 전국(`nation`) 탭은 Top100 + 본인이 Top100 밖이면 "우리 학교" 행을 별도 표기.
+- `registrations/` — 회원가입 `new`. 학교 선택은 `schools/_picker` partial 렌더(전량 select 아님).
 - `reports/` — 독후감 CRUD + `_form`·`_rubric`·`_ocr_upload`·`_body_field`·`_report` partial
 - `school_admin/` — 학교관리자 화면. `neis`(생기부)·`stats`(통계)
-- `sessions/` — 로그인 `new`
+- `schools/` — 학교 선택 하이브리드 피커 `_picker` partial(가입/로그인 공용). 시도/시군구 캐스케이딩 + 이름검색으로 학교 셀렉트를 채우고, `with_classroom: true`(로그인 폼)면 선택 학교의 학급만 스코프 로드.
+- `sessions/` — 로그인 `new`. 학교 선택은 `schools/_picker` partial 렌더(전량 select 아님).
 - `shared/` — 앱 공통 partial. `_empty_state`·`_seasonal_banner`
 - `shops/` — 상점 상세 + `_shop_item` partial
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)

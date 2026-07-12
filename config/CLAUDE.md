@@ -4,7 +4,7 @@
 
 ## routes.rb — 라우팅 지도(가장 중요)
 
-`root`은 `dashboard#show`. 인증은 튜플 신원(`session`·`registrations`) 기반이며, 학교 검색(`schools/search`)만 별도 GET. 크게 **학생용 최상위 리소스**와 **역할별 네임스페이스**로 나뉩니다.
+`root`은 `dashboard#show`. 인증은 튜플 신원(`session`·`registrations`) 기반이며, 학교 선택 하이브리드 피커용으로 `schools/search`(이름검색) 옆에 `schools/gus`(시도→시군구 목록)·`schools/:id/classrooms`(로그인 종속 학급 스코프 조회)가 별도 GET 으로 존재. 크게 **학생용 최상위 리소스**와 **역할별 네임스페이스**로 나뉩니다.
 
 - **학생 영역(최상위)**
   - `reports` — 독후감 CRUD + `revise`(고쳐쓰기)·`share`(공유) member 액션, `ocr`(사진 손글씨 인식) singular 리소스.

@@ -58,8 +58,9 @@ class RegistrationsController < ApplicationController
     render :new, status: :unprocessable_entity
   end
 
+  # 가입 학교 피커는 하이브리드(이름검색+시도→시군구 캐스케이딩)라 전량 로드하지 않고
+  # 시도(교육청) 목록만 서버 렌더한다. 학급은 number_field(grade/class_no)라 학급 로드 불요.
   def load_form_collections
-    @schools = School.order(:name)
-    @classrooms = Classroom.order(:grade, :class_no)
+    @regions = School.form_regions
   end
 end

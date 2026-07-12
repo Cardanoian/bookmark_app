@@ -7,6 +7,17 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
     @classroom = Classroom.create!(school: @school, grade: 3, class_no: 1)
   end
 
+  test "signup form renders the hybrid school picker instead of a full school list" do
+    School.create!(name: "가입목록에없어야할초", region: "제주특별자치도교육청", gu: "제주시")
+
+    get new_registration_path
+
+    assert_response :success
+    assert_includes response.body, 'data-controller="school-picker"'
+    assert_includes response.body, "제주특별자치도", "시도(교육청) 옵션은 서버 렌더"
+    assert_not_includes response.body, "가입목록에없어야할초", "학교는 전량 서버 렌더하지 않는다(AJAX 로드)"
+  end
+
   test "teacher signup creates an unapproved teacher and does not sign in" do
     assert_difference "User.count", 1 do
       post registrations_path, params: {

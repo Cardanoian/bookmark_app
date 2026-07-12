@@ -42,15 +42,34 @@ class RankingBoard
     end.sort_by { |entry| -entry.score }
   end
 
-  # 전국 학교 집계(소속 학생 포인트 합) 순위.
-  # 학교당 SUM 1쿼리(N+1)를 한 번의 그룹 집계로 접는다(P3.1). 학생이 없는 학교도
-  # 종전처럼 합계 0 으로 포함한다. 출력(주체·순서·합계)은 종전과 동일하다.
-  def nation_ranking
+  # 전국 학교 집계(소속 학생 포인트 합) 순위. Top N(기본 100) 상한 + 학생 0명 학교 제외(계획 §2.3).
+  # 6,300교 전량 struct 생성·정렬·렌더를 막는다. 상수 쿼리 2개(그룹 SUM + 필요한 학교만 로드)로
+  # 규모에 무관하다. Top N 밖이면 뷰어 본인 학교 순위를 별도 행(meta[:self])으로 덧붙여 소형·신규
+  # 학교의 동기부여를 보존한다. 학교 미소속(school_id nil) 학생 집계는 순위에서 제외한다.
+  def nation_ranking(limit: 100)
     totals = User.where(role: :student).group(:school_id).sum(:points)
+    totals.delete(nil)
+    return [] if totals.empty?
 
-    School.all.map do |school|
-      Entry.new(subject: school, score: totals[school.id] || 0, meta: {})
-    end.sort_by { |entry| -entry.score }
+    ranked_ids = totals.sort_by { |school_id, score| [ -score, school_id ] }.map(&:first)
+
+    own_id = @user&.school_id
+    own_index = own_id ? ranked_ids.index(own_id) : nil
+
+    needed_ids = ranked_ids.first(limit)
+    needed_ids += [ own_id ] if own_index && own_index >= limit # 본인 학교가 Top N 밖이면 함께 로드
+    schools_by_id = School.where(id: needed_ids).index_by(&:id)
+
+    entries = ranked_ids.first(limit).each_with_index.filter_map do |school_id, index|
+      school = schools_by_id[school_id]
+      Entry.new(subject: school, score: totals[school_id], meta: { rank: index + 1 }) if school
+    end
+
+    if own_index && own_index >= limit && (own = schools_by_id[own_id])
+      entries << Entry.new(subject: own, score: totals[own_id], meta: { rank: own_index + 1, self: true })
+    end
+
+    entries
   end
 
   # 챌린지 참여 순위(참여 독후감 수 기준).

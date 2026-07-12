@@ -4,7 +4,11 @@ Rails.application.routes.draw do
   # 인증 (튜플 신원)
   resource  :session, only: [ :new, :create, :destroy ]
   resources :registrations, only: [ :new, :create ]
+  # 학교 선택 하이브리드 피커(가입/로그인 공개). 이름검색(search) + 시군구 캐스케이딩(gus)
+  # + 로그인 종속 학급(:id/classrooms). 리터럴 경로를 :id 보다 먼저 선언한다.
   get "schools/search", to: "schools#search", as: :schools_search
+  get "schools/gus", to: "schools#gus", as: :schools_gus
+  get "schools/:id/classrooms", to: "schools#classrooms", as: :school_classrooms
 
   # 학생 영역 — 독후감 CRUD + 3 입력 모드 + 고쳐쓰기·공유
   resources :reports do

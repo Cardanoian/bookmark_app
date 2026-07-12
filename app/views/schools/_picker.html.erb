@@ -1,0 +1,53 @@
+<%# 학교 선택 하이브리드 피커(계획 §2.4) — 가입/로그인 공용.
+    시도(region)→시군구(gu) 캐스케이딩 + 이름검색으로 학교 셀렉트(name=school_id)를 채운다.
+    gu 가 비거나 부정확해도 이름검색으로 항상 도달(graceful degrade).
+    locals: regions(시도교육청명 배열), with_classroom(로그인 폼이면 true → 스코프 학급 드롭다운). %>
+<% with_classroom = local_assigns.fetch(:with_classroom, false) %>
+<div data-controller="school-picker" class="space-y-3">
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <%= label_tag :picker_region, "시도", class: "block text-sm font-medium" %>
+      <select data-school-picker-target="region" data-action="change->school-picker#regionChanged"
+              class="mt-1 block w-full rounded border-gray-300">
+        <option value="">시도 선택</option>
+        <% regions.each do |region| %>
+          <option value="<%= region %>"><%= school_region_label(region) %></option>
+        <% end %>
+      </select>
+    </div>
+    <div>
+      <%= label_tag :picker_gu, "시군구", class: "block text-sm font-medium" %>
+      <select data-school-picker-target="gu" data-action="change->school-picker#guChanged"
+              class="mt-1 block w-full rounded border-gray-300" disabled>
+        <option value="">시군구 선택</option>
+      </select>
+    </div>
+  </div>
+
+  <div>
+    <%= label_tag :picker_query, "학교 이름으로 찾기", class: "block text-sm font-medium" %>
+    <%= text_field_tag :picker_query, nil,
+          data: { "school-picker-target": "query", action: "input->school-picker#searchByName" },
+          placeholder: "이름 일부를 입력하면 아래 목록이 채워져요", autocomplete: "off",
+          class: "mt-1 block w-full rounded border-gray-300" %>
+  </div>
+
+  <div>
+    <%= label_tag :school_id, "학교", class: "block text-sm font-medium" %>
+    <select name="school_id" id="school_id"
+            data-school-picker-target="school" data-action="change->school-picker#schoolChanged"
+            class="mt-1 block w-full rounded border-gray-300">
+      <option value="">시도·시군구를 고르거나 이름으로 검색하세요</option>
+    </select>
+  </div>
+
+  <% if with_classroom %>
+    <div>
+      <%= label_tag :classroom_id, "학급 (선택)", class: "block text-sm font-medium" %>
+      <select name="classroom_id" id="classroom_id" data-school-picker-target="classroom"
+              class="mt-1 block w-full rounded border-gray-300" disabled>
+        <option value="">학급 없음</option>
+      </select>
+    </div>
+  <% end %>
+</div>

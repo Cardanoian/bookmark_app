@@ -103,15 +103,34 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 2, ranking.first.score
   end
 
-  # P3.1 행동보존 — 학생이 없는 학교/학급도 종전처럼 합계 0(평균 0)으로 포함되어야 한다.
-  test "nation ranking includes schools with no students at score 0" do
+  # 계획 §2.3 — 6,300교 전량 렌더 방지: 학생 0명 학교는 전국 순위에서 제외한다(종전 "0점 포함" 계약 폐지).
+  test "nation ranking excludes schools with no students" do
     empty_school = School.create!(name: "무학생학교")
 
     ranking = RankingBoard.new(@s1).nation_ranking
-    entry = ranking.find { |e| e.subject == empty_school }
 
-    assert_not_nil entry, "학생이 없는 학교도 전국 순위에 포함되어야 한다"
-    assert_equal 0, entry.score
+    assert_nil ranking.find { |e| e.subject == empty_school },
+               "학생이 없는 학교는 전국 순위에서 제외되어야 한다"
+    assert_equal 2, ranking.size, "학생 있는 학교(@school, @school_b)만 집계"
+  end
+
+  # 계획 §2.3 — Top N(100) 상한 + Top100 밖이면 뷰어 본인 학교 순위를 별도 행(self)으로 덧붙인다.
+  test "nation ranking caps at 100 and appends the viewer's own school when outside the top 100" do
+    100.times do |i|
+      s = School.create!(name: "상위교#{i}")
+      c = Classroom.create!(school: s, grade: 6, class_no: 1)
+      User.create!(school: s, classroom: c, name: "상위학생#{i}", points: 5000 + i, password: "password")
+    end
+
+    ranking = RankingBoard.new(@s1).nation_ranking
+
+    assert_equal 101, ranking.size, "Top 100 + 본인 학교 1행"
+    assert ranking.first(100).none? { |e| e.subject == @school }, "본인 학교는 Top 100 밖"
+
+    own = ranking.last
+    assert_equal @school, own.subject, "마지막 행은 뷰어 본인 학교"
+    assert own.meta[:self], "본인 학교 행은 self 로 표시"
+    assert_operator own.meta[:rank], :>, 100, "본인 학교 실제 순위는 100 초과"
   end
 
   test "school ranking includes an empty classroom at score 0 and avg 0" do
