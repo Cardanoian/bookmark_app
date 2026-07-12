@@ -1,6 +1,6 @@
 # 「책갈피」 TODO
 
-> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-08
+> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-12
 > 참고 문서: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) · [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) · [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md)
 
 ## 현재 상태 (baseline)
@@ -9,6 +9,43 @@
 - **테스트 497 runs / 0 failures**, rubocop 무경고, brakeman 0. (전체 점검 Phase 0~3 하드닝 + Gemini API 실동작화 + 몬스터 도감 전량 시드 반영)
 - **외부 API 키 4종 주입 완료**(Gemini·네이버·정보나루) — 암호화 credentials. 도서검색은 네이버 단독.
 - 아래는 **아직 남은 작업**이다.
+
+---
+
+## 🎮 온디맨드 게임 AI 출제 (ralplan 계획 — R1 완료, R2·R3 남음)
+
+> 계획서: [`.omc/plans/game-ai-ondemand-plan.md`](.omc/plans/game-ai-ondemand-plan.md) (ralplan 합의 3회 반복 → APPROVED). 실행 유의사항: [`.omc/plans/game-ai-ondemand-EXECUTOR-NOTES.md`](.omc/plans/game-ai-ondemand-EXECUTOR-NOTES.md).
+> **R1(코어 온디맨드) 완료** — 브랜치 `feat/game-ai-ondemand-r1`, 커밋 `46c3c88`, **669 runs / 0 failures**, RuboCop·Brakeman 클린(미push·미병합). 아래 R2·R3 및 후속 정밀화 미완료.
+
+### ✅ R1 완료 (Phase 1·2a·2b·3·6)
+- 10종 게임 **학생 온디맨드 AI 출제**(교사 검수 게이트 없이 즉석 플레이) + 무키/실패 시 `book.summary` 파생 결정적 오프라인으로 **무중단 폴백**(하드코딩 김유신/장영실 오답 제거).
+- 콘텐츠축 캐시(비용 봉인·N1)·워밍 잡·`QuizModerator`(구조검증+금칙어)·**스코프형 kill switch/피처플래그**(무게이트 유지, 학급/학교 사고 격리)·부분 유니크 dedup(정수 술어)·`RateLimiter`.
+- 채점기 5종·**origin 분기 멱등 델타**(재롤·표면전환 파밍 0)·**hint_reveal 서버권위**(위조·attempt_id 생략 이중 차단)·**플레이/제출 band·학급 클램프**(온디맨드 + 선존 크로스-학급 퀴즈 id 플레이 구멍 봉인).
+- 7종 실동작(quiz/golden/bingo/classic/vocab=매칭/whoami=힌트/balance=참여). 앱 전반 하드닝(로그인 fail2ban·FK on_delete·페이지네이션·전교 집계 SQL화·admin 포인트 award 체인·미테스트 모델 백필).
+
+### 🔴 R2 — Group B (Phase 4, `.omc/plans` §Phase 4)
+- [ ] **밸런스 게임 완성** — 현재 참여 전용(0점) 스텁으로 플레이만 됨. 투표 집계(tally)·참여 포인트 지급·결과 표시 구현(balance_vote는 무정답 → 참여만, 파밍 불가).
+- [ ] **책 소개 대결(book)** — 사회형(AI 문항 부적합). 학생이 책 소개 작성/녹음 → 또래 투표. `board_post`/`cheer` 패턴 재사용(경계=학급/학교). AI는 소개 프롬프트 스캐폴딩 한정, **Gemini 문항 미호출**. (현재 스텁 유지)
+- [ ] **독서 마라톤(marathon)** — 진도추적(콘텐츠·생성 없음). `ReadingStats` 누적 지표(독후감·포인트·스트릭)로 진도 바·마일스톤 보상. **Gemini 호출 0**. (현재 스텁 유지)
+
+### 🔴 R3 — 실시간 배틀 PvP (Phase 5, `.omc/plans` §Phase 5)
+- [ ] **ActionCable 인프라 신설(`app/channels` 부재)** — `ApplicationCable::Connection`(커스텀 `session[:user_id]` 인증, Devise 아님) + `BattleChannel` 구독 인가(비참가자·타 학급 `match_id` 구독 거부). Solid Cable(production=DB 폴링 ~0.1s, dev=async 단일프로세스) 함의 반영.
+- [ ] **페어링·매칭** — 대기열(Solid Cache) → 동일 학급·동일 콘텐츠축 `(book, band, mcq)` 2인 매칭 → 경량 `Battle` 레코드(참가자·문항 스냅샷·상태).
+- [ ] **서버권위 상태머신** — 문항별 양측 응답 수집 → 결과 공개(정답 무유출: 상대엔 "응답함"·최종 점수만). mcq 콘텐츠 **공유**(배틀 전용 생성 금지), 채점은 **콘텐츠축 델타 재사용**(이미 푼 mcq는 추가 0 = 파밍 방지). 승패는 랭킹/자부심(파밍 포인트 아님 — 별도 비파밍 보상 여부는 Open Q).
+- [ ] **이탈·재접속** — disconnect → grace 타이머(~20s) → 미복귀 시 몰수/상대 진행, reconnect → `match_id` 재구독(인가 재통과)·서버 상태 재수화.
+
+### 🟡 후속 정밀화 (검증에서 이관된 비차단 항목 + Open Questions)
+- [ ] **표면 포인트 결합 정책 결정** — 현재 "콘텐츠축당 1회 보상"(quiz 풀면 golden/bingo/battle 추가 0, 파밍 방지). 표면별 독립 보상으로 뒤집을지 결정(뒤집으면 `quiz_attempts.surface` 저장 + 델타키에 surface 추가; 생성은 content_axis 공유 유지). 결합 유지 시 **비포인트 다양성 유인**(승률·뱃지·코스메틱) 설계.
+- [ ] **학급 없는 학생 band 처리(Phase 3 리뷰 LOW)** — `QuizPolicy#within_band?`가 학급/학년 미상 학생을 `g56`로 기본 매칭. 명시적 거부 또는 최저 band 고정 검토.
+- [ ] **whoami play 미확정 attempt 누적(Phase 3 리뷰 LOW)** — `whoami#play` 매 진입마다 0점 attempt 생성. 진행 중 attempt 재사용 또는 완만한 스로틀.
+- [ ] **로그인 XFF 스푸핑(Phase 6 리뷰 LOW)** — Thruster/Kamal 프록시 뒤 `trusted_proxies` 설정 검증(`request.remote_ip` 신뢰성).
+- [ ] **admin 포인트 음수/초과 target 피드백(Phase 6 리뷰 LOW)** — 잔액 초과 차감·음수 target 시 거짓 "수정했어요" 대신 정확한 안내(보안 무해, UX 정합).
+- [ ] **오프라인 matching/hint 품질 하한** — 무키·장기꼬리(요약 빈약) 도서의 일반 독해 폴백 품질 허용선 결정.
+- [ ] **재롤·워밍 rate limit/예산 수치 튜닝** — `REGENERATE_PER_USER`(10/h)·`WARMING_PER_USER`(20/h)·`WARMING_DAILY_BUDGET`(500/day) 실운영 재산정.
+- [ ] **무게이트 롤아웃 정책** — 파일럿 학급 선정·확대 기준, 신고 자동 숨김 임계, 교사 opt-in 사후검토 시점.
+
+### ⏭️ 릴리스 후속
+- [ ] **R1 브랜치 병합·push** — `feat/game-ai-ondemand-r1`(커밋 `46c3c88`)을 리뷰 후 main 병합, 자격 확보 시 push.
 
 ---
 
