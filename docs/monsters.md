@@ -104,7 +104,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | `b_or_better` | B등급 이상 수 | `reports.where(level: %w[A B])` |
 | `classics` | 완독한 고전 수 | `category: classic` 연동 독후감 |
 | `revisions` | 향상된 고쳐쓰기 수 | `reports.where("improvement > 0")` |
-| `streak_days` | 연속 독서일(마라톤) | 마라톤 게임/제출 스트릭 |
+| `streak_days` | 연속 독서일 | 연속 독서/제출 스트릭 |
 | `missions` | 참여 미션 수 | `mission_id` 있는 report distinct |
 | `challenges` | 완료 챌린지 수 | 챌린지 달성 기록 |
 | `quizzes` | 퀴즈/게임 플레이 수 | `quiz_attempts` + 게임 로그 |

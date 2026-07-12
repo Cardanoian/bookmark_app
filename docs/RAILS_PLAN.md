@@ -520,9 +520,9 @@ Rails.application.routes.draw do
     collection { get :search }               # Kakao/Naver 자동완성(JSON)
   end
   resources :rankings, only: [:index]        # rkTab: class/school/nation/challenge/hall
-  namespace :games do                        # 독서게임 10종
-    resources :book, :classic, :battle, :balance, :quiz,
-              :golden, :bingo, :vocab, :whoami, :marathon, only: [:show]
+  namespace :games do                        # 독서게임 5종(교육 다양성 우선 축소)
+    resources :classic, :quiz, :vocab, :whoami, only: [:show]
+    # book(책 소개 대결)은 소셜 도메인 — 자체 라우트(play/create/vote/unvote)
   end
   resources :board_posts, only: [:index, :show] do
     resources :cheers, only: [:create, :destroy]
@@ -737,10 +737,10 @@ A/B/C 판정(등급 규칙도 학년군 눈높이로 분기, 포인트 A30/B20/C
 | 6 | 책갈피 마스터 | 1000 |
 - 레벨업마다 **새 몬스터 발견(해금)** 트리거(§13.5 획득 규칙).
 
-### 13.3 뱃지 9종 / 위저드 5단계 / 게임 10종
+### 13.3 뱃지 9종 / 위저드 5단계 / 게임 5종
 - 뱃지: first, three, ten, levelA, tripleA, reviser, grower, challenger, ocr, **first_evolve(첫 진화), dex_half(도감 절반), dex_complete(도감 완성), final_form(첫 완전진화)**.
 - 위저드: 책 고르기[6국02-05] → 줄거리[6국05-03] → 인상 깊은 장면[6국05-04] → 내 생각·느낌[6국03-03] → 삶과 연결[6국05-06].
-- 게임: book, classic, battle, balance, quiz, golden, bingo, vocab, whoami, marathon.
+- 게임: quiz, classic, vocab, whoami, book.
 
 ### 13.4 프롬프트
 `OCR_PROMPT`, `RUBRIC_PROMPT`, `VERIFY_PROMPT`, `QUIZGEN_SYS` — 프로토타입에서 원문 이식 후 JSON 스키마 강제.
@@ -765,7 +765,7 @@ A/B/C 판정(등급 규칙도 학년군 눈높이로 분기, 포인트 A30/B20/C
 | 이야기(story) | 포인트 100 + 독후감 3편 | 포인트 450 + A등급 2회 |
 | 지식(knowledge) | 포인트 100 + 서로 다른 장르 2권 | 포인트 450 + 고전 1권 완독 |
 | 감성(emotion) | 포인트 100 + 감상 표현 축 우수 | 포인트 700 + A등급(삶과 연결) 3회 |
-| 모험(adventure) | 포인트 100 + 연속 독서 3일 | 포인트 700 + 마라톤 스트릭 7일 |
+| 모험(adventure) | 포인트 100 + 연속 독서 3일 | 포인트 700 + 연속 독서 스트릭 7일 |
 | 자연(nature) | 포인트 100 + 미션 1회 참여 | 포인트 450 + 고쳐쓰기 향상 1회 |
 | 상상(imagination) | 포인트 250 + 퀴즈/게임 3회 | 포인트 700 + 도감 5종 수집 |
 
@@ -874,7 +874,7 @@ env:
 - [ ] 도서 카탈로그(44+고전 시드) + `Books::SearchService` 자동완성/표지
 - [ ] 우수작 게시판(board_posts/cheers/stickers) + 토론방(topics/forum_posts)
 - [ ] 단계 학습 위저드(5단계)
-- [ ] 독서게임 10종(증분: quiz→golden→bingo→…)
+- [ ] 독서게임 5종(quiz·classic·vocab·whoami·book)
 
 ### Phase 6 — 역할 도구
 - [ ] 교사: 대시보드·5축 인사이트·CSV 내보내기·PDF(표창장/가정통신문/포트폴리오/성장리포트/성장카드 PNG)

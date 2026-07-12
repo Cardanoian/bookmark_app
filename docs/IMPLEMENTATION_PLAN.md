@@ -416,9 +416,9 @@ Phase 4           │               │
   - 작업: `resources :learn, only: [:index]` — 책 고르기→줄거리→인상장면→생각·느낌→삶과 연결(성취기준 코드 주입). 위저드 결과가 독후감 초안으로.
   - DoD: 5단계 진행·이탈 복귀, 결과가 report 작성으로 연결(시스템 테스트).
 
-- **P5.6 · 독서게임 10종(증분)** *(RAILS_PLAN §8 games, §13.3)*
-  - 작업: `namespace :games`(book/classic/battle/balance/quiz/golden/bingo/vocab/whoami/marathon). **증분 순서 권장**: quiz→golden→bingo→vocab→whoami→marathon→battle→balance→book→classic. `quizzes/quiz_questions/quiz_attempts` 연동(포인트 반영). `Ai::QuizDraftService`(교사 검수 후 출제).
-  - DoD: 각 게임 플레이→`quiz_attempts`/포인트 반영, 최소 quiz·golden·bingo 시스템 테스트 그린.
+- **P5.6 · 독서게임 5종** *(RAILS_PLAN §8 games, §13.3)*
+  - 작업: `namespace :games`(quiz/classic/vocab/whoami + book). quiz·classic=mcq, vocab=매칭, whoami=힌트 순차공개는 학생 온디맨드 출제(교사 검수 게이트 없이 즉석), book(책 소개 대결)은 소셜 도메인. `quizzes/quiz_questions/quiz_attempts` 연동(포인트 반영).
+  - DoD: 각 게임 플레이→`quiz_attempts`/포인트 반영, quiz·vocab·whoami·book 통합 테스트 그린.
 
 **Phase 5 완료 게이트**
 - [ ] 도서 검색(키 있음 실제/키 없음 폴백)·카탈로그·표지 동작

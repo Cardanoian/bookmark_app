@@ -12,28 +12,17 @@
 
 ---
 
-## 🎮 온디맨드 게임 AI 출제 (R1 완료 · **게임 5종 축소 완료** — R2 마라톤/R3 배틀은 축소로 폐기)
+## 🎮 온디맨드 게임 AI 출제 (완료 · **독서게임 5종**)
 
-> 계획서: [`.omc/plans/game-ai-ondemand-plan.md`](.omc/plans/game-ai-ondemand-plan.md) (원 10종 온디맨드) · **[`.omc/plans/game-reduce-to-5-plan.md`](.omc/plans/game-reduce-to-5-plan.md) (5종 축소, 최신 결정)**. 실행 유의사항: [`.omc/plans/game-ai-ondemand-EXECUTOR-NOTES.md`](.omc/plans/game-ai-ondemand-EXECUTOR-NOTES.md).
-> **R1(코어 온디맨드) 완료** — 브랜치 `feat/game-ai-ondemand-r1`, 커밋 `46c3c88`, RuboCop·Brakeman 클린(미push·미병합).
-> **게임 5종 축소 완료** — 브랜치 `feat/game-ai-ondemand-r2`(r1 위), 미커밋. 교육 다양성 우선 5종(quiz·classic·vocab·whoami + book)만 남기고 golden·bingo·battle·marathon·balance + `balance_vote` 콘텐츠축을 전면 제거, book(책 소개 대결)을 실구현. 후속 정밀화만 남음.
+> **R1(코어 온디맨드) + 게임 5종 축소 완료** — 브랜치 `feat/game-ai-ondemand-r2`(커밋 `2195bf0`, r1 `46c3c88` 위), RuboCop·Brakeman 클린(미push·미병합). 교육 다양성 우선으로 독서게임을 **5종(quiz·classic·vocab·whoami + book)** 으로 확정. 상세 변경 이력은 git 로그 참조.
 
-### ✅ R1 완료 (Phase 1·2a·2b·3·6) — *게임 목록·수치는 아래 5종 축소 기준으로 현행화*
-- 독서게임 **학생 온디맨드 AI 출제**(교사 검수 게이트 없이 즉석 플레이) + 무키/실패 시 `book.summary` 파생 결정적 오프라인으로 **무중단 폴백**(하드코딩 김유신/장영실 오답 제거).
-- 콘텐츠축 캐시(비용 봉인·N1)·워밍 잡·`QuizModerator`(구조검증+금칙어)·**스코프형 kill switch/피처플래그**(무게이트 유지, 학급/학교 사고 격리)·부분 유니크 dedup(정수 술어)·`RateLimiter`.
+### ✅ 완료 — 독서게임 5종 온디맨드
+- **5종**: `quiz`(독해·mcq)·`classic`(고전·mcq)·`vocab`(어휘·matching)·`whoami`(추론·hint_reveal) + **`book`(책 소개 대결, 소셜·신규 실구현)**.
+- **학생 온디맨드 AI 출제**(교사 검수 게이트 없이 즉석 플레이) + 무키/실패 시 `book.summary` 파생 결정적 오프라인으로 **무중단 폴백**(하드코딩 오답 제거).
+- 콘텐츠축 3축(mcq/matching/hint_reveal) 캐시(비용 봉인·N1)·워밍 잡·`QuizModerator`(구조검증+금칙어)·**스코프형 kill switch/피처플래그**(무게이트 유지, 학급/학교 사고 격리)·부분 유니크 dedup(정수 술어)·`RateLimiter`.
 - 채점기 4종(mcq_single·mcq_multi·matching·hint_reveal)·**origin 분기 멱등 델타**(재롤·표면전환 파밍 0)·**hint_reveal 서버권위**(위조·attempt_id 생략 이중 차단)·**플레이/제출 band·학급 클램프**(온디맨드 + 선존 크로스-학급 퀴즈 id 플레이 구멍 봉인).
-- 실동작 표면 quiz·classic=mcq / vocab=매칭 / whoami=힌트(**golden·bingo·balance 는 5종 축소로 제거**, book=소셜 신설). 앱 전반 하드닝(로그인 fail2ban·FK on_delete·페이지네이션·전교 집계 SQL화·admin 포인트 award 체인·미테스트 모델 백필).
-
-### ✅ 게임 5종 축소 (교육 다양성 우선, 2026-07-12) — 계획서 [`game-reduce-to-5-plan.md`](.omc/plans/game-reduce-to-5-plan.md)
-- **남긴 5종**: `quiz`(독해·mcq)·`classic`(고전·mcq)·`vocab`(어휘·matching)·`whoami`(추론·hint_reveal) + **`book`(책 소개 대결, 신규 실구현)**.
-- **제거한 5종**: `golden`·`bingo`(mcq UI 변형=quiz 와 학습 동일)·`battle`(R3 PvP 스텁)·`marathon`(진도 메타 스텁) 표면 + **`balance` + `balance_vote` 콘텐츠축 전면 제거**(무정답 여론형, 학습 약함). 이번 세션에 완성했던 balance(참여 포인트·`BalanceTally`·`balance/result`·테스트)도 함께 되돌림. `StubController`·placeholder 뷰도 고아가 되어 삭제.
-- **콘텐츠축 3축(mcq/matching/hint_reveal)**: `balance_vote` 생성·채점·검증·프롬프트 기계 전량 제거. **enum A안(완전 제거)** — `quiz.content_axis`(3값)·`quiz_question.question_type`(4값)에서 balance_vote 삭제(프로덕션 데이터 없음, 정수 컬럼 그대로라 마이그레이션 불요).
-- **book(책 소개 대결)**: `board_post`/`cheer` 패턴 재사용. 마이그레이션 2개(`book_intros`/`book_intro_votes`, **소개당 1인 1표** unique) + `BookIntro`/`BookIntroVote` 모델(counter_cache) + `BookIntroPolicy`(경계=학급, 크로스-학급 차단, 자기 소개 투표 불가) + `Games::BookController`(play/create/vote/unvote) + play 뷰(정적 작성 가이드) + 통합 테스트 8. **텍스트만·Gemini/Quiz 미생성(assert)**.
-- **검증**: 전체 그린(665 runs / 0 failures / 0 errors), RuboCop·Brakeman 클린. 마트료시카 CLAUDE.md 동기화(games 컨트롤러·모델·정책·서비스·ai·뷰·db·test·config) + README·TODO.
-
-### ⏸️ 폐기 (5종 축소로 제외)
-- ~~R2 독서 마라톤(marathon)~~ — 진도 메타(게임 아님)라 축소에서 제외(스텁 삭제).
-- ~~R3 실시간 배틀 PvP(battle)~~ — 경쟁형 mcq(ActionCable 신설 필요)라 축소에서 제외(스텁 삭제). 향후 필요 시 별도 재기획.
+- **book**: `board_post`/`cheer` 패턴 재사용 — `book_intros`/`book_intro_votes`(**소개당 1인 1표** unique·counter_cache) + `BookIntro`/`BookIntroVote` + `BookIntroPolicy`(경계=학급, 크로스-학급·자기 소개 투표 차단) + `Games::BookController`(play/create/vote/unvote) + play 뷰(정적 작성 가이드) + 통합 테스트. **텍스트만·Gemini/Quiz 미생성(assert)**.
+- 앱 전반 하드닝(로그인 fail2ban·FK on_delete·페이지네이션·전교 집계 SQL화·admin 포인트 award 체인·미테스트 모델 백필). 마트료시카 CLAUDE.md 동기화 + README·TODO. **전체 그린**(RuboCop·Brakeman 클린).
 
 ### 🟡 후속 정밀화 (검증에서 이관된 비차단 항목 + Open Questions)
 - [ ] **표면 포인트 결합 정책 결정** — 현재 "콘텐츠축당 1회 보상"(quiz 풀면 같은 mcq 축인 classic 추가 0, 파밍 방지). 표면별 독립 보상으로 뒤집을지 결정(뒤집으면 `quiz_attempts.surface` 저장 + 델타키에 surface 추가; 생성은 content_axis 공유 유지). 결합 유지 시 **비포인트 다양성 유인**(뱃지·코스메틱) 설계. *(mcq 표면이 quiz·classic 둘로 줄어 결합 체감은 완화됨.)*
@@ -46,7 +35,7 @@
 - [ ] **무게이트 롤아웃 정책** — 파일럿 학급 선정·확대 기준, 신고 자동 숨김 임계, 교사 opt-in 사후검토 시점.
 
 ### ⏭️ 릴리스 후속
-- [ ] **R1 브랜치 병합·push** — `feat/game-ai-ondemand-r1`(커밋 `46c3c88`)을 리뷰 후 main 병합, 자격 확보 시 push.
+- [ ] **게임 브랜치 병합·push** — `feat/game-ai-ondemand-r2`(커밋 `2195bf0`, r1 `46c3c88` 포함)를 리뷰 후 main 병합, 자격 확보 시 push.
 
 ---
 
