@@ -101,6 +101,12 @@ module Books
     end
 
     # 원격 결과를 books 에 isbn upsert 캐시(category: :searched). 빈 isbn 은 건너뛴다.
+    #
+    # 무한 증가 방어(#2): searched 행은 카탈로그 index 에서 제외되어(BooksController)
+    # 목록 UX 를 오염시키지 않는다. 테이블 자체의 TTL/정리는, searched 도서가 학생
+    # 독후감(reports.book_id, on_delete: nullify)에 참조될 수 있어 무조건 삭제하면
+    # 참조가 끊기므로, 미참조 오래된 행만 주기적으로 비우는 별도 정리 태스크로 다룬다
+    # (카탈로그 제외가 1차 방어, 물리 정리는 후속). isbn upsert 자체가 중복 행을 막는다.
     def cache(results)
       results.each do |attrs|
         isbn = attrs[:isbn]

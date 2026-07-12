@@ -12,4 +12,13 @@ class Admin::BaseController < ApplicationController
   def require_superadmin!
     raise Pundit::NotAuthorizedError unless Current.user&.superadmin?
   end
+
+  # 관리자 목록 공통 페이지네이션(#misc: admin 무페이지네이션). raw params[:page] 를
+  # 잘라 [page, has_next?, records] 를 반환한다(전 카탈로그를 통짜 로드하지 않는다).
+  # per_page 기본은 각 컨트롤러가 정의한 PER_PAGE.
+  def paginate(scope, per_page: self.class::PER_PAGE)
+    page = [ params[:page].to_i, 1 ].max
+    records = scope.limit(per_page + 1).offset((page - 1) * per_page).to_a
+    [ page, records.size > per_page, records.first(per_page) ]
+  end
 end

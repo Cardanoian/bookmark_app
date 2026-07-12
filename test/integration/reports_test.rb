@@ -64,6 +64,38 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_report_path(revision)
   end
 
+  # #misc: 고쳐쓰기 초기 상태는 원본과 본문이 동일하므로 재첨삭 AI 를 호출하지 않는다(낭비 방지).
+  # 대신 원본 첨삭 결과를 이어받아 done 으로 시작한다.
+  test "revise does not re-review an identical body and carries the parent's review forward" do
+    original = Report.create!(
+      user: @student, classroom: @classroom, book_title: "원본", body: "같은 본문",
+      avg: 4.2, level: "A", ai_status: :done,
+      rubric: { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 4, "spelling" => 4 }
+    )
+    login_as @student
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      post revise_report_path(original)
+    end
+
+    revision = @student.reports.where.not(id: original.id).order(:created_at).last
+    assert revision.done?, "동일 본문은 재첨삭을 건너뛰고 부모 결과를 이어받아 done 으로 시작"
+    assert_equal original.rubric, revision.rubric
+    assert_equal original.avg, revision.prev_avg
+  end
+
+  # 학생이 본문을 실제로 고쳐 저장하면 그때 재첨삭이 예약된다(resubmit? 가드).
+  test "editing a revision body re-enqueues review" do
+    original = Report.create!(user: @student, classroom: @classroom, book_title: "원본", body: "원래 본문", avg: 3.0, ai_status: :done)
+    login_as @student
+    post revise_report_path(original)
+    revision = @student.reports.where.not(id: original.id).order(:created_at).last
+
+    assert_enqueued_with job: AiReviewJob do
+      patch report_path(revision), params: { report: { body: "완전히 새로 고쳐 쓴 본문이에요." } }
+    end
+  end
+
   test "completing a review appends a row to the classroom review queue" do
     login_as @student
 

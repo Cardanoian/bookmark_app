@@ -51,7 +51,10 @@ class ReportsController < ApplicationController
     end
   end
 
-  # 고쳐쓰기: 원본을 잇는 새 독후감을 만들고 재첨삭을 예약한다(P3.10).
+  # 고쳐쓰기: 원본을 잇는 새 독후감을 만든다(P3.10).
+  # 본문이 원본과 동일한 초기 상태에서는 재첨삭을 예약하지 않는다(#misc: 동일 본문 AI 재호출 낭비).
+  # 대신 원본의 첨삭 결과를 이어받아 done 으로 시작하고, 학생이 본문을 고쳐 저장하면
+  # update 의 resubmit? 가드(본문 변경 시에만)가 실제 재첨삭을 예약한다.
   def revise
     authorize @report, :revise?
 
@@ -62,11 +65,14 @@ class ReportsController < ApplicationController
       body: @report.body,
       input_mode: @report.input_mode,
       revision_of: @report,
-      prev_avg: @report.avg
+      prev_avg: @report.avg,
+      rubric: @report.rubric,
+      avg: @report.avg,
+      level: @report.level,
+      ai_status: :done
     )
 
     if revision.save
-      submit_for_review(revision)
       redirect_to edit_report_path(revision), notice: "고쳐쓰기를 시작해요. 더 좋게 다듬어 볼까요?"
     else
       redirect_to @report, alert: revision.errors.full_messages.to_sentence

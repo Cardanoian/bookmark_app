@@ -70,4 +70,28 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
     seed_monster_species!
     assert_equal 72, MonsterSpecies.count
   end
+
+  # #misc: 스타터 정합성. YAML 의 starter:true 라인 stage1 키 집합이 코드의
+  # MonsterAcquisition::STARTERS 와 정확히 일치해야 한다(과거 4 vs 3 불일치 봉인).
+  test "STARTERS matches the seed YAML starter lines (design intent = 3)" do
+    yaml = YAML.load_file(Rails.root.join("db/seeds/monsters.yml"))
+    starter_stage1_keys = yaml.fetch("monster_lines")
+                              .select { |line| line["starter"] == true }
+                              .map { |line| line["forms"].find { |f| f["stage"] == 1 }["key"] }
+
+    assert_equal MonsterAcquisition::STARTERS.sort, starter_stage1_keys.sort,
+                 "YAML starter:true 라인과 STARTERS 상수가 일치해야 한다"
+    assert_equal 3, MonsterAcquisition::STARTERS.size, "스타터는 설계상 3종(pup_1/cat_1/hedgehog_1)"
+  end
+
+  # 각 스타터는 실제로 존재하고 서로 다른 속성이어야 한다(선택지 다양성).
+  test "every STARTER key seeds a distinct-element stage 1 species" do
+    elements = MonsterAcquisition::STARTERS.map do |key|
+      species = MonsterSpecies.find_by(key: key)
+      assert_not_nil species, "#{key} 스타터 종이 시드돼야 한다"
+      assert_equal 1, species.stage
+      species.element
+    end
+    assert_equal elements.size, elements.uniq.size, "스타터는 서로 다른 속성이어야 한다"
+  end
 end

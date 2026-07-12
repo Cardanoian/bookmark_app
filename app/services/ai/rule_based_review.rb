@@ -6,8 +6,9 @@ module Ai
     LIFE_WORDS = %w[나의 우리 삶 경험 나는 내가 저는 스스로 다짐 반성 실천 우리의 나에게].freeze
 
     # body 로 5축 점수를 산출하고 RubricScorable 로 등급·포인트를 결정한다.
+    # band: 성장 제안의 성취기준 코드를 학년군 눈높이로 맞춘다(기본 :g56).
     # 반환: { level:, rubric:, praise:, fix:, grow:, pts: } (LLM 경로와 동형).
-    def call(body:, book_title: nil)
+    def call(body:, book_title: nil, band: ReadingDomain::DEFAULT_BAND)
       text = body.to_s
       rubric = {
         content: content_score(text),
@@ -23,7 +24,7 @@ module Ai
         rubric: rubric,
         praise: praise_for(rubric),
         fix: fix_for(rubric),
-        grow: grow_for(rubric),
+        grow: grow_for(rubric, band),
         pts: result[:points]
       }
     end
@@ -90,12 +91,13 @@ module Ai
       end
     end
 
-    def grow_for(rubric)
+    def grow_for(rubric, band)
+      standards = ReadingDomain.achievement_standards(band)
       weakest = rubric.min_by(2) { |_axis, score| score }
       weakest.map do |axis, _score|
         {
           text: "#{ReadingDomain::AXIS_LABELS[axis]}을(를) 키우면 글이 한층 좋아져요.",
-          standard_code: ReadingDomain::ACHIEVEMENT_STANDARDS[axis]
+          standard_code: standards[axis]
         }
       end
     end

@@ -106,6 +106,32 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
   end
 
+  # #9: 관리자 포인트 조정은 raw :points 대입이 아니라 award_points 델타를 경유한다
+  # (뱃지·진화·랭킹 후크 연쇄). 랭킹 방송이 발생하면 award_points 를 탄 것.
+  test "admin points grant routes through award_points so the ranking hook fires" do
+    login_as @superadmin
+    assert_turbo_stream_broadcasts([ @classroom, :ranking ]) do
+      patch admin_user_path(@student), params: { user: { name: @student.name, points: 500 } }
+    end
+    assert_equal 500, @student.reload.points
+  end
+
+  # 목표값과의 차액(델타)만 반영한다(멱등 재적용 방지).
+  test "admin points adjustment applies only the delta to the target value" do
+    @student.update_columns(points: 100)
+    login_as @superadmin
+    patch admin_user_path(@student), params: { user: { name: @student.name, points: 250 } }
+    assert_equal 250, @student.reload.points
+  end
+
+  # 하향 조정도 목표값에 안착한다(원자 차감, raw SQL 우회).
+  test "admin can lower points to a target via atomic decrement" do
+    @student.update_columns(points: 300)
+    login_as @superadmin
+    patch admin_user_path(@student), params: { user: { name: @student.name, points: 120 } }
+    assert_equal 120, @student.reload.points
+  end
+
   test "a user suspended mid-session is logged out on the next request" do
     login_as @student
     get root_path

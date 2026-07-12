@@ -1,0 +1,9 @@
+<%# 다시 뽑기(§3.4). 온디맨드(system) 판에서만 노출. locals: quiz, game %>
+<% if quiz.origin == "system" %>
+  <div class="mt-5 flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-xs text-amber-800">🏅 포인트는 최고 기록만 반영돼요. 새 문제를 뽑아도 이미 받은 포인트는 줄지 않아요.</p>
+    <%= button_to "🎲 다시 뽑기", games_regenerate_path,
+          params: { book_id: quiz.book_id, surface: game },
+          class: "shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100" %>
+  </div>
+<% end %>

@@ -34,6 +34,13 @@ class AiReviewJob < ApplicationJob
 
   # 포인트 차액 적용. 양수는 award_points 로 적립해 뱃지·진화·랭킹 후크를 태우고,
   # 음수(재첨삭으로 등급 하락)는 잔액을 조정한 뒤 뱃지를 재계산(멱등)한다.
+  #
+  # 음수 델타에서 check_evolution! 을 재호출하지 않는 이유(#misc, 의도된 정책):
+  #   ① 진화는 단조(monotonic)다 — 몬스터는 조건 충족 시 전진(evolve!)만 하고 역진화가 없다.
+  #      포인트가 줄어도 이미 진화한 폼은 되돌아가지 않으므로 재평가할 상태 변화가 없다.
+  #   ② check_evolution! 은 부작용 없는 순수 술어(active_monster&.evolvable?)라, 음수 델타에서
+  #      호출해도 "진화 가능" 힌트 표시만 최신화될 뿐 데이터는 바뀌지 않는다 → 스킵이 안전하다.
+  #   반면 refresh_badges! 는 유지한다(최신 포인트 기준 뱃지 상태 재계산). 멱등 델타 패턴은 보존한다.
   def award_points_delta(user, delta)
     if delta.positive?
       # award_points 가 원자 증가(update_counters)+reload+후크를 담당 — 여기서 이중 적용하지 않는다.

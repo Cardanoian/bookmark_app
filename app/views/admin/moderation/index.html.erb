@@ -21,6 +21,7 @@
         </li>
       <% end %>
     </ul>
+    <%= render "admin/moderation/pager", page: @board_page, has_next: @has_next_board, param: :board_page %>
   </section>
 
   <section>
@@ -42,6 +43,7 @@
         </li>
       <% end %>
     </ul>
+    <%= render "admin/moderation/pager", page: @forum_page, has_next: @has_next_forum, param: :forum_page %>
   </section>
 
   <section>
@@ -60,5 +62,6 @@
         </li>
       <% end %>
     </ul>
+    <%= render "admin/moderation/pager", page: @topic_page, has_next: @has_next_topic, param: :topic_page %>
   </section>
 </div>

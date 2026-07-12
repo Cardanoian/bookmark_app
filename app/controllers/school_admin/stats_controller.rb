@@ -15,7 +15,8 @@ class SchoolAdmin::StatsController < SchoolAdmin::BaseController
     writer_ids = @reports.map(&:user_id).uniq & student_ids
     @participation = participation_ratio(writer_ids.size, @student_count)
 
-    @axis_averages = axis_averages(@reports)
+    # 전교 5축 평균은 Relation → SQL 집계(행 인스턴스화 없이 1쿼리, #3).
+    @axis_averages = axis_averages(Report.where(classroom_id: classroom_ids))
     @axis_labels = ReadingDomain::RUBRIC_AXES.map { |axis| ReadingDomain::AXIS_LABELS[axis] }
     @weakness = weakness_insight(@axis_averages)
 

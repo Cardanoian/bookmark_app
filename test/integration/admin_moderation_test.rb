@@ -64,6 +64,23 @@ class AdminModerationTest < ActionDispatch::IntegrationTest
     assert_no_match "숨김대상토론글", response.body
   end
 
+  # #4: 세 테이블을 통짜 로드하지 않고 각각 페이지네이션한다(무제한 로드 방지).
+  test "moderation index paginates each section instead of loading full tables" do
+    (Admin::ModerationController::PER_PAGE + 1).times do |i|
+      ForumPost.create!(topic: @topic, user: @student, text: "페이지토론글#{format('%03d', i)}")
+    end
+    login_as @superadmin
+
+    get admin_moderation_index_path
+    assert_response :success
+    # 첫 페이지에 PER_PAGE 건만 렌더되고 다음 페이지 링크가 있다.
+    assert_select "a", text: "다음 →"
+
+    get admin_moderation_index_path(forum_page: 2)
+    assert_response :success
+    assert_select "a", text: "← 이전"
+  end
+
   private
 
   def login_as(user)

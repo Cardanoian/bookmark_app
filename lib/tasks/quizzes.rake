@@ -17,6 +17,13 @@ namespace :quizzes do
     quiz.created_by = creator
     quiz.scope = :global
     quiz.published = true
+    # Phase 1 콘텐츠축 메타(#9-seed): 교사/전역 출제 퀴즈이므로 origin=teacher, 콘텐츠축=mcq,
+    # 학년군은 학급 없는 전역이라 g56 폴백, content_version=1. 시드가 Phase 1 컬럼과 함께
+    # 깨끗이 재현되도록 명시한다(멱등: find_or_initialize 로 재실행에도 값 고정).
+    quiz.origin = :teacher
+    quiz.content_axis = :mcq
+    quiz.band = ReadingDomain.band_for(quiz.classroom&.grade)
+    quiz.content_version = 1
     quiz.save!
 
     if quiz.quiz_questions.none?
@@ -25,7 +32,9 @@ namespace :quizzes do
           prompt: question[:prompt],
           choices: question[:choices],
           answer_index: question[:answer_index],
-          position: index + 1
+          position: index + 1,
+          question_type: :mcq_single,
+          source: :manual
         )
       end
     end

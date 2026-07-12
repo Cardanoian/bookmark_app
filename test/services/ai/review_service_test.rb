@@ -64,6 +64,36 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
     assert_valid_review(result)
   end
 
+  # system_instruction 을 포착해 학년군 프롬프트 선택을 검증하는 스텁.
+  class CapturingClient
+    attr_reader :system_instruction
+
+    def configured? = true
+
+    def generate(system_instruction:, **)
+      @system_instruction = system_instruction
+      { "level" => "B", "rubric" => { "content" => 3, "emotion" => 3, "life" => 3, "structure" => 3, "spelling" => 3 },
+        "praise" => [], "fix" => [], "grow" => [], "pts" => 20 }
+    end
+  end
+
+  test "selects the rubric prompt for the student's 학년군 band" do
+    @classroom.update!(grade: 3)
+    client = CapturingClient.new
+    Ai::ReviewService.new(client: client).call(@report)
+
+    assert_equal ReadingDomain.rubric_prompt(:g34), client.system_instruction
+    assert_includes client.system_instruction, "초등학교 3~4학년"
+  end
+
+  test "fallback grow codes match the student's 학년군 band" do
+    @classroom.update!(grade: 2)
+    result = Ai::ReviewService.new(client: StubClient.new(configured: false)).call(@report)
+
+    codes = ReadingDomain.achievement_standards(:g12).values
+    result[:grow].each { |entry| assert_includes codes, entry[:standard_code] }
+  end
+
   private
 
   def assert_valid_review(result)

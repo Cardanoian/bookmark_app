@@ -2,10 +2,12 @@
 class Admin::BooksController < Admin::BaseController
   before_action :set_book, only: [ :show, :edit, :update, :destroy ]
 
+  PER_PAGE = 50
+
   def index
     scope = Book.order(:title)
     scope = scope.where("title LIKE ?", "%#{Book.sanitize_sql_like(params[:q])}%") if params[:q].present?
-    @books = scope
+    @page, @has_next_page, @books = paginate(scope)
   end
 
   def show

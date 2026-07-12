@@ -1,8 +1,13 @@
 module Games
-  # 독서 빙고(실동작, P5.6). 문항을 빙고판(그리드)으로 배치해 풀고 제출한다.
+  # 독서 빙고(P5.6 → Phase 3 온디맨드). 같은 mcq 콘텐츠축을 빙고판 그리드로.
   class BingoController < BaseController
     def show
       @quiz = load_playable_quiz
+    end
+
+    def play
+      @quiz = resolve_on_demand("bingo")
+      render :show
     end
   end
 end

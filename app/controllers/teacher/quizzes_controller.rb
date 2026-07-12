@@ -72,9 +72,10 @@ class Teacher::QuizzesController < Teacher::BaseController
     Classroom.find_by(id: quiz_params[:classroom_id]) || teacher_classrooms.first
   end
 
-  # 도서 기반 초안 문항 생성(오프라인 폴백 내장). position 순으로 저장.
+  # 도서 기반 초안 문항 생성(오프라인 폴백 내장). 학급 학년으로 눈높이(band) 반영. position 순으로 저장.
   def generate_draft_questions(quiz)
-    Ai::QuizDraftService.new.call(quiz.book).each_with_index do |draft, index|
+    band = ReadingDomain.band_for(quiz.classroom&.grade)
+    Ai::QuizDraftService.new.call(quiz.book, band: band).each_with_index do |draft, index|
       quiz.quiz_questions.create!(
         prompt: draft[:prompt],
         choices: draft[:choices],

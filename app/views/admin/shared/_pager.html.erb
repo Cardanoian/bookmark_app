@@ -1,0 +1,15 @@
+<%# 관리자 목록 공통 페이지네이션(#misc). 검색·필터 파라미터를 유지한 채 page 만 갱신한다. %>
+<% if has_next || page > 1 %>
+  <nav class="mt-4 flex items-center justify-between text-sm text-indigo-600">
+    <% if page > 1 %>
+      <%= link_to "← 이전", url_for(request.query_parameters.merge(page: page - 1)) %>
+    <% else %>
+      <span></span>
+    <% end %>
+    <% if has_next %>
+      <%= link_to "다음 →", url_for(request.query_parameters.merge(page: page + 1)) %>
+    <% else %>
+      <span></span>
+    <% end %>
+  </nav>
+<% end %>

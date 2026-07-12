@@ -23,6 +23,12 @@ class Report < ApplicationRecord
   IMAGE_MAX_BYTES = 10.megabytes
   AUDIO_MAX_BYTES = 20.megabytes
 
+  # 학생 학급 학년으로 판별한 학년군 키(:g12/:g34/:g56). AI 첨삭 눈높이 분기에 사용.
+  # 학급/학년 미상이면 :g56 으로 폴백(ReadingDomain.band_for 계약).
+  def grade_band_key
+    ReadingDomain.band_for(classroom&.grade)
+  end
+
   # 첨삭 결과(JSON) 를 문자열/심볼 키 상관없이 안전하게 읽는다.
   def rubric_data
     (rubric || {}).with_indifferent_access

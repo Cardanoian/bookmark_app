@@ -1,0 +1,12 @@
+# app/jobs — 백그라운드 잡 (Solid Queue)
+
+독후감 제출 후 지연이 큰 AI 작업(5축 첨삭·손글씨 OCR)과 온디맨드 게임 콘텐츠 워밍을 비동기로 처리하는 Active Job 계층. Solid Queue 어댑터에서 `:default` 큐로 실행되며, 상태(ai_status·generation_status)를 전이시키고 완료 결과를 Turbo Stream 으로 **비차단** 방송한다. AI 호출은 `app/services/ai` 서비스에 위임한다.
+
+## 파일
+- `application_job.rb` — 모든 잡의 베이스 클래스(`ActiveJob::Base`). 현재 커스텀 없음(재시도/discard 훅은 주석 상태).
+- `ai_review_job.rb` — 비동기 5축 첨삭. `Ai::ReviewService` 로 루브릭 산출→등급·포인트·유사도(`Ai::VerifyService.max_similarity`)·향상도 저장, 멱등 델타로 포인트 적립 후 교사 검토 큐에 행 방송. 실패 시 `:failed`.
+- `ocr_job.rb` — 비동기 손글씨 OCR. `Ai::OcrService` 로 사진 blob→텍스트를 `report.body` 초안에 채우고 작성자 에디터에 방송. 키 없음(`Unavailable`)·API 실패(`ApiError`) 모두 `:failed` 로 전이해 pending 고착을 막는다.
+- `generate_game_content_job.rb` — **온디맨드 게임 콘텐츠 백그라운드 워밍(Phase 2b §2b.2)**. `ContentProvider`가 캐시 MISS 시(또는 오프라인 전용 축의 재시도, 아래 참고) 1건 적재하며, 아동은 이미 오프라인 세트로 플레이 중이라 **비차단 승격**이다. `perform(book_id, band, content_axis)`가 ① dedup 가드(같은 축에 **살아있는**[스테일 아닌] warming 행 또는 이미 **실제 AI 로 게시된**[`quiz_questions.source == :ai`] ready 행이 있으면 조기 반환; `reported: true` 행은 판정에서 제외해 신고 후 재생성이 막히지 않게 함 — **"AI 워밍됨" 판정은 content_version 크기가 아니라 실제 문항 source 로**, 신고 후 재생성된 오프라인 행이나 신고돼 숨겨진 옛 AI 행이 재워밍을 침묵 차단하지 않도록 함) ② 다음 content_version 의 **warming** system Quiz 선점 전 `STALE_WARMING_AFTER`(10분) 넘긴 스테일 warming 행을 리핑(폐기)해 하드크래시로 인한 영구 고착을 막고, 부분 유니크 인덱스로 동시 선점 1건만 성공(나머지 `RecordNotUnique`→포기 = thundering-herd 1생성) ③ `QuizDraftService#content_set` 생성 ④ **`Ai::QuizModerator` 게시 전 검증** ⑤ 통과→quiz_questions 저장(source=ai)+ready 전이(트랜잭션 커밋)+비차단 Turbo 방송("새 문제 준비됐어요", **방송 자체의 실패는 별도 rescue 로 흡수해 이미 커밋된 ready 게시를 되돌리지 않음**); 거부/실패(트랜잭션 실패 등, perform 최상위 rescue 로 전파)→게시 안 함(DB 재확인 후 **실제로 아직 warming 인 경우에만** 폐기, 오프라인 유지)+moderation 거부 카운터. 잡 인자는 직렬화되므로 스텁 클라이언트/모더레이터는 클래스 팩토리(`draft_service_factory`/`moderator_factory`, 테스트 teardown 에서 `reset_factories!`)로 주입한다.
+
+---
+> ⚠️ **유지보수 규칙**: 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 CLAUDE.md도 함께 갱신하세요. 하위 폴더 구조가 바뀌면 관련 상·하위 CLAUDE.md 링크도 확인하세요.

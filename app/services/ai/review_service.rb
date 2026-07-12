@@ -11,23 +11,25 @@ module Ai
     end
 
     # 반환: { level:, rubric:{5축}, praise:[], fix:[], grow:[{text,standard_code}], pts: }
+    # 학생 학급 학년으로 학년군(band)을 판별해 눈높이별 프롬프트/폴백을 태운다.
     def call(report)
-      return fallback_review(report) unless @client.configured?
+      band = report.grade_band_key
+      return fallback_review(report, band) unless @client.configured?
 
       response = @client.generate(
         contents: build_contents(report),
-        system_instruction: ReadingDomain::RUBRIC_PROMPT,
+        system_instruction: ReadingDomain.rubric_prompt(band),
         response_json: true
       )
       normalize(response)
     rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
-      fallback_review(report)
+      fallback_review(report, band)
     end
 
     private
 
-    def fallback_review(report)
-      @fallback.call(body: report.body, book_title: report_book_title(report))
+    def fallback_review(report, band)
+      @fallback.call(body: report.body, book_title: report_book_title(report), band: band)
     end
 
     def build_contents(report)

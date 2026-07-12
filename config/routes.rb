@@ -25,11 +25,33 @@ Rails.application.routes.draw do
     collection { post :advance }
   end
 
-  # 독서게임 10종 (P5.6). quiz/golden/bingo 는 published 퀴즈를 소비하는 실동작 게임,
-  # 나머지 7종은 증분(라우트 + 플레이스홀더). 결과는 games/attempts 로 기록.
+  # 독서게임 10종 (P5.6 → Phase 3 온디맨드). 카탈로그에서 도서를 골라 `play?book_id=` 로 온디맨드
+  # 진입한다(미스=오프라인 즉시). 7종 실동작(quiz/golden/bingo=mcq·classic=mcq·vocab=matching·
+  # whoami=hint_reveal·balance=balance_vote), 3종 증분 스텁(book·battle=R3·marathon=R2). 결과는
+  # games/attempts 로 기록. quiz/golden/bingo 는 교사 published 퀴즈(id) show 도 병행 지원.
   namespace :games do
-    resources :book, :classic, :battle, :balance, :quiz,
-              :golden, :bingo, :vocab, :whoami, :marathon, only: [ :show ]
+    get "catalog", to: "catalog#index", as: :catalog
+
+    # 온디맨드 진입(book_id) — 7종 실동작 표면의 play. `:id` show 보다 먼저 선언해 "play" 가
+    # id 로 오인되지 않게 한다(games_<표면>_play_path).
+    %w[quiz golden bingo classic vocab balance whoami].each do |surface|
+      get "#{surface}/play", to: "#{surface}#play", as: "#{surface}_play"
+    end
+
+    # 교사 published 퀴즈(id) show 병행 — quiz/golden/bingo 만.
+    resources :quiz, :golden, :bingo, only: [ :show ]
+
+    # whoami: show(=attempt id) 상태 렌더 + reveal_hint(서버 힌트 공개, §3.2b).
+    resources :whoami, only: [ :show ]
+    post "whoami/:attempt/reveal_hint", to: "whoami#reveal_hint", as: :whoami_reveal_hint
+
+    # 다시 뽑기(§3.4) — 새 content_version 재생성 후 해당 표면 play 로 복귀. 콘텐츠 재생성이지
+    # 가챠·랜덤 획득이 아니므로(포인트 상한 봉인) 경로명은 무가챠 가드 준수차 regenerate 로 둔다.
+    post "regenerate", to: "regenerate#create", as: :regenerate
+
+    # 증분 스텁(라우트 + "준비 중" 플레이스홀더). book·battle=R3·marathon=R2.
+    resources :book, :battle, :marathon, only: [ :show ]
+
     resources :attempts, only: [ :create ]
   end
 

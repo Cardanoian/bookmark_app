@@ -3,10 +3,17 @@
 class Admin::ModerationController < Admin::BaseController
   before_action :set_record, only: [ :hide, :unhide ]
 
+  PER_PAGE = 25
+
+  # 게시판·토론글·토픽을 통짜 로드하지 않고 각각 페이지네이션한다(#4).
+  # 세 섹션은 독립 page 파라미터(board_page/forum_page/topic_page)로 넘긴다.
   def index
-    @board_posts = BoardPost.includes(report: :user).order(created_at: :desc)
-    @forum_posts = ForumPost.includes(:user, :topic).order(created_at: :desc)
-    @topics = Topic.order(created_at: :desc)
+    @board_page, @has_next_board, @board_posts =
+      paginate_section(BoardPost.includes(report: :user).order(created_at: :desc), :board_page)
+    @forum_page, @has_next_forum, @forum_posts =
+      paginate_section(ForumPost.includes(:user, :topic).order(created_at: :desc), :forum_page)
+    @topic_page, @has_next_topic, @topics =
+      paginate_section(Topic.order(created_at: :desc), :topic_page)
   end
 
   def hide
@@ -24,6 +31,14 @@ class Admin::ModerationController < Admin::BaseController
   end
 
   private
+
+  # 관계를 섹션별 page 파라미터로 잘라 [page, has_next?, records] 를 반환한다.
+  # 세 섹션이 독립 page 를 가지므로 base 의 paginate(단일 :page) 대신 별도 헬퍼를 쓴다.
+  def paginate_section(scope, page_param)
+    page = [ params[page_param].to_i, 1 ].max
+    records = scope.limit(PER_PAGE + 1).offset((page - 1) * PER_PAGE).to_a
+    [ page, records.size > PER_PAGE, records.first(PER_PAGE) ]
+  end
 
   # kind 파라미터로 대상 모델을 정한다: board_post / forum_post / topic.
   def set_record

@@ -1,4 +1,9 @@
 module Games
-  # 고전 읽기 여행(증분 스텁, P5.6).
-  class ClassicController < StubController; end
+  # 고전 읽기 여행(Phase 3 온디맨드). classic 표면은 mcq 콘텐츠축을 공유한다(N1). play=book_id 진입.
+  class ClassicController < BaseController
+    def play
+      @quiz = resolve_on_demand("classic")
+      render :show
+    end
+  end
 end

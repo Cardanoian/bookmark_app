@@ -1,0 +1,27 @@
+<%# 짝짓기(matching) 폼(§3.2a). 각 왼쪽 낱말마다 오른쪽 뜻을 골라 **선택 인덱스만** 전송한다.
+    정답 쌍맵(answer)은 뷰/클라이언트로 직렬화하지 않는다(무유출). locals: quiz, game %>
+<%= form_with url: games_attempts_path, method: :post, class: "space-y-5" do |f| %>
+  <%= f.hidden_field :quiz_id, value: quiz.id %>
+  <%= f.hidden_field :game, value: game %>
+
+  <% quiz.quiz_questions.each do |question| %>
+    <% rights = question.match_rights %>
+    <fieldset class="rounded-xl border border-gray-200 p-4">
+      <legend class="px-1 text-sm font-semibold text-gray-900"><%= question.prompt %></legend>
+      <div class="mt-3 space-y-2">
+        <% question.match_lefts.each_with_index do |left, left_index| %>
+          <div class="flex items-center gap-3">
+            <span class="w-32 shrink-0 rounded-lg bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800"><%= left %></span>
+            <span class="text-gray-400">↔</span>
+            <%= select_tag "answers[#{question.id}][#{left_index}]",
+                  options_for_select(rights.each_with_index.map { |right, right_index| [ right, right_index ] }),
+                  include_blank: "— 알맞은 뜻 고르기 —", required: true,
+                  class: "flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700" %>
+          </div>
+        <% end %>
+      </div>
+    </fieldset>
+  <% end %>
+
+  <%= f.submit "짝짓기 완성!", class: "rounded-lg bg-teal-500 px-5 py-2 text-sm font-medium text-white" %>
+<% end %>

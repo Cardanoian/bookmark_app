@@ -3,8 +3,10 @@
 class Admin::QuizzesController < Admin::BaseController
   before_action :set_quiz, only: [ :show, :edit, :update, :destroy ]
 
+  PER_PAGE = 50
+
   def index
-    @quizzes = Quiz.includes(:book).order(created_at: :desc)
+    @page, @has_next_page, @quizzes = paginate(Quiz.includes(:book).order(created_at: :desc))
   end
 
   def show

@@ -1,33 +1,24 @@
 class SessionsController < ApplicationController
-  # 로그인 브루트포스 방어(0.5). 동일 IP 기준 3분 내 10회 초과 시도부터 차단하고,
-  # 429 대신 로그인 화면으로 친절히 되돌린다.
+  # 로그인 브루트포스 방어(0.5, #7 · Phase 6 보안검토 후속). **fail2ban + 정답-우선** 방식:
+  #   - **먼저 인증**한다. 정답이면 항상 로그인시키고(락아웃되지 않는다) IP·계정 실패 카운터를
+  #     리셋한다 → 저엔트로피 파라미터(학교·학급·이름)로 피해자 계정을 잠그는 DoS 가 무력화된다
+  #     (피해자는 언제나 정답으로 들어와 스스로 해제). 정답은 실패로 세지 않으므로, 전산실 단일
+  #     공인 IP(NAT) 뒤에서 학급 20~30명이 동시에 정답 로그인해도 IP 한도에 걸리지 않는다.
+  #   - **오답만** 카운트하고, 오답이 한도를 넘으면(추가 추측) 락아웃한다. 즉 락아웃은 "추측"만
+  #     막고 정답은 막지 않는다. 두 축: ① IP 실패(3분 10회) ② 계정 실패(10분 8회).
   #
-  # rate_limit 은 store 를 클래스 로드 시 1회 캡처하므로, 위임 대상(target)을 런타임에
-  # 교체할 수 있는 얇은 프록시로 감싼다. 기본 target 은 앱 캐시(프로덕션 Solid Cache).
-  # 테스트 캐시는 :null_store 라 카운팅이 안 되므로, 스로틀 테스트에서만 target 을
-  # 카운팅 가능한 인메모리 스토어로 바꿔 검증한다(그 외 테스트는 무카운팅 → 무스로틀).
+  # 계정 키는 조회된 **user.id** 로 정규화한다(존재 시). 원문 문자열 id 는 "5"/"05"/" 5" 가 서로
+  # 다른 버킷을 만들어 계정 축을 우회할 수 있으므로 쓰지 않는다. 미존재(오타/추측) 계정만 정규화 튜플.
   #
-  # 주의: RATE_LIMIT_STORE 는 가변 싱글턴이다. Rails 기본 테스트 병렬화는 프로세스 단위라
-  # 각 워커가 독립 상수를 가져 안전하며, 테스트는 teardown 에서 target 을 되돌린다.
-  # 스레드 단위 병렬화로 전환한다면 이 target 교체는 경쟁 상태가 되므로 재검토가 필요하다.
-  class RateLimitStore
-    attr_accessor :target
+  # 카운팅은 Phase 2b 의 RateLimiter(Solid Cache 원자 increment)로 하며 read-modify-write 경쟁이
+  # 없다. rate_limit_store 는 테스트 주입 시임(프로덕션 nil → Rails.cache; test 는 :null_store 라
+  # 무카운팅이므로 스로틀 테스트에서만 인메모리 스토어를 주입한다).
+  IP_THROTTLE = { limit: 10, period: 3.minutes }.freeze
+  ACCOUNT_THROTTLE = { limit: 8, period: 10.minutes }.freeze
 
-    def initialize(target)
-      @target = target
-    end
-
-    def increment(name, amount = 1, **options)
-      @target.increment(name, amount, **options)
-    end
+  class << self
+    attr_accessor :rate_limit_store
   end
-
-  RATE_LIMIT_STORE = RateLimitStore.new(Rails.cache)
-
-  rate_limit to: 10, within: 3.minutes,
-             store: RATE_LIMIT_STORE,
-             with: -> { redirect_to new_session_path, alert: "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요." },
-             only: :create
 
   skip_before_action :require_login, only: [ :new, :create ]
   # 로그인/로그아웃 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
@@ -38,27 +29,19 @@ class SessionsController < ApplicationController
   end
 
   def create
-    user = User.find_by(
-      school_id: params[:school_id].presence,
-      classroom_id: params[:classroom_id].presence,
-      name: params[:name]
-    )
-
+    user = find_user
     authenticated = user&.authenticate(params[:password])
 
-    if authenticated && user.suspended?
+    if authenticated
+      reset_login_failures # 정답 = 브루트포스 아님 → IP·계정 실패 카운터 해제(피해자 DoS·NAT 방지)
+      handle_authenticated(user)
+    elsif locked_out?
+      # 오답인데 이미 실패 한도 초과 → 추가 추측 차단(정답은 위에서 이미 통과했으므로 여기 안 온다).
       load_form_collections
-      flash.now[:alert] = "정지된 계정입니다. 관리자에게 문의해 주세요."
-      render :new, status: :forbidden
-    elsif authenticated && user.teacher? && !user.approved?
-      load_form_collections
-      flash.now[:alert] = "관리자 승인 후 로그인할 수 있어요."
-      render :new, status: :forbidden
-    elsif authenticated
-      reset_session
-      session[:user_id] = user.id
-      redirect_to root_path
+      flash.now[:alert] = "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요."
+      render :new, status: :too_many_requests
     else
+      register_login_failure # 오답 → IP·계정 실패 카운트 증가
       load_form_collections
       flash.now[:alert] = "학교·학급·이름·비밀번호를 다시 확인해 주세요."
       render :new, status: :unprocessable_entity
@@ -71,6 +54,68 @@ class SessionsController < ApplicationController
   end
 
   private
+
+  # 정답 인증 후 계정 상태 게이트(정지·교사 미승인 → 로그인 차단하되 실패로 세지 않음).
+  def handle_authenticated(user)
+    if user.suspended?
+      load_form_collections
+      flash.now[:alert] = "정지된 계정입니다. 관리자에게 문의해 주세요."
+      render :new, status: :forbidden
+    elsif user.teacher? && !user.approved?
+      load_form_collections
+      flash.now[:alert] = "관리자 승인 후 로그인할 수 있어요."
+      render :new, status: :forbidden
+    else
+      reset_session
+      session[:user_id] = user.id
+      redirect_to root_path
+    end
+  end
+
+  # IP·계정 두 축 중 하나라도 **실패 누적**이 한도 이상이면 true. peek 는 증가 없이 조회만 한다.
+  def locked_out?
+    limiter = login_limiter
+    limiter.peek("login:ip:#{request.remote_ip}") >= IP_THROTTLE[:limit] ||
+      limiter.peek("login:account:#{account_key}") >= ACCOUNT_THROTTLE[:limit]
+  end
+
+  # 로그인 실패 1회 기록(IP·계정 두 축 원자 increment).
+  def register_login_failure
+    limiter = login_limiter
+    limiter.record_failure("login:ip:#{request.remote_ip}", IP_THROTTLE[:period])
+    limiter.record_failure("login:account:#{account_key}", ACCOUNT_THROTTLE[:period])
+  end
+
+  # 인증 성공 시 IP·계정 실패 카운터를 모두 리셋한다(정답 로그인은 누적 실패를 해제).
+  def reset_login_failures
+    limiter = login_limiter
+    limiter.reset("login:ip:#{request.remote_ip}")
+    limiter.reset("login:account:#{account_key}")
+  end
+
+  def login_limiter
+    @login_limiter ||= RateLimiter.new(store: self.class.rate_limit_store || Rails.cache)
+  end
+
+  # 계정 식별 스로틀 키. 존재하는 계정은 안정적인 user.id 로 키잉(id 문자열 변형 우회 차단).
+  # 미존재(오타/추측)만 정규화 튜플(id 를 정수화해 "5"/"05" 버킷 분열 방지).
+  def account_key
+    user = find_user
+    return "user:#{user.id}" if user
+
+    [ params[:school_id].to_i, params[:classroom_id].to_i, params[:name].to_s.strip.downcase ].join(":")
+  end
+
+  # 튜플 신원(학교·학급·이름) 조회. 스로틀 키와 인증에서 공유하도록 메모이즈(중복 쿼리 방지).
+  def find_user
+    return @find_user if defined?(@find_user)
+
+    @find_user = User.find_by(
+      school_id: params[:school_id].presence,
+      classroom_id: params[:classroom_id].presence,
+      name: params[:name]
+    )
+  end
 
   def load_form_collections
     @schools = School.order(:name)

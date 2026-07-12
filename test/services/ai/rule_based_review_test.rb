@@ -44,4 +44,17 @@ class Ai::RuleBasedReviewTest < ActiveSupport::TestCase
 
     result[:grow].each { |entry| assert_includes codes, entry[:standard_code] }
   end
+
+  test "grow codes follow the requested 학년군 band" do
+    { g12: "2국", g34: "4국", g56: "6국" }.each do |band, prefix|
+      result = Ai::RuleBasedReview.new.call(body: "짧은 글.", band: band)
+      result[:grow].each { |entry| assert_match(/\A\[#{prefix}\d{2}-\d{2}\]\z/, entry[:standard_code]) }
+    end
+  end
+
+  test "defaults to the 5~6학년군 codes when no band is given" do
+    result = Ai::RuleBasedReview.new.call(body: "짧은 글.")
+    codes = ReadingDomain.achievement_standards(:g56).values
+    result[:grow].each { |entry| assert_includes codes, entry[:standard_code] }
+  end
 end

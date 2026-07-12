@@ -1,8 +1,10 @@
 require "test_helper"
 
-# P5.6 — 독서게임 10종: 라우트 해석 + 실동작 3종(quiz/golden/bingo) 플레이 → QuizAttempt + 포인트.
+# P5.6 — 독서게임: 교사 published 퀴즈(id) 플레이(quiz/golden/bingo) → QuizAttempt + 포인트.
+# 온디맨드(book_id) 진입·matching·hint_reveal 등 Phase 3 편입은 games_ondemand_test.rb 참고.
 class GamesTest < ActionDispatch::IntegrationTest
-  STUB_GAMES = %w[book classic battle balance vocab whoami marathon].freeze
+  # Phase 3 이후 남은 증분 스텁(book·battle=R3·marathon=R2). classic/vocab/whoami/balance 는 실동작화됨.
+  STUB_GAMES = %w[book battle marathon].freeze
 
   setup do
     seed_monster_species!
@@ -23,7 +25,7 @@ class GamesTest < ActionDispatch::IntegrationTest
     quiz
   end
 
-  test "all ten game show routes resolve for a logged-in student" do
+  test "playable game show routes resolve for a logged-in student and stubs render placeholder" do
     login_as @student
 
     %w[quiz golden bingo].each do |game|
@@ -53,6 +55,17 @@ class GamesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "문제0"
       assert_select "input[type=radio]"
     end
+  end
+
+  # Phase 1 §1.2 회귀 — 플레이 뷰가 정답키를 유출하지 않는다(서버 채점·무유출).
+  test "quiz play view does not leak the answer key" do
+    login_as @student
+    get games_quiz_path(@quiz)
+    assert_response :success
+
+    # 정답이 미리 선택(checked)되거나 정답 인덱스 키가 마크업에 노출되면 안 된다.
+    assert_select "input[type=radio][checked]", false, "정답이 미리 선택되어 유출되면 안 된다"
+    assert_not_includes response.body, "answer_index", "정답 인덱스 키가 뷰에 노출되면 안 된다"
   end
 
   test "playing the quiz records a QuizAttempt and awards points" do

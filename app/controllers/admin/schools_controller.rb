@@ -2,10 +2,12 @@
 class Admin::SchoolsController < Admin::BaseController
   before_action :set_school, only: [ :show, :edit, :update, :destroy ]
 
+  PER_PAGE = 50
+
   def index
     scope = School.order(:name)
     scope = scope.where("name LIKE ?", "%#{School.sanitize_sql_like(params[:q])}%") if params[:q].present?
-    @schools = scope
+    @page, @has_next_page, @schools = paginate(scope)
   end
 
   def show

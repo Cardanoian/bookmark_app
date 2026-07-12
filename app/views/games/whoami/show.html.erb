@@ -1,0 +1,62 @@
+<% content_for :title, "나는 누구게? · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">🕵️ 나는 누구게?</h1>
+      <p class="mt-1 text-sm text-gray-500"><%= @quiz.book&.title %> · 힌트를 볼수록 점수가 줄어요. 적게 보고 맞혀 보세요!</p>
+    </div>
+    <%= link_to "← 게임 고르기", games_catalog_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <% if flash[:notice] %>
+    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><%= flash[:notice] %></div>
+  <% end %>
+
+  <%# 힌트 공개(§3.2b). 공개 요청마다 서버 카운터(attempt.hint_reveals)가 1 오른다. 이미 공개한
+      힌트만 서버 상태에서 렌더한다 — 정답·다음 힌트·잔여 힌트수는 노출하지 않는다. %>
+  <div class="space-y-4">
+    <% @quiz.quiz_questions.each_with_index do |question, index| %>
+      <% revealed = @attempt.revealed_count(question) %>
+      <% hints = question.hints_list %>
+      <div class="rounded-xl border border-gray-200 p-4">
+        <p class="text-sm font-semibold text-gray-900"><%= index + 1 %>번 정답을 맞혀 보세요</p>
+
+        <ul class="mt-2 space-y-1">
+          <% hints.first(revealed).each do |hint| %>
+            <li class="rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-800">💡 <%= hint %></li>
+          <% end %>
+          <% if revealed.zero? %>
+            <li class="text-sm text-gray-400">아직 힌트를 보지 않았어요. 바로 맞히면 점수가 가장 높아요!</li>
+          <% end %>
+        </ul>
+
+        <% if revealed < hints.length %>
+          <%= button_to "힌트 더 보기", games_whoami_reveal_hint_path(attempt: @attempt.id),
+                params: { question_id: question.id },
+                class: "mt-2 rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50" %>
+        <% else %>
+          <p class="mt-2 text-xs text-gray-400">힌트를 모두 봤어요.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%= form_with url: games_attempts_path, method: :post, class: "mt-6 space-y-4" do |f| %>
+    <%= f.hidden_field :quiz_id, value: @quiz.id %>
+    <%= f.hidden_field :game, value: "whoami" %>
+    <%= f.hidden_field :attempt_id, value: @attempt.id %>
+
+    <% @quiz.quiz_questions.each_with_index do |question, index| %>
+      <label class="block">
+        <span class="text-sm font-medium text-gray-700"><%= index + 1 %>번 정답</span>
+        <%= text_field_tag "answers[#{question.id}]", nil, placeholder: "정답을 입력하세요",
+              class: "mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800" %>
+      </label>
+    <% end %>
+
+    <%= f.submit "정답 확인!", class: "rounded-lg bg-violet-500 px-5 py-2 text-sm font-medium text-white" %>
+  <% end %>
+
+  <%= render "games/regenerate", quiz: @quiz, game: "whoami" %>
+</div>

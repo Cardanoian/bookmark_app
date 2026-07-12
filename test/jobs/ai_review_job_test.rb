@@ -26,6 +26,18 @@ class AiReviewJobTest < ActiveJob::TestCase
     end
   end
 
+  class HighReview
+    def call(_report)
+      { rubric: { content: 5, emotion: 5, life: 5, structure: 5, spelling: 5 }, praise: [], fix: [], grow: [] }
+    end
+  end
+
+  class LowReview
+    def call(_report)
+      { rubric: { content: 1, emotion: 1, life: 1, structure: 1, spelling: 1 }, praise: [], fix: [], grow: [] }
+    end
+  end
+
   test "transitions pending to done, awards points, and sets similarity (fallback, no network)" do
     assert @report.pending?
     points_before = @user.points
@@ -92,6 +104,26 @@ class AiReviewJobTest < ActiveJob::TestCase
     # 재첨삭(동일 본문 재평가) — 등급이 같으면 차액 0, 포인트 재지급 없음.
     AiReviewJob.perform_now(@report)
     assert_equal first_award, @user.reload.points, "재첨삭이 포인트를 이중 지급하면 안 된다"
+  end
+
+  # #misc: 재첨삭 등급 하락(음수 델타)은 잔액을 차감하되 진화를 되돌리지 않는다(단조).
+  # check_evolution! 은 음수 델타에서 의도적으로 스킵된다(순수 술어·역진화 없음).
+  test "a negative delta decrements points but never de-evolves the active monster (monotonic)" do
+    seed_monster_species!
+
+    stub_new(Ai::ReviewService, HighReview.new) { AiReviewJob.perform_now(@report) }
+    high_points = @user.reload.points
+    assert_operator high_points, :>, 0
+
+    # 스타터를 2단계로 올려 둔다(단조성 확인용 세팅).
+    MonsterAcquisition.new(@user).choose_starter!("pup_1")
+    stage2 = MonsterSpecies.find_by!(key: "pup_2")
+    @user.active_monster.update!(monster_species: stage2, dex_no: stage2.dex_no)
+
+    stub_new(Ai::ReviewService, LowReview.new) { AiReviewJob.perform_now(@report) }
+
+    assert_operator @user.reload.points, :<, high_points, "음수 델타는 잔액을 차감한다"
+    assert_equal stage2.id, @user.active_monster.monster_species_id, "포인트 하락이 진화를 되돌리지 않는다"
   end
 
   test "review points go through award_points so the ranking hook fires (not raw increment)" do

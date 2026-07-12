@@ -1,0 +1,17 @@
+# app/services/games/ — 독서게임 채점·적립 서비스
+
+독서게임(quiz/golden/bingo + 온디맨드 편입 예정 표면들)의 **서버 권위 채점**과 **멱등 포인트 적립**을 담는 PORO 계층입니다. 컨트롤러(`app/controllers/games/`)는 얇게 두고, 답안 채점·상한 계산·델타 적립을 이 서비스들에 위임합니다. 정답/정답키/힌트 공개수는 클라이언트로 위임하지 않는 것이 공통 계약입니다(무유출).
+
+## 파일
+- `question_scorer.rb` — **문항 채점기 레지스트리(Phase 1)**. `QuestionScorer.for(question)` 팩토리가 `question_type` 5종(mcq_single·mcq_multi·matching·hint_reveal·balance_vote)별 채점기를 돌려주고, 각 채점기의 `score(response, hints_used:)`가 `{ score:, correct:, partial:, participation: }`를 반환. mcq_single=인덱스 일치(`correct?` 하위호환), mcq_multi=정답집합 부분점수, matching=쌍맵 일치 부분점수, **hint_reveal=서버 권위 힌트수 차감(C1, 클라이언트 주장 무시)**, balance_vote=무정답→참여만. `POINTS_PER_CORRECT` 채점 스케일의 단일 진실.
+- `point_award.rb` — **멱등 델타 상한 origin 분기(Phase 1 §1.3, A1)**. `PointAward#award!(this_score, reason:, excluding:)`가 `quiz.origin`으로 상한(prior ceiling)을 분기: **teacher**=이 퀴즈의 per-quiz 상한(현행 멱등, 재플레이 +0), **system**=같은 `(book, band, content_axis)` system 퀴즈들의 콘텐츠축 상한(재롤·표면전환 +0). 공통 `delta = [this_score − prior_max, 0].max`만 적립하고 `points_awarded = this_score` 저장 불변식 유지.
+- `quiz_play.rb` — 독서게임 채점·기록 진입점. 제출 답안을 `QuestionScorer`로 채점해 `QuizAttempt`를 남기고(만점 적립액 저장), 상한/델타는 `PointAward`에 위임. `awarded_delta`(비영속) + attempts_controller 의 정직한 안내 계약을 유지. **Phase 3**: 옵션 `attempt:` 를 받아 whoami 선생성 attempt 를 finalize 하고, hint_reveal 채점 시 그 attempt 의 **서버 힌트수(`revealed_count`)를 scorer 에 주입**한다(C1, Phase 1 LOW 봉인 — 이전엔 hints_used 미전달). 답안은 타입별(mcq 인덱스/matching 쌍 해시/hint 텍스트)이라 `to_i` 로 뭉개지 않고 원형을 보존한다.
+- `content_provider.rb` — **콘텐츠축 캐시-우선 리졸버(Phase 2b §2b.1)**. `resolve(book:, surface:, user:)`가 ① `SURFACE_MAP`으로 표면→콘텐츠축(mcq←quiz/golden/bingo/battle/classic·matching←vocab·hint_reveal←whoami·balance_vote←balance; **N1** 5표면이 mcq 공유) ② `band = ReadingDomain.band_for(user.classroom&.grade)`(**서버 결정**) ③ 캐시 HIT(origin=system·최신 content_version·ready·미신고)→즉시 반환(Gemini 0). 단, 그 행이 **AI 로 게시된 적 없이 오프라인만으로 `RETRY_GRACE`(15분) 이상 지속**됐다면(첫 워밍이 거부/실패했거나 무키였던 경우 영구 오프라인에 갇히지 않도록) 축 단위 쿨다운(`RETRY_COOLDOWN`, 1시간에 1회)·예산·rate limit 하에 재워밍을 시도한다(막 만든 오프라인은 grace 이내라 재시도하지 않아 N1 을 지킴). ④ **MISS→책 파생 결정적 오프라인 system Quiz(source=offline·ready)를 insert(rescue RecordNotUnique→재조회, `OFFLINE_RACE_RETRY_LIMIT`[3]회 유한 재시도)로 즉시 반환**(아동 무대기; content_set 아님 — offline_set 로 네트워크 0) + (키 있음·스코프 플래그 on·rate limit/예산 OK)이면 `GenerateGameContentJob` 1적재. **generation_status 는 내부 캐시 상태(플레이어 게이트 아님)**. `report!(quiz)`=신고 숨김(reported)+재생성 트리거(reported 행은 fetch_ready 제외). **Phase 3**: `regenerate(book:, surface:, user:)`=다시 뽑기(§3.4) — 신고 없이 **새 content_version 오프라인 세트**를 즉시 만들어 반환(다음 resolve 가 최신 버전 서빙), 포인트는 콘텐츠축 상한이 봉인해 +0(재생성 파밍 불가). `warm!(book, scope:, bands:, axes:)`=warm 사전생성(§3.5, A5) — band×content_axis 워밍 잡을 스코프 플래그·rate limit/예산 하 사전 큐잉(무키면 0건), 적재 수 반환. 클래스 헬퍼 `system_user`(온디맨드 캐시 소유자 멱등 확보)·`build_questions`(균일 문항 해시→quiz_questions, 워밍 게시와 공용).
+
+## 패턴·규칙
+- **서버 채점·무유출**: 채점 로직·정답·힌트 카운트는 서버에만. hint_reveal 은 서버가 넘긴 `hints_used`만 신뢰(위조 무력화).
+- **멱등 포인트 델타(origin 분기)**: 파밍 방지 불변식. teacher=per-quiz, system=콘텐츠축. `points_awarded`에는 델타가 아니라 this_score(이번 점수 기준 만점 적립액)를 저장해야 `maximum()` 상한이 성립한다.
+- **enum 정수 매핑 의존**: system 상한 조회는 `Quiz` enum(origin/band/content_axis) 정수 매핑에 의존한다(모델 위에서 `where`로 캐스팅). 매핑 값을 재배열하지 말 것.
+
+---
+> ⚠️ **유지보수 규칙**: 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 CLAUDE.md와 상위 `app/services/CLAUDE.md` 인덱스를 함께 갱신하세요.

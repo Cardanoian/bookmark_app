@@ -16,7 +16,7 @@
         class="absolute z-10 mt-1 hidden w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow"></ul>
   </div>
 
-  <% filters = [ [ "전체", nil ], [ "권장도서", "recommended" ], [ "고전", "classic" ], [ "검색됨", "searched" ] ] %>
+  <% filters = [ [ "전체", nil ], [ "권장도서", "recommended" ], [ "고전", "classic" ] ] %>
   <nav class="flex flex-wrap gap-2">
     <% filters.each do |label, value| %>
       <%= link_to label, books_path(category: value),
@@ -30,5 +30,20 @@
     </div>
   <% else %>
     <%= render "shared/empty_state", message: "해당하는 도서가 없어요.", icon: "📚" %>
+  <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="mt-2 flex items-center justify-between text-sm">
+      <% if @page > 1 %>
+        <%= link_to "← 이전", books_path(category: @category, page: @page - 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to "다음 →", books_path(category: @category, page: @page + 1), class: "text-indigo-600" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
   <% end %>
 </div>

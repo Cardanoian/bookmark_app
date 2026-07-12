@@ -13,7 +13,7 @@ class Teacher::DashboardsController < Teacher::BaseController
     @a_ratio = a_ratio(reports)
     @avg_points = @students.average(:points).to_f.round(1)
 
-    @axis_averages = axis_averages(rubric_reports(reports))
+    @axis_averages = axis_averages(reports) # Relation → SQL 집계(본문·행 미적재)
     @axis_labels = ReadingDomain::RUBRIC_AXES.map { |axis| ReadingDomain::AXIS_LABELS[axis] }
     @weakness = weakness_insight(@axis_averages)
     @improvement_avg = improvement_summary(reports)
@@ -22,13 +22,6 @@ class Teacher::DashboardsController < Teacher::BaseController
   end
 
   private
-
-  # 5축 집계용 경량 로드: 본문(body) 등 큰 컬럼 없이 rubric 만 적재한다. rubric 이
-  # 비어(NULL) 있는 리포트는 axis_averages 에서 어차피 제외되므로 미리 걸러 로드한다.
-  # (axis_averages 는 Teacher::BaseController 공용 메서드로 Array 를 그대로 받는다.)
-  def rubric_reports(reports)
-    reports.where.not(rubric: nil).select(:id, :rubric).to_a
-  end
 
   # A등급 비율(%). 채점된(level 있는) 독후감 기준. 로우 적재 없이 SQL COUNT 로 집계.
   def a_ratio(reports)
