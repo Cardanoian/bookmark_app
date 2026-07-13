@@ -33,7 +33,7 @@
 - `recurring.yml` — Solid Queue 반복 작업. production 에서 매시 완료 잡 정리.
 - `storage.yml` — Active Storage 서비스(local=Disk, test=임시). S3/GCS 는 주석 예시.
 - `importmap.rb` — importmap-rails 핀(turbo·stimulus + `app/javascript/controllers`). 자체 호스팅, 외부 CDN 미사용.
-- `deploy.yml` — Kamal 배포 매니페스트. 서비스명 `bookmark_app`, SSL 자동(Let's Encrypt), 영구 볼륨(`/rails/storage`), 시크릿 ENV(`RAILS_MASTER_KEY`·`GEMINI_API_KEY`·`NAVER_CLIENT_ID/SECRET`·`DATA4LIBRARY_KEY`). API 키 미설정 시 폴백 경로 동작.
+- `deploy.yml` — Kamal 배포 매니페스트. 서비스명 `bookmark_app`, SSL 자동(Let's Encrypt), 로컬 레지스트리(`localhost:5555`), 영구 볼륨(`/rails/storage`). 시크릿 ENV 는 **`RAILS_MASTER_KEY` 하나뿐**(이 키로 컨테이너가 credentials 를 복호화해 API 키를 런타임에 읽음 — 단일 소스). API 키를 서버 ENV 로 우회 주입하지 않는다(`docs/API_KEYS.md` §6). `.kamal/secrets` 도 `RAILS_MASTER_KEY` 한 줄만 담는다.
 - `ci.rb` — `bin/ci` 파이프라인(rubocop·bundler-audit·importmap audit·brakeman·rails test·seed replant).
 - `bundler-audit.yml` — 젬 취약점 감사 무시 목록(CVE allowlist).
 - `credentials.yml.enc` — **보안 파일**. 외부 API 키 등 암호화 저장소. `master.key` 없이 복호화 불가. `bin/rails credentials:edit` 로만 편집하고 내용을 열거나 커밋 로그에 노출하지 말 것.
@@ -48,7 +48,7 @@
 ## 패턴·규칙
 
 - **다중 DB**: primary 외 cache/queue/cable 은 production 전용이며 각자 스키마·마이그레이션 경로가 분리됨(`db/CLAUDE.md` 참조).
-- **비밀 관리**: API 키·시크릿은 반드시 credentials(로컬) 또는 Kamal 시크릿 ENV(배포)로만. 코드/YAML 하드코딩 금지.
+- **비밀 관리**: 앱은 API 키를 `ENV["…"].presence || credentials.dig(…)`(ENV 우선, credentials 폴백)로 읽는다. **credentials 가 기본·권장 저장소**, ENV 는 운영자 대안 경로. Kamal 은 `RAILS_MASTER_KEY` 만 주입하고 API 키는 컨테이너가 credentials 에서 복호화해 읽는다. 코드/YAML 하드코딩 금지(`docs/API_KEYS.md` 참조).
 - **CSP**: 새 외부 리소스(도메인·인라인 스크립트/스타일) 추가 시 `content_security_policy.rb` 를 반드시 갱신. 인쇄 레이아웃의 인라인 핸들러 텍스트를 바꾸면 sha256 해시도 재계산해야 함.
 - **스코프형 기능 플래그 / kill switch(Phase 2b C3)**: 온디맨드 게임 콘텐츠 워밍은 `AppSetting.feature_enabled?("on_demand_games", scope:)` 로 제어한다(설정 값은 `app_settings` 의 `feature_flags` JSON, 관리자 `admin/settings`). 저장 규약 — `"on_demand_games"` 전역 값(**false=하드 kill: 스코프 무시·전부 오프라인**, 미설정=파일럿[기본 off, 스코프 on 만], true=확대[기본 on, 스코프 off 로 개별 격리]) + `"on_demand_games:classroom:<id>"`/`":school:<id>"` 스코프 오버라이드(학급 우선→학교). **한 학급 사고를 전교 off 없이 격리**하고 파일럿→확대 롤아웃을 가능케 한다(교사 검수 게이트 부활 아님, R4 준수). 기본 seeds 는 `on_demand_games => true`. rate limit/예산은 `RateLimiter`(Solid Cache 원자 increment)가 담당.
 

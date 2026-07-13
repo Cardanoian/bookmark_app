@@ -17,7 +17,8 @@ module Schools
       new.available?
     end
 
-    def initialize(api_key: Rails.application.credentials.dig(:neis, :api_key), connection: nil)
+    # 키 소스: ENV 가 있으면 우선, 없으면 credentials 폴백(운영자 대안 경로, docs/API_KEYS.md §5·§6).
+    def initialize(api_key: ENV["NEIS_API_KEY"].presence || Rails.application.credentials.dig(:neis, :api_key), connection: nil)
       @api_key = api_key.to_s
       @connection = connection
     end

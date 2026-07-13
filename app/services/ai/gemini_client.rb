@@ -21,7 +21,8 @@ module Ai
     end
 
     # connection: 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단).
-    def initialize(api_key: Rails.application.credentials.dig(:gemini, :api_key), connection: nil)
+    # 키 소스: ENV 가 있으면 우선, 없으면 credentials 폴백(운영자 대안 경로, docs/API_KEYS.md §5·§6).
+    def initialize(api_key: ENV["GEMINI_API_KEY"].presence || Rails.application.credentials.dig(:gemini, :api_key), connection: nil)
       @api_key = api_key.to_s
       @connection = connection
     end

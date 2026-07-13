@@ -20,7 +20,7 @@
 
 ## 패턴·규칙
 - **`available?` / graceful 폴백**: 외부 연동 서비스(`ai/*`·`books`·`library`)는 클래스 메서드 `self.available?`(내부 `configured?`/`available?`)로 **키 존재 여부만** 판단하며 네트워크를 호출하지 않는다. 키가 없거나 원격이 실패하면 규칙기반 첨삭·로컬 캐시·빈 배열 등으로 폴백한다.
-- **Faraday 연결 주입**: 외부 HTTP는 Faraday로 하며, `initialize` 에 `connection:`/`*_connection:` 인자를 두어 테스트에서 스텁 연결을 주입(네트워크 차단)한다. 자격증명은 `Rails.application.credentials.dig(...)`.
+- **Faraday 연결 주입**: 외부 HTTP는 Faraday로 하며, `initialize` 에 `connection:`/`*_connection:` 인자를 두어 테스트에서 스텁 연결을 주입(네트워크 차단)한다. 자격증명은 `initialize(api_key:)` 기본값으로 `ENV["…"].presence || Rails.application.credentials.dig(...)`(ENV 우선, credentials 폴백)에서 읽으며, 테스트는 `api_key:` 인자로 직접 주입해 두 소스를 우회한다.
 - **멱등 포인트 델타**: 재제출/재첨삭 파밍을 막기 위해 이미 지급한 최고 적립액 대비 초과분(delta)만 `User#award_points` 로 적립한다(`games/point_award.rb`·`app/jobs/ai_review_job.rb` 공통 패턴). 게임은 상한을 `quiz.origin`으로 분기한다(teacher=per-quiz, system=콘텐츠축; `games/CLAUDE.md`).
 
 ---

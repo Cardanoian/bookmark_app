@@ -9,8 +9,8 @@
 
 ## 0. 핵심 요약 (TL;DR)
 
-- 앱은 **오직 Rails 암호화 credentials** 에서만 키를 읽는다. ENV 변수는 앱 코드가 직접 읽지 않는다(§5 참고).
-- 키 주입 = **`bin/rails credentials:edit`** 로 `config/credentials.yml.enc` 를 편집. `config/master.key`(개발) / `RAILS_MASTER_KEY`(프로덕션)로 복호화된다.
+- 앱의 키 소스는 **ENV 우선, 없으면 credentials 폴백**이다: 각 서비스가 `ENV["…"].presence || Rails.application.credentials.dig(…)` 로 읽는다(§1.1). **credentials 가 기본·권장 저장소**이고 ENV 는 운영자 대안 경로다(§6).
+- 키 주입(권장) = **`bin/rails credentials:edit`** 로 `config/credentials.yml.enc` 를 편집. `config/master.key`(개발) / `RAILS_MASTER_KEY`(프로덕션)로 복호화된다.
 - **키가 하나도 없어도 앱은 완전히 동작한다.** 각 기능이 폴백 경로로 자동 전환된다(사진 OCR만 비활성). 대회 데모·오프라인 시연이 가능하도록 설계되었다.
 - 키는 **절대 코드·DB(app_settings)·git 에 커밋하지 않는다**(§5, RAILS_PLAN §15).
 
@@ -30,12 +30,14 @@
 
 ### 1.1 각 키가 읽히는 코드 위치
 
-| 키 | 읽는 파일 | 판정 |
-|---|---|---|
-| `gemini.api_key` | `app/services/ai/gemini_client.rb` | `Ai::GeminiClient.available?` |
-| `naver.client_id` / `naver.client_secret` | `app/services/books/search_service.rb` | `Books::SearchService#available?` |
-| `data4library.api_key` | `app/services/library/data4library_service.rb` | `Library::Data4libraryService.available?` |
-| `neis.api_key` | `app/services/schools/neis_fetcher.rb` | `Schools::NeisFetcher.available?` |
+각 서비스의 `initialize(api_key: …)` 기본값이 **`ENV["…"].presence || credentials.dig(…)`** 이다(ENV 우선, credentials 폴백). 테스트는 `initialize` 인자로 키를 직접 주입해 두 소스를 모두 우회한다.
+
+| credentials 키 | ENV 변수 | 읽는 파일 | 판정 |
+|---|---|---|---|
+| `gemini.api_key` | `GEMINI_API_KEY` | `app/services/ai/gemini_client.rb` | `Ai::GeminiClient.available?` |
+| `naver.client_id` / `naver.client_secret` | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | `app/services/books/search_service.rb` | `Books::SearchService#available?` |
+| `data4library.api_key` | `DATA4LIBRARY_KEY` | `app/services/library/data4library_service.rb` | `Library::Data4libraryService.available?` |
+| `neis.api_key` | `NEIS_API_KEY` | `app/services/schools/neis_fetcher.rb` | `Schools::NeisFetcher.available?` |
 
 ---
 
@@ -130,13 +132,14 @@ kamal app exec 'bin/rails runner "puts Ai::GeminiClient.available?"'
 
 ---
 
-## 6. 부록 — deploy.yml 의 ENV 시크릿 항목에 대하여
+## 6. 부록 — ENV 대안 경로와 Kamal 시크릿
 
-`config/deploy.yml` 의 `env.secret` 에는 `RAILS_MASTER_KEY` 외에 `GEMINI_API_KEY`·`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`·`DATA4LIBRARY_KEY` 가 선언되어 있고, `.kamal/secrets` 가 이를 셸 ENV(`${VAR}`, 미설정 시 빈 값)에서 주입한다.
+앱은 각 서비스의 `initialize(api_key: …)` 기본값을 통해 **`ENV["…"].presence || credentials.dig(…)`** 로 키를 읽는다(§1.1). 즉 ENV 를 export 하면 그 값이 우선하고, 없으면 credentials 로 폴백한다. ENV 변수를 빈 문자열로 두면(`.presence` 가 nil 처리) credentials 폴백이 그대로 동작한다.
 
-> **중요**: 현재 앱 코드는 이 키들을 **credentials 에서 읽으며 ENV 를 직접 읽지 않는다**(§1.1). 따라서 deploy.yml 의 ENV 항목은 **운영자가 ENV 로 키를 공급하고 싶을 때를 위한 예약 후크**이며, 지금은 실동작에 영향을 주지 않는다. 실제 주입은 **§3 의 credentials 경로**를 사용하라.
->
-> ENV 방식을 실제로 쓰고 싶다면, 각 서비스의 `initialize(api_key: …)` 기본값을 `ENV.fetch("GEMINI_API_KEY", Rails.application.credentials.dig(:gemini, :api_key))` 형태로 확장하면 된다(선택 사항, 코드 변경 필요).
+- **로컬/운영자 대안 경로**: credentials 를 건드리지 않고 특정 키만 실험하고 싶을 때, 해당 ENV 변수(§1.1 표)를 셸에 export 한 뒤 서버/태스크를 실행하면 된다.
+- **프로덕션(Kamal)**: `config/deploy.yml` 의 `env.secret` 에는 이제 **`RAILS_MASTER_KEY` 하나만** 있고, `.kamal/secrets` 도 이 한 줄(`RAILS_MASTER_KEY=$(cat config/master.key)`)만 담는다. 컨테이너는 이 마스터 키로 `credentials.yml.enc` 를 복호화해 API 키를 읽으므로, **API 키를 서버 ENV 로 우회 주입할 필요가 없다**(단일 소스 = credentials). Docker ENV 로 주입된 값은 `docker inspect` 로 평문 노출되므로, 프로덕션에서는 API 키를 ENV 가 아니라 credentials 로 두는 것을 권장한다.
+
+즉 **프로덕션에 API 키를 넣는 절차 = `credentials:edit` 로 키를 넣고 재배포**(§3.2)이며, ENV 경로는 로컬 실험·운영자 오버라이드용 선택지다.
 
 ---
 

@@ -12,9 +12,10 @@ module Books
     NAVER_PATH = "/v1/search/book.json".freeze
 
     # connection 은 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단)한다.
+    # 키 소스: ENV 가 있으면 우선, 없으면 credentials 폴백(운영자 대안 경로, docs/API_KEYS.md §5·§6).
     def initialize(
-      naver_id: Rails.application.credentials.dig(:naver, :client_id),
-      naver_secret: Rails.application.credentials.dig(:naver, :client_secret),
+      naver_id: ENV["NAVER_CLIENT_ID"].presence || Rails.application.credentials.dig(:naver, :client_id),
+      naver_secret: ENV["NAVER_CLIENT_SECRET"].presence || Rails.application.credentials.dig(:naver, :client_secret),
       naver_connection: nil
     )
       @naver_id = naver_id.to_s
