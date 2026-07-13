@@ -35,7 +35,8 @@
 - `cheer.rb` — 응원(👏). 게시물당 사용자 1인 1회.
 - `sticker.rb` — 문장 스티커 동료평가. report 본문 위치에 붙는 이모지.
 - `topic.rb` — 토론방. scope(classroom·school) enum으로 경계 구분, hidden 스코프.
-- `forum_post.rb` — 토론 글. topic counter_cache, likes_count 좋아요.
+- `forum_post.rb` — 토론 글. topic counter_cache, 좋아요는 forum_post_likes(1인 1좋아요)로 likes_count counter_cache.
+- `forum_post_like.rb` — 토론 글 좋아요(👍). `(forum_post, user)` 유일성=**1인 1좋아요**(cheer 패턴), `forum_post.likes_count` counter_cache.
 
 ### 퀴즈
 - `quiz.rb` — 독서 퀴즈. scope(classroom·global) enum, published 노출 통제, quiz_questions nested attributes. **온디맨드 콘텐츠축 캐시 메타(Phase 1)**: `content_axis`(mcq·matching·hint_reveal, 캐시·dedup 키) / `band`(g12·g34·g56) / `origin`(teacher·system, `scopes:false` — `Quiz.origins[:system]` 해시만 사용) / `generation_status`(ready·warming·failed) / `content_version` / `reported` enum·컬럼 / `reports_count`(신고 카운터 캐시). 표면은 저장하지 않음. 정수 매핑 고정(Phase 2b 부분 유니크 인덱스·point_award 상한이 의존).

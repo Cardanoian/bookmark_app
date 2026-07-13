@@ -74,6 +74,10 @@ Rails.application.routes.draw do
   resources :topics, only: [ :index, :show, :create ] do
     resources :forum_posts, only: [ :create ]
   end
+  # 토론 글 좋아요(👍, P5.4). forum_post_id 만으로 create/destroy(단수 like 리소스).
+  resources :forum_posts, only: [] do
+    resource :like, only: [ :create, :destroy ], controller: "forum_post_likes"
+  end
 
   # 게임화 — 몬스터 도감·진화, 케어 상점, 랭킹, 미션·챌린지
   resources :monsters, only: [ :index, :show ] do

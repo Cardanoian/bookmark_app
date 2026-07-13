@@ -1,6 +1,6 @@
 # 「책갈피」 TODO
 
-> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-12
+> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-13
 > 참고 문서: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) · [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) · [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md)
 
 ## 현재 상태 (baseline)
@@ -24,10 +24,6 @@
 
 ## 남은 작업
 
-### 🚀 릴리스·소스 동기화
-
-- [ ] **게임 브랜치 병합·push** — `feat/game-ai-ondemand-r2`(커밋 `2195bf0`, r1 `46c3c88` 포함)를 리뷰 후 main 병합, 자격 확보 시 push.
-
 ### 🔴 배포 (프로덕션 올리기 전 필수)
 
 - [ ] **실제 원격 배포** — `kamal setup` → `kamal deploy`. 현재는 로컬 부팅 검증까지만 완료(드로플릿·레지스트리 자격 부재로 미실행).
@@ -44,12 +40,6 @@
 
 - [ ] **학교 전량 시드 — 실데이터 적재 대기** — 파이프라인 구현 완료(`schools:fetch`→`db/seeds/schools.csv`→`schools:seed_full`(`upsert_all`), `Schools::GuParser`·`Schools::NeisFetcher`, `address` 컬럼, dev/test 축소 17교·prod no-op 가드). 다운스트림 스케일도 반영(가입/로그인 하이브리드 피커[시도→시군구+이름검색]·스코프 학급 엔드포인트·전국 랭킹 Top100+본인학교 행). **남은 일: NEIS OpenAPI authKey 발급(무료) → `bin/rails schools:fetch` → CSV 커밋 → prod 에서 `schools:seed_full` 1회.**
 - [ ] **도서 카탈로그 확장 — 목록 추가 확장 여지** — 34권 단일밴드 → **97권 3밴드(초등 1~2/3~4/5~6) 큐레이션**으로 확장(`Book::GRADE_BANDS` 표준화, `books:seed` 재작성) + 메타 자동보강 `books:enrich`(네이버, `Books::CatalogEnricher`) 추가. **남은 일: 학교도서관저널 전체 목록으로 큐레이션 배열 추가 확장(선택), 네이버 키로 `books:enrich` 실행해 표지/ISBN 채우기.**
-
-### 🟢 기능 마무리·개선
-
-- [ ] **독후감 공유 토글 정합성** — `reports/show`의 버튼 라벨이 `shared? ? "공유 취소" : "우수작 공유"`인데 share 액션이 실제 토글(취소)까지 하는지 확인/수정.
-- [ ] **게시판 글 좋아요** — `forum_post`에 모델 메서드만 있고 라우트·UI 없음. 필요 시 라우트·컨트롤러·뷰 추가.
-- [ ] (오너가 원하는 추가 기능·개선 항목을 여기에)
 
 ### 🔵 품질·테스트·운영
 
@@ -110,9 +100,19 @@
 
 ## 완료·결정 이력
 
+### 🟢 기능 마무리 — 게시판 글 좋아요(2026-07-13 완료)
+
+> `forum_post`에 모델 메서드만 있고 라우트·UI가 없던 좋아요를 cheer(응원)·quiz_report(신고) 패턴 재사용으로 완결했다.
+
+- `ForumPostLike`(`(forum_post, user)` 유일성=1인 1좋아요) + `forum_posts.likes_count` counter_cache.
+- 라우트(`resources :forum_posts, only: []` 하위 단수 `resource :like`)·`ForumPostLikesController`(`create`/`destroy`, RecordNotUnique 무해 처리, destroy no-op 시 `skip_authorization`) + Turbo Stream 버튼 갱신.
+- `ForumPostLikePolicy` — 생성은 `TopicPolicy#show?` 위임(토픽 열람 가능 경계 안 사용자만), 취소는 본인 좋아요만.
+- 뷰: `forum_post_likes/update.turbo_stream.erb` + `topics/_like_button` partial(토글 버튼+카운트), `topics/_forum_post`가 정적 카운트 대신 이를 렌더.
+- 모델·통합 테스트 추가.
+
 ### 🎮 온디맨드 게임 AI 출제 (완료 · **독서게임 5종**)
 
-> **R1(코어 온디맨드) + 게임 5종 축소 완료** — 브랜치 `feat/game-ai-ondemand-r2`(커밋 `2195bf0`, r1 `46c3c88` 위), RuboCop·Brakeman 클린(미push·미병합). 교육 다양성 우선으로 독서게임을 **5종(quiz·classic·vocab·whoami + book)** 으로 확정. 상세 변경 이력은 git 로그 참조.
+> **R1(코어 온디맨드) + 게임 5종 축소 완료** — 브랜치 `feat/game-ai-ondemand-r2`(커밋 `2195bf0`, r1 `46c3c88` 위), RuboCop·Brakeman 클린(**main 병합 완료** · 자격 확보 시 push). 교육 다양성 우선으로 독서게임을 **5종(quiz·classic·vocab·whoami + book)** 으로 확정. 상세 변경 이력은 git 로그 참조.
 
 #### ✅ 완료 — 독서게임 5종 온디맨드
 

@@ -12,6 +12,7 @@
 - `cheer_policy.rb` — 응원. 학생만 생성하되 대상 게시물이 보이는(BoardPostPolicy#show?) 경우만. 취소는 본인 응원만.
 - `classroom_policy.rb` — 학급. show/Scope를 role별 분기(총괄=전체, 교사=담임 학급, 학생=소속 학급, 교무·사서=같은 학교).
 - `forum_post_policy.rb` — 토론 글. 대상 토픽을 열람 가능(TopicPolicy#show?)한 사용자만 작성.
+- `forum_post_like_policy.rb` — 토론 글 좋아요. 생성은 대상 토픽 열람 가능(TopicPolicy#show?)한 사용자만, 취소는 본인 좋아요만.
 - `learn_policy.rb` — 단계 학습 위저드. 로그인 사용자면 진행(index·advance).
 - `mission_policy.rb` — 미션. 열람은 로그인 사용자, 참여(join)는 학생.
 - `monster_policy.rb` — 몬스터. 도감 열람은 로그인 사용자, 진화·대표지정·먹이주기는 보유자 본인만(owns_record?).
@@ -27,7 +28,7 @@
 - **역할 분기 관용구**: 경계가 복잡한 정책(report·classroom·topic·quiz)은 `case user.role.to_sym`으로 총괄/교사/학생/교무·사서를 나눠 판정한다. 단순 정책은 `user&.student?` 같은 술어 헬퍼로 끝낸다.
 - **학교/학급 경계 격리**: `record.school_id == user.school_id`·`record.classroom&.teacher_id == user.id` 등 소속 비교로 다른 학교·학급 데이터 접근을 차단한다. `same_school?`·`teacher_of_classroom?`·`within_boundary?` private 헬퍼가 그 판정을 담는다.
 - **Scope로 목록 필터링**: 목록(index)은 `authorize`가 아니라 `policy_scope`가 안전하다. 내부 `Scope#resolve`는 로그인 없으면 `scope.none`, 역할별로 `where`를 좁혀 애초에 경계 밖 레코드를 쿼리에서 배제한다.
-- **정책 재사용(위임)**: 종속 리소스는 상위 정책의 show?를 재호출한다 — cheer·sticker는 `BoardPostPolicy#show?`, forum_post는 `TopicPolicy#show?`로 "볼 수 있어야 상호작용 가능" 규칙을 한 곳에서 강제한다.
+- **정책 재사용(위임)**: 종속 리소스는 상위 정책의 show?를 재호출한다 — cheer·sticker는 `BoardPostPolicy#show?`, forum_post·forum_post_like는 `TopicPolicy#show?`로 "볼 수 있어야 상호작용 가능" 규칙을 한 곳에서 강제한다.
 
 ---
 > ⚠️ **유지보수 규칙**: 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 CLAUDE.md도 함께 갱신하세요. 하위 폴더 구조가 바뀌면 관련 상·하위 CLAUDE.md 링크도 확인하세요.

@@ -23,6 +23,7 @@
 - `stickers_controller.rb` — 문장 스티커 동료평가(`create`). report 에 스티커 append(Turbo Stream).
 - `topics_controller.rb` — 토론방(`index`/`show`/`create`). 학급/학교 스코프 경계로 생성.
 - `forum_posts_controller.rb` — 토론 글 작성(`create`). 토픽 경계 안 사용자만 가능.
+- `forum_post_likes_controller.rb` — 토론 글 좋아요 토글(`create`/`destroy`). 1인 1좋아요(unique, RecordNotUnique 무해 처리) + Turbo Stream 버튼 갱신(cheer 패턴).
 - `sessions_controller.rb` — 로그인/로그아웃(튜플 신원: 학교·학급·이름·비번). **브루트포스 방어(#7, fail2ban+정답-우선)**: 먼저 인증해 **정답은 항상 로그인**시키고 IP·계정 실패 카운터를 리셋한다(피해자 계정 락아웃 DoS·전산실 NAT 동시로그인 차단을 동시 해소 — 정답은 실패로 안 세므로 NAT 뒤 학급 동시 로그인이 IP 한도에 안 걸린다). **오답만** 카운트하고 한도 초과 시 추가 오답(추측)을 락아웃한다(IP 3분 10회 / 계정 10분 8회). 계정 키는 조회된 **user.id 로 정규화**(존재 시)해 "5"/"05" 등 id 문자열 변형 우회를 막는다. 카운팅은 `RateLimiter`(Solid Cache 원자 increment, `count`/`record_failure`/`reset`) 재사용 — 가변 싱글턴 없이 경쟁 상태 제거. 저장소는 테스트 주입 시임(`self.rate_limit_store`)으로만 교체. `load_form_collections`는 학교 선택 하이브리드 피커용으로 전량 School/Classroom 로드 대신 `@regions`(시도교육청 distinct)만 로드(학급은 학교 선택 시 `/schools/:id/classrooms` 로 스코프 로드, 전국 전량 로드 제거).
 - `registrations_controller.rb` — 공개 회원가입(교사 신청 전용, `approved:false`). 학급 배정까지 원자 처리. `load_form_collections`는 학교 선택 하이브리드 피커용으로 전량 School/Classroom 로드 대신 `@regions`(시도교육청 distinct)만 로드(전국 전량 로드 제거).
 - `schools_controller.rb` — 학교 선택 하이브리드 피커용 공개 3액션. `search`(q 이름검색 + region/gu 필터, 상한 100)·`gus`(시도 region → 시군구 목록)·`classrooms`(선택 학교의 학급만 스코프 조회, 로그인 폼용). 가입/로그인 폼에서 사용.

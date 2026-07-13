@@ -4,7 +4,7 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 31개 테이블, version `2026_07_13_000001`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 32개 테이블, version `2026_07_13_000002`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
 - `seeds.rb` — 시드 오케스트레이션. `db/seed` 진입점으로, 아래 rake 태스크들을 순서대로 `invoke` 하고 그 사이에 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·`app_settings` 기본 플래그를 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
   - 순서: `schools:seed` → superadmin → **system 유저** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed` → `quizzes:seed` → `app_settings`.
   - system 유저는 superadmin 과 같은 신원 규약(name + school_id:nil + classroom_id:nil)으로 `find_or_initialize_by` 멱등 생성(로그인 불가한 시스템 액터). `ContentProvider.system_user`도 같은 신원으로 멱등 확보한다.
@@ -28,7 +28,8 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 7. **FK on_delete 정합화(Phase 6)** (`20260712000005`–`000006`): 모델 nullify 의도와 어긋난 두 FK 의 `on_delete` 를 맞춘다. `reports.book_id → books`(#6)·`monster_species.evolves_from_id → monster_species` 자기참조(#8)에 **`on_delete: :nullify`** 부여 — 부모 삭제 시 자식을 남기고 참조만 끊는다(모델 `Book#has_many :reports, dependent: :nullify`·`MonsterSpecies#has_many :next_forms, dependent: :nullify` 와 정합). SQLite 는 FK 변경을 **테이블 재빌드**로 처리하므로 `up`/`down` 모두 재빌드·데이터 복사 → **왕복 무손실**(`test/models/fk_on_delete_roundtrip_test.rb` 로 검증). 컬럼 추가/삭제 없음 → 테이블 수 불변.
 8. **게임 다양성 축소 + 책 소개 대결(book)** (`20260712000007`–`000009`): `quiz_attempts` 에 `hint_reveals`(whoami 서버 힌트수) 추가 후, 독서게임을 교육 다양성 우선 5종으로 줄이며 소셜 게임 `book`(책 소개 대결)을 신설. `book_intros`(user·book·classroom FK + body + votes_count, 인덱스 `[book_id, classroom_id]`) → `book_intro_votes`(book_intro·user FK, **`(book_intro_id, user_id)` UNIQUE**=소개당 1인 1표, votes_count counter_cache). 퀴즈 파이프라인 밖(Gemini/Quiz 미생성). **+2 테이블(28→30)**. 축소로 제거된 게임 표면·콘텐츠축은 코드/enum 매핑 축소일 뿐이라 마이그레이션 불요(정수 컬럼 그대로).
 9. **무게이트 롤아웃 콘텐츠 신고** (`20260712000010`): `quizzes` 에 `reports_count`(counter_cache) 추가 + `quiz_reports`(quiz·user FK, **`(quiz_id, user_id)` UNIQUE**=1인 1신고, cheer/vote 패턴). 서로 다른 `REPORT_HIDE_THRESHOLD`(2)명 신고 시 자동 숨김+재생성, 신고자 학급 담임 대시보드로 사후 검토. **+1 테이블(30→31)**.
-10. **학교 도로명주소 컬럼** (`20260713000001`): `schools` 에 NEIS 도로명주소(`ORG_RDNMA`) 원본 저장용 `address` 컬럼 추가(gu 파싱 검증·향후 학교 검색 UX 용). 컬럼 추가만이라 테이블 수 불변(31 유지), `schema.rb` version 은 `2026_07_13_000001`. 기존 축소 시드 17교는 `address` nil 로 남는다.
+10. **학교 도로명주소 컬럼** (`20260713000001`): `schools` 에 NEIS 도로명주소(`ORG_RDNMA`) 원본 저장용 `address` 컬럼 추가(gu 파싱 검증·향후 학교 검색 UX 용). 컬럼 추가만이라 테이블 수 불변(31 유지). 기존 축소 시드 17교는 `address` nil 로 남는다.
+11. **게시판 글 좋아요** (`20260713000002`): `forum_post_likes`(forum_post·user FK, `(forum_post_id, user_id)` UNIQUE=1인 1좋아요, `forum_posts.likes_count` counter_cache). **+1 테이블(31→32)**, `schema.rb` version 은 `2026_07_13_000002`.
 
 ### seeds/ — 시드 데이터
 

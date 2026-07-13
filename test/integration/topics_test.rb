@@ -75,7 +75,7 @@ class TopicsTest < ActionDispatch::IntegrationTest
     topic = Topic.create!(scope: :classroom, classroom: @class1, title: "토론")
     message = topic.forum_posts.create!(user: @student1, text: "좋아요 대상 글")
     assert_difference -> { message.reload.likes_count }, 1 do
-      message.like!
+      ForumPostLike.create!(forum_post: message, user: @student1)
     end
   end
 

@@ -16,6 +16,8 @@ class TopicsController < ApplicationController
     authorize @topic
     @forum_posts = @topic.forum_posts.visible.includes(:user).order(:created_at)
     @forum_post = ForumPost.new
+    # 목록 좋아요 여부를 한 번에 조회(글별 find_by N+1 방지). 뷰는 이 Set 로 인메모리 판정.
+    @liked_post_ids = current_user ? ForumPostLike.where(forum_post: @forum_posts, user: current_user).pluck(:forum_post_id).to_set : Set.new
   end
 
   def create

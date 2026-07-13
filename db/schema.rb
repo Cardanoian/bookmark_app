@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_13_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_13_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -140,6 +140,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_000001) do
     t.index ["school_id", "grade", "class_no"], name: "index_classrooms_on_school_id_and_grade_and_class_no", unique: true
     t.index ["school_id"], name: "index_classrooms_on_school_id"
     t.index ["teacher_id"], name: "index_classrooms_on_teacher_id"
+  end
+
+  create_table "forum_post_likes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "forum_post_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["forum_post_id", "user_id"], name: "index_forum_post_likes_on_forum_post_id_and_user_id", unique: true
+    t.index ["forum_post_id"], name: "index_forum_post_likes_on_forum_post_id"
+    t.index ["user_id"], name: "index_forum_post_likes_on_user_id"
   end
 
   create_table "forum_posts", force: :cascade do |t|
@@ -445,6 +455,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_13_000001) do
   add_foreign_key "cheers", "users"
   add_foreign_key "classrooms", "schools"
   add_foreign_key "classrooms", "users", column: "teacher_id"
+  add_foreign_key "forum_post_likes", "forum_posts"
+  add_foreign_key "forum_post_likes", "users"
   add_foreign_key "forum_posts", "topics"
   add_foreign_key "forum_posts", "users"
   add_foreign_key "library_events", "books", on_delete: :nullify

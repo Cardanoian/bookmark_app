@@ -1,6 +1,7 @@
 require "test_helper"
 
-# 토론 글(#5 미테스트 모델 보강). text 검증·visible 스코프·topic counter_cache·like!.
+# 토론 글(#5 미테스트 모델 보강). text 검증·visible 스코프·topic counter_cache.
+# (좋아요 counter_cache 는 forum_post_like_test.rb 가 증감 양방향으로 검증.)
 class ForumPostTest < ActiveSupport::TestCase
   setup do
     @school = School.create!(name: "토론학교")
@@ -28,12 +29,5 @@ class ForumPostTest < ActiveSupport::TestCase
     assert_difference -> { @topic.reload.forum_posts_count }, 1 do
       ForumPost.create!(topic: @topic, user: @user, text: "카운터글")
     end
-  end
-
-  test "like! increments likes_count" do
-    post = ForumPost.create!(topic: @topic, user: @user, text: "좋아요글")
-    assert_equal 0, post.likes_count
-    post.like!
-    assert_equal 1, post.reload.likes_count
   end
 end

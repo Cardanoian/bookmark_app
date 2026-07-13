@@ -4,6 +4,6 @@
   <p class="mt-2 flex items-center gap-2 text-xs text-gray-500">
     <span><%= forum_post.user.name %></span>
     <span>·</span>
-    <span>👍 <%= forum_post.likes_count %></span>
+    <%= render "topics/like_button", forum_post: forum_post, liked: liked_post_ids.include?(forum_post.id) %>
   </p>
 </article>

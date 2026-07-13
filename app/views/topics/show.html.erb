@@ -8,7 +8,8 @@
 
   <section class="space-y-3">
     <% if @forum_posts.any? %>
-      <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post %>
+      <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post,
+            locals: { liked_post_ids: @liked_post_ids } %>
     <% else %>
       <p class="text-sm text-gray-500">첫 글을 남겨 보세요.</p>
     <% end %>
