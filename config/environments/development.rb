@@ -6,6 +6,12 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Allow access from any host in development (e.g. LAN devices on the same
+  # router). Rails' HostAuthorization already permits all IPs in development,
+  # this additionally permits hostnames (e.g. `mypc.local`) so external
+  # devices can reach `bin/dev` without hitting a "Blocked host" error.
+  config.hosts.clear
+
   # Do not eager load code on boot.
   config.eager_load = false
 
