@@ -1,7 +1,9 @@
 # 「책갈피」 API 키 가이드
 
 > **목적**: 이 앱이 사용하는 외부 API 키가 **무엇이며**, **어디에 어떻게 주입**하고, **키가 없을 때 어떻게 동작**하는지 정리한다.
-> 최종 수정: 2026-07-07
+> 최종 수정: 2026-07-13
+>
+> 빠른 참고용 **빈 템플릿**은 리포 루트 [`.env.sample`](../.env.sample) 에도 있다(그대로 복사해 `credentials:edit` 에 붙여넣기).
 
 ---
 
@@ -21,8 +23,10 @@
 | `gemini.api_key` | **Google AI Studio** (aistudio.google.com) | ① 손글씨 사진 **OCR**<br>② AI **5축 첨삭**<br>③ 진위·표절 보조<br>④ 퀴즈 초안 생성 | ① 사진 OCR **모드 비활성**(키보드·원고지만)<br>② **규칙기반 첨삭**으로 무중단 채점<br>③ 중립 결과<br>④ 템플릿 기반 오프라인 퀴즈 |
 | `naver.client_id`<br>`naver.client_secret` | **Naver Developers** (developers.naver.com) — 검색 API | 도서 검색(**단독 제공자**) | 로컬 캐시(`books` LIKE 검색)로 폴백 |
 | `data4library.api_key` | **정보나루** (data4library.kr) | 사서 대시보드 **인기대출 동기화**(직전 달 집계) | CSV 업로드로 대체(`import_csv`) |
+| `neis.api_key` | **NEIS 교육정보 개방포털** (open.neis.go.kr) | 전국 초등학교 **전량 시드**(`bin/rails schools:fetch`, 운영/개발 태스크) | `schools:fetch` no-op(축소 17교 개발 시드 유지) |
 
 > **하나의 Gemini 키가 4개 AI 기능을 모두 켠다.** 도서 검색은 **네이버 단독**이며, 키가 없으면 로컬 캐시로 폴백한다.
+> `neis.api_key` 는 런타임 기능이 아니라 **전국 학교 데이터를 1회 수집하는 시드 태스크**(`schools:fetch`)에서만 쓰인다.
 
 ### 1.1 각 키가 읽히는 코드 위치
 
@@ -31,6 +35,7 @@
 | `gemini.api_key` | `app/services/ai/gemini_client.rb` | `Ai::GeminiClient.available?` |
 | `naver.client_id` / `naver.client_secret` | `app/services/books/search_service.rb` | `Books::SearchService#available?` |
 | `data4library.api_key` | `app/services/library/data4library_service.rb` | `Library::Data4libraryService.available?` |
+| `neis.api_key` | `app/services/schools/neis_fetcher.rb` | `Schools::NeisFetcher.available?` |
 
 ---
 
@@ -49,6 +54,8 @@ naver:
   client_id: ""
   client_secret: ""
 data4library:
+  api_key: ""
+neis:
   api_key: ""
 ```
 
@@ -98,6 +105,7 @@ bin/rails runner '
   puts "Gemini      : #{Ai::GeminiClient.available?}"
   puts "도서검색     : #{Books::SearchService.new.available?}"
   puts "정보나루     : #{Library::Data4libraryService.available?}"
+  puts "NEIS(학교시드): #{Schools::NeisFetcher.available?}"
 '
 ```
 
