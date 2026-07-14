@@ -38,10 +38,12 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
     assert_match "도서관 담당", response.body
   end
 
-  test "superadmin lands on the superadmin dashboard" do
+  test "superadmin is redirected to the admin console" do
     admin = User.create!(name: "역할총괄", role: :superadmin, password: "password")
     post session_path, params: { name: "역할총괄", password: "password" }
     get root_path
+    assert_redirected_to admin_root_path
+    follow_redirect!
     assert_response :success
     assert_match "총괄관리자", response.body
     assert_equal admin.id, session[:user_id]

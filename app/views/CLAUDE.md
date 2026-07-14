@@ -8,7 +8,7 @@
 - `books/` — 도서 목록·상세 + `_book_card` partial
 - `challenges/` — 챌린지(도전과제) 목록·상세
 - `cheers/` — 응원 반영 `update.turbo_stream.erb`(turbo_stream 전용)
-- `dashboard/` — 5개 역할 대시보드(`student`·`teacher`·`librarian`·`school_admin`·`superadmin`)
+- `dashboard/` — 역할별 대시보드(`student`·`teacher`·`librarian`·`school_admin`). 총괄관리자(superadmin)는 별도 대시보드 없이 `dashboard#show`에서 `/admin` 콘솔로 리다이렉트한다.
 - `forum_post_likes/` — 토론 글 좋아요 반영 `update.turbo_stream.erb`(turbo_stream 전용)
 - `games/` — 독서게임 5종(Phase 3 온디맨드 + 소셜). `catalog/index`(도서→게임 진입 관문) + 실동작 show: mcq 계열 `quiz`·`classic`(`_quiz_form` 재사용, 4지선다), `vocab`(`_matching_form`, 짝짓기 — **정답 쌍맵 무유출**, 선택 인덱스만 전송), `whoami`(hint_reveal — 서버 상태의 공개 힌트만 렌더, 정답·잔여수 무유출, 힌트 공개는 `button_to`→`whoami#reveal_hint` 서버 렌더 진행), `book/play`(**책 소개 대결** — 도서별 소개 목록[득표순·`button_to` 투표/취소]·작성 폼·정적 작성 가이드, 퀴즈 파이프라인 밖 소셜). 공용 `_regenerate`(다시 뽑기 버튼 + "포인트는 최고 기록만 반영" 안내, 퀴즈 4종 system 판만).
 - `layouts/` — 역할별 레이아웃. `application`(기본)·`admin`(관리자 사이드바)·`print`(인쇄 전용, `@media print`)·`mailer`(html/text)

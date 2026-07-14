@@ -11,7 +11,7 @@ class DashboardController < ApplicationController
     when :librarian
       render "dashboard/librarian"
     when :superadmin
-      render "dashboard/superadmin"
+      redirect_to admin_root_path
     else
       render "dashboard/student"
     end
