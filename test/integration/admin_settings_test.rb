@@ -20,11 +20,25 @@ class AdminSettingsTest < ActionDispatch::IntegrationTest
   end
 
   test "setting a seasonal banner makes it appear app-wide, and clearing removes it" do
+    # 배너는 application 레이아웃(shared/_seasonal_banner)에서 렌더된다. 총괄관리자는 root 에서
+    # /admin 콘솔로 리다이렉트되어 이 레이아웃을 타지 않으므로, "전역 노출"은 학생 대시보드로 확인한다.
+    school = School.create!(name: "배너초등학교")
+    classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
+    student = User.create!(school: school, classroom: classroom, name: "배너학생", password: "password")
+
     patch admin_settings_path, params: { seasonal_banner: "여름 독서 축제 진행 중!" }
+
+    reset!
+    login_as student
     get root_path
     assert_match "여름 독서 축제 진행 중!", response.body
 
+    reset!
+    login_as @superadmin
     patch admin_settings_path, params: { seasonal_banner: "" }
+
+    reset!
+    login_as student
     get root_path
     assert_no_match "여름 독서 축제 진행 중!", response.body
   end
@@ -54,11 +68,4 @@ class AdminSettingsTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

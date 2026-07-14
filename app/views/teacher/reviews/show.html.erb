@@ -1,6 +1,9 @@
 <% content_for :title, "독후감 검토 · 책갈피" %>
 
-<div class="w-full max-w-2xl mx-auto space-y-6">
+<div class="flex w-full gap-6">
+  <%= render "teacher/nav", active: :reviews %>
+
+  <section class="min-w-0 flex-1 space-y-6">
   <header class="flex items-start justify-between gap-3">
     <div class="min-w-0">
       <h1 class="text-2xl font-bold text-gray-900">
@@ -68,4 +71,5 @@
           class: "rounded-lg border border-rose-300 px-5 py-2 text-sm text-rose-700" %>
     <%= link_to "큐로 돌아가기", teacher_reviews_path, class: "text-sm text-gray-500" %>
   </div>
+  </section>
 </div>

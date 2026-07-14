@@ -74,13 +74,6 @@ class MonsterFeedTest < ActionDispatch::IntegrationTest
 
   private
 
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
-
   # SQLite 는 동시 쓰기 경합 시 "database is locked" 를 던질 수 있다 — 잠깐 뒤 재시도(pointable_test 와 동일).
   def with_retry_on_lock(attempts: 5)
     yield

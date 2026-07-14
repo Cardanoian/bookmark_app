@@ -9,11 +9,9 @@ class DashboardAccessTest < ActionDispatch::IntegrationTest
   test "authenticated user can reach the dashboard" do
     school = School.create!(name: "대시초등학교")
     classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
-    User.create!(school: school, classroom: classroom, name: "대시학생", password: "password")
+    student = User.create!(school: school, classroom: classroom, name: "대시학생", password: "password")
 
-    post session_path, params: {
-      school_id: school.id, classroom_id: classroom.id, name: "대시학생", password: "password"
-    }
+    login_as student
     get root_path
 
     assert_response :success

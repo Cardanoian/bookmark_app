@@ -4,7 +4,7 @@
   <h2 class="mb-1 text-sm font-semibold text-sky-800">사진으로 불러오기</h2>
   <p class="mb-3 text-xs text-sky-700">손으로 쓴 독후감을 찍으면 AI가 글자를 읽어 초안을 채워 줘요.</p>
 
-  <%= form_with url: ocr_path, method: :post, class: "space-y-3" do %>
+  <%= form_with url: ocr_path, method: :post, multipart: true, class: "space-y-3" do %>
     <% if report.persisted? %>
       <%= hidden_field_tag "ocr[report_id]", report.id %>
     <% end %>

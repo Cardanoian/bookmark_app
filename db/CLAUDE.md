@@ -4,9 +4,11 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 32개 테이블, version `2026_07_13_000002`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
-- `seeds.rb` — 시드 오케스트레이션. `db/seed` 진입점으로, 아래 rake 태스크들을 순서대로 `invoke` 하고 그 사이에 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·`app_settings` 기본 플래그를 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
-  - 순서: `schools:seed` → superadmin → **system 유저** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed` → `quizzes:seed` → `app_settings`.
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 32개 테이블, version `2026_07_14_000001`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `seeds.rb` — 시드 오케스트레이션. `db/seed` 진입점으로, 아래 rake 태스크들을 순서대로 `invoke` 하고 그 사이에 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본 플래그를 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
+  - 순서: `schools:seed` → superadmin → **system 유저** → **역할 샘플 계정** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed` → `quizzes:seed` → `app_settings`.
+  - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
+  - **역할 샘플 계정**: **로그인 표면이 2분화**되어(sessions_controller) 학생은 튜플(학교·학급·이름)로, 교직원은 **이메일**로 로그인한다. superadmin(credentials) 외 학생·담임교사·교무관리자·사서 4종은 **모두 같은 학교(`포항원동초등학교`, neis_code `7150001`)** 소속으로 seeds.rb 에 하드코딩(김담임=교사 `approved:true`+3학년1반 담임 `teacher@example.com` / 이학생=학생 3학년1반, **이메일 없음** / 박교무=교무관리자 `schooladmin@example.com` / 최사서=사서 `librarian@example.com`). 대상 학교는 `schools:seed` 선적재가 전제(없으면 스킵). 비번은 `<role>1234`. 헬퍼 `seed_user` 는 신규 생성뿐 아니라 **기존 계정의 비어 있는 attrs(예: email 컬럼 신설 후)만 백필**하므로 `db:reset` 없이 재시드만으로 교직원 이메일 로그인이 가능해진다(비번은 미변경).
   - system 유저는 superadmin 과 같은 신원 규약(name + school_id:nil + classroom_id:nil)으로 `find_or_initialize_by` 멱등 생성(로그인 불가한 시스템 액터). `ContentProvider.system_user`도 같은 신원으로 멱등 확보한다.
   - 기본 `feature_flags` 에 `on_demand_games => true`(온디맨드 게임 워밍 전역 kill switch, Phase 2b C3) 포함. 스코프 오버라이드 규약은 `config/CLAUDE.md`·`app_setting.rb` 참조.
 - `cable_schema.rb` — Solid Cable 보조 DB(`solid_cable_messages`). production `cable` DB.
@@ -29,7 +31,8 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 8. **게임 다양성 축소 + 책 소개 대결(book)** (`20260712000007`–`000009`): `quiz_attempts` 에 `hint_reveals`(whoami 서버 힌트수) 추가 후, 독서게임을 교육 다양성 우선 5종으로 줄이며 소셜 게임 `book`(책 소개 대결)을 신설. `book_intros`(user·book·classroom FK + body + votes_count, 인덱스 `[book_id, classroom_id]`) → `book_intro_votes`(book_intro·user FK, **`(book_intro_id, user_id)` UNIQUE**=소개당 1인 1표, votes_count counter_cache). 퀴즈 파이프라인 밖(Gemini/Quiz 미생성). **+2 테이블(28→30)**. 축소로 제거된 게임 표면·콘텐츠축은 코드/enum 매핑 축소일 뿐이라 마이그레이션 불요(정수 컬럼 그대로).
 9. **무게이트 롤아웃 콘텐츠 신고** (`20260712000010`): `quizzes` 에 `reports_count`(counter_cache) 추가 + `quiz_reports`(quiz·user FK, **`(quiz_id, user_id)` UNIQUE**=1인 1신고, cheer/vote 패턴). 서로 다른 `REPORT_HIDE_THRESHOLD`(2)명 신고 시 자동 숨김+재생성, 신고자 학급 담임 대시보드로 사후 검토. **+1 테이블(30→31)**.
 10. **학교 도로명주소 컬럼** (`20260713000001`): `schools` 에 NEIS 도로명주소(`ORG_RDNMA`) 원본 저장용 `address` 컬럼 추가(gu 파싱 검증·향후 학교 검색 UX 용). 컬럼 추가만이라 테이블 수 불변(31 유지). 기존 축소 시드 17교는 `address` nil 로 남는다.
-11. **게시판 글 좋아요** (`20260713000002`): `forum_post_likes`(forum_post·user FK, `(forum_post_id, user_id)` UNIQUE=1인 1좋아요, `forum_posts.likes_count` counter_cache). **+1 테이블(31→32)**, `schema.rb` version 은 `2026_07_13_000002`.
+11. **게시판 글 좋아요** (`20260713000002`): `forum_post_likes`(forum_post·user FK, `(forum_post_id, user_id)` UNIQUE=1인 1좋아요, `forum_posts.likes_count` counter_cache). **+1 테이블(31→32)**.
+12. **로그인 표면 2분화(교직원 이메일 로그인)** (`20260714000001`): `users` 에 `email`(nullable) + **UNIQUE 인덱스** 추가. 학생은 튜플(학교·학급·이름) 로그인이라 email=NULL(SQLite 유니크 인덱스는 NULL 다중 허용), 교직원(교사·관리자·사서·총괄)은 이메일로 로그인한다(sessions#staff_create). 저장 전 소문자 정규화(user.rb `normalize_email`)라 대소문자 무관 유일성이 인덱스만으로 보장. 컬럼 추가만이라 테이블 수 불변(32 유지). `schema.rb` version 은 `2026_07_14_000001`.
 
 ### seeds/ — 시드 데이터
 

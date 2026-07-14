@@ -1,27 +1,25 @@
-<div class="w-full max-w-md mx-auto">
-  <h1 class="text-2xl font-bold mb-6">로그인</h1>
+<%# 처음 접속 시 안내 인덱스 — 학생/교직원 로그인 선택 화면(sessions#new). %>
+<div class="w-full max-w-md mx-auto text-center">
+  <h1 class="text-3xl font-bold mb-2">책갈피</h1>
+  <p class="mb-8 text-gray-600">어떻게 로그인할까요?</p>
 
-  <% if flash[:alert] %>
-    <div class="mb-4 rounded bg-red-100 px-4 py-2 text-red-800"><%= flash[:alert] %></div>
-  <% end %>
+  <div class="space-y-4">
+    <%= link_to student_login_path,
+          class: "block rounded-2xl border-2 border-blue-200 bg-blue-50 px-6 py-6 hover:border-blue-400 hover:bg-blue-100 transition" do %>
+      <span class="block text-4xl mb-1">🧒</span>
+      <span class="block text-xl font-bold text-blue-800">학생 로그인</span>
+      <span class="block text-sm text-blue-600 mt-1">학교·학급·이름으로 들어가요</span>
+    <% end %>
 
-  <%= form_with url: session_path, method: :post, local: true, class: "space-y-4" do |f| %>
-    <%= render "schools/picker", regions: @regions, with_classroom: true %>
+    <%= link_to staff_login_path,
+          class: "block rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-6 py-6 hover:border-emerald-400 hover:bg-emerald-100 transition" do %>
+      <span class="block text-4xl mb-1">👩‍🏫</span>
+      <span class="block text-xl font-bold text-emerald-800">선생님 로그인</span>
+      <span class="block text-sm text-emerald-600 mt-1">교사·관리자·사서 이메일 로그인</span>
+    <% end %>
+  </div>
 
-    <div>
-      <%= label_tag :name, "이름", class: "block text-sm font-medium" %>
-      <%= text_field_tag :name, nil, class: "mt-1 block w-full rounded border-gray-300" %>
-    </div>
-
-    <div>
-      <%= label_tag :password, "비밀번호", class: "block text-sm font-medium" %>
-      <%= password_field_tag :password, nil, class: "mt-1 block w-full rounded border-gray-300" %>
-    </div>
-
-    <%= submit_tag "로그인", class: "w-full rounded bg-blue-600 px-4 py-2 text-white" %>
-  <% end %>
-
-  <p class="mt-4 text-sm text-center">
-    <%= link_to "학생·교사 회원가입", new_registration_path, class: "text-blue-600 underline" %>
+  <p class="mt-8 text-sm">
+    <%= link_to "교사 가입 신청", new_registration_path, class: "text-blue-600 underline" %>
   </p>
 </div>

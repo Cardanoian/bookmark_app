@@ -3,7 +3,7 @@
 '책갈피'(Rails 8.1)의 전체 자동화 테스트 모음이다. 모델·정책·서비스 단위 테스트부터 역할별 화면·플로우를 검증하는 integration 테스트까지 포함한다. 테스트는 **외부 API를 절대 호출하지 않으며**(`test_helper.rb`가 credentials 키를 공란으로 강제 → 도서검색·정보나루·Gemini가 오프라인 폴백 경로를 탄다), 원격 성공 경로는 스텁 커넥션을 DI로 주입해 검증한다.
 
 ## 하위 카테고리
-- `test_helper.rb` — 공통 설정. 외부 키 공란 강제(오프라인 폴백), 병렬 실행, `fixtures :all`, 헬퍼 `seed_monster_species!`(24라인×3단계=72폼 시드)·`seed_badges!`(뱃지 13종).
+- `test_helper.rb` — 공통 설정. 외부 키 공란 강제(오프라인 폴백), 병렬 실행, `fixtures :all`, 헬퍼 `seed_monster_species!`(24라인×3단계=72폼 시드)·`seed_badges!`(뱃지 13종)·**`login_as(user)`**(역할별 로그인 공용 헬퍼 — 학생은 튜플 `student_login_path`, 교직원은 이메일 `staff_login_path`. 교직원 계정에 이메일이 없으면 로그인용 합성 이메일을 즉석 부여[검증 우회 `update_column`, 트랜잭션 롤백]. 통합 테스트는 이 헬퍼로 로그인 표면 분리를 흡수).
 - `models/` — 모델 단위: 뱃지·도서·학급·학교·리포트·토픽·유저·몬스터종·유저몬스터, 게임화/퀴즈 데이터 모델, 몬스터 시드 무결성, 마이그레이션 FK 존재 검증. **Phase 6 보강(#5)**: `library_loan`·`library_event`·`user_badge`·`forum_post`·`forum_post_like`(좋아요 uniqueness·likes_count counter_cache 증감) 모델 검증, `app_setting`(API 키 저장 차단 보안검증 추가), `monster_seed_integrity`(스타터 3종 정합 + `image_key` WebP 72종의 누락·잔존 파일 검증), **`fk_on_delete_roundtrip`**(reports→books·monster_species 자기참조 on_delete nullify 동작 + SQLite up/down 왕복 무손실; 이 파일만 `use_transactional_tests = false` — DDL 커밋 후 teardown 에서 up 복원·행 정리).
 - `models/concerns/` — 공유 모듈: `Badgeable`·`Evolvable`·`Leveling`·`Pointable`·`RubricScorable`.
 - `controllers/` — 컨트롤러 공용 로직 단위: `axis_averages_parity`(전교 5축 SQL 집계 == 인메모리 집계 parity, #3).
@@ -19,7 +19,7 @@
 - `fixtures/files/` — 테스트 자산. `handwriting.png`(OCR 입력 이미지)·`schools_sample.csv`(NEIS 전량 시드 파싱용 샘플). YAML 픽스처는 사용하지 않고, 데이터는 각 테스트의 `setup`/시더로 생성.
 
 ## integration/ 대표 그룹
-- **인증·역할 진입**: `registrations`(교사 신청+승인 게이트)·`sessions`·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
+- **인증·역할 진입**: `registrations`(교사 신청+**이메일 필수**+승인 게이트)·`sessions`(**로그인 표면 2분화** — 안내 인덱스 선택 화면 + 학생 튜플 로그인 + 교직원 이메일 로그인 + 표면 교차 차단 + 스로틀)·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
 - **독후감 파이프라인**: `report_review_flow`(Phase 3 완료 게이트)·`reports`·`ocr`(사진→텍스트)·`learn_wizard`(단계 학습 위저드).
 - **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`.
 - **교사(P6)**: `teacher_dashboard`·`teacher_missions`·`teacher_quizzes`·`teacher_reviews`·`teacher_students`·`teacher_rubric_config`·`teacher_exports`(CSV)·`teacher_prints`(인쇄 문서).

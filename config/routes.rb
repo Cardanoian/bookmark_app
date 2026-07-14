@@ -1,8 +1,18 @@
 Rails.application.routes.draw do
   root "dashboard#show"
 
-  # 인증 (튜플 신원)
-  resource  :session, only: [ :new, :create, :destroy ]
+  # 인증 — 처음 접속 시 안내 인덱스(학생/교직원 선택) + 분리 로그인 + 공용 로그아웃.
+  #   new(GET /session/new) = 안내 인덱스 선택 화면. 비로그인 접근 리다이렉트(require_login)가
+  #     이 경로로 오므로, 앱에 처음 들어오면 학생·교직원 로그인을 고르는 화면이 뜬다.
+  #   destroy(DELETE /session) = 로그아웃(전 역할 공용, 기존 로그아웃 버튼 재사용).
+  resource :session, only: [ :new, :destroy ]
+  # 학생 로그인 — 시도/시군구/학교/학급/이름/비밀번호(튜플 신원).
+  get  "login/student", to: "sessions#student_new",    as: :student_login
+  post "login/student", to: "sessions#student_create"
+  # 교직원(교사·교무관리자·사서·총괄관리자) 로그인 — 이메일/비밀번호.
+  get  "login/staff",   to: "sessions#staff_new",      as: :staff_login
+  post "login/staff",   to: "sessions#staff_create"
+
   resources :registrations, only: [ :new, :create ]
   # 학교 선택 하이브리드 피커(가입/로그인 공개). 이름검색(search) + 시군구 캐스케이딩(gus)
   # + 로그인 종속 학급(:id/classrooms). 리터럴 경로를 :id 보다 먼저 선언한다.

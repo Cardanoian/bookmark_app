@@ -15,7 +15,7 @@ class OcrTest < ActionDispatch::IntegrationTest
 
     get new_report_path
     assert_response :success
-    assert_match "키보드나 원고지로 입력해 주세요", response.body
+    assert_match "키보드로 입력해 주세요", response.body
     assert_no_match(/value="ocr"/, response.body)
 
     assert_no_enqueued_jobs(only: OcrJob) do
@@ -53,12 +53,5 @@ class OcrTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Ai::GeminiClient.define_singleton_method(:available?, original)
-  end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
   end
 end

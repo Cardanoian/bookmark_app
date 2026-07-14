@@ -25,12 +25,29 @@ class AiReviewJob < ApplicationJob
 
     award_points_delta(report.user, delta)
     broadcast_review_ready(report)
+    broadcast_report_detail(report)
   rescue StandardError => e
     Rails.logger.error("AiReviewJob failed for report #{report&.id}: #{e.class}: #{e.message}")
-    report&.update(ai_status: :failed)
+    if report&.update(ai_status: :failed)
+      broadcast_report_detail(report)
+    end
   end
 
   private
+
+  # 첨삭/재첨삭 완료(또는 실패) → 학생 상세 화면(show)의 상세 영역을 실시간 교체한다.
+  # show 의 turbo_stream_from @report 구독과 대응. 학생이 고쳐쓰기 후 저장하면 이 방송으로
+  # "첨삭 중" → 새 5축 결과가 새로고침 없이 반영된다. 방송 실패는 흡수(첨삭 결과 커밋 보존).
+  def broadcast_report_detail(report)
+    report.broadcast_replace_to(
+      report,
+      target: ActionView::RecordIdentifier.dom_id(report, :detail),
+      partial: "reports/report_detail",
+      locals: { report: report }
+    )
+  rescue StandardError => e
+    Rails.logger.warn("AiReviewJob detail broadcast failed for report #{report&.id}: #{e.class}: #{e.message}")
+  end
 
   # 포인트 차액 적용. 양수는 award_points 로 적립해 뱃지·진화·랭킹 후크를 태우고,
   # 음수(재첨삭으로 등급 하락)는 잔액을 조정한 뒤 뱃지를 재계산(멱등)한다.

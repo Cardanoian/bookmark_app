@@ -1,26 +1,30 @@
 <% content_for :title, "검토 큐 · 책갈피" %>
 
-<div class="w-full max-w-3xl mx-auto">
-  <%= turbo_stream_from current_user.classroom, :review_queue if current_user.classroom %>
+<div class="flex w-full gap-6">
+  <%= render "teacher/nav", active: :reviews %>
 
-  <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">검토 큐</h1>
-    <%= link_to "대시보드", root_path, class: "text-sm text-gray-500" %>
-  </header>
+  <section class="min-w-0 flex-1 space-y-6">
+    <%= turbo_stream_from current_user.classroom, :review_queue if current_user.classroom %>
 
-  <% if @reports.any? %>
-    <%= form_with url: batch_approve_teacher_reviews_path, method: :post, class: "space-y-3" do %>
-      <div id="review_queue" class="space-y-3">
-        <%= render partial: "teacher/reviews/report_row", collection: @reports, as: :report %>
+    <header class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-gray-900">검토 큐</h1>
+      <%= link_to "대시보드", root_path, class: "text-sm text-gray-500" %>
+    </header>
+
+    <% if @reports.any? %>
+      <%= form_with url: batch_approve_teacher_reviews_path, method: :post, class: "space-y-3" do %>
+        <div id="review_queue" class="space-y-3">
+          <%= render partial: "teacher/reviews/report_row", collection: @reports, as: :report %>
+        </div>
+        <button type="submit"
+                class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">
+          선택 일괄 승인
+        </button>
+      <% end %>
+    <% else %>
+      <div id="review_queue">
+        <%= render "shared/empty_state", message: "검토할 독후감이 아직 없습니다.", icon: "📝" %>
       </div>
-      <button type="submit"
-              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">
-        선택 일괄 승인
-      </button>
     <% end %>
-  <% else %>
-    <div id="review_queue">
-      <%= render "shared/empty_state", message: "검토할 독후감이 아직 없습니다.", icon: "📝" %>
-    </div>
-  <% end %>
+  </section>
 </div>

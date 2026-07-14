@@ -6,7 +6,7 @@ class OcrController < ApplicationController
       # 기능 플래그(Gemini 키) 비활성 조기 거부 — 리소스에 도달하기 전이라 인가 대상이 없다.
       skip_authorization
       redirect_back fallback_location: new_report_path,
-        alert: "사진 모드를 사용할 수 없어요. 키보드나 원고지로 입력해 주세요."
+        alert: "사진 모드를 사용할 수 없어요. 키보드로 입력해 주세요."
       return
     end
 

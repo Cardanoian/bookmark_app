@@ -103,11 +103,4 @@ class LibrarianLoansTest < ActionDispatch::IntegrationTest
     Library::Data4libraryService.singleton_class.send(:remove_method, :new)
     Library::Data4libraryService.define_singleton_method(:new, original)
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

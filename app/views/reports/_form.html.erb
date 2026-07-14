@@ -1,5 +1,8 @@
 <%# 독후감 작성·수정 폼. local: report %>
-<%= form_with model: report, class: "space-y-6" do |f| %>
+<%# 기존 글(고쳐쓰기/수정)만 dirty-check 대상: 본문이 달라져야 저장 활성화.
+    새 글은 위저드 초안이 프리필될 수 있어 컨트롤러를 붙이지 않는다. %>
+<%= form_with model: report, class: "space-y-6",
+      data: (report.persisted? ? { controller: "report-edit" } : {}) do |f| %>
   <% if report.errors.any? %>
     <div class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
       <ul class="list-inside list-disc">
@@ -16,42 +19,21 @@
           class: "w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-amber-400 focus:outline-none" %>
   </div>
 
-  <fieldset data-controller="wongoji" data-wongoji-columns-value="20" data-wongoji-rows-value="10">
-    <legend class="mb-2 block text-sm font-medium text-gray-700">입력 방식</legend>
-    <div class="mb-3 flex flex-wrap gap-4 text-sm">
-      <label class="flex items-center gap-1.5">
-        <%= f.radio_button :input_mode, "keyboard",
-              data: { wongoji_target: "modeRadio", action: "wongoji#switchMode" } %>
-        키보드
-      </label>
-      <label class="flex items-center gap-1.5">
-        <%= f.radio_button :input_mode, "wongoji",
-              data: { wongoji_target: "modeRadio", action: "wongoji#switchMode" } %>
-        원고지
-      </label>
-      <% if ocr_available? %>
-        <label class="flex items-center gap-1.5">
-          <%= f.radio_button :input_mode, "ocr", data: { wongoji_target: "modeRadio" } %>
-          사진(OCR)
-        </label>
-      <% end %>
-    </div>
-
-    <div data-wongoji-target="grid"
-         class="mb-3 hidden overflow-x-auto rounded-lg border border-amber-200 bg-amber-50 p-2"></div>
-
+  <div>
+    <%= f.label :body, "독후감", class: "mb-1 block text-sm font-medium text-gray-700" %>
     <%= render "reports/body_field", report: report %>
-  </fieldset>
+  </div>
 
   <% unless ocr_available? %>
     <p class="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">
-      지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드나 원고지로 입력해 주세요.
+      지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드로 입력해 주세요.
     </p>
   <% end %>
 
   <div class="flex items-center gap-3">
     <%= f.submit report.persisted? ? "수정하기" : "제출하기",
-          class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white" %>
+          class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white",
+          data: { "report-edit-target": "submit" } %>
     <%= link_to "취소", reports_path, class: "text-sm text-gray-500" %>
   </div>
 <% end %>

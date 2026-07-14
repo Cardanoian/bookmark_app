@@ -96,6 +96,62 @@ class ReportsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # 수정/고쳐쓰기 단일화(#misc): 상세 화면에는 고쳐쓰기만 노출하고 제자리 '수정' 링크는 제거한다.
+  test "report show exposes 고쳐쓰기 but no longer the in-place 수정 link" do
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "본문", ai_status: :done)
+    login_as @student
+
+    get report_path(report)
+    assert_response :success
+    assert_select "form[action=?]", revise_report_path(report), 1, "고쳐쓰기 버튼(button_to)이 있어야 한다"
+    assert_select "a[href=?]", edit_report_path(report), count: 0, message: "제자리 수정 링크는 제거되어야 한다"
+  end
+
+  # 재첨삭 결과가 새로고침 없이 보이도록 학생 상세 화면은 report 스트림을 구독한다.
+  test "report show subscribes to the report stream for live review updates" do
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "본문", ai_status: :pending)
+    login_as @student
+
+    get report_path(report)
+    assert_response :success
+    assert_select "turbo-cable-stream-source", 1, "상세 화면이 라이브 갱신을 구독해야 한다"
+  end
+
+  # 첨삭 완료 시 학생 상세 영역을 실시간 교체하는 방송이 report 스트림으로 나간다.
+  test "completing a review broadcasts a live replace to the report's own stream" do
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책",
+      body: "나는 우리의 삶을 떠올리며 감동을 느꼈다.", ai_status: :pending)
+
+    broadcasts = capture_turbo_stream_broadcasts(report) do
+      perform_enqueued_jobs { AiReviewJob.perform_later(report) }
+    end
+
+    assert report.reload.done?
+    assert(broadcasts.any? { |stream| stream["action"] == "replace" }, "재첨삭 완료 시 replace 방송이 있어야 한다")
+  end
+
+  # dirty-check 배선: 고쳐쓰기(기존 글) 폼은 본문이 달라져야 저장이 눌리도록 report-edit 컨트롤러를 단다.
+  test "revision edit form wires the report-edit dirty-check controller" do
+    original = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "원본 본문", ai_status: :done)
+    login_as @student
+    post revise_report_path(original)
+    revision = @student.reports.where.not(id: original.id).order(:created_at).last
+
+    get edit_report_path(revision)
+    assert_response :success
+    assert_select "form[data-controller='report-edit']", 1
+    assert_select "textarea[data-report-edit-target='body']", 1
+    assert_select "input[type=submit][data-report-edit-target='submit']", 1
+  end
+
+  # 새 글 폼은 위저드 초안을 그대로 제출할 수 있어야 하므로 dirty-check 를 걸지 않는다.
+  test "new report form is not gated by the dirty-check controller" do
+    login_as @student
+    get new_report_path
+    assert_response :success
+    assert_select "form[data-controller='report-edit']", count: 0
+  end
+
   test "completing a review appends a row to the classroom review queue" do
     login_as @student
 
@@ -125,11 +181,4 @@ class ReportsTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

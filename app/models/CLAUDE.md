@@ -5,7 +5,7 @@
 ## 파일
 
 ### 사용자·학교
-- `user.rb` — 5개 role(student·teacher·school_admin·librarian·superadmin) enum + mode(normal·easy) enum. `has_secure_password`, school·classroom·active_monster 소속. Pointable·Leveling·Evolvable·Badgeable 4개 concern 포함(게임 루프 주체). 임시 비밀번호 생성 클래스 메서드 제공.
+- `user.rb` — 5개 role(student·teacher·school_admin·librarian·superadmin) enum + mode(normal·easy) enum. `has_secure_password`, school·classroom·active_monster 소속. Pointable·Leveling·Evolvable·Badgeable 4개 concern 포함(게임 루프 주체). 임시 비밀번호 생성 클래스 메서드 제공. **로그인 표면 2분화용 `email` 컬럼**: 학생은 튜플(학교·학급·이름)로, 교직원(`staff?`=`!student?`)은 이메일로 로그인한다(sessions_controller). email 은 저장 전 `normalize_email`(앞뒤 공백 제거+소문자, 빈 값 NULL)로 정규화하고 **형식·유일성(대소문자 무관)만 검증**(presence 미강제 — 이메일 없는 계정 생성 자체는 허용, 로그인만 불가). 교사 가입(registrations)에서 이메일을 필수로 받는다.
 - `school.rb` — 학교. classroom·user를 거느리며 neis_code 유일성 검증. `address`(NEIS 도로명주소 원본) 컬럼 보유.
 - `classroom.rb` — 학급. teacher(User) 담임 + 학생·독후감 소속. 학급별 루브릭 가중치(`rubric_config` JSON)를 기본값 주입·조회.
 - `current.rb` — `ActiveSupport::CurrentAttributes`. 요청 단위 user·classroom 저장, user→school 위임.

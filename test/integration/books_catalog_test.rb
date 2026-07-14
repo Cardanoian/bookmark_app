@@ -65,11 +65,4 @@ class BooksCatalogTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "이전", response.body
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

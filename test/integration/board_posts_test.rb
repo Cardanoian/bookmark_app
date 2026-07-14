@@ -195,11 +195,4 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(visible)}"
     assert_select "##{ActionView::RecordIdentifier.dom_id(hidden)}", count: 0
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

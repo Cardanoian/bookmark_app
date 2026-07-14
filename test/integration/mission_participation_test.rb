@@ -64,11 +64,4 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

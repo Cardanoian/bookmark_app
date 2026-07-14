@@ -1,6 +1,7 @@
 <%# OcrJob 이 이 요소를 통째로 교체해 본문 초안을 채운다. local: report %>
 <textarea id="report_body_field" name="report[body]"
-          data-wongoji-target="input"
           rows="12"
+          data-report-edit-target="body"
+          data-action="input->report-edit#refresh"
           class="w-full rounded-lg border border-gray-300 p-3 text-sm leading-relaxed focus:border-amber-400 focus:outline-none"
           placeholder="책을 읽고 든 생각과 느낌, 그리고 내 삶과 연결된 이야기를 써 보세요."><%= report.body %></textarea>

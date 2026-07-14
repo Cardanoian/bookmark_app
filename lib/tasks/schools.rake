@@ -45,18 +45,15 @@ namespace :schools do
       { neis_code: "7120001", name: "충남천안초등학교",   region: "충청남도교육청",         gu: "천안시",   office_code: "N10" },
       { neis_code: "7130001", name: "전북전주초등학교",   region: "전북특별자치도교육청",   gu: "전주시",   office_code: "P10" },
       { neis_code: "7140001", name: "전남순천초등학교",   region: "전라남도교육청",         gu: "순천시",   office_code: "Q10" },
-      { neis_code: "7150001", name: "경북포항초등학교",   region: "경상북도교육청",         gu: "포항시",   office_code: "R10" },
+      { neis_code: "7150001", name: "포항원동초등학교",   region: "경상북도교육청",         gu: "포항시",   office_code: "R10" },
       { neis_code: "7160001", name: "경남창원초등학교",   region: "경상남도교육청",         gu: "창원시",   office_code: "S10" },
       { neis_code: "7170001", name: "제주제주북초등학교", region: "제주특별자치도교육청",   gu: "제주시",   office_code: "T10" }
     ]
 
     schools.each do |attrs|
-      School.find_or_create_by!(neis_code: attrs[:neis_code]) do |school|
-        school.name        = attrs[:name]
-        school.region      = attrs[:region]
-        school.gu          = attrs[:gu]
-        school.office_code = attrs[:office_code]
-      end
+      school = School.find_or_initialize_by(neis_code: attrs[:neis_code])
+      school.assign_attributes(attrs)
+      school.save!
     end
 
     puts "Seeded schools. School.count = #{School.count}"

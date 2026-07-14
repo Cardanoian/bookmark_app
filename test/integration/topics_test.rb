@@ -78,11 +78,4 @@ class TopicsTest < ActionDispatch::IntegrationTest
       ForumPostLike.create!(forum_post: message, user: @student1)
     end
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

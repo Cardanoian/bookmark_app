@@ -44,8 +44,12 @@ class ReportsController < ApplicationController
     authorize @report
 
     if @report.update(report_params)
-      submit_for_review(@report) if resubmit?
-      redirect_to @report, notice: "독후감을 수정했어요."
+      if resubmit?
+        submit_for_review(@report)
+        redirect_to @report, notice: "고쳐 썼어요! AI 선생님이 다시 첨삭하고 있어요."
+      else
+        redirect_to @report, notice: "독후감을 저장했어요."
+      end
     else
       render :edit, status: :unprocessable_entity
     end

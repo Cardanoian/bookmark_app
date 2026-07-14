@@ -4,7 +4,7 @@
 
 ## routes.rb — 라우팅 지도(가장 중요)
 
-`root`은 `dashboard#show`. 인증은 튜플 신원(`session`·`registrations`) 기반이며, 학교 선택 하이브리드 피커용으로 `schools/search`(이름검색) 옆에 `schools/gus`(시도→시군구 목록)·`schools/:id/classrooms`(로그인 종속 학급 스코프 조회)가 별도 GET 으로 존재. 크게 **학생용 최상위 리소스**와 **역할별 네임스페이스**로 나뉩니다.
+`root`은 `dashboard#show`. **인증은 로그인 표면이 둘로 분리**된다: 처음 접속 시 `session#new`(GET `/session/new`, `new_session_path`)가 **안내 인덱스**(학생/교직원 선택 화면)를 렌더하고, 비로그인 리다이렉트(`require_login`)도 이 경로로 온다. 실제 로그인은 ① **학생** `login/student`(GET `sessions#student_new` = 튜플 신원 폼 / POST `sessions#student_create`, `student_login_path`)와 ② **교직원**(교사·교무관리자·사서·총괄관리자) `login/staff`(GET `sessions#staff_new` = 이메일 폼 / POST `sessions#staff_create`, `staff_login_path`)로 나뉜다. 로그아웃은 공용 `DELETE /session`(`session_path`, `sessions#destroy`). 교사 가입(`registrations`)은 이메일을 필수로 받는다(교직원은 이메일로 로그인). 학교 선택 하이브리드 피커용으로 `schools/search`(이름검색) 옆에 `schools/gus`(시도→시군구 목록)·`schools/:id/classrooms`(학생 로그인 종속 학급 스코프 조회)가 별도 GET 으로 존재. 크게 **학생용 최상위 리소스**와 **역할별 네임스페이스**로 나뉩니다.
 
 - **학생 영역(최상위)**
   - `reports` — 독후감 CRUD + `revise`(고쳐쓰기)·`share`(공유) member 액션, `ocr`(사진 손글씨 인식) singular 리소스.

@@ -240,10 +240,4 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     answers = quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
     post games_attempts_path, params: { quiz_id: quiz.id, game: game, answers: answers }
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id, name: user.name, password: "password"
-    }
-  end
 end

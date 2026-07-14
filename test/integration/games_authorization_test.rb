@@ -95,10 +95,4 @@ class GamesAuthorizationTest < ActionDispatch::IntegrationTest
     quiz.quiz_questions.create!(prompt: "문항", choices: %w[가 나 다 라], answer_index: 0, position: 1)
     quiz
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id, name: user.name, password: "password"
-    }
-  end
 end

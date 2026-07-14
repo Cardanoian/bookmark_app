@@ -57,12 +57,9 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     post approve_admin_user_path(teacher)
     assert teacher.reload.approved?
 
-    # 승인 후에는 로그인 가능해야 한다.
+    # 승인 후에는 로그인 가능해야 한다(교사는 이메일 로그인).
     reset!
-    post session_path, params: {
-      school_id: teacher.school_id, classroom_id: teacher.classroom_id,
-      name: teacher.name, password: "password"
-    }
+    login_as teacher
     assert_redirected_to root_path
     assert_equal teacher.id, session[:user_id]
   end
@@ -98,10 +95,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
 
   test "a suspended user cannot log in" do
     @student.update!(suspended: true)
-    post session_path, params: {
-      school_id: @student.school_id, classroom_id: @student.classroom_id,
-      name: @student.name, password: "password"
-    }
+    login_as @student
     assert_response :forbidden
     assert_nil session[:user_id]
   end
@@ -172,11 +166,4 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
 end

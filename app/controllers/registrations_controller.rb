@@ -16,10 +16,18 @@ class RegistrationsController < ApplicationController
       approved: false,
       school_id: params[:school_id].presence,
       name: params[:name],
+      email: params[:email],
       password: params[:password]
     )
 
-    unless user.valid?
+    # 교사는 이메일로 로그인하므로(sessions#staff_create) 가입 시 이메일을 필수로 받는다.
+    # 모델은 형식·유일성만 검증하므로(presence 미강제) 여기서 빈 이메일을 명시적으로 막는다.
+    # valid? 를 먼저 호출해 모델 검증으로 errors 를 채운 뒤(빈 이메일이면 normalize 로 nil),
+    # presence 오류를 추가한다(valid? 가 뒤에 오면 수동 추가 오류가 지워지므로 순서가 중요).
+    user.valid?
+    user.errors.add(:email, "을(를) 입력해 주세요.") if user.email.blank?
+
+    unless user.errors.empty?
       render_new_with_errors(user)
       return
     end

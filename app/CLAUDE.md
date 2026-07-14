@@ -8,7 +8,7 @@
 - [`services/`](services/CLAUDE.md) — 도메인 서비스 객체(랭킹·독서통계·몬스터) + AI 연동 `ai/`(Gemini·OCR·독후감 첨삭)
 - [`policies/`](policies/CLAUDE.md) — Pundit 인가 정책. 리소스별 접근 권한 규칙
 - [`views/`](views/CLAUDE.md) — ERB 뷰. 리소스별 화면 + 역할별 레이아웃 + turbo_stream 응답
-- [`javascript/`](javascript/CLAUDE.md) — Stimulus 컨트롤러(Import Maps). 검색 자동완성·사진 압축·원고지·도감 등 클라이언트 UI
+- [`javascript/`](javascript/CLAUDE.md) — Stimulus 컨트롤러(Import Maps). 검색 자동완성·사진 압축·도감 등 클라이언트 UI
 - [`jobs/`](jobs/CLAUDE.md) — Active Job 백그라운드 작업(AI 첨삭·OCR 비동기 처리)
 - [`helpers/`](helpers/CLAUDE.md) — 뷰 헬퍼. 표시 포맷·아이콘·상태 배지 등 뷰 보조 로직
 

@@ -40,7 +40,7 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
 
   test "superadmin is redirected to the admin console" do
     admin = User.create!(name: "역할총괄", role: :superadmin, password: "password")
-    post session_path, params: { name: "역할총괄", password: "password" }
+    login_as admin
     get root_path
     assert_redirected_to admin_root_path
     follow_redirect!
@@ -53,13 +53,5 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
 
   def create_user(name:, classroom:, role: :student)
     User.create!(school: @school, classroom: classroom, name: name, role: role, password: "password", approved: true)
-  end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-    assert_equal user.id, session[:user_id]
   end
 end

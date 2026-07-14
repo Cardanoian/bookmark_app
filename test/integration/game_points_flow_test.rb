@@ -72,13 +72,6 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
     assert_equal 3, ReadingStats.new(@student).quizzes, "플레이 횟수(quizzes) 자체는 계속 증가"
   end
 
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id,
-      name: user.name, password: "password"
-    }
-  end
-
   # 만점 25점(정답 5포인트 × 5문항) 게시 퀴즈 1개.
   def build_quiz(title)
     quiz = Quiz.create!(title: title, created_by: @teacher, book: @book, scope: :global, published: true)

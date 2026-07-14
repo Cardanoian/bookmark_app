@@ -21,10 +21,10 @@
 - `pwa/` — PWA 자산. `manifest.json.erb`·`service-worker.js`
 - `rankings/` — 랭킹 화면 + `_podium`·`_ranking_row` partial. 전국(`nation`) 탭은 Top100 + 본인이 Top100 밖이면 "우리 학교" 행을 별도 표기.
 - `registrations/` — 회원가입 `new`. 학교 선택은 `schools/_picker` partial 렌더(전량 select 아님).
-- `reports/` — 독후감 CRUD + `_form`·`_rubric`·`_ocr_upload`·`_body_field`·`_report` partial
+- `reports/` — 독후감 CRUD + `_form`·`_rubric`·`_ocr_upload`·`_body_field`·`_report`·`_report_detail` partial. **상세(`show`)는 제자리 '수정' 버튼 없이 고쳐쓰기 단일 경로**이고, 상태 의존 영역을 `_report_detail`(local: report, 루트 `dom_id(report, :detail)`)로 분리해 `turbo_stream_from @report` 구독 + AiReviewJob 방송으로 **첨삭/재첨삭 완료를 새로고침 없이 라이브 교체**한다(정책 게이트 버튼은 방송 밖 유지).
 - `school_admin/` — 학교관리자 화면. `neis`(생기부)·`stats`(통계)
 - `schools/` — 학교 선택 하이브리드 피커 `_picker` partial(가입/로그인 공용). 시도/시군구 캐스케이딩 + 이름검색으로 학교 셀렉트를 채우고, `with_classroom: true`(로그인 폼)면 선택 학교의 학급만 스코프 로드.
-- `sessions/` — 로그인 `new`. 학교 선택은 `schools/_picker` partial 렌더(전량 select 아님).
+- `sessions/` — 로그인 표면 3화면. `new`(**안내 인덱스** — 처음 접속 시 학생/교직원 로그인 선택 카드, 폼 없음)·`student_new`(학생 로그인 폼, 학교 선택은 `schools/_picker` partial 렌더 + 학급 드롭다운)·`staff_new`(교직원 이메일·비밀번호 로그인 폼). 로그아웃은 별도 뷰 없이 `DELETE /session`.
 - `shared/` — 앱 공통 partial. `_empty_state`·`_seasonal_banner`
 - `shops/` — 상점 상세 + `_shop_item` partial
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)

@@ -13,6 +13,10 @@ class SessionsController < ApplicationController
   # 카운팅은 Phase 2b 의 RateLimiter(Solid Cache 원자 increment)로 하며 read-modify-write 경쟁이
   # 없다. rate_limit_store 는 테스트 주입 시임(프로덕션 nil → Rails.cache; test 는 :null_store 라
   # 무카운팅이므로 스로틀 테스트에서만 인메모리 스토어를 주입한다).
+  #
+  # 로그인 표면은 둘로 나뉜다(신원 방식만 다르고 위 방어 로직은 공유):
+  #   - 학생(student_create): (학교·학급·이름) 튜플 + 비밀번호. 조회는 학생 역할로 한정한다.
+  #   - 교직원(staff_create): 이메일 + 비밀번호. 조회는 학생 이외 역할로 한정한다.
   IP_THROTTLE = { limit: 10, period: 3.minutes }.freeze
   ACCOUNT_THROTTLE = { limit: 8, period: 10.minutes }.freeze
 
@@ -20,32 +24,40 @@ class SessionsController < ApplicationController
     attr_accessor :rate_limit_store
   end
 
-  skip_before_action :require_login, only: [ :new, :create ]
-  # 로그인/로그아웃 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
+  skip_before_action :require_login,
+    only: [ :new, :student_new, :student_create, :staff_new, :staff_create ]
+  # 로그인/로그아웃·안내 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
   skip_after_action :verify_authorized
 
+  # 처음 접속 시 안내 인덱스 — 학생 로그인 / 교직원 로그인 선택 화면(폼 없음).
   def new
+  end
+
+  # 학생 로그인 폼(시도·시군구·학교·학급·이름·비밀번호).
+  def student_new
     load_form_collections
   end
 
-  def create
-    user = find_user
-    authenticated = user&.authenticate(params[:password])
+  def student_create
+    attempt_login(
+      user: find_student,
+      account_key: student_account_key,
+      failure_message: "학교·학급·이름·비밀번호를 다시 확인해 주세요.",
+      form: :student_new
+    )
+  end
 
-    if authenticated
-      reset_login_failures # 정답 = 브루트포스 아님 → IP·계정 실패 카운터 해제(피해자 DoS·NAT 방지)
-      handle_authenticated(user)
-    elsif locked_out?
-      # 오답인데 이미 실패 한도 초과 → 추가 추측 차단(정답은 위에서 이미 통과했으므로 여기 안 온다).
-      load_form_collections
-      flash.now[:alert] = "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요."
-      render :new, status: :too_many_requests
-    else
-      register_login_failure # 오답 → IP·계정 실패 카운트 증가
-      load_form_collections
-      flash.now[:alert] = "학교·학급·이름·비밀번호를 다시 확인해 주세요."
-      render :new, status: :unprocessable_entity
-    end
+  # 교직원(교사·교무관리자·사서·총괄관리자) 로그인 폼(이메일·비밀번호).
+  def staff_new
+  end
+
+  def staff_create
+    attempt_login(
+      user: find_staff,
+      account_key: staff_account_key,
+      failure_message: "이메일 또는 비밀번호를 다시 확인해 주세요.",
+      form: :staff_new
+    )
   end
 
   def destroy
@@ -55,16 +67,26 @@ class SessionsController < ApplicationController
 
   private
 
+  # 학생·교직원 공용 인증 흐름. 신원 조회(user)와 스로틀 계정 키(account_key)만 표면별로 다르다.
+  def attempt_login(user:, account_key:, failure_message:, form:)
+    if user&.authenticate(params[:password])
+      reset_login_failures(account_key) # 정답 = 브루트포스 아님 → IP·계정 실패 카운터 해제(피해자 DoS·NAT 방지)
+      handle_authenticated(user, form)
+    elsif locked_out?(account_key)
+      # 오답인데 이미 실패 한도 초과 → 추가 추측 차단(정답은 위에서 이미 통과했으므로 여기 안 온다).
+      rerender_form(form, "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요.", :too_many_requests)
+    else
+      register_login_failure(account_key) # 오답 → IP·계정 실패 카운트 증가
+      rerender_form(form, failure_message, :unprocessable_entity)
+    end
+  end
+
   # 정답 인증 후 계정 상태 게이트(정지·교사 미승인 → 로그인 차단하되 실패로 세지 않음).
-  def handle_authenticated(user)
+  def handle_authenticated(user, form)
     if user.suspended?
-      load_form_collections
-      flash.now[:alert] = "정지된 계정입니다. 관리자에게 문의해 주세요."
-      render :new, status: :forbidden
+      rerender_form(form, "정지된 계정입니다. 관리자에게 문의해 주세요.", :forbidden)
     elsif user.teacher? && !user.approved?
-      load_form_collections
-      flash.now[:alert] = "관리자 승인 후 로그인할 수 있어요."
-      render :new, status: :forbidden
+      rerender_form(form, "관리자 승인 후 로그인할 수 있어요.", :forbidden)
     else
       reset_session
       session[:user_id] = user.id
@@ -72,22 +94,29 @@ class SessionsController < ApplicationController
     end
   end
 
+  # 실패·차단 시 해당 로그인 폼을 flash 와 함께 재렌더. 학생 폼만 학교 피커 컬렉션이 필요하다.
+  def rerender_form(form, message, status)
+    load_form_collections if form == :student_new
+    flash.now[:alert] = message
+    render form, status: status
+  end
+
   # IP·계정 두 축 중 하나라도 **실패 누적**이 한도 이상이면 true. peek 는 증가 없이 조회만 한다.
-  def locked_out?
+  def locked_out?(account_key)
     limiter = login_limiter
     limiter.peek("login:ip:#{request.remote_ip}") >= IP_THROTTLE[:limit] ||
       limiter.peek("login:account:#{account_key}") >= ACCOUNT_THROTTLE[:limit]
   end
 
   # 로그인 실패 1회 기록(IP·계정 두 축 원자 increment).
-  def register_login_failure
+  def register_login_failure(account_key)
     limiter = login_limiter
     limiter.record_failure("login:ip:#{request.remote_ip}", IP_THROTTLE[:period])
     limiter.record_failure("login:account:#{account_key}", ACCOUNT_THROTTLE[:period])
   end
 
   # 인증 성공 시 IP·계정 실패 카운터를 모두 리셋한다(정답 로그인은 누적 실패를 해제).
-  def reset_login_failures
+  def reset_login_failures(account_key)
     limiter = login_limiter
     limiter.reset("login:ip:#{request.remote_ip}")
     limiter.reset("login:account:#{account_key}")
@@ -97,27 +126,51 @@ class SessionsController < ApplicationController
     @login_limiter ||= RateLimiter.new(store: self.class.rate_limit_store || Rails.cache)
   end
 
-  # 계정 식별 스로틀 키. 존재하는 계정은 안정적인 user.id 로 키잉(id 문자열 변형 우회 차단).
+  # 학생 스로틀 계정 키. 존재하는 계정은 안정적인 user.id 로 키잉(id 문자열 변형 우회 차단).
   # 미존재(오타/추측)만 정규화 튜플(id 를 정수화해 "5"/"05" 버킷 분열 방지).
-  def account_key
-    user = find_user
+  def student_account_key
+    user = find_student
     return "user:#{user.id}" if user
 
     [ params[:school_id].to_i, params[:classroom_id].to_i, params[:name].to_s.strip.downcase ].join(":")
   end
 
-  # 튜플 신원(학교·학급·이름) 조회. 스로틀 키와 인증에서 공유하도록 메모이즈(중복 쿼리 방지).
-  def find_user
-    return @find_user if defined?(@find_user)
+  # 교직원 스로틀 계정 키. 존재 계정은 user.id, 미존재(오타/추측)는 정규화 이메일 문자열.
+  def staff_account_key
+    user = find_staff
+    return "user:#{user.id}" if user
 
-    @find_user = User.find_by(
+    "email:#{normalized_email}"
+  end
+
+  # 학생 튜플 신원(학교·학급·이름) 조회. 스로틀 키와 인증에서 공유하도록 메모이즈(중복 쿼리 방지).
+  # 학생 역할로 한정해 교직원이 학생 폼으로 로그인하지 못하게 한다(신원 방식 격리).
+  def find_student
+    return @find_student if defined?(@find_student)
+
+    @find_student = User.student.find_by(
       school_id: params[:school_id].presence,
       classroom_id: params[:classroom_id].presence,
       name: params[:name]
     )
   end
 
-  # 로그인 학교 피커는 하이브리드라 전량 로드하지 않고 시도(교육청) 목록만 서버 렌더한다.
+  # 교직원 이메일 신원 조회. 학생 이외 역할로 한정하고, 이메일이 비면 조회하지 않는다(nil).
+  def find_staff
+    return @find_staff if defined?(@find_staff)
+
+    email = normalized_email
+    return @find_staff = nil if email.blank?
+
+    @find_staff = User.where.not(role: :student).find_by(email: email)
+  end
+
+  # 로그인 이메일 정규화(모델 저장 규칙과 동일 — 앞뒤 공백 제거 + 소문자).
+  def normalized_email
+    params[:email].to_s.strip.downcase
+  end
+
+  # 학생 로그인 학교 피커는 하이브리드라 전량 로드하지 않고 시도(교육청) 목록만 서버 렌더한다.
   # 학급은 학교 선택 시 /schools/:id/classrooms 로 스코프 조회한다(전국 전량 로드 제거, §2.2).
   def load_form_collections
     @regions = School.form_regions

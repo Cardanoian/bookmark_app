@@ -124,10 +124,4 @@ class GamesBookIntroTest < ActionDispatch::IntegrationTest
   def create_intro(user, body: "이 책을 친구에게 추천하고 싶은 이유를 적어요.")
     BookIntro.create!(user: user, book: @book, classroom: user.classroom, body: body)
   end
-
-  def login_as(user)
-    post session_path, params: {
-      school_id: user.school_id, classroom_id: user.classroom_id, name: user.name, password: "password"
-    }
-  end
 end
