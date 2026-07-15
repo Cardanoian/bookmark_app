@@ -5,7 +5,7 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "인쇄학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "인쇄담임", role: :teacher, password: "password", approved: true)
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "인쇄담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "인쇄학생", password: "password")
     Report.create!(
@@ -56,7 +56,7 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
 
   test "a non-담임 teacher cannot print another classroom's student" do
     other_classroom = Classroom.create!(school: @school, grade: 5, class_no: 2)
-    other_teacher = User.create!(school: @school, classroom: other_classroom, name: "인쇄타담임", role: :teacher, password: "password", approved: true)
+    other_teacher = User.create!(school: @school, classroom: other_classroom, name: "인쇄타담임", role: :teacher, password: "password")
     other_classroom.update!(teacher: other_teacher)
 
     login_as other_teacher

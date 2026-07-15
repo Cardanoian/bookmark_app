@@ -23,6 +23,10 @@ class MonstersController < ApplicationController
     @current_species = @user_monster&.monster_species || @line.first
     @stats = ReadingStats.new(current_user)
     @evolvable = @user_monster&.evolvable? || false
+    # AI 첨삭은 끝났지만(done) 아직 교사 승인 전(reviewed: false)이라 진화 조건 '독후감 수'
+    # (ReadingStats#reports = 승인 독후감)에 아직 안 잡힌 글 수. 조건에 reports 키가 있을 때
+    # "승인되면 반영된다"는 안내를 띄워 첨삭 완료/승인 대기의 시점 차이를 학생에게 설명한다.
+    @awaiting_review_count = current_user.reports.done.where(reviewed: false).count
     @foods = current_user.purchases.includes(:shop_item)
                          .select { |purchase| purchase.quantity.positive? && feed_item?(purchase.shop_item) }
   end

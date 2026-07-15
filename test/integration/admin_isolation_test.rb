@@ -9,7 +9,7 @@ class AdminIsolationTest < ActionDispatch::IntegrationTest
 
     @superadmin  = User.create!(name: "총괄관리자", role: :superadmin, password: "password")
     @school_admin = User.create!(school: @school, name: "교무관리자", role: :school_admin, password: "password")
-    @teacher     = User.create!(school: @school, classroom: @classroom, name: "담임교사", role: :teacher, password: "password", approved: true)
+    @teacher     = User.create!(school: @school, classroom: @classroom, name: "담임교사", role: :teacher, password: "password")
     @librarian   = User.create!(school: @school, name: "사서선생", role: :librarian, password: "password")
     @student     = User.create!(school: @school, classroom: @classroom, name: "홍길동", role: :student, password: "password")
 

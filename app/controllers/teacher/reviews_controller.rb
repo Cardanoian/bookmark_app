@@ -87,7 +87,7 @@ class Teacher::ReviewsController < ApplicationController
       [ report.user, :reports ],
       target: ActionView::RecordIdentifier.dom_id(report),
       partial: "reports/report",
-      locals: { report: report }
+      locals: { report: report, show_delete: true }
     )
   end
 end

@@ -63,6 +63,17 @@ class ReadingDomainTest < ActiveSupport::TestCase
     assert_includes ReadingDomain.quizgen_prompt(:g56), "초등학교 5~6학년"
   end
 
+  test "ocr prompt removes layout line breaks while preserving intentional paragraphs" do
+    prompt = ReadingDomain::OCR_PROMPT
+
+    assert_includes prompt, "행 끝 줄바꿈은 문단 구분이 아니므로 없애고"
+    assert_includes prompt, "한 단어가 갈라졌다면 공백 없이"
+    assert_includes prompt, "일부러 나눈 문단"
+    assert_includes prompt, "들여쓰기해서 시작한 줄"
+    assert_includes prompt, "빈 줄 하나(\\n\\n)"
+    assert_includes prompt, "맞춤법이나 문장을 임의로 고치지 말고"
+  end
+
   test "flat constants remain the 5~6학년군 default for backward compatibility" do
     assert_equal ReadingDomain.achievement_standards(:g56), ReadingDomain::ACHIEVEMENT_STANDARDS
     assert_equal ReadingDomain.recommended_activities(:g56), ReadingDomain::RECOMMENDED_ACTIVITIES

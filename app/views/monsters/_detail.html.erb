@@ -1,4 +1,4 @@
-<%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, foods:, celebrate: false) %>
+<%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, foods:, awaiting_review_count: 0, celebrate: false) %>
 <div id="monster_detail" class="rounded-2xl border border-gray-200 p-6">
   <div class="mb-6 text-center"
        data-controller="monster-care"
@@ -35,6 +35,12 @@
             </li>
           <% end %>
         </ul>
+        <% if condition.keys.map(&:to_s).include?("reports") && awaiting_review_count.positive? %>
+          <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            ✏️ AI 첨삭을 마친 독후감 <%= awaiting_review_count %>개가 선생님의 승인을 기다리고 있어요.
+            선생님이 승인하면 '독후감 수' 진화 조건에 반영돼요.
+          </p>
+        <% end %>
       </div>
     <% else %>
       <p class="mb-6 text-center text-sm font-medium text-amber-600">✨ 완전형에 도달했어요!</p>

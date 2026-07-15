@@ -1,10 +1,6 @@
 <%# 사용자 관리 목록(P7.2). 이름·역할·학교 검색. %>
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">사용자 관리</h1>
-    <%= link_to "승인 대기 교사", admin_users_path(pending: 1),
-          class: "rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-800" %>
-  </div>
+  <h1 class="text-xl font-bold text-gray-900">사용자 관리</h1>
 
   <%= form_with url: admin_users_path, method: :get, class: "flex flex-wrap gap-2" do |f| %>
     <%= f.text_field :q, value: params[:q], placeholder: "이름 검색",
@@ -29,8 +25,6 @@
           <td class="py-2 pr-4">
             <% if user.suspended? %>
               <span class="rounded bg-rose-100 px-2 py-0.5 text-xs text-rose-700">정지</span>
-            <% elsif user.teacher? && !user.approved? %>
-              <span class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700">승인 대기</span>
             <% else %>
               <span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">활성</span>
             <% end %>

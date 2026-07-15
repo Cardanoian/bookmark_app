@@ -3,6 +3,9 @@
 class AiReviewJob < ApplicationJob
   queue_as :default
 
+  # 학생이 첨삭 대기 중인 독후감을 삭제했다면 남은 큐 작업은 실패로 쌓지 않는다.
+  discard_on ActiveJob::DeserializationError
+
   def perform(report)
     report.update!(ai_status: :processing)
 

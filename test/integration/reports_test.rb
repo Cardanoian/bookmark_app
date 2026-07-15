@@ -6,7 +6,7 @@ class ReportsTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "독후감통합학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "통합담임", role: :teacher, password: "password", approved: true)
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "통합담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "통합학생", password: "password")
     @other = User.create!(school: @school, classroom: @classroom, name: "다른통합학생", password: "password")
@@ -29,6 +29,42 @@ class ReportsTest < ActionDispatch::IntegrationTest
     report = Report.create!(user: @other, classroom: @classroom, book_title: "남의 글")
     login_as @student
     get report_path(report)
+    assert_response :forbidden
+  end
+
+  test "student deletes own report from the list" do
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "지울 글", body: "본문")
+    login_as @student
+
+    get reports_path
+    assert_select "form[action=?][method=post]", report_path(report) do
+      assert_select "input[name=_method][value=delete]", 1
+      assert_select "button", text: "삭제"
+    end
+
+    assert_difference("Report.count", -1) do
+      delete report_path(report)
+    end
+    assert_redirected_to reports_path
+  end
+
+  test "deleting a pending report safely discards its queued review job" do
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "대기 중인 글", body: "본문")
+    login_as @student
+    AiReviewJob.perform_later(report)
+
+    delete report_path(report)
+
+    assert_nothing_raised { perform_enqueued_jobs }
+  end
+
+  test "student cannot delete another student's report" do
+    report = Report.create!(user: @other, classroom: @classroom, book_title: "남의 글", body: "본문")
+    login_as @student
+
+    assert_no_difference("Report.count") do
+      delete report_path(report)
+    end
     assert_response :forbidden
   end
 

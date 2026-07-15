@@ -1,0 +1,24 @@
+<%# 학생 상단 네비게이션. locals: active (심볼) — 현재 메뉴 강조 %>
+<%# locals: (active: nil) %>
+<% if current_user&.student? %>
+  <nav class="mb-8 border-b border-gray-200">
+    <ul class="flex gap-6 text-sm font-medium">
+      <% nav_items = [
+           [ :library, "내 서재", root_path ],
+           [ :reports, "독후감", reports_path ],
+           [ :games, "게임", games_catalog_path ],
+           [ :monsters, "도감", monsters_path ],
+           [ :shop, "상점", shop_path ],
+           [ :missions, "미션", missions_path ],
+           [ :rankings, "랭킹", rankings_path ]
+         ] %>
+      <% nav_items.each do |key, label, path| %>
+        <% if key == active %>
+          <li class="border-b-2 border-amber-400 pb-3 text-gray-900"><%= label %></li>
+        <% else %>
+          <li class="pb-3 text-gray-400"><%= link_to label, path, class: "hover:text-gray-700" %></li>
+        <% end %>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>

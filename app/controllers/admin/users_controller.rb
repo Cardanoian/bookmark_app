@@ -1,7 +1,6 @@
-# 사용자 관리(P7.2). 전 계정 검색·조회·수정 + 정지/해제·비밀번호 초기화·역할 부여
-# + 교사 가입 승인/취소(0.1).
+# 사용자 관리(P7.2). 전 계정 검색·조회·수정 + 정지/해제·비밀번호 초기화·역할 부여.
 class Admin::UsersController < Admin::BaseController
-  before_action :set_user, only: [ :show, :edit, :update, :suspend, :unsuspend, :reset_password, :role, :approve, :unapprove ]
+  before_action :set_user, only: [ :show, :edit, :update, :suspend, :unsuspend, :reset_password, :role ]
 
   PER_PAGE = 50
 
@@ -10,7 +9,6 @@ class Admin::UsersController < Admin::BaseController
     scope = scope.where("name LIKE ?", "%#{User.sanitize_sql_like(params[:q])}%") if params[:q].present?
     scope = scope.where(role: params[:role]) if params[:role].present? && User.roles.key?(params[:role])
     scope = scope.where(school_id: params[:school_id]) if params[:school_id].present?
-    scope = scope.where(role: :teacher, approved: false) if params[:pending].present?
     @page, @has_next_page, @users = paginate(scope)
     @schools = School.order(:name)
   end
@@ -54,16 +52,6 @@ class Admin::UsersController < Admin::BaseController
   def unsuspend
     @user.update!(suspended: false)
     redirect_to admin_user_path(@user), notice: "‘#{@user.name}’ 계정 정지를 해제했어요."
-  end
-
-  def approve
-    @user.update!(approved: true)
-    redirect_to admin_user_path(@user), notice: "‘#{@user.name}’ 계정을 승인했어요."
-  end
-
-  def unapprove
-    @user.update!(approved: false)
-    redirect_to admin_user_path(@user), notice: "‘#{@user.name}’ 계정 승인을 취소했어요."
   end
 
   def reset_password

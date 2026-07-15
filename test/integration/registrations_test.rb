@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 0.1 공개 회원가입 = 교사 신청 전용 + 관리자 승인 게이트 + 학급 탈취 방지.
+# 0.1 공개 회원가입 = 교사 신청 전용 + 학급 탈취 방지. 승인 게이트 없이 가입 즉시 로그인된다.
 # 교사는 이메일로 로그인하므로(sessions#staff_create) 가입 시 이메일을 필수로 받는다.
 class RegistrationsTest < ActionDispatch::IntegrationTest
   setup do
@@ -19,7 +19,7 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "가입목록에없어야할초", "학교는 전량 서버 렌더하지 않는다(AJAX 로드)"
   end
 
-  test "teacher signup creates an unapproved teacher and does not sign in" do
+  test "teacher signup creates a teacher and signs in immediately" do
     assert_difference "User.count", 1 do
       post registrations_path, params: {
         role: "teacher", school_id: @school.id,
@@ -30,9 +30,8 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
     user = User.find_by(name: "교사가입")
     assert user.teacher?
     assert_equal "signup@example.com", user.email
-    assert_not user.approved?, "신규 교사는 승인 대기(approved:false) 상태여야 한다"
-    assert_nil session[:user_id], "가입 즉시 로그인되면 안 된다"
-    assert_redirected_to new_session_path
+    assert_equal user.id, session[:user_id], "승인 게이트가 없으므로 가입 즉시 로그인된다"
+    assert_redirected_to root_path
 
     classroom = Classroom.find_by(school: @school, grade: 5, class_no: 2)
     assert_equal user, classroom.teacher
@@ -50,7 +49,7 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
 
   test "signup with a duplicate email is rejected" do
     User.create!(school: @school, classroom: @classroom, name: "기존교사",
-      role: :teacher, email: "dup@example.com", password: "password", approved: true)
+      role: :teacher, email: "dup@example.com", password: "password")
 
     assert_no_difference "User.count" do
       post registrations_path, params: {
@@ -61,26 +60,9 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "an unapproved teacher cannot log in until approved" do
-    post registrations_path, params: {
-      role: "teacher", school_id: @school.id,
-      name: "미승인교사", email: "pending@example.com", password: "password", grade: 6, class_no: 1
-    }
-    teacher = User.find_by(name: "미승인교사")
-
-    login_as teacher
-    assert_response :forbidden
-    assert_nil session[:user_id]
-
-    teacher.update!(approved: true)
-    login_as teacher
-    assert_redirected_to root_path
-    assert_equal teacher.id, session[:user_id]
-  end
-
   test "signup cannot take over a classroom that already has a different teacher" do
     incumbent = User.create!(school: @school, classroom: @classroom, name: "기존담임",
-      role: :teacher, email: "incumbent@example.com", password: "password", approved: true)
+      role: :teacher, email: "incumbent@example.com", password: "password")
     @classroom.update!(teacher: incumbent)
 
     assert_no_difference "User.count" do
@@ -102,10 +84,11 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
         name: "학생가입시도", email: "studenttry@example.com", password: "password"
       }
     end
-    assert_nil session[:user_id]
+    # role 파라미터는 무시되고 교사로만 생성된다(학생 계정은 만들 수 없다).
+    assert User.find_by(name: "학생가입시도").teacher?
   end
 
-  test "role param is ignored — signups are always unapproved teachers" do
+  test "role param is ignored — signups are always teachers" do
     %w[school_admin librarian superadmin student].each do |role|
       post registrations_path, params: {
         role: role, school_id: @school.id, name: "역할무시_#{role}",
@@ -113,7 +96,6 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
       }
       created = User.find_by(name: "역할무시_#{role}")
       assert created.teacher?, "어떤 role 파라미터든 교사로만 생성돼야 한다"
-      assert_not created.approved?
     end
   end
 

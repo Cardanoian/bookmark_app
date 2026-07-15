@@ -16,5 +16,6 @@
   <%= render "monsters/detail",
         user_monster: @user_monster, current_species: @current_species, line: @line,
         stats: @stats, evolvable: @evolvable, dex_no: @dex_no, foods: @foods,
+        awaiting_review_count: @awaiting_review_count,
         celebrate: flash[:celebrate].present? %>
 </div>

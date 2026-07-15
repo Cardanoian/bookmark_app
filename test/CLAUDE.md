@@ -19,15 +19,15 @@
 - `fixtures/files/` — 테스트 자산. `handwriting.png`(OCR 입력 이미지)·`schools_sample.csv`(NEIS 전량 시드 파싱용 샘플). YAML 픽스처는 사용하지 않고, 데이터는 각 테스트의 `setup`/시더로 생성.
 
 ## integration/ 대표 그룹
-- **인증·역할 진입**: `registrations`(교사 신청+**이메일 필수**+승인 게이트)·`sessions`(**로그인 표면 2분화** — 안내 인덱스 선택 화면 + 학생 튜플 로그인 + 교직원 이메일 로그인 + 표면 교차 차단 + 스로틀)·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
+- **인증·역할 진입**: `registrations`(교사 회원가입+**이메일 필수**+가입 즉시 로그인)·`sessions`(**로그인 표면 2분화** — 안내 인덱스 선택 화면 + 학생 튜플 로그인 + 교직원 이메일 로그인 + 표면 교차 차단 + 스로틀)·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
 - **독후감 파이프라인**: `report_review_flow`(Phase 3 완료 게이트)·`reports`·`ocr`(사진→텍스트)·`learn_wizard`(단계 학습 위저드).
-- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`.
+- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`·`student_nav_persistence`(학생 상단 navbar가 7개 메뉴 페이지[내 서재·독후감·게임·도감·상점·미션·랭킹] 전체에서 렌더·활성 탭 강조 유지).
 - **교사(P6)**: `teacher_dashboard`·`teacher_missions`·`teacher_quizzes`·`teacher_reviews`·`teacher_students`·`teacher_rubric_config`·`teacher_exports`(CSV)·`teacher_prints`(인쇄 문서).
 - **사서(P6.5)**: `librarian_dashboard`·`librarian_events`·`librarian_loans`(정보나루 동기화).
 - **교무관리자**: `school_admin_neis`(생기부 요약)·`school_admin_stats`(전교 통계·학교 경계).
 - **총괄관리자(P7)**: `admin_isolation`(superadmin 전용 격리)·`admin_users`·`admin_content`·`admin_settings`(API 키 저장 금지 가드)·`admin_moderation`·`admin_analytics`·`admin_monster_species`.
 - **인가 안전망·보안**: `authorization_safety_net`(fail-closed, authorize 누락 감지)·`content_security_policy`.
-- **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약).
+- **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약·작성자 전용 목록 삭제).
 
 ## 패턴·규칙
 - 실행: `bin/rails test` (전체, 약 720 runs). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.

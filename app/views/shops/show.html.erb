@@ -12,6 +12,8 @@
     </div>
   </header>
 
+  <%= render "shared/student_nav", active: :shop %>
+
   <div id="shop_flash" class="mb-4"></div>
 
   <% if @items_by_category.empty? %>
@@ -28,8 +30,4 @@
       </section>
     <% end %>
   <% end %>
-
-  <p class="mt-6 text-center text-sm">
-    <%= link_to "← 도감으로", monsters_path, class: "text-gray-500 hover:text-gray-700" %>
-  </p>
 </div>

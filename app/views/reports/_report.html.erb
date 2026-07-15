@@ -9,6 +9,11 @@
     <div class="flex shrink-0 items-center gap-2">
       <%= level_badge(report.level) %>
       <%= ai_status_badge(report) %>
+      <% if local_assigns.fetch(:show_delete, false) %>
+        <%= button_to "삭제", report_path(report), method: :delete,
+              form: { data: { turbo_confirm: "이 독후감을 삭제할까요? 삭제한 글은 되돌릴 수 없어요." } },
+              class: "text-xs font-medium text-red-600 hover:text-red-800" %>
+      <% end %>
     </div>
   </div>
 

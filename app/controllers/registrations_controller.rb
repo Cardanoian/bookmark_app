@@ -1,6 +1,5 @@
 # 공개 회원가입은 교사 신청 전용(0.1). 학생 자가가입은 제거됐고 학생 계정은 담임교사가
-# teacher/students 에서 생성한다. 교사 신청은 approved:false 로 생성되며 관리자 승인 전에는
-# 로그인할 수 없다(세션 게이트). 가입 즉시 로그인시키지 않는다.
+# teacher/students 에서 생성한다. 승인 게이트 없이 가입 즉시 로그인되어 바로 활동할 수 있다.
 class RegistrationsController < ApplicationController
   skip_before_action :require_login, only: [ :new, :create ]
   # 공개 교사 신청 진입점 — 인가할 리소스가 없다(가입 전 비로그인 흐름).
@@ -13,7 +12,6 @@ class RegistrationsController < ApplicationController
   def create
     user = User.new(
       role: :teacher,
-      approved: false,
       school_id: params[:school_id].presence,
       name: params[:name],
       email: params[:email],
@@ -33,13 +31,16 @@ class RegistrationsController < ApplicationController
     end
 
     # 학급 배정까지 원자적으로 처리한다. 학급 탈취(assign_classroom 가드) 시 롤백돼
-    # 승인 대기 계정만 남는 고아 레코드가 생기지 않는다.
+    # 고아 계정 레코드가 생기지 않는다.
     User.transaction do
       user.save!
       assign_classroom(user)
     end
 
-    redirect_to new_session_path, notice: "가입 신청이 접수됐어요. 관리자 승인 후 로그인할 수 있어요."
+    # 승인 게이트가 없으므로 가입 즉시 로그인시켜 바로 활동하게 한다.
+    reset_session
+    session[:user_id] = user.id
+    redirect_to root_path, notice: "가입이 완료됐어요. 책갈피에 오신 걸 환영해요!"
   end
 
   private

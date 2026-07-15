@@ -10,7 +10,7 @@ class GamesAuthorizationTest < ActionDispatch::IntegrationTest
     @room_a = Classroom.create!(school: @school, grade: 5, class_no: 1) # g56
     @room_b = Classroom.create!(school: @school, grade: 5, class_no: 2) # g56, 다른 학급
     @room_low = Classroom.create!(school: @school, grade: 1, class_no: 3) # g12
-    @teacher = User.create!(school: @school, classroom: @room_a, name: "경계교사", password: "password", role: :teacher, approved: true)
+    @teacher = User.create!(school: @school, classroom: @room_a, name: "경계교사", password: "password", role: :teacher)
     @student_a = User.create!(school: @school, classroom: @room_a, name: "A반학생", password: "password")
     @student_b = User.create!(school: @school, classroom: @room_b, name: "B반학생", password: "password")
     @student_low = User.create!(school: @school, classroom: @room_low, name: "저학년학생", password: "password")
@@ -80,7 +80,7 @@ class GamesAuthorizationTest < ActionDispatch::IntegrationTest
   # ── 교사 manage 접근은 클램프에 걸리지 않는다 ──
   test "a teacher can preview any published quiz (manage access preserved)" do
     quiz_a = teacher_classroom_quiz(@room_a)
-    other_teacher = User.create!(school: @school, classroom: @room_b, name: "다른교사", password: "password", role: :teacher, approved: true)
+    other_teacher = User.create!(school: @school, classroom: @room_b, name: "다른교사", password: "password", role: :teacher)
 
     login_as other_teacher
     get games_quiz_path(quiz_a)

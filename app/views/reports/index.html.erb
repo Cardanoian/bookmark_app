@@ -9,13 +9,16 @@
     <% end %>
   </header>
 
+  <%= render "shared/student_nav", active: :reports %>
+
   <% if current_user.student? %>
     <%= turbo_stream_from current_user, :reports %>
   <% end %>
 
   <% if @reports.any? %>
     <div id="reports" class="space-y-3">
-      <%= render partial: "reports/report", collection: @reports %>
+      <%= render partial: "reports/report", collection: @reports,
+            locals: { show_delete: current_user.student? } %>
     </div>
   <% else %>
     <%= render "shared/empty_state",

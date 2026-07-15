@@ -29,6 +29,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 | `test/` | Minitest (모델·통합·정책·서비스·잡) | [test/CLAUDE.md](test/CLAUDE.md) |
 | `script/` | Python 몬스터 스프라이트 생성 파이프라인 (앱 런타임과 분리) | [script/CLAUDE.md](script/CLAUDE.md) |
 | `docs/` | 설계·구현·운영 문서 | [docs/CLAUDE.md](docs/CLAUDE.md) |
+| `manual/` | 역할별(학생·교사·사서·교무·관리자) 최종 사용자 사용 매뉴얼 | [manual/CLAUDE.md](manual/CLAUDE.md) |
 
 **스킵한 폴더** (코드 열람 불필요): `bin/` `public/` `vendor/` `tmp/` `log/` `storage/` `.github/` `.kamal/` 및 `script/` 하위의 `output/`·`.venv/`·`__pycache__/`.
 

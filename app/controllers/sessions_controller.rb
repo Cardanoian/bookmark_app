@@ -81,12 +81,10 @@ class SessionsController < ApplicationController
     end
   end
 
-  # 정답 인증 후 계정 상태 게이트(정지·교사 미승인 → 로그인 차단하되 실패로 세지 않음).
+  # 정답 인증 후 계정 상태 게이트(정지 → 로그인 차단하되 실패로 세지 않음).
   def handle_authenticated(user, form)
     if user.suspended?
       rerender_form(form, "정지된 계정입니다. 관리자에게 문의해 주세요.", :forbidden)
-    elsif user.teacher? && !user.approved?
-      rerender_form(form, "관리자 승인 후 로그인할 수 있어요.", :forbidden)
     else
       reset_session
       session[:user_id] = user.id

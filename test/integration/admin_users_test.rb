@@ -51,36 +51,6 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_not_equal temp, @student.password_digest, "password must be hashed, not plaintext"
   end
 
-  test "approve lets a pending teacher log in" do
-    teacher = User.create!(school: @school, classroom: @classroom, name: "승인대기교사", role: :teacher, password: "password", approved: false)
-    login_as @superadmin
-    post approve_admin_user_path(teacher)
-    assert teacher.reload.approved?
-
-    # 승인 후에는 로그인 가능해야 한다(교사는 이메일 로그인).
-    reset!
-    login_as teacher
-    assert_redirected_to root_path
-    assert_equal teacher.id, session[:user_id]
-  end
-
-  test "unapprove blocks a previously approved teacher" do
-    teacher = User.create!(school: @school, classroom: @classroom, name: "승인취소교사", role: :teacher, password: "password", approved: true)
-    login_as @superadmin
-    post unapprove_admin_user_path(teacher)
-    assert_not teacher.reload.approved?
-  end
-
-  test "pending filter lists only unapproved teachers" do
-    pending = User.create!(school: @school, classroom: @classroom, name: "필터대기교사", role: :teacher, password: "password", approved: false)
-    approved = User.create!(school: @school, classroom: @classroom, name: "필터승인교사", role: :teacher, password: "password", approved: true)
-    login_as @superadmin
-    get admin_users_path(pending: 1)
-    assert_response :success
-    assert_match pending.name, response.body
-    assert_no_match approved.name, response.body
-  end
-
   test "role change updates the role" do
     login_as @superadmin
     patch role_admin_user_path(@student), params: { role: "teacher" }

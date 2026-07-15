@@ -8,8 +8,9 @@
       <p class="text-sm font-medium text-amber-600">몬스터 도감</p>
       <h1 class="text-2xl font-bold text-gray-900">함께 성장하는 반려 몬스터</h1>
     </div>
-    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
   </header>
+
+  <%= render "shared/student_nav", active: :monsters %>
 
   <div class="mb-6 grid gap-4 sm:grid-cols-3">
     <div class="sm:col-span-2">

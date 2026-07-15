@@ -1,5 +1,5 @@
 class ReportsController < ApplicationController
-  before_action :set_report, only: [ :show, :edit, :update, :revise, :share ]
+  before_action :set_report, only: [ :show, :edit, :update, :destroy, :revise, :share ]
 
   PER_PAGE = 20
 
@@ -53,6 +53,13 @@ class ReportsController < ApplicationController
     else
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    authorize @report
+    @report.destroy!
+
+    redirect_to reports_path, notice: "독후감을 삭제했어요.", status: :see_other
   end
 
   # 고쳐쓰기: 원본을 잇는 새 독후감을 만든다(P3.10).

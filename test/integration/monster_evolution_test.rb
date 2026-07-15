@@ -65,5 +65,28 @@ class MonsterEvolutionTest < ActionDispatch::IntegrationTest
     assert_includes @student.badges.reload.pluck(:key), "first_evolve"
   end
 
+  # 첨삭 완료(done)됐지만 교사 승인 전(reviewed: false)인 독후감은 진화 조건 '독후감 수'
+  # (승인 기준)에 안 잡힌다. 도감 상세가 그 시점 차이를 학생에게 안내하는지 검증.
+  test "detail notes AI-reviewed reports awaiting teacher approval when reports is a condition" do
+    Report.create!(user: @student, classroom: @classroom, book_title: "대기책", ai_status: :done, reviewed: false)
+    login_as @student
+
+    get monster_path(@monster.dex_no)
+
+    assert_response :success
+    assert_match "선생님의 승인을 기다리고 있어요", response.body
+    assert_match "독후감 1개", response.body
+  end
+
+  test "detail hides the approval notice when no reports await teacher approval" do
+    Report.create!(user: @student, classroom: @classroom, book_title: "승인책", ai_status: :done, reviewed: true)
+    login_as @student
+
+    get monster_path(@monster.dex_no)
+
+    assert_response :success
+    assert_no_match "승인을 기다리고 있어요", response.body
+  end
+
   private
 end

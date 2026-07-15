@@ -9,7 +9,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     )
     @teacher = User.create!(
       school: @school, classroom: @classroom, name: "로그인교사",
-      role: :teacher, email: "teacher@login.test", password: "password", approved: true
+      role: :teacher, email: "teacher@login.test", password: "password"
     )
   end
 
@@ -119,7 +119,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
   end
 
-  # ── 로그아웃 · 계정 상태 게이트 ──────────────────────────────────────
+  # ── 로그아웃 ─────────────────────────────────────────────────────────
   test "logout resets the session" do
     post student_login_path, params: {
       school_id: @school.id, classroom_id: @classroom.id,
@@ -129,18 +129,6 @@ class SessionsTest < ActionDispatch::IntegrationTest
 
     delete session_path
     assert_redirected_to new_session_path
-    assert_nil session[:user_id]
-  end
-
-  test "an unapproved teacher is blocked from logging in" do
-    teacher = User.create!(
-      school: @school, classroom: @classroom, name: "미승인담임",
-      role: :teacher, email: "pending@login.test", password: "password", approved: false
-    )
-
-    post staff_login_path, params: { email: teacher.email, password: "password" }
-
-    assert_response :forbidden
     assert_nil session[:user_id]
   end
 

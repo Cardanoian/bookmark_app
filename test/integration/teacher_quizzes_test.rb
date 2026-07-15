@@ -5,7 +5,7 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "퀴즈학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "퀴즈담임", role: :teacher, password: "password", approved: true)
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "퀴즈담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "퀴즈학생", password: "password")
     @book = Book.create!(title: "마당을 나온 암탉", author: "황선미", summary: "잎싹 이야기", category: :recommended)
@@ -55,7 +55,7 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
   # 교차-학급 IDOR 방지 — 승인 교사라도 남의 학급 id 를 주입해 퀴즈를 넣을 수 없다.
   test "a teacher cannot inject a quiz into another teacher's classroom via classroom_id" do
     other_classroom = Classroom.create!(school: @school, grade: 6, class_no: 2)
-    other_teacher = User.create!(school: @school, classroom: other_classroom, name: "다른담임", role: :teacher, password: "password", approved: true)
+    other_teacher = User.create!(school: @school, classroom: other_classroom, name: "다른담임", role: :teacher, password: "password")
     other_classroom.update!(teacher: other_teacher)
 
     login_as @teacher

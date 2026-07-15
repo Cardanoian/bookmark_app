@@ -5,7 +5,7 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "대시보드학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @teacher = User.create!(school: @school, classroom: @classroom, name: "대시담임", role: :teacher, password: "password", approved: true)
+    @teacher = User.create!(school: @school, classroom: @classroom, name: "대시담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "대시학생", password: "password")
 

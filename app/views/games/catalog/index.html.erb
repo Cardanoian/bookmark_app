@@ -1,13 +1,12 @@
 <% content_for :title, "독서 게임 · 책갈피" %>
 
 <div class="w-full max-w-3xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">🎮 독서 게임</h1>
-      <p class="mt-1 text-sm text-gray-500">책을 고르면 바로 게임이 만들어져요. 기다릴 필요 없어요!</p>
-    </div>
-    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  <header class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">🎮 독서 게임</h1>
+    <p class="mt-1 text-sm text-gray-500">책을 고르면 바로 게임이 만들어져요. 기다릴 필요 없어요!</p>
   </header>
+
+  <%= render "shared/student_nav", active: :games %>
 
   <section class="mb-6 rounded-xl border border-gray-200 p-4">
     <h2 class="text-sm font-semibold text-gray-900">즐길 수 있는 게임</h2>

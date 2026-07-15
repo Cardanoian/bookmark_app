@@ -15,7 +15,6 @@ class Teacher::StudentsController < Teacher::BaseController
       classroom: classroom,
       school_id: classroom.school_id,
       role: :student,
-      approved: true,
       password: temporary_password
     )
 

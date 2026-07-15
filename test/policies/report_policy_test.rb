@@ -68,6 +68,12 @@ class ReportPolicyTest < ActiveSupport::TestCase
     assert_not ReportPolicy.new(@teacher2, @report1).update?
   end
 
+  test "destroy? allows only the student author" do
+    assert ReportPolicy.new(@student1, @report1).destroy?
+    assert_not ReportPolicy.new(@student2, @report1).destroy?
+    assert_not ReportPolicy.new(@teacher1, @report1).destroy?
+  end
+
   private
 
   def scope_for(user)

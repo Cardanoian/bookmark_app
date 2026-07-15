@@ -3,8 +3,9 @@
 <div class="w-full max-w-2xl mx-auto">
   <header class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-900">학급 미션</h1>
-    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
   </header>
+
+  <%= render "shared/student_nav", active: :missions %>
 
   <% if @missions.any? %>
     <div class="space-y-3">

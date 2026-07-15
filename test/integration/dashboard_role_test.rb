@@ -52,6 +52,6 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
   private
 
   def create_user(name:, classroom:, role: :student)
-    User.create!(school: @school, classroom: classroom, name: name, role: role, password: "password", approved: true)
+    User.create!(school: @school, classroom: classroom, name: name, role: role, password: "password")
   end
 end

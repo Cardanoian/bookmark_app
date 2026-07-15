@@ -34,14 +34,14 @@ else
 end
 
 # 역할별 개발 샘플 계정 (학생·담임교사·교무관리자·사서) — 모두 같은 학교 소속으로 하드코딩.
-# 로그인 신원은 (학교·학급·이름) 튜플이며(sessions_controller), 교사는 approved:true 여야 로그인 가능.
+# 교직원(교사·교무관리자·사서)은 이메일로, 학생은 (학교·학급·이름) 튜플로 로그인한다(sessions_controller).
 # superadmin 은 위에서 credentials(:superadmin) 로 별도 시드된다. 모든 계정은 멱등(신원 튜플).
 sample_school = School.find_by(neis_code: "7150001") # 포항원동초등학교 (schools:seed 로 선적재)
 
 if sample_school.nil?
   puts "Sample school (neis_code 7150001) not found — skipping role sample accounts."
 else
-  # 신원 튜플로 멱등 생성하는 헬퍼. approved·email 등 부가 속성은 attrs 로 전달.
+  # 신원 튜플로 멱등 생성하는 헬퍼. email 등 부가 속성은 attrs 로 전달.
   # 기존 계정이면 비어 있는 attrs(예: email 컬럼 신설 후)만 백필한다 — 비번은 건드리지 않아
   # db:reset 없이 재시드만으로 교직원 이메일 로그인이 가능해진다.
   seed_user = lambda do |name:, role:, classroom_id:, password:, **attrs|
@@ -65,10 +65,10 @@ else
     user
   end
 
-  # 담임교사 — 학급의 담임이 되므로 학생·학급보다 먼저 만든다. approved:true(미승인이면 로그인 차단).
+  # 담임교사 — 학급의 담임이 되므로 학생·학급보다 먼저 만든다.
   # 교직원(교사·교무관리자·사서)은 이메일로 로그인한다(sessions#staff_create).
   sample_teacher = seed_user.call(name: "김담임", role: :teacher, classroom_id: nil,
-    password: "teacher1234", approved: true, email: "teacher@example.com")
+    password: "teacher1234", email: "teacher@example.com")
 
   # 담임 학급(3학년 1반) — 학생이 소속될 학급. 위 교사를 담임으로 연결.
   sample_classroom = Classroom.find_or_create_by!(school_id: sample_school.id, grade: 3, class_no: 1) do |classroom|

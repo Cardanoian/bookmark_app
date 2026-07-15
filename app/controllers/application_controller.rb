@@ -9,7 +9,6 @@ class ApplicationController < ActionController::Base
 
   before_action :set_current_user
   before_action :enforce_not_suspended
-  before_action :enforce_teacher_approved
   before_action :require_login
 
   helper_method :current_user, :logged_in?, :ocr_available?
@@ -54,17 +53,6 @@ class ApplicationController < ActionController::Base
     @current_user = nil
     Current.user = nil
     redirect_to new_session_path, alert: "정지된 계정입니다. 관리자에게 문의해 주세요."
-  end
-
-  # 세션 도중 교사 승인이 취소되면 즉시 로그아웃한다(0.1). 미승인 교사는 애초에 로그인이
-  # 차단되지만, 관리자가 승인을 취소한 경우 다음 요청에서 세션을 정리한다.
-  def enforce_teacher_approved
-    return unless current_user&.teacher? && !current_user.approved?
-
-    reset_session
-    @current_user = nil
-    Current.user = nil
-    redirect_to new_session_path, alert: "관리자 승인 후 로그인할 수 있어요."
   end
 
   def user_not_authorized
