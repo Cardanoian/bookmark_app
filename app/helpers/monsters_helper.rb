@@ -71,6 +71,21 @@ module MonstersHelper
     CONDITION_LABELS[key.to_s] || key.to_s
   end
 
+  # 잠긴 도감 카드 해금 조건의 화면 표시 라벨(monster_unlocks.md §2 "화면 표시" 문구).
+  # 진화 조건용 CONDITION_LABELS 보다 문장형으로 풀어 학생에게 목표를 명확히 보여 준다.
+  UNLOCK_LABELS = {
+    "reports" => "승인 독후감", "max_daily_reports" => "하루 최다 독후감",
+    "distinct_genres" => "읽은 장르", "a_grades" => "A등급 독후감", "b_or_better" => "B등급 이상",
+    "classics" => "고전 읽기", "revisions" => "향상된 고쳐쓰기", "streak_days" => "최장 연속 독서",
+    "missions" => "참여 미션", "challenges" => "참여 챌린지", "topic_posts" => "토론 글",
+    "game_plays" => "게임 플레이", "distinct_games" => "서로 다른 게임", "game_books" => "게임으로 만난 책",
+    "dex_count" => "보유 몬스터", "points" => "포인트", "cheers_received" => "받은 응원", "quizzes" => "퀴즈"
+  }.freeze
+
+  def unlock_condition_label(key)
+    UNLOCK_LABELS[key.to_s] || condition_label(key)
+  end
+
   # 진화 조건 한 항목의 현재 진행값(ReadingStats 대비). badge 는 보유 여부(0/1).
   def condition_progress(stats, key, target)
     if key.to_s == "badge"
@@ -79,6 +94,18 @@ module MonstersHelper
       stats.public_send(key)
     else
       0
+    end
+  end
+
+  # 잠긴 도감 카드용 해금 조건 진행 항목 배열. [{ label:, current:, target:, met: }, ...]
+  # current 는 목표값을 넘지 않도록 클램프해 "4/6편"처럼 표시한다(초과 노출 방지).
+  def unlock_progress_items(stats, condition)
+    return [] if condition.blank?
+
+    condition.map do |key, target|
+      goal = target.to_i
+      value = condition_progress(stats, key, target)
+      { label: unlock_condition_label(key), current: [ value, goal ].min, target: goal, met: value >= goal }
     end
   end
 end

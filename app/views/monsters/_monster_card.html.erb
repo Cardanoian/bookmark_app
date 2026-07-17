@@ -1,4 +1,4 @@
-<%# locals: (line:, owned:, evolvable: false) %>
+<%# locals: (line:, owned:, evolvable: false, stats: nil) %>
 <% species = owned&.monster_species || line %>
 <%= link_to monster_path(line.dex_no),
       class: [
@@ -20,4 +20,16 @@
   <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium <%= element_badge_classes(line.element) %>">
     <%= element_label(line.element) %>
   </span>
+  <% if owned.nil? && stats && line.unlock_condition.present? %>
+    <ul class="mt-2 space-y-0.5 border-t border-hairline pt-2 text-left">
+      <% unlock_progress_items(stats, line.unlock_condition).each do |item| %>
+        <li class="flex items-center justify-between gap-1 text-[10px] leading-tight">
+          <span class="truncate text-muted"><%= item[:label] %></span>
+          <span class="shrink-0 <%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
+            <%= item[:current] %>/<%= item[:target] %><%= " ✓" if item[:met] %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
 <% end %>

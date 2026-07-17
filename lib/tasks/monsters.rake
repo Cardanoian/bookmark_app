@@ -15,6 +15,21 @@ namespace :monsters do
     puts "Seeded Phase 2 monster species (this run: #{seeded}). MonsterSpecies.count = #{MonsterSpecies.count}"
   end
 
+  desc "Re-evaluate monster unlocks for every existing student (backfill after unlock rollout)"
+  task backfill_unlocks: :environment do
+    # 기존 학생 전원에게 해금 조건을 한 번 재평가한다(monster_unlocks.md §5 배치 처리). 멱등 —
+    # (user_id, dex_no) 유니크 + discover 미보유 가드로 재실행해도 중복 지급되지 않는다. 대량 일괄
+    # 발견 알림 큐/연출은 후속(MVP 는 조용한 지급 + 도감 반영). 게임 조건 라인은 과거 플레이가 원장에
+    # 없어 즉시 해금되지 않을 수 있다(신규 game_plays 부터 누적).
+    students = 0
+    discovered = 0
+    User.student.find_each do |student|
+      students += 1
+      discovered += MonsterUnlock.new(student).evaluate!.size
+    end
+    puts "Backfilled monster unlocks: #{students} students evaluated, #{discovered} monsters newly discovered."
+  end
+
   desc "Install all monster WebP assets under app/assets/images/monsters"
   task install_assets: :environment do
     seed_path = Rails.root.join("db/seeds/monsters.yml")

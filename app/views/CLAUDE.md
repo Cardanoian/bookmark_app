@@ -15,7 +15,7 @@
 - `learn/` — 학습 홈(index)
 - `librarian/` — 사서 화면. `dashboards`·`events` CRUD·`loans`(대출 목록)
 - `missions/` — 미션 목록·상세
-- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 이모지로 폴백한다.
+- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 이모지로 폴백한다. **잠긴(미보유) 카드·상세**는 헬퍼 `unlock_progress_items`로 해금 조건과 현재 진행도(예: "승인 독후감 4/6편 ✓")를 표시한다(`_monster_card`·`_detail`, `monsters_controller#index`/`#show`가 넘기는 `ReadingStats` 스냅샷 기준).
 - `ocr/` — OCR 결과 반영 `create.turbo_stream.erb`(turbo_stream 전용)
 - `purchases/` — 구매 처리 `create.turbo_stream.erb`(turbo_stream 전용)
 - `pwa/` — PWA 자산. `manifest.json.erb`·`service-worker.js`

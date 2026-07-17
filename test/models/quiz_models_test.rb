@@ -50,6 +50,27 @@ class QuizModelsTest < ActiveSupport::TestCase
     assert_not question.correct?(nil)
   end
 
+  # 폼 입력(1-based) ↔ 저장(0-based, answer_index) 왕복. 저장·채점 계약은 answer_index 로 불변.
+  test "answer_number is a 1-based virtual accessor over answer_index" do
+    question = quiz.quiz_questions.create!(prompt: "문", choices: %w[a b c], answer_index: 0, position: 1)
+    assert_equal 1, question.answer_number
+
+    question.answer_number = 3
+    assert_equal 2, question.answer_index
+    assert_equal 3, question.answer_number
+
+    question.answer_number = nil
+    assert_nil question.answer_index
+
+    question.answer_number = ""
+    assert_nil question.answer_index
+  end
+
+  test "answer_number getter returns nil when answer_index is nil" do
+    question = quiz.quiz_questions.build(prompt: "문", choices: %w[a b], position: 1)
+    assert_nil question.answer_number
+  end
+
   test "quiz_attempt belongs to quiz and user" do
     q = quiz
     attempt = q.quiz_attempts.create!(user: @student, score: 2, answers: { "1" => 0 }, played_at: Time.current)

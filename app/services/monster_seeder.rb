@@ -71,6 +71,9 @@ class MonsterSeeder
     species.element = line["element"]
     species.rarity = line["rarity"]
     species.evolve_condition = form["evolve_condition"]
+    # 해금 조건은 라인 단위 규칙이라 1단계 폼에만 얹는다(monster_unlocks.md §5 — 폼마다 반복 저장 금지).
+    # 2·3단계는 nil 로 두어 재시드해도 stage2·3 에 조건이 새지 않게 한다.
+    species.unlock_condition = form["stage"] == 1 ? line["unlock_condition"] : nil
     species.image_key = form["key"]
     species.evolves_from = previous
     species.save!

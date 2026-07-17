@@ -27,7 +27,10 @@ module Games
       authorize @intro
 
       if @intro.save
-        redirect_to games_book_play_path(book_id: @book.id), notice: "책 소개를 올렸어요!"
+        # 책 소개 등록 = book 게임 완료(attempts 미경유 별도 경로). game_type=book 은 라우트로 서버 확정.
+        play = record_game_play!(game_type: :book, book_id: @book.id)
+        discovered = play ? evaluate_monster_unlocks(current_user) : []
+        redirect_to games_book_play_path(book_id: @book.id), notice: with_discovery("책 소개를 올렸어요!", discovered)
       else
         load_intros
         render :play, status: :unprocessable_entity

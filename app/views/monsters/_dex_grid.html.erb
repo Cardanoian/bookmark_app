@@ -1,8 +1,8 @@
-<%# locals: (lines:, owned:, evolvable_ids:) %>
+<%# locals: (lines:, owned:, evolvable_ids:, stats:) %>
 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
   <% lines.each do |line| %>
     <% own = owned[line.dex_no] %>
     <%= render "monsters/monster_card", line: line, owned: own,
-          evolvable: own.present? && evolvable_ids.include?(own.id) %>
+          evolvable: own.present? && evolvable_ids.include?(own.id), stats: stats %>
   <% end %>
 </div>

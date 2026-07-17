@@ -18,12 +18,18 @@ class MonsterSpecies < ApplicationRecord
   validates :key, presence: true, uniqueness: true
   validate :evolve_condition_must_be_valid_json
   validate :evolve_condition_keys_must_be_known
+  validate :unlock_condition_must_be_valid_json
+  validate :unlock_condition_keys_must_be_known
   validate :evolves_from_must_not_be_self
   validate :stage_after_evolves_from
 
   # 진화 규칙(evolve_condition JSON)을 텍스트에어리어에서 안전하게 편집하기 위한
   # 가상 속성. 잘못된 JSON 은 크래시 대신 검증 오류로 처리한다(P7.3).
   attr_writer :evolve_condition_json
+
+  # 해금 규칙(unlock_condition JSON)을 관리자 폼에서 안전하게 편집하기 위한 가상 속성
+  # (evolve_condition_json 미러링). 진화(evolve)와 해금(unlock)은 별개 개념이라 컬럼을 분리한다.
+  attr_writer :unlock_condition_json
 
   # 다음 단계 폼(진화 대상). 없으면 nil(완전형).
   def next_form
@@ -35,6 +41,13 @@ class MonsterSpecies < ApplicationRecord
     return @evolve_condition_json if defined?(@evolve_condition_json) && @evolve_condition_json
 
     evolve_condition.present? ? JSON.pretty_generate(evolve_condition) : ""
+  end
+
+  # 폼에 표시할 unlock_condition 의 JSON 문자열(evolve_condition_json 미러링).
+  def unlock_condition_json
+    return @unlock_condition_json if defined?(@unlock_condition_json) && @unlock_condition_json
+
+    unlock_condition.present? ? JSON.pretty_generate(unlock_condition) : ""
   end
 
   private
@@ -78,6 +91,47 @@ class MonsterSpecies < ApplicationRecord
         errors.add(:evolve_condition, "의 badge 조건 값이 비어 있어요") if target.blank?
       elsif !non_negative_integer_target?(target)
         errors.add(:evolve_condition, "의 ‘#{key}’ 값은 0 이상의 정수여야 해요")
+      end
+    end
+  end
+
+  # unlock_condition_json 이 주어졌으면 파싱해 unlock_condition 에 반영한다
+  # (evolve_condition_must_be_valid_json 미러링). 파싱 실패는 크래시 대신 검증 오류로 바꾼다.
+  def unlock_condition_must_be_valid_json
+    return unless defined?(@unlock_condition_json) && @unlock_condition_json
+
+    raw = @unlock_condition_json.to_s.strip
+    if raw.blank?
+      self.unlock_condition = nil
+      return
+    end
+
+    self.unlock_condition = JSON.parse(raw)
+  rescue JSON::ParserError
+    errors.add(:unlock_condition, "은(는) 올바른 JSON 형식이어야 합니다")
+  end
+
+  # unlock_condition 의 키를 화이트리스트로 강제한다(evolve_condition_keys_must_be_known 미러링).
+  # 단일 진실 ALLOWED_CONDITION_KEYS 를 공유하며, 값은 badge=문자열·그 외=0 이상 정수만 허용한다.
+  def unlock_condition_keys_must_be_known
+    return if unlock_condition.blank?
+
+    unless unlock_condition.is_a?(Hash)
+      errors.add(:unlock_condition, "은(는) 키-값 객체여야 합니다")
+      return
+    end
+
+    unlock_condition.each do |key, target|
+      key = key.to_s
+      unless ALLOWED_CONDITION_KEYS.include?(key)
+        errors.add(:unlock_condition, "에 알 수 없는 조건 키가 있어요: #{key}")
+        next
+      end
+
+      if key == "badge"
+        errors.add(:unlock_condition, "의 badge 조건 값이 비어 있어요") if target.blank?
+      elsif !non_negative_integer_target?(target)
+        errors.add(:unlock_condition, "의 ‘#{key}’ 값은 0 이상의 정수여야 해요")
       end
     end
   end

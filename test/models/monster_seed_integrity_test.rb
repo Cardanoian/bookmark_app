@@ -80,6 +80,37 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
     assert_equal 72, MonsterSpecies.count
   end
 
+  # unlock_condition 은 라인 단위 규칙이라 stage 1 폼에만 얹혀야 한다(monster_unlocks.md §5).
+  test "unlock_condition is set on every stage-1 form and never on stage 2 or 3" do
+    assert_equal 24, MonsterSpecies.where(stage: 1).where.not(unlock_condition: nil).count
+    assert_equal 0, MonsterSpecies.where(stage: [ 2, 3 ]).where.not(unlock_condition: nil).count
+  end
+
+  test "seeded unlock_conditions match docs/monster_unlocks.md for representative lines" do
+    assert_equal({ "reports" => 3 }, MonsterSpecies.find_by(key: "pup_1").unlock_condition)
+    assert_equal({ "reports" => 6, "max_daily_reports" => 2 }, MonsterSpecies.find_by(key: "parrot_1").unlock_condition)
+    assert_equal({ "game_plays" => 8, "distinct_games" => 3 }, MonsterSpecies.find_by(key: "robot_1").unlock_condition)
+    assert_equal(
+      { "reports" => 20, "a_grades" => 5, "game_books" => 12, "dex_count" => 20 },
+      MonsterSpecies.find_by(key: "dragon_1").unlock_condition
+    )
+  end
+
+  # 부분 시드(phase1)로도 unlock_condition 이 stage1 에만 대입되어야 한다(호환).
+  test "phase-1 partial seed also assigns unlock_condition to stage-1 forms only" do
+    # 클린 슬레이트: 참조(active_monster·user_monsters)를 먼저 끊고, 자기참조 진화 FK 때문에
+    # 자식(상위 stage)부터 지운다. 트랜잭션 테스트라 종료 시 롤백된다.
+    User.update_all(active_monster_id: nil)
+    UserMonster.delete_all
+    MonsterSpecies.where(stage: 3).delete_all
+    MonsterSpecies.where(stage: 2).delete_all
+    MonsterSpecies.where(stage: 1).delete_all
+    MonsterSeeder.seed_phase1!
+    assert_operator MonsterSpecies.where(stage: 1).where.not(unlock_condition: nil).count, :>, 0
+    assert_equal 0, MonsterSpecies.where(stage: [ 2, 3 ]).where.not(unlock_condition: nil).count
+    assert_equal({ "reports" => 3 }, MonsterSpecies.find_by(key: "pup_1").unlock_condition)
+  end
+
   # #misc: 스타터 정합성. YAML 의 starter:true 라인 stage1 키 집합이 코드의
   # MonsterAcquisition::STARTERS 와 정확히 일치해야 한다(과거 4 vs 3 불일치 봉인).
   test "STARTERS matches the seed YAML starter lines (design intent = 3)" do

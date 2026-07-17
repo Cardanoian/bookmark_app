@@ -34,7 +34,7 @@
         <%= qf.text_area :choices, value: (qf.object.choices.is_a?(Array) ? qf.object.choices.join("\n") : qf.object.choices),
               rows: 4, placeholder: "보기 (한 줄에 하나)", class: "form-textarea" %>
         <div class="flex items-center gap-3">
-          <%= qf.number_field :answer_index, placeholder: "정답 인덱스(0부터)", class: "form-input w-40" %>
+          <%= qf.number_field :answer_number, placeholder: "정답 번호(1부터)", class: "form-input w-40" %>
           <%= qf.number_field :position, placeholder: "순서", class: "form-input w-24" %>
           <% if qf.object.persisted? %>
             <label class="flex items-center gap-1 text-xs text-error-text"><%= qf.check_box :_destroy %> 삭제</label>

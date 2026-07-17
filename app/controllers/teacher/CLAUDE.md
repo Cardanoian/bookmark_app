@@ -7,7 +7,7 @@
 ## 파일
 - `base_controller.rb` — 네임스페이스 가드 + 공통 헬퍼. `require_teacher!`(교사/총괄 외 403) + `teacher_classrooms`·`owned_classroom!`·`owned_student!`·`axis_averages`. **`axis_averages` 는 다형(#3)**: Relation 이면 `SUM(COALESCE(json_extract(rubric,'$.axis'),0)) / count` **SQL 1쿼리**(행 미인스턴스화), Array 면 인메모리 집계(이미 로드된 슬라이스 재사용). 두 경로 값 동일(parity 테스트).
 - `dashboards_controller.rb` — 교사 대시보드(`show`). 독후감 통계·5축 평균·약점 인사이트·향상도·검토 큐 요약(SQL 집계로 경량 로드). 5축 평균은 Relation 을 `axis_averages` 에 넘겨 SQL 경로를 탄다(별도 rubric 행 로드 제거). **무게이트 롤아웃 사후 검토(교사 알림)**: 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠(`QuizReport`)를 "🚩 신고된 게임 콘텐츠" 섹션에 노출한다(1건만 있어도 사후 점검, 2건이면 자동 숨김).
-- `reviews_controller.rb` — 검토 큐(`index`)·수정(`update`, 5축 ±조정+코멘트)·승인(`approve`)·일괄승인(`batch_approve`)·진위확인(`verify`). 승인 시 뱃지·진화 재계산.
+- `reviews_controller.rb` — 검토 큐(`index`)·수정(`update`, 5축 ±조정+코멘트)·승인(`approve`)·일괄승인(`batch_approve`)·진위확인(`verify`). 승인 시 뱃지·진화 재계산 + **몬스터 해금 재평가**(`evaluate_monster_unlocks`, flash 안내). 등급을 바꾸는 `update`도 저장 직후 동일하게 재평가한다.
 - `students_controller.rb` — 담임 학급 학생 관리(`index`/`create`/`destroy`) + `reset_password`·`give_points`(수동 포인트).
 - `missions_controller.rb` — 담임 학급 독서 미션 CRUD(제목·도서·기간). 소유 학급만 배정.
 - `quizzes_controller.rb` — 학급 퀴즈 CRUD + 도서 선택 시 `Ai::QuizDraftService` 초안 문항 생성 → 검수 후 published.

@@ -13,12 +13,13 @@ class Teacher::ReviewsController < ApplicationController
     authorize @report, :review?
   end
 
-  # 5축 ±조정 + 교사 코멘트 저장.
+  # 5축 ±조정 + 교사 코멘트 저장. md §4 "최종 등급을 변경한 뒤" 해금 재평가 지점.
   def update
     authorize @report, :review?
 
     if @report.update(review_params)
-      redirect_to teacher_review_path(@report), notice: "검토 내용을 저장했어요."
+      discovered = evaluate_monster_unlocks(@report.user)
+      redirect_to teacher_review_path(@report), notice: with_discovery("검토 내용을 저장했어요.", discovered)
     else
       render :show, status: :unprocessable_entity
     end
@@ -28,8 +29,9 @@ class Teacher::ReviewsController < ApplicationController
   def approve
     authorize @report, :approve?
 
-    finalize_approval(@report)
-    redirect_to teacher_reviews_path, notice: "#{@report.user.name} 학생의 독후감을 승인했어요."
+    discovered = finalize_approval(@report)
+    redirect_to teacher_reviews_path,
+                notice: with_discovery("#{@report.user.name} 학생의 독후감을 승인했어요.", discovered)
   end
 
   # 진위·표절 보조(교사용). 결과를 화면에 노출(P3.11).
@@ -44,23 +46,26 @@ class Teacher::ReviewsController < ApplicationController
   def batch_approve
     ensure_reviewer!
 
+    discovered = []
     pending_scope.where(id: Array(params[:report_ids])).find_each do |report|
       next unless ReportPolicy.new(Current.user, report).approve?
 
-      finalize_approval(report)
+      discovered.concat(finalize_approval(report))
     end
-    redirect_to teacher_reviews_path, notice: "선택한 독후감을 승인했어요."
+    redirect_to teacher_reviews_path, notice: with_discovery("선택한 독후감을 승인했어요.", discovered)
   end
 
   private
 
   # 승인 확정: reviewed 기록 + 학생 실시간 갱신 + 승인 시점에 바뀌는 승인-기준
-  # 진화/뱃지 조건(reports·a_grades 등) 재계산.
+  # 진화/뱃지 조건(reports·a_grades 등) 재계산 + 몬스터 해금 재평가.
+  # 반환: 이번 승인으로 새로 발견한 몬스터(UserMonster) 목록(호출부가 flash 안내에 사용).
   def finalize_approval(report)
     report.update!(reviewed: true, reviewed_at: Time.current)
     broadcast_to_student(report)
     report.user.refresh_badges!
     report.user.check_evolution!
+    evaluate_monster_unlocks(report.user)
   end
 
   def set_report

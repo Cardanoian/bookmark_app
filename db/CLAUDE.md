@@ -4,9 +4,9 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 32개 테이블, version `2026_07_15_000001`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 33개 테이블, version `2026_07_16_000002`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
 - `seeds.rb` — 시드 오케스트레이션. `db/seed` 진입점으로, 아래 rake 태스크들을 순서대로 `invoke` 하고 그 사이에 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본 플래그를 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
-  - 순서: `schools:seed` → superadmin → **system 유저** → **역할 샘플 계정** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed` → `quizzes:seed` → `app_settings`.
+  - 순서: `schools:seed` → superadmin → **system 유저** → **역할 샘플 계정** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed` → `quizzes:seed` → `app_settings`. **`monsters:seed`는 라인 단위 `unlock_condition`(자동 해금 규칙)도 stage 1 폼에 함께 적재**하지만 invoke 순서 자체는 바뀌지 않는다.
   - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
   - **역할 샘플 계정**: **로그인 표면이 2분화**되어(sessions_controller) 학생은 튜플(학교·학급·이름)로, 교직원은 **이메일**로 로그인한다. superadmin(credentials) 외 학생·담임교사·교무관리자·사서 4종은 **모두 같은 학교(`포항원동초등학교`, neis_code `7150001`)** 소속으로 seeds.rb 에 하드코딩(김담임=교사 3학년1반 담임 `teacher@example.com` / 이학생=학생 3학년1반, **이메일 없음** / 박교무=교무관리자 `schooladmin@example.com` / 최사서=사서 `librarian@example.com`). 대상 학교는 `schools:seed` 선적재가 전제(없으면 스킵). 비번은 `<role>1234`. 헬퍼 `seed_user` 는 신규 생성뿐 아니라 **기존 계정의 비어 있는 attrs(예: email 컬럼 신설 후)만 백필**하므로 `db:reset` 없이 재시드만으로 교직원 이메일 로그인이 가능해진다(비번은 미변경).
   - system 유저는 superadmin 과 같은 신원 규약(name + school_id:nil + classroom_id:nil)으로 `find_or_initialize_by` 멱등 생성(로그인 불가한 시스템 액터). `ContentProvider.system_user`도 같은 신원으로 멱등 확보한다.
@@ -33,12 +33,15 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 10. **학교 도로명주소 컬럼** (`20260713000001`): `schools` 에 NEIS 도로명주소(`ORG_RDNMA`) 원본 저장용 `address` 컬럼 추가(gu 파싱 검증·향후 학교 검색 UX 용). 컬럼 추가만이라 테이블 수 불변(31 유지). 기존 축소 시드 17교는 `address` nil 로 남는다.
 11. **게시판 글 좋아요** (`20260713000002`): `forum_post_likes`(forum_post·user FK, `(forum_post_id, user_id)` UNIQUE=1인 1좋아요, `forum_posts.likes_count` counter_cache). **+1 테이블(31→32)**.
 12. **로그인 표면 2분화(교직원 이메일 로그인)** (`20260714000001`): `users` 에 `email`(nullable) + **UNIQUE 인덱스** 추가. 학생은 튜플(학교·학급·이름) 로그인이라 email=NULL(SQLite 유니크 인덱스는 NULL 다중 허용), 교직원(교사·관리자·사서·총괄)은 이메일로 로그인한다(sessions#staff_create). 저장 전 소문자 정규화(user.rb `normalize_email`)라 대소문자 무관 유일성이 인덱스만으로 보장. 컬럼 추가만이라 테이블 수 불변(32 유지).
-13. **교사 가입 승인 게이트 제거** (`20260715000001`): `users` 에서 `approved` 컬럼 제거. 교사는 회원가입 즉시 로그인·활동할 수 있게 되어(승인 대기 폐지) 관련 세션 게이트(application_controller)·로그인 게이트(sessions_controller)·관리자 승인 UI(admin/users 의 `approve`/`unapprove`)가 함께 사라졌다. `down` 은 컬럼을 되살리고 기존 사용자를 모두 승인(true) 처리한다. 컬럼 삭제만이라 테이블 수 불변(32 유지). `schema.rb` version 은 `2026_07_15_000001`.
+13. **교사 가입 승인 게이트 제거** (`20260715000001`): `users` 에서 `approved` 컬럼 제거. 교사는 회원가입 즉시 로그인·활동할 수 있게 되어(승인 대기 폐지) 관련 세션 게이트(application_controller)·로그인 게이트(sessions_controller)·관리자 승인 UI(admin/users 의 `approve`/`unapprove`)가 함께 사라졌다. `down` 은 컬럼을 되살리고 기존 사용자를 모두 승인(true) 처리한다. 컬럼 삭제만이라 테이블 수 불변(32 유지).
+14. **몬스터 라인 해금 조건 컬럼** (`20260716000001`): `monster_species` 에 `unlock_condition`(JSON, nullable) 컬럼 추가. 라인 단위 자동 해금 규칙(`evolve_condition`과 같은 조건 해시 문법·화이트리스트를 공유하되 별도 컬럼)을 stage 1 폼에만 저장하고, stage 2·3·아직 규칙이 없는 라인은 NULL. 컬럼 추가만이라 테이블 수 불변(32 유지).
+15. **게임 완료 원장(game_plays)** (`20260716000002`): `game_plays`(user FK·`game_type`·book FK nullable·`played_on`) 신설. 몬스터 해금 지표(`game_plays`/`distinct_games`/`game_books`, `ReadingStats`)의 서버 권위 소스. 같은 학생·게임·(책)·일자 재제출을 막기 위한 **부분 유니크 인덱스 2개**: book 있는 플레이는 `(user_id, game_type, book_id, played_on)` UNIQUE WHERE `book_id IS NOT NULL`, book 없는 플레이는 `(user_id, game_type, played_on)` UNIQUE WHERE `book_id IS NULL`(SQLite 유니크 인덱스가 NULL 을 서로 구별해 단일 인덱스로는 book-less 재제출을 dedup 할 수 없기 때문 — 선례: `index_quizzes_on_content_axis_dedup` 부분 유니크). **+1 테이블(32→33)**. `schema.rb` version 은 `2026_07_16_000002`.
 
 ### seeds/ — 시드 데이터
 
-- `monsters.yml` — 반려 몬스터 도감 데이터(`docs/monsters.md §7` YAML 을 verbatim 반영). **24라인 × 3스테이지 = 72폼**. 6속성(story·knowledge·nature·emotion·adventure·imagination) 각 4라인, Phase 1(12라인)·Phase 2(12라인)로 구분. 라인당 `forms` 3개(stage 1·2·3), `evolve_condition` 은 다음 단계 승급 조건. `monsters:seed`(via `MonsterSeeder`)가 소비.
+- `monsters.yml` — 반려 몬스터 도감 데이터(`docs/monsters.md §7` YAML 을 verbatim 반영). **24라인 × 3스테이지 = 72폼**. 6속성(story·knowledge·nature·emotion·adventure·imagination) 각 4라인, Phase 1(12라인)·Phase 2(12라인)로 구분. 라인당 `forms` 3개(stage 1·2·3), `evolve_condition` 은 다음 단계 승급 조건. **라인 단위 `unlock_condition`**(자동 해금 규칙, `docs/monster_unlocks.md §5`)은 스타터 이후 발견 조건이며 시더가 stage 1 폼에만 대입(2·3단계는 nil로 두어 재시드해도 조건이 새지 않게 함). `monsters:seed`(via `MonsterSeeder`)가 소비.
 - `schools.csv` — 전량 학교 시드 계약. 헤더 `neis_code,name,region,gu,office_code,address`. `schools:fetch`(NEIS, `Schools::NeisFetcher`)가 생성하고 `schools:seed_full`이 `upsert_all`로 소비. 리포에 없으면 `seed_full`은 no-op(축소 17교 시드 유지) — **파일 자체는 커밋되지 않을 수 있다**.
+- `elementary_books.tsv` — 초등 전학년 도서 카탈로그(`script/build_elementary_books_tsv.rb`의 산출물, 8,502행, 탭 구분; 정보나루 학년별 인기대출 API + NLCY 사서 추천 목록 + 앱 큐레이션 `Book` 레코드를 병합). `books:seed_full`(`lib/tasks/CLAUDE.md`)이 `isbn13` 우선(없으면 `title`+`author`)으로 오프라인·멱등 적재한다. TSV 컬럼 중 `books` 스키마에 없는 것(rank·loans·kdc·monster_element·topic_tags 등)은 드롭되고, `publisher`/`cover_url`/`grade_band`는 값이 있을 때만 대입해 기존값을 비파괴 보존하며 `summary`는 건드리지 않는다. `schools.csv`와 달리 git 커밋 대상(구 `docs/elementary_books.tsv`에서 이동).
 
 ## 패턴·규칙
 

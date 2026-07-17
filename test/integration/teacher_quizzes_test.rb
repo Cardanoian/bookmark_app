@@ -30,6 +30,21 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
     assert quiz.reload.published?
   end
 
+  # 폼은 1-based(answer_number)로 받되 저장은 0-based(answer_index) 불변 — 채점까지 정합 확인.
+  test "update saves answer_number as 1-based while answer_index stays 0-based for grading" do
+    quiz = Quiz.create!(title: "정답변환", created_by: @teacher, classroom: @classroom, scope: :classroom)
+    question = quiz.quiz_questions.create!(prompt: "문", choices: %w[a b c d], answer_index: 3, position: 1)
+
+    login_as @teacher
+    patch teacher_quiz_path(quiz), params: {
+      quiz: { quiz_questions_attributes: { "0" => { id: question.id, answer_number: 1 } } }
+    }
+
+    question.reload
+    assert_equal 0, question.answer_index
+    assert question.correct?(0)
+  end
+
   test "index lists the teacher's quizzes" do
     Quiz.create!(title: "목록퀴즈", created_by: @teacher, classroom: @classroom, scope: :classroom)
     login_as @teacher

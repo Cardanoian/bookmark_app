@@ -6,7 +6,18 @@
 # 멱등: title+author 로 find_or_initialize_by.
 #
 # 오너가 학교도서관저널 전체 목록을 확정하면 아래 배열을 확장한다(현재는 확신 가능한 대표 큐레이션).
+#
+# books:seed_full 은 별도 태스크다 — db/seeds/elementary_books.tsv(script/build_elementary_books_tsv.rb
+# 산출물, 8,502행)를 오프라인·멱등 적재한다(schools:seed_full 미러). db/seeds.rb 에는 편입하지 않고
+# 수동 실행(`bin/rails books:seed_full`)한다.
+require "csv"
+
 namespace :books do
+  # db/seeds/elementary_books.tsv 경로. 테스트는 ENV["BOOKS_TSV"] 로 fixture 를 주입한다.
+  def elementary_books_tsv_path
+    ENV["BOOKS_TSV"].presence || Rails.root.join("db/seeds/elementary_books.tsv").to_s
+  end
+
   desc "Seed the graded book catalog (초등 1~2 / 3~4 / 5~6 + classics)"
   task seed: :environment do
     band_low, band_mid, band_high = Book::GRADE_BANDS
@@ -139,6 +150,62 @@ namespace :books do
     classics.each { |attrs| upsert.call(attrs, :classic, attrs[:band] || band_high) }
 
     puts "Seeded books. recommended=#{Book.recommended.count} classic=#{Book.classic.count} total=#{Book.count}"
+  end
+
+  desc "Load the full elementary catalog from db/seeds/elementary_books.tsv (offline, idempotent)"
+  task seed_full: :environment do
+    path = elementary_books_tsv_path
+    unless File.exist?(path)
+      puts "books:seed_full skipped — #{path} not found (run script/build_elementary_books_tsv.rb first)."
+      next
+    end
+
+    # 8,502행 규모라 트랜잭션으로 감싸 원자성·성능을 확보한다.
+    processed = 0
+    ActiveRecord::Base.transaction do
+      # SearchService 가 만든 :searched 캐시 행은 카탈로그 시드 대상이 아니다 — isbn 이 겹쳐도
+      # 그 캐시 행을 카탈로그 행으로 덮어쓰지 않는다(CatalogEnricher#reconcile_searched_duplicate! 와 정합).
+      scope = Book.where.not(category: :searched)
+
+      CSV.foreach(path, col_sep: "\t", headers: true) do |row|
+        title = row["title"].to_s.strip.presence
+        next if title.blank?
+
+        author = row["author"].to_s.strip.presence
+        publisher = row["publisher"].to_s.strip.presence
+        isbn = row["isbn13"].to_s.strip.presence
+        cover_url = row["cover_url"].to_s.strip.presence
+        grade_band = row["primary_grade_band"].to_s.strip.presence
+        grade_band = nil unless Book::GRADE_BANDS.include?(grade_band)
+        category = row["project_category"].to_s.strip
+        category = %w[recommended classic].include?(category) ? category : "recommended"
+
+        book = if isbn
+          scope.find_or_initialize_by(isbn: isbn)
+        else
+          scope.find_or_initialize_by(title: title, author: author)
+        end
+
+        if book.new_record?
+          book.title = title
+          book.author = author
+          book.isbn = isbn if isbn
+        end
+        # publisher/cover_url/grade_band 는 TSV 값이 있을 때만 대입해 기존값을 비파괴 보존한다.
+        # summary 는 TSV 에 없는 컬럼이라 절대 건드리지 않는다(기존 큐레이션 요약 보존).
+        book.publisher = publisher if publisher
+        book.cover_url = cover_url if cover_url
+        book.grade_band = grade_band if grade_band
+        book.category = category
+        book.save!
+
+        processed += 1
+        puts "  ...#{processed} rows" if (processed % 1000).zero?
+      end
+    end
+
+    puts "Loaded #{processed} rows from #{path}. recommended=#{Book.recommended.count} classic=#{Book.classic.count} total=#{Book.count}"
+    puts "Dropped columns (no matching books schema field: rank/loans/kdc/monster_element/topic_tags 등) were not saved."
   end
 
   desc "Enrich catalog books with cover/isbn/publisher via Naver (manual, networked; no-op without key)"

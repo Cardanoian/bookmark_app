@@ -1,18 +1,18 @@
-# test/ — Minitest + Capybara 테스트 스위트 (약 727 runs)
+# test/ — Minitest + Capybara 테스트 스위트 (812 runs)
 
 '책갈피'(Rails 8.1)의 전체 자동화 테스트 모음이다. 모델·정책·서비스 단위 테스트부터 역할별 화면·플로우를 검증하는 integration 테스트까지 포함한다. 테스트는 **외부 API를 절대 호출하지 않으며**(`test_helper.rb`가 credentials 키를 공란으로 강제 → 도서검색·정보나루·Gemini가 오프라인 폴백 경로를 탄다), 원격 성공 경로는 스텁 커넥션을 DI로 주입해 검증한다.
 
 ## 하위 카테고리
 - `test_helper.rb` — 공통 설정. 외부 키 공란 강제(오프라인 폴백), 병렬 실행, `fixtures :all`, 헬퍼 `seed_monster_species!`(24라인×3단계=72폼 시드)·`seed_badges!`(뱃지 13종)·**`login_as(user)`**(역할별 로그인 공용 헬퍼 — 학생은 튜플 `student_login_path`, 교직원은 이메일 `staff_login_path`. 교직원 계정에 이메일이 없으면 로그인용 합성 이메일을 즉석 부여[검증 우회 `update_column`, 트랜잭션 롤백]. 통합 테스트는 이 헬퍼로 로그인 표면 분리를 흡수).
-- `models/` — 모델 단위: 뱃지·도서·학급·학교·리포트·토픽·유저·몬스터종·유저몬스터, 게임화/퀴즈 데이터 모델, 몬스터 시드 무결성, 마이그레이션 FK 존재 검증. **Phase 6 보강(#5)**: `library_loan`·`library_event`·`user_badge`·`forum_post`·`forum_post_like`(좋아요 uniqueness·likes_count counter_cache 증감) 모델 검증, `app_setting`(API 키 저장 차단 보안검증 추가), `monster_seed_integrity`(스타터 3종 정합 + `image_key` WebP 72종의 누락·잔존 파일 검증), **`fk_on_delete_roundtrip`**(reports→books·monster_species 자기참조 on_delete nullify 동작 + SQLite up/down 왕복 무손실; 이 파일만 `use_transactional_tests = false` — DDL 커밋 후 teardown 에서 up 복원·행 정리).
+- `models/` — 모델 단위: 뱃지·도서·학급·학교·리포트·토픽·유저·몬스터종·유저몬스터, 게임화/퀴즈 데이터 모델(`quiz_question`의 1-based `answer_number` 가상 접근자 포함), **`game_play`**(부분 유니크 인덱스 2종의 일일 dedup — book 있는/없는 플레이 각각), 몬스터 시드 무결성, 마이그레이션 FK 존재 검증. **Phase 6 보강(#5)**: `library_loan`·`library_event`·`user_badge`·`forum_post`·`forum_post_like`(좋아요 uniqueness·likes_count counter_cache 증감) 모델 검증, `app_setting`(API 키 저장 차단 보안검증 추가), `monster_seed_integrity`(스타터 3종 정합 + `image_key` WebP 72종의 누락·잔존 파일 검증), **`fk_on_delete_roundtrip`**(reports→books·monster_species 자기참조 on_delete nullify 동작 + SQLite up/down 왕복 무손실; 이 파일만 `use_transactional_tests = false` — DDL 커밋 후 teardown 에서 up 복원·행 정리). **`monster_species`**는 `unlock_condition` JSON 검증(evolve_condition과 별개 컬럼·화이트리스트 공유)도 함께 커버한다.
 - `models/concerns/` — 공유 모듈: `Badgeable`·`Evolvable`·`Leveling`·`Pointable`·`RubricScorable`.
 - `controllers/` — 컨트롤러 공용 로직 단위: `axis_averages_parity`(전교 5축 SQL 집계 == 인메모리 집계 parity, #3).
-- `tasks/` — rake 시드 태스크: `quizzes_seed`(샘플 퀴즈가 Phase 1 콘텐츠축 컬럼 반영·멱등 재현, #9-seed)·`schools_seed`(NEIS 전량 시드 `schools:fetch`/`schools:seed_full` — CSV 미존재 시 no-op 검증)·`books_seed`(`books:enrich` 큐레이션 보강, 무키 no-op 검증).
+- `tasks/` — rake 시드 태스크: `quizzes_seed`(샘플 퀴즈가 Phase 1 콘텐츠축 컬럼 반영·멱등 재현, #9-seed)·`schools_seed`(NEIS 전량 시드 `schools:fetch`/`schools:seed_full` — CSV 미존재 시 no-op 검증)·`books_seed`(`books:enrich` 큐레이션 보강, 무키 no-op 검증)·**`books_seed_full`**(`books:seed_full` — 공란 정규화·category/grade_band 화이트리스트 폴백·isbn 멱등·다권 보존·summary 비파괴·searched 캐시 비충돌·파일 미존재 no-op, 소형 fixture TSV로 검증).
 - `policies/` — Pundit 인가. `authorization_matrix_test.rb`가 역할×액션 경계 회귀 매트릭스, 개별 정책(cheer·classroom·report·sticker·topic)이 스코프/권한 세부.
 - `services/ai/` — Gemini 클라이언트·OCR·퀴즈 초안·첨삭(review)·규칙기반 첨삭·검증(verify). 무키 시 규칙기반 폴백 + 스텁 성공 경로.
 - `services/books/`·`services/library/` — 도서 검색(네이버) 및 정보나루(data4library) 서비스: 무키 폴백·정규화·파싱. `services/books/`는 `search_service` + **`catalog_enricher`**(큐레이션 보강, service/throttle DI, 무키 no-op) 2파일.
 - `services/schools/` — NEIS 학교기본정보 연동: `gu_parser`(주소→시군구 파싱 단위테스트, 도농복합시·단층제 케이스)·`neis_fetcher`(`schoolInfo` 래퍼, connection DI, 무키/실패 시 `[]`).
-- `services/games/`·기타 서비스 — 퀴즈 플레이 멱등 적립(포인트 파밍 차단), 몬스터 획득, 랭킹 집계, 독서 통계.
+- `services/games/`·기타 서비스 — 퀴즈 플레이 멱등 적립(포인트 파밍 차단), 몬스터 획득, 랭킹 집계, 독서 통계(`reading_stats` — `max_daily_reports`·`game_plays`/`distinct_games`/`game_books` 신규 지표 포함). **`monster_unlock`**(fixpoint 캐스케이드 — dex_count 20 도달 시 같은 `evaluate!` 호출에서 dex 24 동시 해금, AND 다중조건, 멱등 재실행, 라인 지급 실패 rescue).
 - `jobs/` — 백그라운드 잡: `AiReviewJob`(AI 첨삭)·`OcrJob`(사진 OCR).
 - `helpers/` — 뷰 헬퍼(`TeacherHelper`, `MonstersHelper`의 WebP 렌더·이모지 폴백).
 - `integration/` — 역할별 화면·플로우 E2E(대표 그룹은 아래).
@@ -21,7 +21,7 @@
 ## integration/ 대표 그룹
 - **인증·역할 진입**: `registrations`(교사 회원가입+**이메일 필수**+가입 즉시 로그인)·`sessions`(**로그인 표면 2분화** — 안내 인덱스 선택 화면 + 학생 튜플 로그인 + 교직원 이메일 로그인 + 표면 교차 차단 + 스로틀)·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
 - **독후감 파이프라인**: `report_review_flow`(Phase 3 완료 게이트)·`reports`·`ocr`(사진→텍스트)·`learn_wizard`(단계 학습 위저드).
-- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`·`student_nav_persistence`(학생 상단 navbar가 7개 메뉴 페이지[내 서재·독후감·게임·도감·상점·미션·랭킹] 전체에서 모바일 disclosure/데스크톱 필 목록·동일 경로·활성 탭 강조를 유지하고, 메뉴 페이지의 중복 제목 제거와 독후감 작성 액션·상점 포인트의 navbar 직후 배치를 검증).
+- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`·**`monster_unlock_flow`**(독후감 승인·게임 완료 트리거 배선 e2e — 승인 시 해금+flash, `game_plays` 원장 기록[표면·책·일자], game_type allowlist 밖 값 미기록, 동일 퀴즈 재제출 dedup, 게임 완료로 해금 임계 도달 시 발견)·`student_nav_persistence`(학생 상단 navbar가 7개 메뉴 페이지[내 서재·독후감·게임·도감·상점·미션·랭킹] 전체에서 모바일 disclosure/데스크톱 필 목록·동일 경로·활성 탭 강조를 유지하고, 메뉴 페이지의 중복 제목 제거와 독후감 작성 액션·상점 포인트의 navbar 직후 배치를 검증).
 - **교사(P6)**: `teacher_dashboard`·`teacher_missions`·`teacher_quizzes`·`teacher_reviews`·`teacher_students`·`teacher_rubric_config`·`teacher_exports`(CSV)·`teacher_prints`(인쇄 문서).
 - **사서(P6.5)**: `librarian_dashboard`·`librarian_events`·`librarian_loans`(정보나루 동기화).
 - **교무관리자**: `school_admin_neis`(생기부 요약)·`school_admin_stats`(전교 통계·학교 경계).
@@ -30,7 +30,7 @@
 - **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약·작성자 전용 목록 삭제).
 
 ## 패턴·규칙
-- 실행: `bin/rails test` (전체, 약 720 runs). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
+- 실행: `bin/rails test` (전체, 812 runs). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
 - 품질 게이트: `bin/ci`가 순서대로 `bin/rubocop`(스타일) → `bin/bundler-audit`·`bin/importmap audit`·`bin/brakeman`(보안) → `bin/rails test`(테스트) → `db:seed:replant`(시드 재적재)를 실행. PR은 이 전 단계가 통과해야 한다.
 - 테스트는 병렬(`parallelize`) 실행되므로 전역 상태에 의존하지 말 것.
 - 몬스터/뱃지가 필요한 테스트는 `setup`에서 `seed_monster_species!`·`seed_badges!`를 호출(트랜잭션 롤백되며 멱등).

@@ -88,7 +88,7 @@ class Teacher::QuizzesController < Teacher::BaseController
   def quiz_params
     params.require(:quiz).permit(
       :title, :book_id, :classroom_id, :published,
-      quiz_questions_attributes: [ :id, :prompt, :answer_index, :position, :_destroy, { choices: [] } ]
+      quiz_questions_attributes: [ :id, :prompt, :answer_number, :position, :_destroy, { choices: [] } ]
     )
   end
 end

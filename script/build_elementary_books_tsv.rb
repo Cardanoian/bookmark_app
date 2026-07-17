@@ -15,8 +15,9 @@ require "json"
 require "nokogiri"
 require "stringio"
 require "zip"
+require_relative "book_genre_inference"
 
-OUTPUT_PATH = Rails.root.join("docs", "elementary_books.tsv")
+OUTPUT_PATH = Rails.root.join("db/seeds", "elementary_books.tsv")
 SOURCE_URL = "https://data4library.kr/loanDataL"
 NLCY_SOURCE_URL = "https://www.nlcy.go.kr/NLCY/contents/C10600000000.do"
 NLCY_EXCEL_PATH = "/NLCY/board/C10600000000_suggestBookListExcel.do"
@@ -349,8 +350,29 @@ Book.where(category: [ :recommended, :classic ]).order(:title).find_each do |boo
   match[:curated_band] = book.grade_band
 end
 
-rows = rows_by_key.values.map do |row|
-  row[:genre] = genre_for(row[:kdc_code], row[:kdc_path])
+catalog_rows = rows_by_key.values
+catalog_rows.each { |row| row[:genre] = genre_for(row[:kdc_code], row[:kdc_path]) }
+genre_inference = Books::GenreInference.new(catalog_rows)
+catalog_rows.select { |row| row[:genre] == "미분류" }.each do |row|
+  if row[:selection_types].include?("project_curated")
+    row[:genre] = "문학"
+    row[:genre_inference] = {
+      basis: "project_curated_peer_group",
+      confidence: 0.95,
+      neighbors: []
+    }
+  else
+    result = genre_inference.infer(row)
+    row[:genre] = result.genre
+    row[:genre_inference] = {
+      basis: "weighted_similar_books",
+      confidence: result.confidence,
+      neighbors: result.neighbors.map(&:first)
+    }
+  end
+end
+
+rows = catalog_rows.map do |row|
   row[:topic_tags] = topics_for(row)
   row[:content_type] = content_type_for(row)
   row[:monster_element] = element_for(row)
@@ -374,11 +396,24 @@ rows = rows_by_key.values.map do |row|
 
   automatic_fields = row[:selection_types] == [ "project_curated" ] ? [] : [ "genre", "content_type", "monster_element", "topic_tags" ]
   review_reasons = []
-  review_reasons << "KDC미분류" if row[:genre] == "미분류"
+  genre_inference_data = row[:genre_inference]
+  review_reasons << "KDC없음·장르유사도서추정" if genre_inference_data
   review_reasons << "ISBN없음" if row[:isbn13].blank?
   review_reasons << "고전자동판정" if classic_basis == "title_author_rule"
   review_reasons << "공식2단계대상→프로젝트3밴드매핑" if observed_bands.empty? && row[:nlcy_band].present?
   review_reasons << "주제자동분류" if automatic_fields.any?
+  inference_notes = if genre_inference_data
+    notes = [
+      "장르추정근거=#{genre_inference_data[:basis]}",
+      "장르추정신뢰=#{genre_inference_data[:confidence].round(2)}"
+    ]
+    if genre_inference_data[:neighbors].any?
+      notes << "유사책=#{genre_inference_data[:neighbors].join(' / ')}"
+    end
+    notes
+  else
+    []
+  end
 
   sources = []
   sources << "도서관정보나루 인기대출도서" if row[:selection_types].include?("popular_loan")
@@ -401,6 +436,13 @@ rows = rows_by_key.values.map do |row|
     "nlcy_audience_mapped"
   else
     "review_needed"
+  end
+  classification_confidence = if genre_inference_data && genre_inference_data[:confidence] < 0.72
+    "낮음"
+  elsif review_reasons.empty?
+    "높음"
+  else
+    "중간"
   end
 
   {
@@ -440,9 +482,9 @@ rows = rows_by_key.values.map do |row|
     source_url: source_urls.join(";"),
     source_period: row[:selection_types].include?("popular_loan") ? "#{SOURCE_FROM}~#{SOURCE_TO}" : "",
     source_rank_basis: rank_bases.join(";"),
-    classification_confidence: review_reasons.empty? ? "높음" : (row[:genre] == "미분류" ? "낮음" : "중간"),
+    classification_confidence: classification_confidence,
     review_needed: review_reasons.empty? ? "아니오" : "예",
-    notes: review_reasons.join(";")
+    notes: (review_reasons + inference_notes).join(";")
   }
 end
 

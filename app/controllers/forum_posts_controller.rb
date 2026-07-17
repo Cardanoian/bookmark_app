@@ -7,7 +7,9 @@ class ForumPostsController < ApplicationController
     authorize @forum_post
 
     if @forum_post.save
-      redirect_to @topic, notice: "글을 남겼어요."
+      # 토론 글 작성은 topic_posts 해금 지표를 올린다(monster_unlocks.md dex 03). 학생만 몬스터를 얻는다.
+      discovered = evaluate_monster_unlocks(current_user)
+      redirect_to @topic, notice: with_discovery("글을 남겼어요.", discovered)
     else
       redirect_to @topic, alert: @forum_post.errors.full_messages.to_sentence
     end

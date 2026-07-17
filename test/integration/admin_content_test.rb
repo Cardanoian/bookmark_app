@@ -50,7 +50,7 @@ class AdminContentTest < ActionDispatch::IntegrationTest
       post admin_quizzes_path, params: { quiz: {
         title: "관리퀴즈", scope: "global", published: "1",
         quiz_questions_attributes: {
-          "0" => { prompt: "질문?", choices: "가\n나\n다\n라", answer_index: 0, position: 1 }
+          "0" => { prompt: "질문?", choices: "가\n나\n다\n라", answer_number: 1, position: 1 }
         }
       } }
     end

@@ -10,6 +10,8 @@ class MonstersController < ApplicationController
     @evolvable_ids = current_user.evolvable_monsters.map(&:id).to_set
     @dex_count = current_user.user_monsters.distinct.count(:dex_no)
     @design_lines = MonsterSpecies::DESIGN_LINE_COUNT
+    # 잠긴 카드에 해금 조건 진행도(예: "승인 독후감 4/6편")를 그리기 위한 지표 스냅샷.
+    @stats = ReadingStats.new(current_user)
   end
 
   # 상세: 종·단계·진화 조건 진행률(ReadingStats 대비)·케어 상태.
@@ -39,7 +41,10 @@ class MonstersController < ApplicationController
     end
 
     monster = MonsterAcquisition.new(current_user).choose_starter!(params[:key])
-    redirect_to monster_path(monster.dex_no), notice: "#{monster.species.name}와(과) 함께 모험을 시작해요!"
+    # 스타터 선택 직후 나머지 라인의 해금 조건도 재평가한다(md §4 스타터 선택 직후 평가 시점).
+    discovered = evaluate_monster_unlocks(current_user)
+    redirect_to monster_path(monster.dex_no),
+                notice: with_discovery("#{monster.species.name}와(과) 함께 모험을 시작해요!", discovered)
   rescue MonsterAcquisition::InvalidStarter, MonsterAcquisition::AlreadyOwned
     redirect_to monsters_path, alert: "스타터를 선택할 수 없어요."
   end

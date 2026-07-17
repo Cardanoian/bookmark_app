@@ -91,4 +91,63 @@ class MonsterSpeciesTest < ActiveSupport::TestCase
       assert species.valid?, "#{species.key}: #{species.errors.full_messages.to_sentence}"
     end
   end
+
+  # unlock_condition 검증 — evolve_condition 검증자를 미러링(같은 화이트리스트·정수·JSON 규칙).
+  test "unlock_condition with whitelisted keys is accepted" do
+    species = MonsterSpecies.new(key: "unlock_ok_1", stage: 1, dex_no: 310,
+                                 unlock_condition: { "reports" => 6, "max_daily_reports" => 2 })
+    assert species.valid?, species.errors.full_messages.to_sentence
+  end
+
+  test "unlock_condition with a game metric key is accepted" do
+    species = MonsterSpecies.new(key: "unlock_ok_2", stage: 1, dex_no: 311,
+                                 unlock_condition: { "game_plays" => 8, "distinct_games" => 3, "game_books" => 5 })
+    assert species.valid?, species.errors.full_messages.to_sentence
+  end
+
+  test "unlock_condition with an unknown key is rejected" do
+    species = MonsterSpecies.new(key: "unlock_bad_1", stage: 1, dex_no: 312, unlock_condition: { "reprots" => 3 })
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  test "unlock_condition with a negative target is rejected" do
+    species = MonsterSpecies.new(key: "unlock_bad_2", stage: 1, dex_no: 313, unlock_condition: { "reports" => -1 })
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  test "unlock_condition with a non-integer target is rejected" do
+    species = MonsterSpecies.new(key: "unlock_bad_3", stage: 1, dex_no: 314, unlock_condition: { "reports" => "many" })
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  test "unlock_condition that is not a hash is rejected" do
+    species = MonsterSpecies.new(key: "unlock_bad_4", stage: 1, dex_no: 315, unlock_condition: [ "reports", 3 ])
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  test "an unknown key entered via the unlock JSON writer is a validation error, not a crash" do
+    species = MonsterSpecies.new(key: "unlock_json_bad", stage: 1, dex_no: 316)
+    species.unlock_condition_json = '{"level": 10}'
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  test "invalid unlock JSON is a validation error, not a crash" do
+    species = MonsterSpecies.new(key: "unlock_json_broken", stage: 1, dex_no: 317)
+    species.unlock_condition_json = "{not json"
+    assert_not species.valid?
+    assert species.errors[:unlock_condition].any?
+  end
+
+  # 시더가 적재하는 모든 실제 해금 조건(stage1)이 화이트리스트 검증을 통과해야 한다.
+  test "all seeded unlock_conditions satisfy the key whitelist" do
+    seed_monster_species!
+    MonsterSpecies.where.not(unlock_condition: nil).find_each do |species|
+      assert species.valid?, "#{species.key}: #{species.errors.full_messages.to_sentence}"
+    end
+  end
 end

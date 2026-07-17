@@ -16,7 +16,7 @@
         <p class="font-medium text-ink"><%= question.prompt %></p>
         <ul class="mt-2 space-y-1">
           <% Array(question.choices).each_with_index do |choice, index| %>
-            <li class="<%= index == question.answer_index ? "font-semibold text-success-ink" : "text-slate" %>"><%= index %>. <%= choice %></li>
+            <li class="<%= index == question.answer_index ? "font-semibold text-success-ink" : "text-slate" %>"><%= index + 1 %>. <%= choice %></li>
           <% end %>
         </ul>
       </li>

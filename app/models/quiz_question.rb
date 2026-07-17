@@ -50,6 +50,15 @@ class QuizQuestion < ApplicationRecord
     Games::QuestionScorer.for(self).score(response, hints_used: hints_used)
   end
 
+  # 폼 입력용 1-based 정답 번호. 저장은 0-based(answer_index) 불변.
+  def answer_number
+    answer_index.nil? ? nil : answer_index + 1
+  end
+
+  def answer_number=(value)
+    self.answer_index = value.blank? ? nil : value.to_i - 1
+  end
+
   private
 
   # 타입별 정답 표현이 채점 가능한 형태인지 검증한다. 무효 정답이 채점기로 흘러가는 것을 막는다.

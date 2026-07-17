@@ -58,7 +58,7 @@ class Admin::QuizzesController < Admin::BaseController
   def quiz_params
     permitted = params.require(:quiz).permit(
       :title, :book_id, :scope, :published,
-      quiz_questions_attributes: [ :id, :prompt, :choices, :answer_index, :position, :_destroy ]
+      quiz_questions_attributes: [ :id, :prompt, :choices, :answer_number, :position, :_destroy ]
     )
     normalize_choices(permitted)
     permitted

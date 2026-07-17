@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_15_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_16_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -164,6 +164,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_15_000001) do
     t.index ["user_id"], name: "index_forum_posts_on_user_id"
   end
 
+  create_table "game_plays", force: :cascade do |t|
+    t.integer "book_id"
+    t.datetime "created_at", null: false
+    t.integer "game_type", null: false
+    t.date "played_on", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["book_id"], name: "index_game_plays_on_book_id"
+    t.index ["user_id", "game_type", "book_id", "played_on"], name: "index_game_plays_daily_dedup_with_book", unique: true, where: "book_id IS NOT NULL"
+    t.index ["user_id", "game_type", "played_on"], name: "index_game_plays_daily_dedup_without_book", unique: true, where: "book_id IS NULL"
+    t.index ["user_id"], name: "index_game_plays_on_user_id"
+  end
+
   create_table "library_events", force: :cascade do |t|
     t.integer "book_id"
     t.datetime "created_at", null: false
@@ -212,6 +225,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_15_000001) do
     t.string "name"
     t.integer "rarity", default: 0
     t.integer "stage"
+    t.json "unlock_condition"
     t.datetime "updated_at", null: false
     t.index ["dex_no"], name: "index_monster_species_on_dex_no"
     t.index ["evolves_from_id"], name: "index_monster_species_on_evolves_from_id"
@@ -460,6 +474,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_15_000001) do
   add_foreign_key "forum_post_likes", "users"
   add_foreign_key "forum_posts", "topics"
   add_foreign_key "forum_posts", "users"
+  add_foreign_key "game_plays", "books"
+  add_foreign_key "game_plays", "users"
   add_foreign_key "library_events", "books", on_delete: :nullify
   add_foreign_key "library_events", "schools", on_delete: :nullify
   add_foreign_key "library_loans", "schools", on_delete: :nullify

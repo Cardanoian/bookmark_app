@@ -3,6 +3,8 @@
 # - 라인당 forms 3개(stage 1·2·3). evolves_from_id 는 stage 순서로 자동 연결(시더가 이전 stage 를 부모로 설정).
 # - evolve_condition 은 해당 폼에서 다음 단계로 가는 조건. stage 3 은 조건 없음.
 # - starter: true 인 라인의 stage 1 이 스타터 선택지. phase: 1 은 Phase 1 시드 대상.
+# - unlock_condition 은 라인 단위 자동 해금 규칙(docs/monster_unlocks.md §3). 시더가 stage 1 폼에만 대입한다.
+#   스타터 라인(01/05/17)은 활동절만 저장한다("스타터 선택 OR"는 보유 시 skip 으로 자연 충족되므로 미저장).
 monster_lines:
   # === STORY (보라) ===
   - dex_no: 1
@@ -10,6 +12,7 @@ monster_lines:
     rarity: common
     starter: true
     phase: 1
+    unlock_condition: { reports: 3 }
     forms:
       - { stage: 1, key: pup_1, name: "갈피멍", evolve_condition: { points: 100, reports: 3 } }
       - { stage: 2, key: pup_2, name: "이야기멍", evolve_condition: { points: 450, a_grades: 1, b_or_better: 5 } }
@@ -18,6 +21,7 @@ monster_lines:
     element: story
     rarity: rare
     phase: 1
+    unlock_condition: { reports: 6, max_daily_reports: 2 }
     forms:
       - { stage: 1, key: parrot_1, name: "쫑알이", evolve_condition: { points: 100, reports: 5 } }
       - { stage: 2, key: parrot_2, name: "수다앵무", evolve_condition: { points: 700, reports: 12, a_grades: 2 } }
@@ -26,6 +30,7 @@ monster_lines:
     element: story
     rarity: common
     phase: 2
+    unlock_condition: { topic_posts: 1 }
     forms:
       - { stage: 1, key: pencil_1, name: "뾰족이", evolve_condition: { points: 150, topic_posts: 2 } }
       - { stage: 2, key: pencil_2, name: "또각연필", evolve_condition: { points: 450, a_grades: 2 } }
@@ -34,6 +39,7 @@ monster_lines:
     element: story
     rarity: rare
     phase: 2
+    unlock_condition: { reports: 8, distinct_genres: 3 }
     forms:
       - { stage: 1, key: fox_1, name: "도담여우", evolve_condition: { points: 150, distinct_genres: 2 } }
       - { stage: 2, key: fox_2, name: "이야기여우", evolve_condition: { points: 700, classics: 1, reports: 8 } }
@@ -45,6 +51,7 @@ monster_lines:
     rarity: common
     starter: true
     phase: 1
+    unlock_condition: { distinct_genres: 2 }
     forms:
       - { stage: 1, key: cat_1, name: "아롱냥", evolve_condition: { points: 100, distinct_genres: 2 } }
       - { stage: 2, key: cat_2, name: "안경냥", evolve_condition: { points: 450, distinct_genres: 4 } }
@@ -53,6 +60,7 @@ monster_lines:
     element: knowledge
     rarity: common
     phase: 1
+    unlock_condition: { game_plays: 3 }
     forms:
       - { stage: 1, key: owl_1, name: "동글부엉", evolve_condition: { points: 100, quizzes: 3 } }
       - { stage: 2, key: owl_2, name: "반짝부엉", evolve_condition: { points: 450, quizzes: 8, a_grades: 1 } }
@@ -61,6 +69,7 @@ monster_lines:
     element: knowledge
     rarity: rare
     phase: 2
+    unlock_condition: { game_plays: 8, distinct_games: 3 }
     forms:
       - { stage: 1, key: robot_1, name: "도르리", evolve_condition: { points: 150, missions: 1 } }
       - { stage: 2, key: robot_2, name: "째깍로봇", evolve_condition: { points: 700, distinct_genres: 5, quizzes: 5 } }
@@ -69,6 +78,7 @@ monster_lines:
     element: knowledge
     rarity: epic
     phase: 2
+    unlock_condition: { classics: 3, distinct_genres: 5, a_grades: 3 }
     forms:
       - { stage: 1, key: turtle_1, name: "조각등", evolve_condition: { points: 250, classics: 1 } }
       - { stage: 2, key: turtle_2, name: "지식거북", evolve_condition: { points: 1000, classics: 3, distinct_genres: 5 } }
@@ -80,6 +90,7 @@ monster_lines:
     rarity: common
     unlock_candidate: true
     phase: 1
+    unlock_condition: { reports: 1 }
     forms:
       - { stage: 1, key: hamster_1, name: "콩닥이", evolve_condition: { points: 100, reports: 3 } }
       - { stage: 2, key: hamster_2, name: "두근이", evolve_condition: { points: 450, a_grades: 2 } }
@@ -88,6 +99,7 @@ monster_lines:
     element: emotion
     rarity: common
     phase: 1
+    unlock_condition: { b_or_better: 3 }
     forms:
       - { stage: 1, key: whale_1, name: "또르고래", evolve_condition: { points: 100, b_or_better: 3 } }
       - { stage: 2, key: whale_2, name: "촉촉고래", evolve_condition: { points: 450, a_grades: 3 } }
@@ -96,6 +108,7 @@ monster_lines:
     element: emotion
     rarity: rare
     phase: 2
+    unlock_condition: { reports: 8, a_grades: 2 }
     forms:
       - { stage: 1, key: rabbit_1, name: "몽실토끼", evolve_condition: { points: 150, cheers_received: 5 } }
       - { stage: 2, key: rabbit_2, name: "뭉게토끼", evolve_condition: { points: 700, a_grades: 3, cheers_received: 15 } }
@@ -104,6 +117,7 @@ monster_lines:
     element: emotion
     rarity: common
     phase: 2
+    unlock_condition: { revisions: 1 }
     forms:
       - { stage: 1, key: deer_1, name: "새싹사슴", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: deer_2, name: "꽃봉사슴", evolve_condition: { points: 450, a_grades: 2, revisions: 1 } }
@@ -115,6 +129,7 @@ monster_lines:
     rarity: common
     unlock_candidate: true
     phase: 1
+    unlock_condition: { missions: 1 }
     forms:
       - { stage: 1, key: bear_1, name: "방향곰", evolve_condition: { points: 100, missions: 1 } }
       - { stage: 2, key: bear_2, name: "탐험곰", evolve_condition: { points: 450, streak_days: 5, missions: 2 } }
@@ -123,6 +138,7 @@ monster_lines:
     element: adventure
     rarity: common
     phase: 1
+    unlock_condition: { max_daily_reports: 2 }
     forms:
       - { stage: 1, key: chick_1, name: "반디병아리", evolve_condition: { points: 100, streak_days: 3 } }
       - { stage: 2, key: chick_2, name: "활활닭", evolve_condition: { points: 700, streak_days: 7 } }
@@ -131,6 +147,7 @@ monster_lines:
     element: adventure
     rarity: rare
     phase: 2
+    unlock_condition: { challenges: 1, game_books: 5 }
     forms:
       - { stage: 1, key: penguin_1, name: "붕붕펭", evolve_condition: { points: 150, quizzes: 3 } }
       - { stage: 2, key: penguin_2, name: "슝슝펭", evolve_condition: { points: 700, streak_days: 10, challenges: 1 } }
@@ -139,6 +156,7 @@ monster_lines:
     element: adventure
     rarity: rare
     phase: 2
+    unlock_condition: { reports: 12, max_daily_reports: 3 }
     forms:
       - { stage: 1, key: dino_1, name: "알록공", evolve_condition: { points: 150, reports: 5 } }
       - { stage: 2, key: dino_2, name: "티라돌", evolve_condition: { points: 700, missions: 3, streak_days: 7 } }
@@ -150,6 +168,7 @@ monster_lines:
     rarity: common
     starter: true
     phase: 1
+    unlock_condition: { streak_days: 3 }
     forms:
       - { stage: 1, key: hedgehog_1, name: "새싹도치", evolve_condition: { points: 100, reports: 3 } }
       - { stage: 2, key: hedgehog_2, name: "잎사귀도치", evolve_condition: { points: 450, revisions: 1, reports: 8 } }
@@ -158,6 +177,7 @@ monster_lines:
     element: nature
     rarity: common
     phase: 1
+    unlock_condition: { challenges: 1 }
     forms:
       - { stage: 1, key: frog_1, name: "퐁당올챙", evolve_condition: { points: 100, reports: 4 } }
       - { stage: 2, key: frog_2, name: "시냇개구리", evolve_condition: { points: 450, revisions: 2 } }
@@ -166,6 +186,7 @@ monster_lines:
     element: nature
     rarity: common
     phase: 2
+    unlock_condition: { missions: 2 }
     forms:
       - { stage: 1, key: squirrel_1, name: "도토리", evolve_condition: { points: 100, missions: 1 } }
       - { stage: 2, key: squirrel_2, name: "볼록이", evolve_condition: { points: 450, distinct_genres: 3, reports: 8 } }
@@ -174,6 +195,7 @@ monster_lines:
     element: nature
     rarity: rare
     phase: 2
+    unlock_condition: { streak_days: 7, revisions: 2 }
     forms:
       - { stage: 1, key: mushroom_1, name: "몽글버섯", evolve_condition: { points: 150, streak_days: 3 } }
       - { stage: 2, key: mushroom_2, name: "우산버섯", evolve_condition: { points: 700, revisions: 2, streak_days: 7 } }
@@ -185,6 +207,7 @@ monster_lines:
     rarity: rare
     unlock_candidate: true
     phase: 1
+    unlock_condition: { game_plays: 12, distinct_games: 4 }
     forms:
       - { stage: 1, key: unicorn_1, name: "꼬마유니콘", evolve_condition: { points: 150, quizzes: 3 } }
       - { stage: 2, key: unicorn_2, name: "꿈별유니콘", evolve_condition: { points: 700, dex_count: 5, a_grades: 2 } }
@@ -193,6 +216,7 @@ monster_lines:
     element: imagination
     rarity: rare
     phase: 2
+    unlock_condition: { distinct_genres: 4, game_books: 8 }
     forms:
       - { stage: 1, key: butterfly_1, name: "물감애벌레", evolve_condition: { points: 150, distinct_genres: 3 } }
       - { stage: 2, key: butterfly_2, name: "무지개고치", evolve_condition: { points: 700, dex_count: 6, revisions: 1 } }
@@ -201,6 +225,7 @@ monster_lines:
     element: imagination
     rarity: common
     phase: 1
+    unlock_condition: { distinct_games: 2 }
     forms:
       - { stage: 1, key: dokkaebi_1, name: "방울깨비", evolve_condition: { points: 100, quizzes: 3 } }
       - { stage: 2, key: dokkaebi_2, name: "뿔깨비", evolve_condition: { points: 450, dex_count: 4, missions: 2 } }
@@ -209,6 +234,7 @@ monster_lines:
     element: imagination
     rarity: epic
     phase: 2
+    unlock_condition: { reports: 20, a_grades: 5, game_books: 12, dex_count: 20 }
     forms:
       - { stage: 1, key: dragon_1, name: "알드래", evolve_condition: { points: 250, dex_count: 5 } }
       - { stage: 2, key: dragon_2, name: "뭉치용", evolve_condition: { points: 1000, dex_count: 10, a_grades: 3, classics: 2 } }

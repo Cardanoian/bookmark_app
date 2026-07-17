@@ -18,6 +18,7 @@ class User < ApplicationRecord
   has_many :forum_posts, dependent: :destroy
   has_many :cheers, dependent: :destroy
   has_many :quiz_attempts, dependent: :destroy
+  has_many :game_plays, dependent: :destroy
 
   enum :role, { student: 0, teacher: 1, school_admin: 2, librarian: 3, superadmin: 4 }, default: :student
   enum :mode, { normal: 0, easy: 1 }, default: :normal

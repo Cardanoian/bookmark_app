@@ -18,7 +18,10 @@ module Games
       end
 
       attempt = QuizPlay.new(quiz: quiz, user: current_user, attempt: prebuilt).record!(submitted_answers)
-      redirect_to redirect_target(params[:game], quiz), notice: result_notice(attempt)
+      # 게임 완료 원장 기록 + 신규 기록 시 몬스터 해금 재평가(Phase 3B). game_type 은 검증된 표면 선언.
+      play = record_game_play!(game_type: params[:game], book_id: quiz.book_id)
+      discovered = play ? evaluate_monster_unlocks(current_user) : []
+      redirect_to redirect_target(params[:game], quiz), notice: with_discovery(result_notice(attempt), discovered)
     end
 
     private

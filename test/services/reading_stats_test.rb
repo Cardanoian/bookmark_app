@@ -50,6 +50,91 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 1, @stats.classics
   end
 
+  # classics 는 distinct book — 같은 고전을 여러 번 읽어도 1권으로만 센다(반복 치팅 차단).
+  test "classics counts distinct classic books, not repeated reports of the same book" do
+    classic = Book.create!(title: "같은고전", category: :classic)
+    report(reviewed: true, book: classic)
+    report(reviewed: true, book: classic)
+    report(reviewed: true, book: classic)
+    assert_equal 1, @stats.classics
+  end
+
+  test "classics counts each distinct classic once across many reports" do
+    3.times { |i| report(reviewed: true, book: Book.create!(title: "고전#{i}", category: :classic)) }
+    assert_equal 3, @stats.classics
+  end
+
+  # 진화 회귀 게이트: classics 를 distinct book 으로 바꿔도 turtle_2(classics:3)·dragon_2(classics:2)
+  # 진화가 서로 다른 고전으로는 도달 가능해야 한다(같은 책 반복으론 불가).
+  test "distinct-classics change keeps turtle_2 and dragon_2 evolution reachable with distinct classics" do
+    seed_monster_species!
+    3.times { |i| report(reviewed: true, book: Book.create!(title: "다른고전#{i}", category: :classic)) }
+    stats = ReadingStats.new(@user)
+    assert_equal 3, stats.classics
+    assert stats.meets?(MonsterSpecies.find_by(key: "turtle_2").evolve_condition.slice("classics"))
+    assert stats.meets?(MonsterSpecies.find_by(key: "dragon_2").evolve_condition.slice("classics"))
+  end
+
+  test "reading the same classic repeatedly does not reach classics 2 or 3 (regression against cheating)" do
+    classic = Book.create!(title: "반복고전", category: :classic)
+    3.times { report(reviewed: true, book: classic) }
+    stats = ReadingStats.new(@user)
+    assert_equal 1, stats.classics
+    assert_not stats.meets?("classics" => 2)
+    assert_not stats.meets?("classics" => 3)
+  end
+
+  # max_daily_reports — 하루에 제출한 서로 다른 책의 승인 독후감 수 중 역대 최댓값.
+  test "max_daily_reports takes the max distinct-book count across submission days" do
+    day1 = Time.utc(2026, 6, 1, 3) # KST 12:00 06-01
+    day2 = Time.utc(2026, 6, 2, 3) # KST 12:00 06-02
+    b = ->(n) { Book.create!(title: n, category: :recommended) }
+    report(reviewed: true, created_at: day1, book: b.("d1a"))
+    report(reviewed: true, created_at: day1, book: b.("d1b")) # 06-01: 서로 다른 책 2권
+    report(reviewed: true, created_at: day2, book: b.("d2a")) # 06-02: 1권
+    assert_equal 2, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports counts the same book submitted twice in a day only once" do
+    day = Time.utc(2026, 6, 1, 3)
+    same = Book.create!(title: "같은책", category: :recommended)
+    other = Book.create!(title: "다른책", category: :recommended)
+    report(reviewed: true, created_at: day, book: same)
+    report(reviewed: true, created_at: day, book: same) # 같은 책 → 1권
+    report(reviewed: true, created_at: day, book: other) # 다른 책 → +1
+    assert_equal 2, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports groups by Asia/Seoul submission date, not UTC" do
+    seoul_before_midnight = Time.utc(2026, 6, 1, 14, 59) # KST 23:59 06-01
+    seoul_after_midnight = Time.utc(2026, 6, 1, 15, 0)   # KST 00:00 06-02 (같은 UTC 날짜)
+    report(reviewed: true, created_at: seoul_before_midnight, book: Book.create!(title: "밤늦게", category: :recommended))
+    report(reviewed: true, created_at: seoul_after_midnight, book: Book.create!(title: "자정직후", category: :recommended))
+    # UTC 로 묶으면 같은 날 2권(=2)이지만, Asia/Seoul 로는 서로 다른 날(각 1권)이라 최댓값 1.
+    assert_equal 1, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports excludes reports without a book and is zero when none qualify" do
+    report(reviewed: true, book_title: "책제목만", book: nil)
+    assert_equal 0, @stats.max_daily_reports
+    report(reviewed: false, book: Book.create!(title: "미승인", category: :recommended))
+    assert_equal 0, @stats.max_daily_reports # 미승인은 제외
+  end
+
+  # 3B — game_plays 원장 기반 지표.
+  test "game_plays, distinct_games and game_books aggregate the game_plays ledger" do
+    b1 = Book.create!(title: "게임책1", category: :recommended)
+    b2 = Book.create!(title: "게임책2", category: :recommended)
+    today = Time.current.in_time_zone("Asia/Seoul").to_date
+    @user.game_plays.create!(game_type: :quiz, book: b1, played_on: today)
+    @user.game_plays.create!(game_type: :vocab, book: b2, played_on: today)
+    @user.game_plays.create!(game_type: :whoami, book_id: nil, played_on: today) # 책 없는 교사 퀴즈
+    stats = ReadingStats.new(@user)
+    assert_equal 3, stats.game_plays
+    assert_equal 3, stats.distinct_games
+    assert_equal 2, stats.game_books # 책 연결 2건만
+  end
+
   test "revisions counts reviewed reports with positive improvement" do
     report(reviewed: true, improvement: 1.5)
     report(reviewed: true, improvement: 0.0)
