@@ -1,39 +1,41 @@
 <% content_for :title, "우수작 · 책갈피" %>
 
-<div class="mx-auto w-full max-w-2xl space-y-6">
+<div class="page-shell page-shell-content space-y-6">
   <header>
-    <h1 class="text-2xl font-bold text-gray-900">
-      <%= @report.book&.title.presence || @report.book_title %>
-    </h1>
-    <p class="mt-1 text-sm text-gray-500"><%= @report.user.name %></p>
+    <%= link_to "← 우수작 게시판", board_posts_path, class: "text-sm text-steel hover:text-ink" %>
   </header>
 
-  <section class="rounded-lg border border-gray-200 p-4">
-    <p class="whitespace-pre-wrap text-gray-800"><%= @report.body %></p>
-  </section>
+  <div class="grid gap-6 lg:grid-cols-3 lg:items-start">
+    <article class="card space-y-4 lg:col-span-2">
+      <div>
+        <h1 class="page-title"><%= @report.book&.title.presence || @report.book_title %></h1>
+        <p class="page-subtitle"><span aria-hidden="true">✍️</span> <%= @report.user.name %></p>
+      </div>
+      <p class="whitespace-pre-wrap leading-relaxed text-slate"><%= @report.body %></p>
+    </article>
 
-  <section class="rounded-lg border border-gray-200 p-4">
-    <%= render "board_posts/cheer_button", board_post: @board_post %>
-  </section>
+    <div class="space-y-6">
+      <section class="card space-y-3">
+        <h2 class="text-sm font-semibold text-steel">응원하기</h2>
+        <%= render "board_posts/cheer_button", board_post: @board_post %>
+      </section>
 
-  <section class="rounded-lg border border-gray-200 p-4">
-    <h2 class="mb-2 text-sm font-semibold text-gray-500">문장 스티커</h2>
-    <div id="<%= dom_id(@report, :stickers) %>" class="flex flex-wrap gap-2">
-      <%= render partial: "board_posts/sticker", collection: @stickers, as: :sticker %>
+      <section class="card space-y-3">
+        <h2 class="text-sm font-semibold text-steel">문장 스티커</h2>
+        <div id="<%= dom_id(@report, :stickers) %>" class="flex flex-wrap gap-2">
+          <%= render partial: "board_posts/sticker", collection: @stickers, as: :sticker %>
+        </div>
+
+        <% if policy(Sticker.new).create? %>
+          <%= form_with model: @sticker, url: board_post_stickers_path(@board_post), method: :post,
+                class: "flex flex-wrap items-center gap-2 border-t border-hairline-soft pt-3" do |f| %>
+            <%= f.hidden_field :position, value: 0 %>
+            <%= f.select :emoji, [ "👍", "👏", "🌟", "❤️", "😊" ], {}, class: "form-select w-auto" %>
+            <%= f.text_field :label, placeholder: "한마디 (선택)", class: "form-input w-auto flex-1" %>
+            <%= f.submit "붙이기", class: "btn btn-yellow btn-sm" %>
+          <% end %>
+        <% end %>
+      </section>
     </div>
-
-    <% if policy(Sticker.new).create? %>
-      <%= form_with model: @sticker, url: board_post_stickers_path(@board_post), method: :post,
-            class: "mt-3 flex flex-wrap items-center gap-2" do |f| %>
-        <%= f.hidden_field :position, value: 0 %>
-        <%= f.select :emoji, [ "👍", "👏", "🌟", "❤️", "😊" ], {},
-              class: "rounded-lg border border-gray-300 px-2 py-1 text-sm" %>
-        <%= f.text_field :label, placeholder: "한마디 (선택)",
-              class: "rounded-lg border border-gray-300 px-3 py-1 text-sm" %>
-        <%= f.submit "붙이기", class: "rounded-lg bg-amber-400 px-3 py-1 text-sm font-medium text-white" %>
-      <% end %>
-    <% end %>
-  </section>
-
-  <%= link_to "목록으로", board_posts_path, class: "text-sm text-gray-500" %>
+  </div>
 </div>

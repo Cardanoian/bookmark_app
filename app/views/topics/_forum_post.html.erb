@@ -1,9 +1,8 @@
 <%# 토론 글(P5.4). local: forum_post %>
-<article id="<%= dom_id(forum_post) %>" class="rounded-lg border border-gray-200 p-3">
-  <p class="whitespace-pre-wrap text-sm text-gray-800"><%= forum_post.text %></p>
-  <p class="mt-2 flex items-center gap-2 text-xs text-gray-500">
-    <span><%= forum_post.user.name %></span>
-    <span>·</span>
+<article id="<%= dom_id(forum_post) %>" class="card">
+  <p class="whitespace-pre-wrap text-sm leading-relaxed text-ink"><%= forum_post.text %></p>
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-hairline-soft pt-3">
+    <span class="text-xs font-medium text-steel"><%= forum_post.user.name %></span>
     <%= render "topics/like_button", forum_post: forum_post, liked: liked_post_ids.include?(forum_post.id) %>
-  </p>
+  </div>
 </article>

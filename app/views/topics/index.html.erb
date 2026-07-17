@@ -1,32 +1,32 @@
 <% content_for :title, "토론방 · 책갈피" %>
 
-<div class="mx-auto w-full max-w-3xl space-y-6">
-  <header>
-    <h1 class="text-2xl font-bold text-gray-900">토론방</h1>
-    <p class="mt-1 text-sm text-gray-500">우리 반·우리 학교 친구들과 책 이야기를 나눠 보세요.</p>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">커뮤니티</p>
+      <h1 class="page-title"><span aria-hidden="true">💬</span> 토론방</h1>
+      <p class="page-subtitle">우리 반·우리 학교 친구들과 책 이야기를 나눠 보세요.</p>
+    </div>
   </header>
 
   <% if policy(Topic).create? %>
-    <%= form_with model: Topic.new, url: topics_path, method: :post,
-          class: "space-y-3 rounded-xl border border-gray-200 p-4" do |f| %>
-      <%= f.text_field :title, placeholder: "토론 주제를 입력하세요", required: true,
-            class: "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
-      <div class="flex items-center gap-3">
-        <%= f.select :scope, [ [ "우리 반", "classroom" ], [ "우리 학교", "school" ] ], {},
-              class: "rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
-        <%= f.submit "토론방 열기", class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+    <%= form_with model: Topic.new, url: topics_path, method: :post, class: "card space-y-3" do |f| %>
+      <%= f.text_field :title, placeholder: "토론 주제를 입력하세요", required: true, class: "form-input" %>
+      <div class="flex flex-wrap items-center gap-3">
+        <%= f.select :scope, [ [ "우리 반", "classroom" ], [ "우리 학교", "school" ] ], {}, class: "form-select w-auto" %>
+        <%= f.submit "토론방 열기", class: "btn btn-yellow btn-sm" %>
       </div>
     <% end %>
   <% end %>
 
   <% if @topics.any? %>
-    <div class="space-y-3">
+    <div class="grid gap-4 sm:grid-cols-2">
       <% @topics.each do |topic| %>
-        <article class="rounded-xl border border-gray-200 p-4">
-          <%= link_to topic.title, topic_path(topic),
-                class: "font-semibold text-gray-900 hover:underline" %>
-          <p class="mt-1 text-xs text-gray-500">
-            <%= topic.classroom? ? "우리 반" : "우리 학교" %> · 글 <%= topic.forum_posts_count %>개
+        <article class="card flex h-full flex-col gap-2">
+          <%= link_to topic.title, topic_path(topic), class: "font-semibold text-ink hover:underline" %>
+          <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-steel">
+            <span class="badge badge-neutral"><%= topic.classroom? ? "우리 반" : "우리 학교" %></span>
+            <span><span aria-hidden="true">💬</span> 글 <%= topic.forum_posts_count %>개</span>
           </p>
         </article>
       <% end %>
@@ -36,14 +36,14 @@
   <% end %>
 
   <% if @has_next_page || @page > 1 %>
-    <nav class="flex items-center justify-between text-sm">
+    <nav class="flex items-center justify-between gap-3">
       <% if @page > 1 %>
-        <%= link_to "← 이전", topics_path(page: @page - 1), class: "text-indigo-600" %>
+        <%= link_to "← 이전", topics_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", topics_path(page: @page + 1), class: "text-indigo-600" %>
+        <%= link_to "다음 →", topics_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>

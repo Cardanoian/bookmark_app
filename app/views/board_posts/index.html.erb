@@ -1,13 +1,16 @@
 <% content_for :title, "우수작 게시판 · 책갈피" %>
 
-<div class="mx-auto w-full max-w-3xl space-y-6">
-  <header>
-    <h1 class="text-2xl font-bold text-gray-900">우수작 게시판</h1>
-    <p class="mt-1 text-sm text-gray-500">친구들의 멋진 독후감에 응원과 스티커를 남겨 보세요.</p>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">커뮤니티</p>
+      <h1 class="page-title"><span aria-hidden="true">🏅</span> 우수작 게시판</h1>
+      <p class="page-subtitle">친구들의 멋진 독후감에 응원과 스티커를 남겨 보세요.</p>
+    </div>
   </header>
 
   <% if @board_posts.any? %>
-    <div class="space-y-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <%= render partial: "board_posts/board_post", collection: @board_posts, as: :board_post %>
     </div>
   <% else %>
@@ -15,14 +18,14 @@
   <% end %>
 
   <% if @has_next_page || @page > 1 %>
-    <nav class="flex items-center justify-between text-sm">
+    <nav class="flex items-center justify-between gap-3">
       <% if @page > 1 %>
-        <%= link_to "← 이전", board_posts_path(page: @page - 1), class: "text-indigo-600" %>
+        <%= link_to "← 이전", board_posts_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", board_posts_path(page: @page + 1), class: "text-indigo-600" %>
+        <%= link_to "다음 →", board_posts_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>

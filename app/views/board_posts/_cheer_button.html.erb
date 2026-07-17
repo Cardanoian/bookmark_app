@@ -1,12 +1,14 @@
 <%# 응원 버튼 + 카운트(P5.3). cheers create/destroy Turbo Stream 대상. local: board_post %>
 <% cheer = current_user && board_post.cheers.find_by(user_id: current_user.id) %>
-<div id="<%= dom_id(board_post, :cheer) %>" class="flex items-center gap-3">
+<div id="<%= dom_id(board_post, :cheer) %>" class="flex flex-wrap items-center gap-3">
   <% if cheer %>
-    <%= button_to "👏 응원 취소", board_post_cheer_path(board_post, cheer), method: :delete,
-          class: "rounded-full bg-amber-100 px-4 py-1.5 text-sm font-medium text-amber-800" %>
+    <%= button_to board_post_cheer_path(board_post, cheer), method: :delete, class: "btn btn-secondary btn-sm" do %>
+      <span aria-hidden="true">👏</span> 응원 취소
+    <% end %>
   <% else %>
-    <%= button_to "👏 응원하기", board_post_cheers_path(board_post), method: :post,
-          class: "rounded-full bg-amber-400 px-4 py-1.5 text-sm font-medium text-white" %>
+    <%= button_to board_post_cheers_path(board_post), method: :post, class: "btn btn-yellow btn-sm" do %>
+      <span aria-hidden="true">👏</span> 응원하기
+    <% end %>
   <% end %>
-  <span class="text-sm font-semibold text-gray-600"><%= board_post.report.cheers_count %>명이 응원했어요</span>
+  <span class="text-sm font-semibold text-slate"><%= board_post.report.cheers_count %>명이 응원했어요</span>
 </div>
