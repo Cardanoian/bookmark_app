@@ -7,7 +7,7 @@
 
 ## 파일
 - `application_controller.rb` — 전 컨트롤러의 베이스. 로그인/정지 세션 게이트 + `verify_authorized` fail-closed 인가 안전망 + Pundit 403 처리.
-- `dashboard_controller.rb` — 루트(`/`). 역할별 홈 화면으로 분기 렌더(학생·교사·교무·사서). 총괄(superadmin)은 렌더 없이 `/admin` 콘솔로 리다이렉트.
+- `dashboard_controller.rb` — 루트(`/`). 역할별 홈 화면으로 분기 렌더(학생·교사·교무·사서). 학생 내 서재에는 본인의 최근 독후감 5편을 조회하며, 총괄(superadmin)은 렌더 없이 `/admin` 콘솔로 리다이렉트.
 - `reports_controller.rb` — 독후감 CRUD + `revise`(고쳐쓰기) + `share`(우수작 공유 토글). `destroy`는 작성 학생 본인만 목록에서 실행한다. 제출 시 `AiReviewJob` 예약. index 는 페이지네이션(PER_PAGE=20). **학생 편집 경로는 고쳐쓰기 단일화**(상세 화면 제자리 '수정' 버튼 제거, `edit`/`update` 액션은 고쳐쓰기 저장에 계속 사용). **revise 는 동일 본문 재첨삭 AI 호출을 스킵**(#misc): 부모 첨삭 결과(rubric/avg/level)를 이어받아 done 으로 시작하고, 학생이 본문을 고쳐 저장하면 update 의 `resubmit?` 가드(작성자 본인+본문 변경 시에만)가 실제 재첨삭을 예약하며 안내도 "다시 첨삭 중"으로 분기. 완료는 AiReviewJob 이 상세 영역을 라이브 교체(수동 새로고침 불필요).
 - `ocr_controller.rb` — 사진 업로드 → 손글씨 OCR 초안(`create`). Gemini 키 없으면 거부. 성공 시 `OcrJob` + Turbo Stream.
 - `books_controller.rb` — 도서 카탈로그(`index`)·상세(`show`)·검색(`search`, 네이버 자동완성 JSON, 무키 시 로컬 폴백). index 는 페이지네이션(PER_PAGE=24)하고 **검색 upsert 캐시(`category: searched`)를 카탈로그에서 제외**해 무한 증가를 막는다(#2, searched 는 로컬 검색 폴백에서만 쓰임).

@@ -5,8 +5,8 @@
   <% podium.each_with_index do |student, index| %>
     <div class="<%= index.zero? ? "card-feature scale-105" : "card" %> text-center">
       <div class="text-2xl" aria-hidden="true"><%= medals[index] %></div>
-      <div class="text-3xl" aria-hidden="true">
-        <%= student.active_monster ? monster_emoji(student.active_monster.species) : "🥚" %>
+      <div class="mx-auto flex h-12 w-12 items-center justify-center text-3xl" aria-hidden="true">
+        <%= student.active_monster ? monster_sprite(student.active_monster.species, img_class: "h-12 w-12 object-contain") : "🥚" %>
       </div>
       <p class="text-sm font-semibold text-ink"><%= student.name %></p>
       <p class="text-xs font-bold text-yellow-dark"><%= student.points %>P</p>

@@ -53,8 +53,24 @@
     </div>
   </div>
 
-  <section class="mt-6 lg:mt-8">
-    <%= render "shared/empty_state",
-          message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+  <section id="recent-reports" class="mt-6 lg:mt-8">
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <h2 class="text-lg font-bold text-ink">최근 독후감</h2>
+      <% if @recent_reports.any? %>
+        <%= link_to "전체 보기", reports_path, class: "text-sm font-medium text-steel hover:text-ink hover:underline" %>
+      <% end %>
+    </div>
+
+    <%= turbo_stream_from current_user, :reports %>
+
+    <% if @recent_reports.any? %>
+      <div class="space-y-4">
+        <%= render partial: "reports/report", collection: @recent_reports,
+              locals: { show_delete: false } %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state",
+            message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+    <% end %>
   </section>
 </div>

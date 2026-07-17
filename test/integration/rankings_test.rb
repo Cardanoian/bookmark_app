@@ -30,6 +30,23 @@ class RankingsTest < ActionDispatch::IntegrationTest
     assert_match "🥇", response.body
   end
 
+  test "class ranking renders each student's active monster image" do
+    species = MonsterSpecies.find_by!(key: "pup_1")
+    monster = @s1.user_monsters.create!(monster_species: species)
+    @s1.update!(active_monster: monster)
+    login_as @s1
+
+    get rankings_path(tab: "class")
+
+    assert_response :success
+    images = css_select("img[alt='#{species.name}']")
+    assert_equal 2, images.size, "대표 몬스터가 포디움과 랭킹 행에 각각 이미지로 표시되어야 한다"
+    images.each do |image|
+      assert_match %r{/(?:assets|images)/monsters/pup_1(?:-[^/.]+)?\.webp}, image["src"]
+    end
+    assert_no_match "🐶", response.body
+  end
+
   test "an unknown tab falls back to the class ranking" do
     login_as @s1
 

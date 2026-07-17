@@ -13,6 +13,9 @@ class DashboardController < ApplicationController
     when :superadmin
       redirect_to admin_root_path
     else
+      @recent_reports = Current.user.reports.includes(:book)
+        .order(created_at: :desc)
+        .limit(5).to_a
       render "dashboard/student"
     end
   end
