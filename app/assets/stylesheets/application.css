@@ -1,10 +1,22 @@
 /*
- * This is a manifest file that'll be compiled into application.css.
+ * 앱 전역 순수 CSS (Tailwind 빌드와 별개로 stylesheet_link_tag :app 이 먼저 링크).
+ * Tailwind 유틸/컴포넌트/토큰은 app/assets/tailwind/application.css 를 참조.
  *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
+ * 여기에는 Propshaft 가 직접 서빙·다이제스트하는 정적 규칙만 둔다.
+ * (Tailwind 파이프라인을 거치지 않으므로 @font-face 의 url() 자산 참조에 적합.)
  */
+
+/*
+ * Pretendard 자체 호스팅(가변 폰트 1파일로 전 웨이트 커버).
+ * 파일: app/assets/fonts/pretendard/PretendardVariable.woff2
+ * config/initializers/assets.rb 가 app/assets/fonts 를 load path 에 추가하므로
+ * Propshaft 가 url("pretendard/…") 를 /assets/pretendard/…-<digest>.woff2 로 변환한다.
+ * CSP font_src :self 를 만족(외부 CDN 미사용).
+ */
+@font-face {
+  font-family: "Pretendard";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 45 920;
+  src: url("pretendard/PretendardVariable.woff2") format("woff2");
+}

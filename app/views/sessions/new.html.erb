@@ -1,25 +1,25 @@
 <%# 처음 접속 시 안내 인덱스 — 학생/교직원 로그인 선택 화면(sessions#new). %>
 <div class="w-full max-w-md mx-auto text-center">
-  <h1 class="text-3xl font-bold mb-2">책갈피</h1>
-  <p class="mb-8 text-gray-600">어떻게 로그인할까요?</p>
+  <h1 class="text-3xl font-bold text-ink">책갈피</h1>
+  <p class="mt-2 mb-8 text-slate">어떻게 로그인할까요?</p>
 
   <div class="space-y-4">
     <%= link_to student_login_path,
-          class: "block rounded-2xl border-2 border-blue-200 bg-blue-50 px-6 py-6 hover:border-blue-400 hover:bg-blue-100 transition" do %>
-      <span class="block text-4xl mb-1">🧒</span>
-      <span class="block text-xl font-bold text-blue-800">학생 로그인</span>
-      <span class="block text-sm text-blue-600 mt-1">학교·학급·이름으로 들어가요</span>
+          class: "card block bg-surface-featured text-center" do %>
+      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-light text-4xl" aria-hidden="true">🧒</span>
+      <span class="block text-xl font-bold text-ink">학생 로그인</span>
+      <span class="mt-1 block text-sm text-brand-blue">학교·학급·이름으로 들어가요</span>
     <% end %>
 
     <%= link_to staff_login_path,
-          class: "block rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-6 py-6 hover:border-emerald-400 hover:bg-emerald-100 transition" do %>
-      <span class="block text-4xl mb-1">👩‍🏫</span>
-      <span class="block text-xl font-bold text-emerald-800">선생님 로그인</span>
-      <span class="block text-sm text-emerald-600 mt-1">교사·관리자·사서 이메일 로그인</span>
+          class: "card block text-center" do %>
+      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface text-4xl" aria-hidden="true">👩‍🏫</span>
+      <span class="block text-xl font-bold text-ink">선생님 로그인</span>
+      <span class="mt-1 block text-sm text-steel">교사·관리자·사서 이메일 로그인</span>
     <% end %>
   </div>
 
   <p class="mt-8 text-sm">
-    <%= link_to "교사 가입 신청", new_registration_path, class: "text-blue-600 underline" %>
+    <%= link_to "교사 가입 신청", new_registration_path, class: "text-brand-blue underline" %>
   </p>
 </div>

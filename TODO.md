@@ -1,7 +1,7 @@
 # 「책갈피」 TODO
 
-> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-13
-> 참고 문서: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) · [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) · [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md)
+> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-17
+> 참고 문서: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) · [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) · [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md) · [`DESIGN.md`](DESIGN.md) · [`DESIGN_CHANGE_PLAN.md`](DESIGN_CHANGE_PLAN.md)
 
 ## 현재 상태 (baseline)
 
@@ -95,6 +95,29 @@
 
 - [ ] **동시 신고 이중 재생성 정리** — 서로 다른 두 학생이 거의 동시에(밀리초 내) 같은 콘텐츠를 신고하면 `record_report!` 의 `!quiz.reported?` 판정이 reload 이전 stale 값을 읽는 창 때문에 `report!` 가 두 번 호출돼 재생성 잡이 2건 적재될 수 있다. **무해한 이유**: `report!` 의 숨김은 멱등(`reported: true` 재대입), 두 재생성 잡은 `GenerateGameContentJob#claim_warming` 의 `(book, band, axis, version)` 부분 유니크 인덱스에서 1건으로 수렴(나머지는 RecordNotUnique→no-op). SQLite 단일 writer라 실익도 작다. *다듬으려면*: `content_provider.rb` 의 판정을 트랜잭션 내 조건부 업데이트(예: `Quiz.where(id:, reported: false).update_all(reported: true)` 영향 행수로 승자 결정) 또는 `with_lock` 로 좁혀 잉여 잡 적재를 원천 제거.
 - [ ] **학급 없는 학생(orphan) 신고 가시성** — 학급/학년 미상 학생의 신고는 **자동 숨김(임계 2)은 정상 작동**하지만, 어느 담임의 `@students`(학급 소속)에도 안 들어가 **어떤 교사 대시보드에도 표시되지 않는다**. *다듬으려면*: orphan 신고를 총괄(superadmin) 모더레이션 화면 등에서 확인할 경로를 추가(안전장치 자체는 이미 작동하므로 관측 보강용).
+
+### 🎨 디자인 개편 후속 (1차 묶음 완료 · 이월 작업)
+
+> **1차 묶음 완료(2026-07-17)** — `DESIGN_CHANGE_PLAN.md` 기반으로 **디자인 시스템 기반 + 대표 화면**을 개편했다(작업 트리, 미커밋). 구현: Tailwind v4 `@theme` 토큰(`DESIGN.md` 색·폰트·라운드 1:1 매핑, 기본 팔레트 유지로 기존 뷰 무회귀) · Pretendard 자체호스팅(`app/assets/fonts`, CSP `font_src :self`) · 공통 컴포넌트(`.btn*`/`.card*`/`.form-*`/`.badge*`/`.page-shell*`/`.state-banner*`/`.progress-bar`) · 유동 레이아웃(`application`·`admin` 오프캔버스 사이드바) · 학생 대시보드·로그인/가입 4화면·독후감 index/show/new/edit + partial. **Turbo Stream·Stimulus·Pundit 계약 전량 보존**, `bin/rails test` 746 runs 0 failures, architect APPROVED, deslop 완료. 아래는 이월 작업이다.
+
+#### 🧹 비차단 정리 (지금 정리 대상 · 방금 만든 디자인 시스템 마무리 · 범위 좁고 저위험)
+
+> 계약 변경 없이 신규 토큰·컴포넌트로 통일하는 작은 후속. 한 번의 정리 패스 + `bin/rails test` 회귀로 충분.
+
+- [ ] **D4 · 배지 팔레트 이관** — `app/helpers/reports_helper.rb`의 `ai_status_badge`/`level_badge`가 아직 옛 팔레트(하드코딩 색) → 신규 `.badge-*`(`.badge-neutral/-yellow/-success/-info`) 토큰으로 이관.
+- [ ] **OCR 상태색 통일** — `app/views/ocr/create.turbo_stream.erb`의 `#ocr_status`가 옛 `text-sky-700` → 디자인 토큰 색(예: `text-brand-blue`)으로 통일. (`id=ocr_status` 계약 유지)
+- [ ] **D3 · 로그인/가입 폼 폭 정합** — `sessions/{new,student_new,staff_new}.html.erb`·`registrations/new.html.erb`가 `max-w-md/max-w-lg`로 남음 → `.page-shell-form`(또는 카드 자체 max-width)과의 정합 여부 판단 후 통일.
+- [ ] **D5 · 마감 디테일** — `.btn-icon` 40px 터치타깃 확인 · `shared/_student_nav`의 hover 처리 · 각 화면 `<h1>` 이모지에 `aria-hidden="true"` 일괄 적용.
+
+#### 📦 Phase 4~8 화면군 확장 (화면군 단위 별도 묶음 · 공통 컴포넌트 그대로 확장)
+
+> 각 Phase가 독립된 큰 작업이므로 **한 화면군씩** 스코프를 잡아 진행(한꺼번에 몰면 검증이 흐려짐). 학생 사용 빈도 순으로 Phase 4가 자연스러운 다음 순서.
+
+- [ ] **Phase 4 · 게이미피케이션** *(권장 다음 순서)* — 게임 허브·독서게임 5종 플레이 화면·몬스터 도감/진화 로드맵·상점·미션·랭킹(Top100).
+- [ ] **Phase 5 · 커뮤니티** — 게시판(`topics`/`board_posts`/`forum_posts`)·좋아요·응원 UI.
+- [ ] **Phase 6 · 역할별 심화 화면** — 교사(검토·통계·학급관리)·사서(도서관)·교무관리자 대시보드/도구.
+- [ ] **Phase 7 · 관리자 콘솔 CRUD** — `/admin` 콘솔 전체 CRUD 화면(오프캔버스 사이드바 위 컨텐츠 영역).
+- [ ] **Phase 8 · 부가 표면** — 인쇄용 뷰·메일러 템플릿·PWA·잔여 Turbo/뷰 정리.
 
 ---
 

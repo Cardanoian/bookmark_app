@@ -1,10 +1,10 @@
 <%# 내 서재 목록·승인 실시간 갱신 대상. local: report %>
-<article id="<%= dom_id(report) %>" class="rounded-lg border border-gray-200 p-4">
+<article id="<%= dom_id(report) %>" class="card">
   <div class="flex items-start justify-between gap-3">
     <div class="min-w-0">
       <%= link_to (report.book&.title.presence || report.book_title), report_path(report),
-            class: "font-semibold text-gray-900 hover:underline" %>
-      <p class="mt-1 line-clamp-2 text-sm text-gray-500"><%= truncate(report.body.to_s, length: 80) %></p>
+            class: "font-semibold text-ink hover:underline" %>
+      <p class="mt-1 line-clamp-2 text-sm text-steel"><%= truncate(report.body.to_s, length: 80) %></p>
     </div>
     <div class="flex shrink-0 items-center gap-2">
       <%= level_badge(report.level) %>
@@ -12,25 +12,25 @@
       <% if local_assigns.fetch(:show_delete, false) %>
         <%= button_to "삭제", report_path(report), method: :delete,
               form: { data: { turbo_confirm: "이 독후감을 삭제할까요? 삭제한 글은 되돌릴 수 없어요." } },
-              class: "text-xs font-medium text-red-600 hover:text-red-800" %>
+              class: "btn btn-sm btn-danger" %>
       <% end %>
     </div>
   </div>
 
-  <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+  <div class="mt-3 flex flex-wrap items-center gap-2">
     <% if report.reviewed? %>
-      <span class="rounded-full bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700">교사 승인 완료</span>
+      <span class="badge badge-success">교사 승인 완료</span>
     <% end %>
     <% if report.revision? %>
-      <span class="rounded-full bg-purple-100 px-2 py-0.5 font-medium text-purple-700">고쳐쓰기</span>
+      <span class="badge badge-info">고쳐쓰기</span>
     <% end %>
     <% if report.shared? %>
-      <span class="rounded-full bg-teal-100 px-2 py-0.5 font-medium text-teal-700">공유됨</span>
+      <span class="badge badge-yellow">공유됨</span>
     <% end %>
   </div>
 
   <% if report.teacher_comment.present? %>
-    <p class="mt-3 rounded-md bg-indigo-50 p-2 text-sm text-indigo-900">
+    <p class="mt-3 rounded-md border border-hairline-soft bg-surface-featured p-2 text-sm text-ink">
       선생님: <%= report.teacher_comment %>
     </p>
   <% end %>

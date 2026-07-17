@@ -803,3 +803,32 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 - Pretendard Variable 축(웨이트) 세부 매핑은 self-host 에셋 확정 시 고정
 - 6속성 정확 고정색은 monsters.md 도감 시드에서 최종 확정(본 문서는 틴트 대응만 규정)
 - 원본(Miro)에서 상속된 마케팅 전용 컴포넌트(app-store/capterra 배지)는 교내 앱에 부적합하여 제외함
+
+## Implementation (Rails · Tailwind v4 매핑)
+
+> 이 절은 위 토큰·컴포넌트 원칙이 실제 코드에 어떻게 연결됐는지 기록한다(DESIGN_CHANGE_PLAN.md 1차 묶음: Phase 1·2 + Phase 3 대표 화면).
+
+### 토큰 & 폰트
+- **색·폰트·라운드 토큰** → `app/assets/tailwind/application.css`의 `@theme`에 DESIGN.md 값과 1:1 매핑(`--color-brand-yellow: #ffd02f`, `--color-ink`, `--color-surface`, `--color-hairline`, `--color-brand-blue`, 6속성 파스텔 등). 색만 신규 도입 없이 이식하고, Tailwind 기본 팔레트(gray/amber/rose…)는 유지(기존 뷰 회귀 방지). 생성 유틸 예: `bg-brand-yellow`·`text-ink`·`border-hairline`·`bg-surface-featured`.
+- **Pretendard 자체호스팅**: `app/assets/fonts/pretendard/PretendardVariable.woff2`(가변, 전 웨이트) + `app/assets/stylesheets/application.css`의 `@font-face`. `--font-sans`를 Pretendard 스택으로 덮어 전역 기본 폰트 지정. CSP `font_src :self`(외부 CDN 미사용).
+- **전역 base**: 본문 배경(canvas), `:focus-visible` 브랜드 블루 링(제거 금지), `::selection`(yellow-light), `@media (prefers-reduced-motion: reduce)`.
+
+### 공통 컴포넌트 클래스 (`@layer components`)
+반복 빈도 높은 패턴만 클래스화(모든 조합 추상화하지 않음). HTML의 Tailwind 유틸이 항상 덮어쓸 수 있음.
+- **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide`(1536) / `-content`(1280) / `-reading`(840) / `-form`(960). **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`.
+- **버튼**: `.btn` + `.btn-primary`(검은 필=표준 CTA)/`-secondary`(아웃라인)/`-yellow`/`-blue`/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치.
+- **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`).
+- **폼**: `.form-label`/`.form-input`/`.form-select`/`.form-textarea`/`.form-hint`/`.form-error`(포커스 시 브랜드 블루 보더).
+- **배지**: `.badge` + `-neutral`/`-yellow`/`-success`/`-info`/`-warning`/`-danger`.
+- **진행바**: `.progress-bar` > `.progress-bar__fill`(brand-yellow). **상태배너/알림**: `.state-banner` + `--success`/`--error`/`--info`(flash·빈/로딩/오류 공용).
+
+### 레이아웃 & 반응형(구현)
+- `layouts/application`: 고정 `mt-28`·브레이크포인트 컨테이너 제거 → `<main>`이 `max-w-[96rem] mx-auto` + 유동 거터(`px-4 sm:px-6 lg:px-8`) + `py-6`. flash=`shared/_flash`(state-banner 토스트).
+- `layouts/admin`: 반응형 오프캔버스 사이드바(lg↑ 고정 / lg↓ 햄버거 패널 = `admin-sidebar` Stimulus, backdrop·Escape), 본문 `max-w-[96rem]`, `overflow-x-hidden` 가로스크롤 가드.
+- 학생 내비(`shared/_student_nav`): 반응형 필 탭(데스크톱 줄바꿈/모바일 가로스크롤), 활성=검은 필+`aria-current="page"`.
+
+### 역할 톤(적용 현황)
+학생(대시보드·로그인 선택 카드)=밝은 파스텔+옐로 강조; 교직원·관리자(admin 콘솔·교직원 로그인)=차분한 흰 카드+헤어라인. 표준 CTA는 전 역할 공통 검은 필(`.btn-primary`), 옐로는 워드마크·레벨/포인트·태그 강조 한정.
+
+### 이월(후속 묶음)
+게임/도감/상점/미션/랭킹(Phase 4)·커뮤니티(Phase 5)·교사/사서/교무 심화(Phase 6)·관리자 CRUD 전면(Phase 7)·인쇄/메일/PWA/turbo 정리(Phase 8)는 이 공통 시스템을 화면군 단위로 확장 적용.

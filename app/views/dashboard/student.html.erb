@@ -1,52 +1,60 @@
 <% content_for :title, "내 서재 · 책갈피" %>
 
-<div class="w-full max-w-3xl mx-auto">
+<div class="page-shell page-shell-wide">
   <%= turbo_stream_from current_user, :active_monster %>
 
-  <header class="mb-6 flex items-center justify-between">
+  <header class="page-header">
     <div>
-      <p class="text-sm font-medium text-amber-600">학생</p>
-      <h1 class="text-2xl font-bold text-gray-900">
-        <%= current_user.name %>님의 서재
-      </h1>
-      <p class="mt-1 text-xs text-gray-500">
+      <p class="text-sm font-medium text-steel">학생</p>
+      <h1 class="page-title"><%= current_user.name %>님의 서재</h1>
+      <p class="page-subtitle">
         <%= current_user.trainer_title %> · <%= current_user.points %>P
       </p>
     </div>
-    <%= button_to "로그아웃", session_path, method: :delete,
-          class: "rounded-lg bg-gray-800 px-4 py-2 text-sm text-white" %>
+    <div class="page-actions">
+      <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
+    </div>
   </header>
 
   <%= render "shared/student_nav", active: :library %>
 
-  <% if current_user.active_monster.nil? %>
-    <section class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-      <h2 class="text-lg font-bold text-gray-900">🥚 첫 반려 몬스터를 골라 볼까요?</h2>
-      <p class="mt-1 text-sm text-gray-600">함께 책을 읽으며 성장할 스타터를 선택하세요.</p>
-      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
-          <%= button_to choose_starter_monsters_path, params: { key: starter.key },
-                class: "rounded-xl border border-gray-200 bg-white p-4 text-center hover:border-amber-300" do %>
-            <span class="block"><%= monster_sprite(starter, img_class: "mx-auto h-20 w-20 object-contain") %></span>
-            <span class="mt-2 block text-sm font-semibold text-gray-900"><%= starter.name %></span>
-            <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium <%= element_badge_classes(starter.element) %>">
-              <%= element_label(starter.element) %>
-            </span>
-          <% end %>
-        <% end %>
-      </div>
-    </section>
-  <% else %>
-    <div class="mb-6">
-      <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+    <div class="lg:col-span-2">
+      <% if current_user.active_monster.nil? %>
+        <section class="card-feature">
+          <h2 class="text-lg font-bold text-ink">
+            <span aria-hidden="true">🥚</span> 첫 반려 몬스터를 골라 볼까요?
+          </h2>
+          <p class="mt-1 text-sm text-steel">함께 책을 읽으며 성장할 스타터를 선택하세요.</p>
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
+              <%= button_to choose_starter_monsters_path, params: { key: starter.key }, class: "card text-center" do %>
+                <span class="block"><%= monster_sprite(starter, img_class: "mx-auto h-20 w-20 object-contain") %></span>
+                <span class="mt-2 block text-sm font-semibold text-ink"><%= starter.name %></span>
+                <span class="badge <%= element_badge_classes(starter.element) %> mt-2">
+                  <%= element_label(starter.element) %>
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+      <% else %>
+        <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
+      <% end %>
     </div>
-  <% end %>
 
-  <div class="mb-6">
-    <%= link_to "새 독후감 쓰기", new_report_path,
-          class: "inline-block rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+    <div class="flex flex-col gap-4">
+      <div class="stat-card">
+        <span class="stat-card__label">보유 포인트</span>
+        <span class="stat-card__value"><%= current_user.points %>P</span>
+        <span class="badge badge-yellow self-start">Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %></span>
+      </div>
+      <%= link_to "새 독후감 쓰기", new_report_path, class: "btn btn-primary btn-block" %>
+    </div>
   </div>
 
-  <%= render "shared/empty_state",
-        message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+  <section class="mt-6 lg:mt-8">
+    <%= render "shared/empty_state",
+          message: "아직 읽은 책이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+  </section>
 </div>

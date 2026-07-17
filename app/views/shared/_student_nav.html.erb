@@ -1,23 +1,28 @@
-<%# 학생 상단 네비게이션. locals: active (심볼) — 현재 메뉴 강조 %>
+<%# 학생 상단 네비게이션(반응형). locals: active(심볼)로 현재 탭 강조.
+    데스크톱=가로 줄바꿈 필 바 / 모바일=가로 스크롤 필 탭. 각 탭 최소 44px 터치.
+    아이콘은 장식용 이모지(aria-hidden) — 스크린리더는 라벨만 읽는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
-  <nav class="mb-8 border-b border-gray-200">
-    <ul class="flex gap-6 text-sm font-medium">
-      <% nav_items = [
-           [ :library, "내 서재", root_path ],
-           [ :reports, "독후감", reports_path ],
-           [ :games, "게임", games_catalog_path ],
-           [ :monsters, "도감", monsters_path ],
-           [ :shop, "상점", shop_path ],
-           [ :missions, "미션", missions_path ],
-           [ :rankings, "랭킹", rankings_path ]
-         ] %>
-      <% nav_items.each do |key, label, path| %>
-        <% if key == active %>
-          <li class="border-b-2 border-amber-400 pb-3 text-gray-900"><%= label %></li>
-        <% else %>
-          <li class="pb-3 text-gray-400"><%= link_to label, path, class: "hover:text-gray-700" %></li>
-        <% end %>
+  <% nav_items = [
+       [ :library,  "내 서재", root_path,         "🏠" ],
+       [ :reports,  "독후감",  reports_path,       "✍️" ],
+       [ :games,    "게임",    games_catalog_path, "🎮" ],
+       [ :monsters, "도감",    monsters_path,      "🐾" ],
+       [ :shop,     "상점",    shop_path,          "🛍️" ],
+       [ :missions, "미션",    missions_path,      "🎯" ],
+       [ :rankings, "랭킹",    rankings_path,      "🏆" ]
+     ] %>
+  <nav class="mb-6 sm:mb-8" aria-label="학생 메뉴">
+    <ul class="flex gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <% nav_items.each do |key, label, path, icon| %>
+        <li class="shrink-0">
+          <%= link_to path,
+                aria: { current: (key == active ? "page" : nil) },
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-full px-4 text-sm font-medium transition #{key == active ? "bg-primary text-white" : "text-steel hover:bg-surface"}" do %>
+            <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
+            <span><%= label %></span>
+          <% end %>
+        </li>
       <% end %>
     </ul>
   </nav>

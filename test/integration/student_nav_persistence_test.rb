@@ -19,7 +19,9 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     MENU_LABELS.each do |label|
       assert_includes @response.body, label, "#{path} 에 '#{label}' 메뉴가 없음"
     end
-    assert_includes @response.body, "border-amber-400", "#{path} 에 활성 탭 강조가 없음"
+    # 활성 탭 강조: 반응형 필 내비 개편으로 표시자가 amber 밑줄 → 검은 필 + aria-current 로 바뀜.
+    # 구현 세부(색 클래스) 대신 접근성 시맨틱 마커로 검증(더 견고).
+    assert_includes @response.body, 'aria-current="page"', "#{path} 에 활성 탭 강조가 없음"
   end
 
   test "navbar persists across all student menu pages" do

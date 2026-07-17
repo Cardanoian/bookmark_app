@@ -11,7 +11,7 @@
 - `dashboard/` — 역할별 대시보드(`student`·`teacher`·`librarian`·`school_admin`). 총괄관리자(superadmin)는 별도 대시보드 없이 `dashboard#show`에서 `/admin` 콘솔로 리다이렉트한다.
 - `forum_post_likes/` — 토론 글 좋아요 반영 `update.turbo_stream.erb`(turbo_stream 전용)
 - `games/` — 독서게임 5종(Phase 3 온디맨드 + 소셜). `catalog/index`(도서→게임 진입 관문 — 공용 `shared/student_nav` 렌더[`active: :games`], 학생 네비 "게임" 탭의 목적지) + 실동작 show: mcq 계열 `quiz`·`classic`(`_quiz_form` 재사용, 4지선다), `vocab`(`_matching_form`, 짝짓기 — **정답 쌍맵 무유출**, 선택 인덱스만 전송), `whoami`(hint_reveal — 서버 상태의 공개 힌트만 렌더, 정답·잔여수 무유출, 힌트 공개는 `button_to`→`whoami#reveal_hint` 서버 렌더 진행), `book/play`(**책 소개 대결** — 도서별 소개 목록[득표순·`button_to` 투표/취소]·작성 폼·정적 작성 가이드, 퀴즈 파이프라인 밖 소셜). 공용 `_regenerate`(다시 뽑기 버튼 + "포인트는 최고 기록만 반영" 안내, 퀴즈 4종 system 판만).
-- `layouts/` — 역할별 레이아웃. `application`(기본)·`admin`(관리자 사이드바)·`print`(인쇄 전용, `@media print`)·`mailer`(html/text)
+- `layouts/` — 역할별 레이아웃. `application`(기본 — **유동 페이지 셸**: 고정 mt-28·브레이크포인트 컨테이너 제거, `<main>`이 `max-w-[96rem] mx-auto` + 유동 거터[px-4/sm:px-6/lg:px-8]·세로 리듬[py-6] 소유, `shared/flash` 렌더)·`admin`(총괄관리자 콘솔 — **반응형 오프캔버스 사이드바**: lg 이상 좌측 고정, 미만은 상단 햄버거로 여닫는 패널[`admin-sidebar` Stimulus 컨트롤러], `max-w-[96rem]` 넓은 본문, flash=`.state-banner`)·`print`(인쇄 전용, `@media print`)·`mailer`(html/text). 각 뷰는 `.page-shell*`(page-shell + -wide/-content/-reading/-form)로 `<main>` 안에서 max-width 만 제어한다.
 - `learn/` — 학습 홈(index)
 - `librarian/` — 사서 화면. `dashboards`·`events` CRUD·`loans`(대출 목록)
 - `missions/` — 미션 목록·상세
@@ -25,7 +25,7 @@
 - `school_admin/` — 학교관리자 화면. `neis`(생기부)·`stats`(통계)
 - `schools/` — 학교 선택 하이브리드 피커 `_picker` partial(가입/로그인 공용). 시도/시군구 캐스케이딩 + 이름검색으로 학교 셀렉트를 채우고, `with_classroom: true`(로그인 폼)면 선택 학교의 학급만 스코프 로드.
 - `sessions/` — 로그인 표면 3화면. `new`(**안내 인덱스** — 처음 접속 시 학생/교직원 로그인 선택 카드, 폼 없음)·`student_new`(학생 로그인 폼, 학교 선택은 `schools/_picker` partial 렌더 + 학급 드롭다운)·`staff_new`(교직원 이메일·비밀번호 로그인 폼). 로그아웃은 별도 뷰 없이 `DELETE /session`.
-- `shared/` — 앱 공통 partial. `_empty_state`·`_seasonal_banner`·`_student_nav`(학생 상단 7메뉴[내 서재·독후감·게임·도감·상점·미션·랭킹] 네비 — `active` 심볼로 현재 탭 강조, `current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)
+- `shared/` — 앱 공통 partial. `_flash`(notice/alert 를 `.state-banner`[--success/--error] 상단 고정 토스트로 통일 — `role`/`aria-live`; `layouts/application` 이 렌더)·`_empty_state`(디자인 토큰 빈 상태 카드 — dashed hairline-strong + surface-soft)·`_seasonal_banner`·`_student_nav`(학생 상단 7메뉴[내 서재·독후감·게임·도감·상점·미션·랭킹] **반응형 필 네비** — 아이콘[aria-hidden 이모지]+라벨, 데스크톱 줄바꿈/모바일 가로스크롤, 활성 탭=검은 필+`aria-current="page"`, 44px 터치, `active` 심볼 강조·`current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)
 - `shops/` — 상점 상세 + `_shop_item` partial
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)
 - `teacher/` — 교사 화면. `dashboards`·`missions` CRUD·`prints`(상장·학급리포트·가정통신문·포트폴리오 인쇄물)·`quizzes`·`reviews`(독후감 첨삭)·`rubric_configs`·`students` + `_nav` partial

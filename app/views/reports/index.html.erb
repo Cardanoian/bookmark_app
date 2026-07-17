@@ -1,11 +1,12 @@
 <% content_for :title, "독후감 · 책갈피" %>
 
-<div class="w-full max-w-3xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">독후감</h1>
+<div class="page-shell page-shell-content">
+  <header class="page-header">
+    <h1 class="page-title">독후감</h1>
     <% if policy(Report).create? %>
-      <%= link_to "새 독후감 쓰기", new_report_path,
-            class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+      <div class="page-actions">
+        <%= link_to "새 독후감 쓰기", new_report_path, class: "btn btn-primary" %>
+      </div>
     <% end %>
   </header>
 
@@ -16,7 +17,7 @@
   <% end %>
 
   <% if @reports.any? %>
-    <div id="reports" class="space-y-3">
+    <div id="reports" class="space-y-4">
       <%= render partial: "reports/report", collection: @reports,
             locals: { show_delete: current_user.student? } %>
     </div>
@@ -28,12 +29,12 @@
   <% if @has_next_page || @page > 1 %>
     <nav class="mt-6 flex items-center justify-between text-sm">
       <% if @page > 1 %>
-        <%= link_to "← 이전", reports_path(page: @page - 1), class: "text-indigo-600" %>
+        <%= link_to "← 이전", reports_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", reports_path(page: @page + 1), class: "text-indigo-600" %>
+        <%= link_to "다음 →", reports_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>

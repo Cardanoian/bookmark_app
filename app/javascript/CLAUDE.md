@@ -7,6 +7,7 @@
 - `controllers/index.js` — `controllers/**/*_controller`를 eager-load해 Stimulus에 자동 등록
 - `controllers/application.js` — Stimulus `Application` 인스턴스 생성·export(`window.Stimulus`)
 - `controllers/hello_controller.js` — Rails 기본 예제 컨트롤러(동작 확인용)
+- `controllers/admin_sidebar_controller.js` — 총괄관리자 콘솔(`layouts/admin`)의 반응형 오프캔버스 사이드바 토글. 태블릿/모바일(<lg)에서 햄버거로 패널을 열고(`open`/`close`/`toggle`, `-translate-x-full`↔`translate-x-0`), backdrop 클릭·Escape(`keydown.esc@window`)로 닫으며 `aria-expanded` 갱신. 데스크톱(lg 이상)은 순수 CSS(`lg:static`)로 항상 노출 — JS 미로딩 시에도 그레이스풀
 - `controllers/book_search_controller.js` — `/books/search` 자동완성. 디바운스 입력을 서버로 fetch해 결과 목록 렌더
 - `controllers/clipboard_controller.js` — 텍스트(NEIS 생기부 요약 등) 클립보드 복사 + "복사됨" 피드백
 - `controllers/dex_controller.js` — 몬스터 도감 속성별 필터. 카드 표시 토글(순수 DOM)

@@ -4,7 +4,8 @@
 <%= form_with model: report, class: "space-y-6",
       data: (report.persisted? ? { controller: "report-edit" } : {}) do |f| %>
   <% if report.errors.any? %>
-    <div class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
+    <div class="state-banner state-banner--error" role="alert">
+      <span aria-hidden="true">⚠️</span>
       <ul class="list-inside list-disc">
         <% report.errors.full_messages.each do |message| %>
           <li><%= message %></li>
@@ -14,26 +15,32 @@
   <% end %>
 
   <div>
-    <%= f.label :book_title, "책 제목", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= f.text_field :book_title,
-          class: "w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-amber-400 focus:outline-none" %>
+    <%= f.label :book_title, "책 제목", class: "form-label" %>
+    <%= f.text_field :book_title, class: "form-input" %>
+    <% if report.errors[:book_title].any? %>
+      <p class="form-error"><%= report.errors.full_messages_for(:book_title).join(", ") %></p>
+    <% end %>
   </div>
 
   <div>
-    <%= f.label :body, "독후감", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.label :body, "독후감", class: "form-label" %>
     <%= render "reports/body_field", report: report %>
+    <% if report.errors[:body].any? %>
+      <p class="form-error"><%= report.errors.full_messages_for(:body).join(", ") %></p>
+    <% end %>
   </div>
 
   <% unless ocr_available? %>
-    <p class="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">
-      지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드로 입력해 주세요.
-    </p>
+    <div class="state-banner state-banner--info">
+      <span aria-hidden="true">ℹ️</span>
+      <span>지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드로 입력해 주세요.</span>
+    </div>
   <% end %>
 
-  <div class="flex items-center gap-3">
+  <div class="page-actions">
     <%= f.submit report.persisted? ? "수정하기" : "제출하기",
-          class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white",
+          class: "btn btn-primary",
           data: { "report-edit-target": "submit" } %>
-    <%= link_to "취소", reports_path, class: "text-sm text-gray-500" %>
+    <%= link_to "취소", reports_path, class: "btn btn-secondary" %>
   </div>
 <% end %>
