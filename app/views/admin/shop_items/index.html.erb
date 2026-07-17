@@ -1,24 +1,28 @@
 <%# 전역 상점 아이템 CRUD(P7.3). %>
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">상점 아이템 관리</h1>
-    <%= link_to "아이템 등록", new_admin_shop_item_path, class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+  <div class="page-header">
+    <h1 class="page-title">상점 아이템 관리</h1>
+    <div class="page-actions">
+      <%= link_to "아이템 등록", new_admin_shop_item_path, class: "btn btn-primary" %>
+    </div>
   </div>
 
-  <table class="w-full text-left text-sm">
-    <thead class="border-b border-gray-200 text-gray-500">
-      <tr><th class="py-2 pr-4">이름</th><th class="py-2 pr-4">분류</th><th class="py-2 pr-4">가격</th><th class="py-2 pr-4">소모품</th><th class="py-2"></th></tr>
-    </thead>
-    <tbody>
-      <% @shop_items.each do |item| %>
-        <tr class="border-b border-gray-100">
-          <td class="py-2 pr-4 font-medium text-gray-900"><%= link_to item.name, admin_shop_item_path(item), class: "hover:underline" %></td>
-          <td class="py-2 pr-4 text-gray-600"><%= item.category %></td>
-          <td class="py-2 pr-4 text-gray-600"><%= item.cost %></td>
-          <td class="py-2 pr-4 text-gray-600"><%= item.consumable? ? "예" : "아니오" %></td>
-          <td class="py-2 text-right"><%= link_to "수정", edit_admin_shop_item_path(item), class: "text-gray-500 hover:underline" %></td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-hairline text-steel">
+        <tr><th class="py-2 pr-4">이름</th><th class="py-2 pr-4">분류</th><th class="py-2 pr-4">가격</th><th class="py-2 pr-4">소모품</th><th class="py-2"></th></tr>
+      </thead>
+      <tbody>
+        <% @shop_items.each do |item| %>
+          <tr class="border-b border-hairline-soft">
+            <td class="py-2 pr-4 font-medium text-ink"><%= link_to item.name, admin_shop_item_path(item), class: "hover:underline" %></td>
+            <td class="py-2 pr-4 text-slate"><%= item.category %></td>
+            <td class="py-2 pr-4 text-slate"><%= item.cost %></td>
+            <td class="py-2 pr-4 text-slate"><%= item.consumable? ? "예" : "아니오" %></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_shop_item_path(item), class: "text-sm text-brand-blue hover:underline" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>

@@ -1,37 +1,38 @@
 <%# 학교 폼. local: school %>
 <%= form_with model: school, url: (school.persisted? ? admin_school_path(school) : admin_schools_path),
-      class: "max-w-lg space-y-4 rounded-lg border border-gray-200 bg-white p-5" do |f| %>
+      class: "max-w-lg space-y-4 card" do |f| %>
   <% if school.errors.any? %>
-    <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-      <%= school.errors.full_messages.to_sentence %>
+    <div class="state-banner state-banner--error" role="alert">
+      <span aria-hidden="true">⚠️</span>
+      <span><%= school.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>
 
   <div>
-    <%= f.label :name, "학교명", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= f.text_field :name, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    <%= f.label :name, "학교명", class: "form-label" %>
+    <%= f.text_field :name, class: "form-input" %>
   </div>
   <div class="grid gap-4 sm:grid-cols-2">
     <div>
-      <%= f.label :region, "지역(시도교육청)", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :region, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :region, "지역(시도교육청)", class: "form-label" %>
+      <%= f.text_field :region, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :gu, "시군구", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :gu, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :gu, "시군구", class: "form-label" %>
+      <%= f.text_field :gu, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :neis_code, "NEIS 코드", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :neis_code, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :neis_code, "NEIS 코드", class: "form-label" %>
+      <%= f.text_field :neis_code, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :office_code, "교육청 코드", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :office_code, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :office_code, "교육청 코드", class: "form-label" %>
+      <%= f.text_field :office_code, class: "form-input" %>
     </div>
   </div>
 
   <div class="flex items-center gap-3">
-    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
-    <%= link_to "취소", admin_schools_path, class: "text-sm text-gray-500" %>
+    <%= f.submit "저장", class: "btn btn-primary" %>
+    <%= link_to "취소", admin_schools_path, class: "text-sm text-steel hover:underline" %>
   </div>
 <% end %>

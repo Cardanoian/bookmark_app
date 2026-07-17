@@ -7,7 +7,19 @@
     </style>
   </head>
 
-  <body>
-    <%= yield %>
+  <body style="margin:0; padding:24px 16px; background-color:#f7f8fa; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+    <table role="presentation" align="center" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="max-width:600px; margin:0 auto; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+      <tr>
+        <td style="padding:20px 32px; border-bottom:1px solid #e0e2e8;">
+          <span style="font-size:18px; font-weight:700; color:#1c1c1e;">책갈피</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:32px; color:#1c1c1e; font-size:15px; line-height:1.6;">
+          <%= yield %>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

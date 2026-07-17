@@ -1,36 +1,38 @@
 <%# 시스템 설정(P7.4). feature_flags·default_rubric_weights·seasonal_banner 편집.
     API 키류는 저장되지 않는다(모델 가드). %>
 <div class="max-w-2xl space-y-6">
-  <h1 class="text-xl font-bold text-gray-900">시스템 설정</h1>
+  <div class="page-header">
+    <h1 class="page-title">시스템 설정</h1>
+  </div>
 
-  <%= form_with url: admin_settings_path, method: :patch, class: "space-y-5 rounded-lg border border-gray-200 bg-white p-5" do |f| %>
+  <%= form_with url: admin_settings_path, method: :patch, class: "card space-y-5" do |f| %>
     <div>
-      <%= f.label :seasonal_banner, "시즌 배너(빈 값이면 숨김)", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :seasonal_banner, value: @seasonal_banner, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :seasonal_banner, "시즌 배너(빈 값이면 숨김)", class: "form-label" %>
+      <%= f.text_field :seasonal_banner, value: @seasonal_banner, class: "form-input" %>
     </div>
 
     <div>
-      <%= f.label :feature_flags, "기능 플래그 (JSON 객체)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.label :feature_flags, "기능 플래그 (JSON 객체)", class: "form-label" %>
       <%= f.text_area :feature_flags, value: JSON.pretty_generate(@feature_flags), rows: 5,
-            class: "w-full rounded-lg border border-gray-300 p-2 font-mono text-xs" %>
-      <p class="mt-1 text-xs text-gray-500">예: {"new_dashboard": true}. API 키류 이름은 자동으로 제거됩니다.</p>
+            class: "form-textarea font-mono text-xs" %>
+      <p class="form-hint">예: {"new_dashboard": true}. API 키류 이름은 자동으로 제거됩니다.</p>
     </div>
 
     <div>
-      <%= f.label :default_rubric_weights, "기본 루브릭 가중치 (JSON 객체)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= f.label :default_rubric_weights, "기본 루브릭 가중치 (JSON 객체)", class: "form-label" %>
       <%= f.text_area :default_rubric_weights, value: JSON.pretty_generate(@rubric_weights), rows: 5,
-            class: "w-full rounded-lg border border-gray-300 p-2 font-mono text-xs" %>
+            class: "form-textarea font-mono text-xs" %>
     </div>
 
-    <div class="border-t border-gray-200 pt-4">
-      <p class="mb-2 text-sm font-medium text-gray-700">임의 설정 추가</p>
+    <div class="border-t border-hairline pt-4">
+      <p class="mb-2 text-sm font-medium text-slate">임의 설정 추가</p>
       <div class="grid gap-3 sm:grid-cols-2">
-        <%= f.text_field :setting_key, placeholder: "키", class: "rounded-lg border border-gray-300 p-2 text-sm" %>
-        <%= f.text_field :setting_value, placeholder: "값", class: "rounded-lg border border-gray-300 p-2 text-sm" %>
+        <%= f.text_field :setting_key, placeholder: "키", class: "form-input" %>
+        <%= f.text_field :setting_value, placeholder: "값", class: "form-input" %>
       </div>
-      <p class="mt-1 text-xs text-rose-600">gemini/kakao/naver/data4library, *_api_key, *_secret 등 API 키류는 저장되지 않습니다.</p>
+      <p class="form-error">gemini/kakao/naver/data4library, *_api_key, *_secret 등 API 키류는 저장되지 않습니다.</p>
     </div>
 
-    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+    <%= f.submit "저장", class: "btn btn-primary" %>
   <% end %>
 </div>

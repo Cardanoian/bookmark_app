@@ -1,49 +1,50 @@
 <%# 도서 폼. local: book %>
 <%= form_with model: book, url: (book.persisted? ? admin_book_path(book) : admin_books_path),
-      class: "max-w-lg space-y-4 rounded-lg border border-gray-200 bg-white p-5" do |f| %>
+      class: "max-w-lg space-y-4 card" do |f| %>
   <% if book.errors.any? %>
-    <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-      <%= book.errors.full_messages.to_sentence %>
+    <div class="state-banner state-banner--error" role="alert">
+      <span aria-hidden="true">⚠️</span>
+      <span><%= book.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>
 
   <div>
-    <%= f.label :title, "제목", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= f.text_field :title, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    <%= f.label :title, "제목", class: "form-label" %>
+    <%= f.text_field :title, class: "form-input" %>
   </div>
   <div class="grid gap-4 sm:grid-cols-2">
     <div>
-      <%= f.label :author, "저자", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :author, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :author, "저자", class: "form-label" %>
+      <%= f.text_field :author, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :publisher, "출판사", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :publisher, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :publisher, "출판사", class: "form-label" %>
+      <%= f.text_field :publisher, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :isbn, "ISBN", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :isbn, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :isbn, "ISBN", class: "form-label" %>
+      <%= f.text_field :isbn, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :grade_band, "학년군", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :grade_band, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :grade_band, "학년군", class: "form-label" %>
+      <%= f.text_field :grade_band, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :category, "분류", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.select :category, Book.categories.keys.map { |c| [ c, c ] }, {}, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :category, "분류", class: "form-label" %>
+      <%= f.select :category, Book.categories.keys.map { |c| [ c, c ] }, {}, class: "form-select" %>
     </div>
     <div>
-      <%= f.label :cover_url, "표지 URL", class: "mb-1 block text-sm font-medium text-gray-700" %>
-      <%= f.text_field :cover_url, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+      <%= f.label :cover_url, "표지 URL", class: "form-label" %>
+      <%= f.text_field :cover_url, class: "form-input" %>
     </div>
   </div>
   <div>
-    <%= f.label :summary, "줄거리", class: "mb-1 block text-sm font-medium text-gray-700" %>
-    <%= f.text_area :summary, rows: 3, class: "w-full rounded-lg border border-gray-300 p-2 text-sm" %>
+    <%= f.label :summary, "줄거리", class: "form-label" %>
+    <%= f.text_area :summary, rows: 3, class: "form-textarea" %>
   </div>
 
   <div class="flex items-center gap-3">
-    <%= f.submit "저장", class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
-    <%= link_to "취소", admin_books_path, class: "text-sm text-gray-500" %>
+    <%= f.submit "저장", class: "btn btn-primary" %>
+    <%= link_to "취소", admin_books_path, class: "text-sm text-steel hover:underline" %>
   </div>
 <% end %>

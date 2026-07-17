@@ -9,6 +9,7 @@
 - `CLOUD_DEPLOYMENT_COMPARISON.md` — DigitalOcean·NAVER Cloud·AWS EC2·Oracle Cloud의 리전·비용·스토리지·운영성을 비교하고 HTTPS 이메일 API와 Rails Action Mailer 연동을 설명하는 배포 의사결정 가이드.
 - `API_KEYS.md` — 외부 API 키 운영 가이드. 앱은 `ENV 우선·credentials 폴백`으로 키를 읽으며(credentials 가 기본 저장소), 키가 없어도 폴백으로 완전히 동작(키 주입 방법·ENV 변수명·보안 규칙).
 - `monsters.md` — 반려 몬스터 도감 **시드 설계서**. 24라인×3단계=72폼의 종·진화 라인·조건·AI 이미지 가이드(`monsters:seed` 근거, `script/monster.json`과 정합).
+- `monster_unlocks.md` — 몬스터 24개 라인의 **자동 해금 규칙 설계서**. 레어도별 난이도, 일일 독후감·게임 활동 집계 계약, 전체 해금 조건과 자동 지급 흐름을 정의한다.
 - `MONSTER_IMAGE_ASSETS_PLAN.md` — 애니메이션 WebP 72종의 슬러그 매핑·설치 태스크·뷰 연결·검증을 기록한 적용 계획.
 - `monster_guide.md` — 학생·학부모용 **도감 안내서**(친근한 어투). 몬스터가 무엇이고 어떻게 만나고 진화하는지 소개.
 

@@ -1,31 +1,32 @@
 <%# 전교 통합 통계(P7.5). 전 학교 참여율·5축 평균 + 전국 랭킹 원자료. %>
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">전교 통합 통계</h1>
-    <%= link_to "전교 CSV 내보내기", admin_analytics_export_path(format: :csv),
-          class: "rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white" %>
+  <div class="page-header">
+    <h1 class="page-title">전교 통합 통계</h1>
+    <div class="page-actions">
+      <%= link_to "전교 CSV 내보내기", admin_analytics_export_path(format: :csv), class: "btn btn-primary" %>
+    </div>
   </div>
 
   <div class="grid gap-4 sm:grid-cols-3">
-    <div class="rounded-lg border border-gray-200 bg-white p-4">
-      <p class="text-sm text-gray-500">전체 학생</p>
-      <p class="text-2xl font-bold text-gray-900"><%= @total_students %></p>
+    <div class="stat-card">
+      <p class="stat-card__label">전체 학생</p>
+      <p class="stat-card__value"><%= @total_students %></p>
     </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4">
-      <p class="text-sm text-gray-500">전체 독후감</p>
-      <p class="text-2xl font-bold text-gray-900"><%= @total_reports %></p>
+    <div class="stat-card">
+      <p class="stat-card__label">전체 독후감</p>
+      <p class="stat-card__value"><%= @total_reports %></p>
     </div>
-    <div class="rounded-lg border border-gray-200 bg-white p-4">
-      <p class="text-sm text-gray-500">승인(검토완료)</p>
-      <p class="text-2xl font-bold text-gray-900"><%= @approved_count %></p>
+    <div class="stat-card">
+      <p class="stat-card__label">승인(검토완료)</p>
+      <p class="stat-card__value"><%= @approved_count %></p>
     </div>
   </div>
 
-  <section class="rounded-lg border border-gray-200 bg-white p-4">
-    <h2 class="mb-3 text-base font-semibold text-gray-900">학교별 통계</h2>
+  <section class="card">
+    <h2 class="mb-3 text-base font-semibold text-ink">학교별 통계</h2>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
-        <thead class="border-b border-gray-200 text-gray-500">
+        <thead class="border-b border-hairline text-steel">
           <tr>
             <th class="py-2 pr-4">학교</th>
             <th class="py-2 pr-4">학생수</th>
@@ -38,13 +39,13 @@
         </thead>
         <tbody>
           <% @school_stats.each do |stat| %>
-            <tr class="border-b border-gray-100">
-              <td class="py-2 pr-4 font-medium text-gray-900"><%= stat[:school].name %></td>
-              <td class="py-2 pr-4"><%= stat[:student_count] %></td>
-              <td class="py-2 pr-4"><%= stat[:report_count] %></td>
-              <td class="py-2 pr-4"><%= stat[:participation] %></td>
+            <tr class="border-b border-hairline-soft">
+              <td class="py-2 pr-4 font-medium text-ink"><%= stat[:school].name %></td>
+              <td class="py-2 pr-4 text-slate"><%= stat[:student_count] %></td>
+              <td class="py-2 pr-4 text-slate"><%= stat[:report_count] %></td>
+              <td class="py-2 pr-4 text-slate"><%= stat[:participation] %></td>
               <% ReadingDomain::RUBRIC_AXES.each do |axis| %>
-                <td class="py-2 pr-4"><%= stat[:axis_averages][axis] %></td>
+                <td class="py-2 pr-4 text-slate"><%= stat[:axis_averages][axis] %></td>
               <% end %>
             </tr>
           <% end %>
@@ -53,16 +54,16 @@
     </div>
   </section>
 
-  <section class="rounded-lg border border-gray-200 bg-white p-4">
-    <h2 class="mb-3 text-base font-semibold text-gray-900">전국 랭킹 원자료 (포인트 상위)</h2>
+  <section class="card">
+    <h2 class="mb-3 text-base font-semibold text-ink">전국 랭킹 원자료 (포인트 상위)</h2>
     <% if @ranking.empty? %>
-      <p class="text-sm text-gray-500">아직 랭킹 데이터가 없어요.</p>
+      <p class="text-sm text-steel">아직 랭킹 데이터가 없어요.</p>
     <% else %>
       <ol class="space-y-1 text-sm">
         <% @ranking.each_with_index do |user, index| %>
           <li class="flex justify-between">
-            <span><%= index + 1 %>. <%= user.name %> (<%= user.school&.name %>)</span>
-            <span class="font-medium"><%= user.points %>P</span>
+            <span class="text-ink"><%= index + 1 %>. <%= user.name %> (<%= user.school&.name %>)</span>
+            <span class="font-medium text-ink"><%= user.points %>P</span>
           </li>
         <% end %>
       </ol>

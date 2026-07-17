@@ -1,22 +1,27 @@
 <%# 모더레이션(P7.6). 게시판·토론글·토픽의 숨김/해제. 숨김 콘텐츠는 학생 화면 비노출. %>
 <div class="space-y-8">
-  <h1 class="text-xl font-bold text-gray-900">모더레이션</h1>
+  <div class="page-header">
+    <h1 class="page-title">모더레이션</h1>
+  </div>
 
   <section>
-    <h2 class="mb-3 text-base font-semibold text-gray-900">우수작 게시판 (<%= @board_posts.size %>)</h2>
+    <h2 class="mb-3 text-base font-semibold text-ink">우수작 게시판 (<%= @board_posts.size %>)</h2>
     <ul class="space-y-2">
       <% @board_posts.each do |post| %>
-        <li class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-sm">
-          <span class="<%= "line-through text-gray-400" if post.hidden? %>">
+        <li class="flex items-center justify-between rounded-lg border border-hairline bg-canvas p-3 text-sm">
+          <span class="<%= "line-through text-muted" if post.hidden? %>">
             <%= post.report.book_title.presence || "독후감 ##{post.report_id}" %>
-            <span class="text-gray-400">· <%= post.report.user&.name %></span>
+            <span class="text-steel">· <%= post.report.user&.name %></span>
+            <% if post.hidden? %>
+              <span class="badge badge-neutral">숨김</span>
+            <% end %>
           </span>
           <% if post.hidden? %>
             <%= button_to "숨김 해제", unhide_admin_moderation_path(post, kind: "board_post"),
-                  class: "rounded bg-emerald-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-secondary btn-sm" %>
           <% else %>
             <%= button_to "숨기기", hide_admin_moderation_path(post, kind: "board_post"),
-                  class: "rounded bg-rose-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-danger btn-sm" %>
           <% end %>
         </li>
       <% end %>
@@ -25,20 +30,23 @@
   </section>
 
   <section>
-    <h2 class="mb-3 text-base font-semibold text-gray-900">토론글 (<%= @forum_posts.size %>)</h2>
+    <h2 class="mb-3 text-base font-semibold text-ink">토론글 (<%= @forum_posts.size %>)</h2>
     <ul class="space-y-2">
       <% @forum_posts.each do |post| %>
-        <li class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-sm">
-          <span class="<%= "line-through text-gray-400" if post.hidden? %>">
+        <li class="flex items-center justify-between rounded-lg border border-hairline bg-canvas p-3 text-sm">
+          <span class="<%= "line-through text-muted" if post.hidden? %>">
             <%= truncate(post.text.to_s, length: 60) %>
-            <span class="text-gray-400">· <%= post.user&.name %></span>
+            <span class="text-steel">· <%= post.user&.name %></span>
+            <% if post.hidden? %>
+              <span class="badge badge-neutral">숨김</span>
+            <% end %>
           </span>
           <% if post.hidden? %>
             <%= button_to "숨김 해제", unhide_admin_moderation_path(post, kind: "forum_post"),
-                  class: "rounded bg-emerald-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-secondary btn-sm" %>
           <% else %>
             <%= button_to "숨기기", hide_admin_moderation_path(post, kind: "forum_post"),
-                  class: "rounded bg-rose-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-danger btn-sm" %>
           <% end %>
         </li>
       <% end %>
@@ -47,17 +55,22 @@
   </section>
 
   <section>
-    <h2 class="mb-3 text-base font-semibold text-gray-900">토픽 (<%= @topics.size %>)</h2>
+    <h2 class="mb-3 text-base font-semibold text-ink">토픽 (<%= @topics.size %>)</h2>
     <ul class="space-y-2">
       <% @topics.each do |topic| %>
-        <li class="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-sm">
-          <span class="<%= "line-through text-gray-400" if topic.hidden? %>"><%= topic.title %></span>
+        <li class="flex items-center justify-between rounded-lg border border-hairline bg-canvas p-3 text-sm">
+          <span class="<%= "line-through text-muted" if topic.hidden? %>">
+            <%= topic.title %>
+            <% if topic.hidden? %>
+              <span class="badge badge-neutral">숨김</span>
+            <% end %>
+          </span>
           <% if topic.hidden? %>
             <%= button_to "숨김 해제", unhide_admin_moderation_path(topic, kind: "topic"),
-                  class: "rounded bg-emerald-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-secondary btn-sm" %>
           <% else %>
             <%= button_to "숨기기", hide_admin_moderation_path(topic, kind: "topic"),
-                  class: "rounded bg-rose-600 px-3 py-1 text-xs text-white" %>
+                  class: "btn btn-danger btn-sm" %>
           <% end %>
         </li>
       <% end %>

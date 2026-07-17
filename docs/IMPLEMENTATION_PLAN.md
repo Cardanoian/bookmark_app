@@ -354,8 +354,8 @@ Phase 4           │               │
   - 작업: `docs/monsters.md §7` 기계판독 YAML을 `db/seeds.rb`(또는 rake)로 적재. Phase 1 시드 = 12라인(스타터 3 + 해금후보 3 포함). `evolves_from` 체인·`evolve_condition` 원본 그대로.
   - DoD: 시드 후 `MonsterSpecies.count == 36`, 각 라인 stage 1·2·3, `evolve_condition`이 monsters.md와 일치(정합 스크립트).
 
-- **P4.5 · 획득 규칙(스타터 선택 + 마일스톤 발견)** *(RAILS_PLAN §13.5, monsters.md §6.1)*
-  - 작업: 첫 로그인/온보딩 시 **스타터 3종 중 선택**. 레벨업·챌린지·뱃지·카테고리 최초 달성 등 **마일스톤마다 신규 발견**(알 부화 연출). **가챠·유료 없음**.
+- **P4.5 · 획득 규칙(스타터 선택 + 마일스톤 발견)** *(RAILS_PLAN §13.5, monsters.md §6.1, monster_unlocks.md)*
+  - 작업: 첫 로그인/온보딩 시 **스타터 3종 중 선택**. `monster_unlocks.md`의 독후감·장르·일일 작성량·게임·미션·챌린지 조건을 달성하면 **자동으로 신규 발견**(알 부화 연출). **가챠·유료 없음**.
   - DoD: 스타터 선택 저장, 마일스톤 트리거로 신규 `user_monster` 생성(테스트). 랜덤 뽑기 경로 부재 확인.
 
 - **P4.6 · `Evolvable` 진화 엔진(포인트 + 독서행동 조건)** *(RAILS_PLAN §13.5, monsters.md §4·§5)*

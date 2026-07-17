@@ -6,53 +6,53 @@
          data-growth-card-avg-value="<%= @axis_averages.values.sum.fdiv([ @axis_averages.size, 1 ].max).round(1) %>"
          data-growth-card-level-value="<%= @reports.last&.level %>"
          data-growth-card-reports-value="<%= @reports.size %>">
-  <header class="border-b border-gray-200 pb-4">
-    <p class="text-sm text-indigo-600">책갈피 독서 포트폴리오</p>
-    <h1 class="mt-1 text-2xl font-bold text-gray-900"><%= @student.name %></h1>
-    <p class="mt-1 text-sm text-gray-500"><%= @classroom.label %> · 독후감 <%= @reports.size %>편</p>
+  <header class="border-b border-hairline pb-4">
+    <p class="text-sm text-brand-blue">책갈피 독서 포트폴리오</p>
+    <h1 class="mt-1 text-2xl font-bold text-ink"><%= @student.name %></h1>
+    <p class="mt-1 text-sm text-steel"><%= @classroom.label %> · 독후감 <%= @reports.size %>편</p>
   </header>
 
   <section class="grid gap-6 md:grid-cols-2">
-    <div class="rounded-lg border border-gray-200 p-5">
-      <h2 class="mb-3 text-sm font-semibold text-gray-700">5축 방사형</h2>
+    <div class="rounded-lg border border-hairline p-5">
+      <h2 class="mb-3 text-sm font-semibold text-ink">5축 방사형</h2>
       <div class="flex justify-center">
         <%= radar_chart_svg(@axis_averages, labels: @axis_labels) %>
       </div>
     </div>
 
     <div class="space-y-3">
-      <div class="rounded-lg border border-gray-200 p-4">
-        <h2 class="mb-2 text-sm font-semibold text-gray-700">획득 뱃지</h2>
+      <div class="rounded-lg border border-hairline p-4">
+        <h2 class="mb-2 text-sm font-semibold text-ink">획득 뱃지</h2>
         <% if @badges.any? %>
           <div class="flex flex-wrap gap-2">
             <% @badges.each do |badge| %>
-              <span class="rounded-full bg-amber-100 px-3 py-1 text-xs text-amber-800">
+              <span class="badge badge-yellow">
                 <%= badge.icon %> <%= badge.name %>
               </span>
             <% end %>
           </div>
         <% else %>
-          <p class="text-sm text-gray-500">아직 획득한 뱃지가 없어요.</p>
+          <p class="text-sm text-steel">아직 획득한 뱃지가 없어요.</p>
         <% end %>
       </div>
 
-      <div class="no-print rounded-lg border border-gray-200 p-4">
-        <h2 class="mb-2 text-sm font-semibold text-gray-700">성장카드</h2>
+      <div class="no-print rounded-lg border border-hairline p-4">
+        <h2 class="mb-2 text-sm font-semibold text-ink">성장카드</h2>
         <canvas data-growth-card-target="canvas" width="320" height="220"
-                class="w-full rounded border border-gray-100"></canvas>
+                class="w-full rounded border border-hairline"></canvas>
         <button type="button" data-action="growth-card#download"
-                class="mt-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white">PNG 저장</button>
+                class="btn btn-primary btn-sm mt-2">PNG 저장</button>
       </div>
     </div>
   </section>
 
   <section>
-    <h2 class="mb-2 text-sm font-semibold text-gray-700">독후감 목록</h2>
-    <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200">
+    <h2 class="mb-2 text-sm font-semibold text-ink">독후감 목록</h2>
+    <ul class="divide-y divide-hairline-soft rounded-lg border border-hairline">
       <% @reports.each do |report| %>
         <li class="flex items-center justify-between p-3 text-sm">
-          <span class="text-gray-800"><%= report.book&.title.presence || report.book_title %></span>
-          <span class="text-gray-500">평균 <%= report.avg %> · <%= report.level %></span>
+          <span class="text-ink"><%= report.book&.title.presence || report.book_title %></span>
+          <span class="text-steel">평균 <%= report.avg %> · <%= report.level %></span>
         </li>
       <% end %>
     </ul>

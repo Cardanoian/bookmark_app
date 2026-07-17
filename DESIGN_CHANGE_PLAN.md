@@ -1,13 +1,15 @@
 # 「책갈피」 전면 디자인 변경 계획서
 
-> 상태: **1차 묶음 구현 완료** (Phase 1·2 + Phase 3 대표 화면)  
+> 상태: **전체 구현 완료** (Phase 1~8) — 남은 것은 실기기 다중 뷰포트 시각 QA(§9)뿐  
 > 작성일: 2026-07-15  
 > 대상: `app/views/` 전체와 공통 레이아웃·Tailwind 스타일  
 > 디자인 기준: [`DESIGN.md`](DESIGN.md) · 구현 매핑: [`DESIGN.md` §Implementation](DESIGN.md)
 
-> **진행 상태 (2026-07-15)**
-> - ✅ **완료**: Phase 1(디자인 토큰 `@theme` + 전역 base + Pretendard 자체호스팅), Phase 2(유동 페이지 셸 레이아웃·통합 flash·학생 반응형 내비·admin 반응형 사이드바), Phase 3 대표 화면(학생 대시보드, 로그인·가입 4화면, 독후감 index/show/new/edit + partial). 공통 컴포넌트 클래스(`.btn`/`.card`/`.form-*`/`.badge`/`.page-shell*`/`.state-banner` 등)와 토큰 체계 구축. `bin/rails test` 746 runs 그린 유지.
-> - ⏭ **이월(후속 묶음)**: Phase 4(게임·도감·상점·미션·랭킹), Phase 5(커뮤니티), Phase 6(교사·사서·교무 심화), Phase 7(관리자 CRUD 전면), Phase 8(인쇄·메일·PWA·Turbo Stream 정리). 구축된 공통 시스템을 화면군 단위로 확장 적용한다(계획서 §8·§10 순서·회귀 방지 준수).
+> **진행 상태 (2026-07-17 · 전 Phase 완료)**
+> - ✅ **Phase 1~3**: 디자인 토큰 `@theme` + 전역 base + Pretendard 자체호스팅 · 유동 페이지 셸 레이아웃·통합 flash·학생 반응형 내비·admin 반응형 사이드바 · 대표 화면(학생 대시보드, 로그인·가입 4화면, 독후감 index/show/new/edit + partial). 공통 컴포넌트 클래스(`.btn`/`.card`/`.form-*`/`.badge`/`.page-shell*`/`.state-banner`/`stat-card` 등)와 토큰 체계 구축.
+> - ✅ **Phase 4~6**: 게임·도감·상점·미션·랭킹(게이미피케이션) · 우수작 게시판·토론(커뮤니티) · 교사·사서·교무 심화 화면. 역할 톤 분화(학생 파스텔 / 교사 라벤더·블루 / 사서 민트·틸 / 교무 블루·틸).
+> - ✅ **Phase 7~8**: 총괄관리자 `/admin` 콘솔 CRUD 38개 뷰 + 공통 pager(파괴/복원 액션 시각 분리, 콘솔 넓은 폭 활용) · 인쇄 레이아웃·교사 인쇄물 4종(흑백 가독)·메일러 인라인 브랜드 셸·PWA manifest 브랜드화·잔여 turbo_stream 토큰 정리.
+> - 🔍 **검증**: `bin/rails test` **760 runs 0 failures** 그린 · Tailwind 빌드 클린 · 전 화면 raw 팔레트 0 · Turbo Stream/Stimulus/Pundit 계약 전량 byte-보존(계약 토큰 대조 불일치 0) · 각 묶음 독립 code-reviewer 검증. **남은 것은 실기기 다중 뷰포트(360~1920px) 시각 QA(§9)뿐** — 헤드리스 브라우저 부재로 자동화는 미구성.
 
 ---
 

@@ -9,7 +9,7 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <style>
-      body { background: #ffffff; color: #111827; }
+      body { background: #ffffff; color: var(--color-ink); }
       .print-toolbar { position: sticky; top: 0; }
       @media print {
         .no-print { display: none !important; }
@@ -22,8 +22,8 @@
   <body class="p-6">
     <div class="print-toolbar no-print mb-6 flex items-center gap-3">
       <button type="button" onclick="window.print()"
-              class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white">인쇄하기</button>
-      <a href="<%= teacher_dashboard_path %>" class="text-sm text-gray-500">대시보드로</a>
+              class="btn btn-primary">인쇄하기</button>
+      <a href="<%= teacher_dashboard_path %>" class="text-sm text-steel hover:underline">대시보드로</a>
     </div>
 
     <main class="mx-auto max-w-3xl">
