@@ -1,9 +1,9 @@
 <%# 이달의 책·행사 등록(P6.5). %>
-<div class="mx-auto max-w-2xl space-y-6 p-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">행사 등록</h1>
-    <%= link_to "목록", librarian_events_path, class: "text-sm text-gray-500" %>
-  </div>
+<div class="page-shell page-shell-form space-y-6">
+  <header class="page-header">
+    <h1 class="page-title">행사 등록</h1>
+    <%= link_to "목록", librarian_events_path, class: "text-sm font-medium text-steel hover:text-ink hover:underline" %>
+  </header>
 
   <%= render "form", event: @event %>
 </div>

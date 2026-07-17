@@ -1,51 +1,48 @@
 <% content_for :title, "도서관 대시보드 · 책갈피" %>
 
-<div class="w-full max-w-4xl mx-auto space-y-6">
-  <header class="flex items-center justify-between">
+<div class="page-shell page-shell-wide space-y-6">
+  <header class="page-header">
     <div>
-      <p class="text-sm font-medium text-emerald-600">도서관 담당</p>
-      <h1 class="text-2xl font-bold text-gray-900"><%= @school&.name %></h1>
+      <p class="text-sm font-medium text-moss-dark">도서관 담당</p>
+      <h1 class="page-title"><%= @school&.name %></h1>
     </div>
-    <div class="flex items-center gap-2">
-      <%= link_to "인기 대출", librarian_loans_path,
-            class: "rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700" %>
-      <%= link_to "이달의 책·행사", librarian_events_path,
-            class: "rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700" %>
-      <%= button_to "로그아웃", session_path, method: :delete,
-            class: "rounded-lg bg-gray-800 px-4 py-2 text-sm text-white" %>
+    <div class="page-actions">
+      <%= link_to "인기 대출", librarian_loans_path, class: "btn btn-secondary" %>
+      <%= link_to "이달의 책·행사", librarian_events_path, class: "btn btn-secondary" %>
+      <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
     </div>
   </header>
 
   <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-    <div class="rounded-lg border border-gray-200 p-4">
-      <p class="text-xs text-gray-500">전교 독후감</p>
-      <p class="mt-1 text-2xl font-bold text-gray-900"><%= @report_count %></p>
+    <div class="stat-card">
+      <span class="stat-card__label">전교 독후감</span>
+      <span class="stat-card__value"><%= @report_count %></span>
     </div>
-    <div class="rounded-lg border border-gray-200 p-4">
-      <p class="text-xs text-gray-500">참여 학생</p>
-      <p class="mt-1 text-2xl font-bold text-emerald-600"><%= @reader_count %></p>
+    <div class="stat-card">
+      <span class="stat-card__label">참여 학생</span>
+      <span class="stat-card__value text-moss-dark"><%= @reader_count %></span>
     </div>
-    <div class="rounded-lg border border-gray-200 p-4">
-      <p class="text-xs text-gray-500">등록 행사</p>
-      <p class="mt-1 text-2xl font-bold text-gray-900"><%= @events.size %></p>
+    <div class="stat-card">
+      <span class="stat-card__label">등록 행사</span>
+      <span class="stat-card__value"><%= @events.size %></span>
     </div>
   </div>
 
-  <section class="rounded-lg border border-gray-200 p-5">
+  <section class="card">
     <div class="mb-3 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-gray-900">인기 도서 (대출)</h2>
-      <%= link_to "관리", librarian_loans_path, class: "text-sm text-emerald-600" %>
+      <h2 class="text-lg font-semibold text-ink">인기 도서 (대출)</h2>
+      <%= link_to "관리", librarian_loans_path, class: "text-sm font-medium text-moss-dark hover:underline" %>
     </div>
     <% if @loans.any? %>
       <ol class="space-y-1 text-sm">
         <% @loans.each_with_index do |loan, index| %>
           <li class="flex items-center justify-between gap-3 py-1">
             <span class="min-w-0 truncate">
-              <span class="mr-2 font-bold text-emerald-600"><%= index + 1 %></span>
-              <span class="font-medium text-gray-900"><%= loan.book_title %></span>
-              <% if loan.school_id.nil? %><span class="ml-1 text-xs text-gray-400">전국</span><% end %>
+              <span class="mr-2 font-bold text-moss-dark"><%= index + 1 %></span>
+              <span class="font-medium text-ink"><%= loan.book_title %></span>
+              <% if loan.school_id.nil? %><span class="ml-1 text-xs text-muted">전국</span><% end %>
             </span>
-            <span class="shrink-0 text-gray-500"><%= loan.count %>회</span>
+            <span class="shrink-0 text-steel"><%= loan.count %>회</span>
           </li>
         <% end %>
       </ol>
@@ -55,17 +52,17 @@
     <% end %>
   </section>
 
-  <section class="rounded-lg border border-gray-200 p-5">
+  <section class="card">
     <div class="mb-3 flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-gray-900">이달의 책·행사</h2>
-      <%= link_to "새 행사", new_librarian_event_path, class: "text-sm text-emerald-600" %>
+      <h2 class="text-lg font-semibold text-ink">이달의 책·행사</h2>
+      <%= link_to "새 행사", new_librarian_event_path, class: "text-sm font-medium text-moss-dark hover:underline" %>
     </div>
     <% if @events.any? %>
-      <ul class="divide-y divide-gray-100 text-sm">
+      <ul class="divide-y divide-hairline-soft text-sm">
         <% @events.each do |event| %>
           <li class="py-2">
-            <span class="font-medium text-gray-900"><%= event.title %></span>
-            <% if event.event_on %><span class="ml-2 text-xs text-gray-500"><%= event.event_on %></span><% end %>
+            <span class="font-medium text-ink"><%= event.title %></span>
+            <% if event.event_on %><span class="ml-2 text-xs text-steel"><%= event.event_on %></span><% end %>
           </li>
         <% end %>
       </ul>

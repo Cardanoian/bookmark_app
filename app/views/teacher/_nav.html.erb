@@ -1,24 +1,62 @@
-<%# 교사 콘솔 사이드바 네비. local: active (심볼) %>
-<aside class="hidden w-52 shrink-0 md:block">
-  <p class="mb-1 text-sm font-medium text-indigo-600">교사</p>
-  <p class="mb-4 text-lg font-bold text-gray-900"><%= current_user.name %></p>
-  <nav>
-    <ul class="space-y-1 text-sm font-medium">
-      <% nav_items = [
-           [ :dashboard, "대시보드", teacher_dashboard_path ],
-           [ :reviews, "검토", teacher_reviews_path ],
-           [ :students, "학생관리", teacher_students_path ],
-           [ :missions, "미션", teacher_missions_path ],
-           [ :quizzes, "퀴즈", teacher_quizzes_path ],
-           [ :rubric, "루브릭", edit_teacher_rubric_config_path ]
-         ] %>
-      <% nav_items.each do |key, label, path| %>
-        <li class="rounded-lg px-3 py-2 <%= active == key ? "bg-gray-100 text-gray-900" : "text-gray-500" %>">
-          <%= link_to label, path, class: "hover:text-gray-700" %>
+<%# 교사 콘솔 네비(반응형). local: active (심볼). 데스크톱=좌측 사이드바, 모바일=상단 펼침 목록 %>
+<% nav_items = [
+     [ :dashboard, "대시보드", "🏠", teacher_dashboard_path ],
+     [ :reviews, "검토", "📝", teacher_reviews_path ],
+     [ :students, "학생관리", "🧑‍🎓", teacher_students_path ],
+     [ :missions, "미션", "🎯", teacher_missions_path ],
+     [ :quizzes, "퀴즈", "❓", teacher_quizzes_path ],
+     [ :rubric, "루브릭", "📊", edit_teacher_rubric_config_path ]
+   ] %>
+<% current_label = (nav_items.find { |item| item.first == active } || []).at(1) || "메뉴" %>
+
+<%# 모바일(<lg): 현재 섹션 + 펼침 목록 %>
+<details class="lg:hidden">
+  <summary class="card flex cursor-pointer list-none items-center justify-between gap-2 py-3">
+    <span class="flex items-center gap-2 text-sm font-semibold text-ink">
+      <span class="text-xs font-medium text-brand-blue">교사</span>
+      <%= current_label %>
+    </span>
+    <span aria-hidden="true" class="text-steel">▾</span>
+  </summary>
+  <nav class="mt-2">
+    <ul class="grid grid-cols-2 gap-2 text-sm font-medium">
+      <% nav_items.each do |key, label, icon, path| %>
+        <li>
+          <%= link_to path, aria: (active == key ? { current: "page" } : {}),
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border px-3 py-2 #{active == key ? "border-transparent bg-brand-blue text-white" : "border-hairline-soft text-slate"}" do %>
+            <span aria-hidden="true"><%= icon %></span> <%= label %>
+          <% end %>
         </li>
       <% end %>
-      <li class="rounded-lg px-3 py-2 text-gray-500">
-        <%= link_to "CSV 내보내기", teacher_exports_reports_csv_path, class: "hover:text-gray-700" %>
+      <li>
+        <%= link_to teacher_exports_reports_csv_path,
+              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-hairline-soft px-3 py-2 text-slate" do %>
+          <span aria-hidden="true">⬇️</span> CSV 내보내기
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+</details>
+
+<%# 데스크톱(lg+): 좌측 사이드바 %>
+<aside class="hidden w-56 shrink-0 lg:block">
+  <p class="mb-1 text-sm font-medium text-brand-blue">교사</p>
+  <p class="mb-4 text-lg font-bold text-ink"><%= current_user.name %></p>
+  <nav>
+    <ul class="space-y-1 text-sm font-medium">
+      <% nav_items.each do |key, label, icon, path| %>
+        <li>
+          <%= link_to path, aria: (active == key ? { current: "page" } : {}),
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 #{active == key ? "bg-brand-blue text-white" : "text-slate hover:bg-surface"}" do %>
+            <span aria-hidden="true"><%= icon %></span> <%= label %>
+          <% end %>
+        </li>
+      <% end %>
+      <li>
+        <%= link_to teacher_exports_reports_csv_path,
+              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 text-slate hover:bg-surface" do %>
+          <span aria-hidden="true">⬇️</span> CSV 내보내기
+        <% end %>
       </li>
     </ul>
   </nav>

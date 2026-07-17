@@ -1,55 +1,55 @@
 <% content_for :title, "학생 관리 · 책갈피" %>
 
-<div class="flex w-full gap-6">
-  <%= render "teacher/nav", active: :students %>
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :students %>
 
-  <section class="min-w-0 flex-1 space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900">학생 관리</h1>
+    <section class="min-w-0 flex-1 space-y-6">
+      <h1 class="page-title">학생 관리</h1>
 
-    <%= form_with url: teacher_students_path, method: :post, class: "flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 p-4" do %>
-      <div>
-        <%= label_tag "student_name", "이름", class: "mb-1 block text-sm text-gray-600" %>
-        <%= text_field_tag "student[name]", nil, id: "student_name", required: true,
-              class: "rounded-lg border border-gray-300 p-2 text-sm" %>
-      </div>
-      <% if @classrooms.size > 1 %>
+      <%= form_with url: teacher_students_path, method: :post, class: "card flex flex-wrap items-end gap-3" do %>
         <div>
-          <%= label_tag "student_classroom_id", "학급", class: "mb-1 block text-sm text-gray-600" %>
-          <%= select_tag "student[classroom_id]",
-                options_for_select(@classrooms.map { |c| [ c.label, c.id ] }),
-                id: "student_classroom_id", class: "rounded-lg border border-gray-300 p-2 text-sm" %>
+          <%= label_tag "student_name", "이름", class: "form-label" %>
+          <%= text_field_tag "student[name]", nil, id: "student_name", required: true, class: "form-input" %>
         </div>
+        <% if @classrooms.size > 1 %>
+          <div>
+            <%= label_tag "student_classroom_id", "학급", class: "form-label" %>
+            <%= select_tag "student[classroom_id]",
+                  options_for_select(@classrooms.map { |c| [ c.label, c.id ] }),
+                  id: "student_classroom_id", class: "form-select" %>
+          </div>
+        <% end %>
+        <%= submit_tag "학생 추가", class: "btn btn-primary" %>
       <% end %>
-      <%= submit_tag "학생 추가", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white" %>
-    <% end %>
 
-    <div class="rounded-lg border border-gray-200">
-      <% if @students.any? %>
-        <ul class="divide-y divide-gray-100">
-          <% @students.each do |student| %>
-            <li class="flex flex-wrap items-center justify-between gap-3 p-3">
-              <span class="min-w-0">
-                <span class="block font-medium text-gray-900"><%= student.name %></span>
-                <span class="block text-xs text-gray-500">
-                  <%= student.classroom&.label %> · <%= student.points %>P
+      <div class="card">
+        <% if @students.any? %>
+          <ul class="divide-y divide-hairline-soft">
+            <% @students.each do |student| %>
+              <li class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <span class="min-w-0">
+                  <span class="block font-medium text-ink"><%= student.name %></span>
+                  <span class="block text-xs text-steel">
+                    <%= student.classroom&.label %> · <%= student.points %>P
+                  </span>
                 </span>
-              </span>
-              <div class="flex flex-wrap items-center gap-2">
-                <%= button_to "+10P", give_points_teacher_student_path(student), method: :post,
-                      params: { points: 10 },
-                      class: "rounded-lg border border-emerald-300 px-3 py-1.5 text-sm text-emerald-700" %>
-                <%= button_to "비번 초기화", reset_password_teacher_student_path(student), method: :post,
-                      class: "rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700" %>
-                <%= button_to "삭제", teacher_student_path(student), method: :delete,
-                      form: { data: { turbo_confirm: "#{student.name} 학생을 삭제할까요?" } },
-                      class: "rounded-lg border border-rose-300 px-3 py-1.5 text-sm text-rose-700" %>
-              </div>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p class="p-4 text-sm text-gray-500">등록된 학생이 없어요. 위에서 추가해 보세요.</p>
-      <% end %>
-    </div>
-  </section>
+                <div class="flex flex-wrap items-center gap-2">
+                  <%= button_to "+10P", give_points_teacher_student_path(student), method: :post,
+                        params: { points: 10 }, class: "btn btn-blue btn-sm" %>
+                  <%= button_to "비번 초기화", reset_password_teacher_student_path(student), method: :post,
+                        class: "btn btn-secondary btn-sm" %>
+                  <%= button_to "삭제", teacher_student_path(student), method: :delete,
+                        form: { data: { turbo_confirm: "#{student.name} 학생을 삭제할까요?" } },
+                        class: "btn btn-danger btn-sm" %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-steel">등록된 학생이 없어요. 위에서 추가해 보세요.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
 </div>

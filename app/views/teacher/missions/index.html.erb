@@ -1,23 +1,22 @@
 <% content_for :title, "미션 관리 · 책갈피" %>
 
-<div class="flex w-full gap-6">
-  <%= render "teacher/nav", active: :missions %>
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :missions %>
 
-  <section class="min-w-0 flex-1 space-y-6">
-    <header class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">미션 관리</h1>
-      <%= link_to "새 미션", new_teacher_mission_path,
-            class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white" %>
-    </header>
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <h1 class="page-title">미션 관리</h1>
+        <%= link_to "새 미션", new_teacher_mission_path, class: "btn btn-blue" %>
+      </header>
 
-    <div class="rounded-lg border border-gray-200">
       <% if @missions.any? %>
-        <ul class="divide-y divide-gray-100">
+        <div class="space-y-3">
           <% @missions.each do |mission| %>
-            <li class="flex items-center justify-between gap-3 p-3">
+            <div class="card flex items-center justify-between gap-3">
               <span class="min-w-0">
-                <span class="block font-medium text-gray-900"><%= mission.title %></span>
-                <span class="block text-xs text-gray-500">
+                <span class="block font-medium text-ink"><%= mission.title %></span>
+                <span class="block text-xs text-steel">
                   <%= mission.classroom&.label %>
                   <% if mission.start_date || mission.end_date %>
                     · <%= mission.start_date %> ~ <%= mission.end_date %>
@@ -25,18 +24,18 @@
                 </span>
               </span>
               <div class="flex shrink-0 items-center gap-2">
-                <%= link_to "보기", teacher_mission_path(mission), class: "text-sm text-indigo-600" %>
-                <%= link_to "수정", edit_teacher_mission_path(mission), class: "text-sm text-gray-600" %>
+                <%= link_to "보기", teacher_mission_path(mission), class: "text-sm text-brand-blue" %>
+                <%= link_to "수정", edit_teacher_mission_path(mission), class: "text-sm text-slate" %>
                 <%= button_to "삭제", teacher_mission_path(mission), method: :delete,
                       form: { data: { turbo_confirm: "삭제할까요?" } },
-                      class: "text-sm text-rose-600" %>
+                      class: "btn btn-sm btn-danger" %>
               </div>
-            </li>
+            </div>
           <% end %>
-        </ul>
+        </div>
       <% else %>
-        <p class="p-4 text-sm text-gray-500">등록된 미션이 없어요.</p>
+        <%= render "shared/empty_state", message: "등록된 미션이 없어요.", icon: "🎯" %>
       <% end %>
-    </div>
-  </section>
+    </section>
+  </div>
 </div>

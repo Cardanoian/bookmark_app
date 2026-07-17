@@ -1,119 +1,122 @@
 <% content_for :title, "교사 대시보드 · 책갈피" %>
 
-<div class="flex w-full gap-6">
-  <%= render "teacher/nav", active: :dashboard %>
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :dashboard %>
 
-  <section class="min-w-0 flex-1 space-y-6">
-    <header class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900">교사 대시보드</h1>
-      <%= button_to "로그아웃", session_path, method: :delete,
-            class: "rounded-lg bg-gray-800 px-4 py-2 text-sm text-white" %>
-    </header>
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <h1 class="page-title">교사 대시보드</h1>
+        <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
+      </header>
 
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <div class="rounded-lg border border-gray-200 p-4">
-        <p class="text-xs text-gray-500">총 독후감</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900"><%= @total_reports %></p>
-      </div>
-      <div class="rounded-lg border border-gray-200 p-4">
-        <p class="text-xs text-gray-500">검토 대기</p>
-        <p class="mt-1 text-2xl font-bold text-amber-600"><%= @pending_count %></p>
-      </div>
-      <div class="rounded-lg border border-gray-200 p-4">
-        <p class="text-xs text-gray-500">A등급 비율</p>
-        <p class="mt-1 text-2xl font-bold text-indigo-600"><%= @a_ratio %>%</p>
-      </div>
-      <div class="rounded-lg border border-gray-200 p-4">
-        <p class="text-xs text-gray-500">평균 포인트</p>
-        <p class="mt-1 text-2xl font-bold text-gray-900"><%= @avg_points %></p>
-      </div>
-    </div>
-
-    <%# 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠. %>
-    <% if @reported_content.any? %>
-      <div class="rounded-lg border border-rose-200 bg-rose-50 p-5">
-        <h2 class="mb-1 text-lg font-semibold text-rose-800">🚩 신고된 게임 콘텐츠 (<%= @reported_content.size %>)</h2>
-        <p class="mb-3 text-xs text-rose-700">
-          학생이 온디맨드 게임에서 신고한 문제예요. 서로 다른
-          <%= Games::ContentProvider::REPORT_HIDE_THRESHOLD %>명이 신고하면 자동으로 숨겨지고 새로 만들어져요. 내용을 확인해 주세요.
-        </p>
-        <ul class="divide-y divide-rose-100">
-          <% @reported_content.each do |report| %>
-            <li class="flex items-center justify-between gap-2 py-2 text-sm">
-              <span class="min-w-0 truncate text-rose-900">
-                <%= report.user.name %> · 「<%= report.quiz.book&.title.presence || "책 미상" %>」 온디맨드 게임
-                <% if report.quiz.reported? %><span class="ml-1 rounded bg-rose-200 px-1.5 py-0.5 text-xs text-rose-800">숨김 처리됨</span><% end %>
-              </span>
-              <span class="shrink-0 text-xs text-rose-400"><%= report.created_at.strftime("%-m/%-d %H:%M") %></span>
-            </li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
-
-    <div class="grid gap-6 md:grid-cols-2">
-      <div class="rounded-lg border border-gray-200 p-5">
-        <h2 class="mb-3 text-lg font-semibold text-gray-900">학급 5축 평균</h2>
-        <div class="flex justify-center">
-          <%= radar_chart_svg(@axis_averages, labels: @axis_labels) %>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="stat-card">
+          <span class="stat-card__label">총 독후감</span>
+          <span class="stat-card__value"><%= @total_reports %></span>
         </div>
-        <dl class="mt-3 grid grid-cols-5 gap-1 text-center text-xs">
-          <% @axis_averages.each do |axis, value| %>
-            <div>
-              <dt class="text-gray-500"><%= axis_label(axis) %></dt>
-              <dd class="font-semibold text-indigo-600"><%= value %></dd>
+        <div class="stat-card">
+          <span class="stat-card__label">검토 대기</span>
+          <span class="stat-card__value text-yellow-dark"><%= @pending_count %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">A등급 비율</span>
+          <span class="stat-card__value text-brand-blue"><%= @a_ratio %>%</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">평균 포인트</span>
+          <span class="stat-card__value"><%= @avg_points %></span>
+        </div>
+      </div>
+
+      <%# 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠. %>
+      <% if @reported_content.any? %>
+        <div class="card border-brand-red-dark bg-brand-red">
+          <h2 class="mb-1 text-lg font-semibold text-coral-dark">
+            <span aria-hidden="true">🚩</span> 신고된 게임 콘텐츠 (<%= @reported_content.size %>)
+          </h2>
+          <p class="mb-3 text-xs text-coral-dark">
+            학생이 온디맨드 게임에서 신고한 문제예요. 서로 다른
+            <%= Games::ContentProvider::REPORT_HIDE_THRESHOLD %>명이 신고하면 자동으로 숨겨지고 새로 만들어져요. 내용을 확인해 주세요.
+          </p>
+          <ul class="divide-y divide-brand-red-dark">
+            <% @reported_content.each do |report| %>
+              <li class="flex items-center justify-between gap-2 py-2 text-sm">
+                <span class="min-w-0 truncate text-coral-dark">
+                  <%= report.user.name %> · 「<%= report.quiz.book&.title.presence || "책 미상" %>」 온디맨드 게임
+                  <% if report.quiz.reported? %><span class="badge badge-danger ml-1">숨김 처리됨</span><% end %>
+                </span>
+                <span class="shrink-0 text-xs text-coral-dark"><%= report.created_at.strftime("%-m/%-d %H:%M") %></span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card">
+          <h2 class="mb-3 text-lg font-semibold text-ink">학급 5축 평균</h2>
+          <div class="flex justify-center">
+            <%= radar_chart_svg(@axis_averages, labels: @axis_labels) %>
+          </div>
+          <dl class="mt-3 grid grid-cols-5 gap-1 text-center text-xs">
+            <% @axis_averages.each do |axis, value| %>
+              <div>
+                <dt class="text-steel"><%= axis_label(axis) %></dt>
+                <dd class="font-semibold text-brand-blue"><%= value %></dd>
+              </div>
+            <% end %>
+          </dl>
+        </div>
+
+        <div class="space-y-4">
+          <% if @weakness %>
+            <div class="card border-hairline bg-surface-yellow">
+              <h2 class="text-sm font-semibold text-yellow-dark">약점 인사이트</h2>
+              <p class="mt-1 text-sm text-yellow-dark">
+                가장 낮은 축은 <strong><%= @weakness[:label] %></strong>
+                (<%= @weakness[:score] %>점, <%= @weakness[:standard] %>) 입니다.
+              </p>
+              <p class="mt-2 text-sm text-yellow-dark"><%= @weakness[:activity] %></p>
             </div>
           <% end %>
-        </dl>
-      </div>
 
-      <div class="space-y-4">
-        <% if @weakness %>
-          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <h2 class="text-sm font-semibold text-amber-800">약점 인사이트</h2>
-            <p class="mt-1 text-sm text-amber-900">
-              가장 낮은 축은 <strong><%= @weakness[:label] %></strong>
-              (<%= @weakness[:score] %>점, <%= @weakness[:standard] %>) 입니다.
+          <div class="card">
+            <h2 class="text-sm font-semibold text-ink">향상도 요약</h2>
+            <p class="mt-1 text-sm text-slate">
+              <% if @improvement_avg %>
+                고쳐쓰기 평균 향상도 <strong class="text-success-accent"><%= @improvement_avg %>점</strong>
+              <% else %>
+                아직 고쳐쓰기 기록이 없어요.
+              <% end %>
             </p>
-            <p class="mt-2 text-sm text-amber-900"><%= @weakness[:activity] %></p>
           </div>
-        <% end %>
-
-        <div class="rounded-lg border border-gray-200 p-4">
-          <h2 class="text-sm font-semibold text-gray-700">향상도 요약</h2>
-          <p class="mt-1 text-sm text-gray-600">
-            <% if @improvement_avg %>
-              고쳐쓰기 평균 향상도 <strong class="text-emerald-600"><%= @improvement_avg %>점</strong>
-            <% else %>
-              아직 고쳐쓰기 기록이 없어요.
-            <% end %>
-          </p>
         </div>
       </div>
-    </div>
 
-    <div class="rounded-lg border border-gray-200 p-5">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-900">검토 큐</h2>
-        <%= link_to "전체 보기", teacher_reviews_path, class: "text-sm text-indigo-600" %>
+      <div class="card">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-ink">검토 큐</h2>
+          <%= link_to "전체 보기", teacher_reviews_path, class: "text-sm font-medium text-brand-blue" %>
+        </div>
+        <% if @review_queue.any? %>
+          <ul class="divide-y divide-hairline-soft">
+            <% @review_queue.each do |report| %>
+              <li class="flex items-center justify-between py-2">
+                <span class="min-w-0 truncate text-sm text-slate">
+                  <%= report.user.name %> · <%= report.book&.title.presence || report.book_title %>
+                </span>
+                <span class="flex items-center gap-2">
+                  <%= level_badge(report.level) %>
+                  <%= link_to "검토", teacher_review_path(report), class: "text-sm font-medium text-brand-blue" %>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-steel">검토 대기 중인 독후감이 없어요.</p>
+        <% end %>
       </div>
-      <% if @review_queue.any? %>
-        <ul class="divide-y divide-gray-100">
-          <% @review_queue.each do |report| %>
-            <li class="flex items-center justify-between py-2">
-              <span class="min-w-0 truncate text-sm text-gray-700">
-                <%= report.user.name %> · <%= report.book&.title.presence || report.book_title %>
-              </span>
-              <span class="flex items-center gap-2">
-                <%= level_badge(report.level) %>
-                <%= link_to "검토", teacher_review_path(report), class: "text-sm text-indigo-600" %>
-              </span>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p class="text-sm text-gray-500">검토 대기 중인 독후감이 없어요.</p>
-      <% end %>
-    </div>
-  </section>
+    </section>
+  </div>
 </div>
