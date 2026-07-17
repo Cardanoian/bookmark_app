@@ -1,26 +1,26 @@
 module ReportsHelper
   AI_STATUS_LABELS = {
-    "pending" => [ "첨삭 대기", "bg-gray-100 text-gray-600" ],
-    "processing" => [ "첨삭 중", "bg-amber-100 text-amber-700" ],
-    "done" => [ "첨삭 완료", "bg-emerald-100 text-emerald-700" ],
-    "failed" => [ "첨삭 실패", "bg-rose-100 text-rose-700" ]
+    "pending" => [ "첨삭 대기", "badge-neutral" ],
+    "processing" => [ "첨삭 중", "badge-yellow" ],
+    "done" => [ "첨삭 완료", "badge-success" ],
+    "failed" => [ "첨삭 실패", "badge-danger" ]
   }.freeze
 
   LEVEL_COLORS = {
-    "A" => "bg-amber-400 text-white",
-    "B" => "bg-sky-400 text-white",
-    "C" => "bg-gray-300 text-gray-700"
+    "A" => "bg-brand-yellow text-ink",
+    "B" => "bg-brand-blue text-white",
+    "C" => "bg-hairline text-slate"
   }.freeze
 
   def ai_status_badge(report)
-    label, classes = AI_STATUS_LABELS.fetch(report.ai_status, [ report.ai_status, "bg-gray-100 text-gray-600" ])
-    content_tag :span, label, class: "inline-block rounded-full px-2 py-0.5 text-xs font-medium #{classes}"
+    label, variant = AI_STATUS_LABELS.fetch(report.ai_status, [ report.ai_status, "badge-neutral" ])
+    content_tag :span, label, class: "badge #{variant}"
   end
 
   def level_badge(level)
     return if level.blank?
 
-    classes = LEVEL_COLORS.fetch(level, "bg-gray-300 text-gray-700")
+    classes = LEVEL_COLORS.fetch(level, "bg-hairline text-slate")
     content_tag :span, level, class: "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold #{classes}"
   end
 

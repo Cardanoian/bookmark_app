@@ -98,16 +98,16 @@
 
 ### 🎨 디자인 개편 후속 (1차 묶음 완료 · 이월 작업)
 
-> **1차 묶음 완료(2026-07-17)** — `DESIGN_CHANGE_PLAN.md` 기반으로 **디자인 시스템 기반 + 대표 화면**을 개편했다(작업 트리, 미커밋). 구현: Tailwind v4 `@theme` 토큰(`DESIGN.md` 색·폰트·라운드 1:1 매핑, 기본 팔레트 유지로 기존 뷰 무회귀) · Pretendard 자체호스팅(`app/assets/fonts`, CSP `font_src :self`) · 공통 컴포넌트(`.btn*`/`.card*`/`.form-*`/`.badge*`/`.page-shell*`/`.state-banner*`/`.progress-bar`) · 유동 레이아웃(`application`·`admin` 오프캔버스 사이드바) · 학생 대시보드·로그인/가입 4화면·독후감 index/show/new/edit + partial. **Turbo Stream·Stimulus·Pundit 계약 전량 보존**, `bin/rails test` 746 runs 0 failures, architect APPROVED, deslop 완료. 아래는 이월 작업이다.
+> **1차 묶음 완료(2026-07-17)** — `DESIGN_CHANGE_PLAN.md` 기반으로 **디자인 시스템 기반 + 대표 화면**을 개편했다(작업 트리, 미커밋). 구현: Tailwind v4 `@theme` 토큰(`DESIGN.md` 색·폰트·라운드 1:1 매핑, 기본 팔레트 유지로 기존 뷰 무회귀) · Pretendard 자체호스팅(`app/assets/fonts`, CSP `font_src :self`) · 공통 컴포넌트(`.btn*`/`.card*`/`.form-*`/`.badge*`/`.page-shell*`/`.state-banner*`/`.progress-bar`) · 유동 레이아웃(`application`·`admin` 오프캔버스 사이드바) · 학생 대시보드·로그인/가입 4화면·독후감 index/show/new/edit + partial. **Turbo Stream·Stimulus·Pundit 계약 전량 보존**, `bin/rails test` 746 runs 0 failures, architect APPROVED, deslop 완료. **비차단 정리(아래 🧹)도 2026-07-17 완료** — 이제 남은 이월은 화면군 확장(Phase 4~8)뿐이다.
 
-#### 🧹 비차단 정리 (지금 정리 대상 · 방금 만든 디자인 시스템 마무리 · 범위 좁고 저위험)
+#### 🧹 비차단 정리 (✅ 완료 2026-07-17 · 팀 2워커 · code-reviewer APPROVED · 746 테스트 그린)
 
-> 계약 변경 없이 신규 토큰·컴포넌트로 통일하는 작은 후속. 한 번의 정리 패스 + `bin/rails test` 회귀로 충분.
+> 계약 변경 없이 신규 토큰·컴포넌트로 통일한 작은 후속. tailwind 빌드(신규 클래스 emit 실측)·`bin/rails test` 746/0·`rubocop` 0 offenses·독립 리뷰어 검증까지 완료.
 
-- [ ] **D4 · 배지 팔레트 이관** — `app/helpers/reports_helper.rb`의 `ai_status_badge`/`level_badge`가 아직 옛 팔레트(하드코딩 색) → 신규 `.badge-*`(`.badge-neutral/-yellow/-success/-info`) 토큰으로 이관.
-- [ ] **OCR 상태색 통일** — `app/views/ocr/create.turbo_stream.erb`의 `#ocr_status`가 옛 `text-sky-700` → 디자인 토큰 색(예: `text-brand-blue`)으로 통일. (`id=ocr_status` 계약 유지)
-- [ ] **D3 · 로그인/가입 폼 폭 정합** — `sessions/{new,student_new,staff_new}.html.erb`·`registrations/new.html.erb`가 `max-w-md/max-w-lg`로 남음 → `.page-shell-form`(또는 카드 자체 max-width)과의 정합 여부 판단 후 통일.
-- [ ] **D5 · 마감 디테일** — `.btn-icon` 40px 터치타깃 확인 · `shared/_student_nav`의 hover 처리 · 각 화면 `<h1>` 이모지에 `aria-hidden="true"` 일괄 적용.
+- [x] **D4 · 배지 팔레트 이관** — `app/helpers/reports_helper.rb`의 `ai_status_badge`(pending→`badge-neutral`·processing→`badge-yellow`·done→`badge-success`·failed→**`badge-danger`**[신규, 실소비])·`level_badge`(원형 유지, A→`bg-brand-yellow text-ink`·B→`bg-brand-blue text-white`·C→`bg-hairline text-slate`)를 옛 하드코딩 팔레트에서 디자인 토큰/컴포넌트로 이관. 옛 팔레트 0건 잔존.
+- [x] **OCR 상태색 통일** — `app/views/ocr/create.turbo_stream.erb`의 `#ocr_status` `text-sky-700` → `text-brand-blue`(info 토큰). `id=ocr_status`·turbo_stream 타깃 유지.
+- [x] **D5 · 마감 디테일** — `.btn-icon` 터치타깃 40→**44px**(2.75rem, 초등 접근성) · `sessions/{student_new,staff_new}` h1 장식 이모지(🧒/👩‍🏫)를 `<span aria-hidden="true">`로 은닉 · `shared/_student_nav` hover는 이미 올바름(변경 불요).
+- [x] **D3 · 로그인/가입 폼 폭** — 검토 결과 `max-w-md/lg`는 **의도된 좁은 로그인/가입 카드**로 확정(`.page-shell-form` 60rem은 전면 폼용이라 부적합). 폭 변경 없음(결정 완료).
 
 #### 📦 Phase 4~8 화면군 확장 (화면군 단위 별도 묶음 · 공통 컴포넌트 그대로 확장)
 

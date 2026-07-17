@@ -236,9 +236,9 @@
     color: #ffffff;
   }
   .btn-icon {
-    min-height: 2.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
+    min-height: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
     padding: 0;
     border-radius: 9999px;
     background-color: var(--color-canvas);
@@ -368,6 +368,10 @@
   .badge-info {
     background-color: var(--color-surface-featured);
     color: var(--color-brand-blue);
+  }
+  .badge-danger {
+    background-color: var(--color-danger);
+    color: #ffffff;
   }
 
   /* ---- 진행 바 ------------------------------------------------------------ */
