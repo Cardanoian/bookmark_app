@@ -2,19 +2,7 @@
 
 <div class="page-shell page-shell-wide">
   <%= turbo_stream_from current_user, :active_monster %>
-
-  <header class="page-header">
-    <div>
-      <p class="text-sm font-medium text-steel">학생</p>
-      <h1 class="page-title"><%= current_user.name %>님의 서재</h1>
-      <p class="page-subtitle">
-        <%= current_user.trainer_title %> · <%= current_user.points %>P
-      </p>
-    </div>
-    <div class="page-actions">
-      <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
-    </div>
-  </header>
+  <h1 class="sr-only">내 서재</h1>
 
   <%= render "shared/student_nav", active: :library %>
 

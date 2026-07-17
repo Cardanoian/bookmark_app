@@ -44,7 +44,7 @@ class MonstersController < ApplicationController
     redirect_to monsters_path, alert: "스타터를 선택할 수 없어요."
   end
 
-  # 진화: 조건 충족 시 제자리 진화 + 헤더/상세 실시간 갱신 + 뱃지 갱신.
+  # 진화: 조건 충족 시 필요 포인트 차감 + 제자리 진화 + 헤더/상세 실시간 갱신.
   def evolve
     authorize @user_monster, :evolve?, policy_class: MonsterPolicy
 
@@ -52,10 +52,16 @@ class MonstersController < ApplicationController
       return redirect_to monster_path(@user_monster.dex_no), alert: "아직 진화 조건을 충족하지 못했어요."
     end
 
-    form = advance_evolution(@user_monster)
+    cost = @user_monster.evolution_cost
+    form = current_user.evolve_monster!(@user_monster)
+    unless form
+      return redirect_to monster_path(@user_monster.dex_no), alert: "진화에 필요한 포인트가 부족해요."
+    end
+
+    current_user.reload.broadcast_ranking_change
     broadcast_active_monster if active?(@user_monster)
     flash[:celebrate] = "evolve"
-    redirect_to monster_path(@user_monster.dex_no), notice: "#{form.name}(으)로 진화했어요! ✨"
+    redirect_to monster_path(@user_monster.dex_no), notice: "#{cost}포인트를 사용해 #{form.name}(으)로 진화했어요! ✨"
   end
 
   # 대표(활성) 몬스터 지정.
@@ -96,17 +102,6 @@ class MonstersController < ApplicationController
 
   def active?(monster)
     current_user.active_monster_id == monster.id
-  end
-
-  # 활성 몬스터면 뱃지 연쇄가 붙은 User#evolve_active_monster! 를, 아니면 제자리 진화 후 뱃지 갱신.
-  def advance_evolution(monster)
-    if active?(monster)
-      current_user.evolve_active_monster!
-    else
-      form = monster.evolve!
-      current_user.refresh_badges!
-      form
-    end
   end
 
   def broadcast_active_monster

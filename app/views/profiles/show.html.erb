@@ -1,0 +1,76 @@
+<% content_for :title, "마이페이지 · 책갈피" %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <header>
+    <p class="text-sm font-medium text-steel">마이페이지</p>
+    <h1 class="page-title mt-1"><%= current_user.name %>님의 독서 기록</h1>
+    <p class="page-subtitle">
+      <%= [current_user.school&.name, current_user.classroom&.then { |room| "#{room.grade}학년 #{room.class_no}반" }].compact.join(" · ") %>
+    </p>
+  </header>
+
+  <section aria-labelledby="profile-growth-title" class="card-feature">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="text-sm font-medium text-steel">나의 독서가 레벨</p>
+        <h2 id="profile-growth-title" class="mt-1 text-xl font-bold text-ink">
+          Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %>
+        </h2>
+      </div>
+      <span class="badge badge-yellow"><%= current_user.points %>P</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="profile-activity-title">
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <h2 id="profile-activity-title" class="text-lg font-bold text-ink">나의 활동</h2>
+      <%= link_to "독후감 전체 보기", reports_path, class: "text-sm font-medium text-steel hover:text-ink hover:underline" %>
+    </div>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="stat-card">
+        <span class="stat-card__label">작성한 독후감</span>
+        <span class="stat-card__value"><%= @report_count %>편</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">선생님 확인</span>
+        <span class="stat-card__value"><%= @reviewed_report_count %>편</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">모은 배지</span>
+        <span class="stat-card__value"><%= @badge_count %>개</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__label">게임 기록</span>
+        <span class="stat-card__value"><%= @game_count %>회</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="profile-shortcuts-title">
+    <h2 id="profile-shortcuts-title" class="mb-3 text-lg font-bold text-ink">바로가기</h2>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <%= link_to reports_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
+        <span aria-hidden="true" class="text-xl">✍️</span>
+        <span>내 독후감</span>
+      <% end %>
+      <%= link_to monsters_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
+        <span aria-hidden="true" class="text-xl">🐾</span>
+        <span>몬스터 도감</span>
+      <% end %>
+      <%= link_to rankings_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
+        <span aria-hidden="true" class="text-xl">🏆</span>
+        <span>나의 랭킹</span>
+      <% end %>
+    </div>
+  </section>
+
+  <section aria-labelledby="profile-account-title" class="card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 id="profile-account-title" class="font-semibold text-ink">계정</h2>
+        <p class="mt-1 text-sm text-steel">공용 기기에서는 사용 후 꼭 로그아웃해 주세요.</p>
+      </div>
+      <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary" %>
+    </div>
+  </section>
+</div>

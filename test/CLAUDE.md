@@ -21,7 +21,7 @@
 ## integration/ 대표 그룹
 - **인증·역할 진입**: `registrations`(교사 회원가입+**이메일 필수**+가입 즉시 로그인)·`sessions`(**로그인 표면 2분화** — 안내 인덱스 선택 화면 + 학생 튜플 로그인 + 교직원 이메일 로그인 + 표면 교차 차단 + 스로틀)·`dashboard_access`·`dashboard_role`·`board_posts`·`schools_search`·`topics`·`forum_post_likes`(게시판 글 좋아요 토글·1인 1좋아요·학급 경계 차단·로그인 게이트)·`books_catalog`.
 - **독후감 파이프라인**: `report_review_flow`(Phase 3 완료 게이트)·`reports`·`ocr`(사진→텍스트)·`learn_wizard`(단계 학습 위저드).
-- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`·`student_nav_persistence`(학생 상단 navbar가 7개 메뉴 페이지[내 서재·독후감·게임·도감·상점·미션·랭킹] 전체에서 모바일 disclosure/데스크톱 필 목록·동일 경로·활성 탭 강조를 유지).
+- **게임화·반려 몬스터**: `games`(독서게임 5종 — 퀴즈 4종 실동작)·`games_ondemand`(온디맨드 e2e)·`games_authorization`(경계 클램프)·`games_book_intro`(책 소개 대결 — 소셜·1인 1표·크로스학급 차단·Gemini/Quiz 미생성 assert)·`game_points_flow`·`rankings`·`starter_selection`·`monster_evolution`·`monster_feed`·`mission_participation`·`shop_purchase`·`student_nav_persistence`(학생 상단 navbar가 7개 메뉴 페이지[내 서재·독후감·게임·도감·상점·미션·랭킹] 전체에서 모바일 disclosure/데스크톱 필 목록·동일 경로·활성 탭 강조를 유지하고, 메뉴 페이지의 중복 제목 제거와 독후감 작성 액션·상점 포인트의 navbar 직후 배치를 검증).
 - **교사(P6)**: `teacher_dashboard`·`teacher_missions`·`teacher_quizzes`·`teacher_reviews`·`teacher_students`·`teacher_rubric_config`·`teacher_exports`(CSV)·`teacher_prints`(인쇄 문서).
 - **사서(P6.5)**: `librarian_dashboard`·`librarian_events`·`librarian_loans`(정보나루 동기화).
 - **교무관리자**: `school_admin_neis`(생기부 요약)·`school_admin_stats`(전교 통계·학교 경계).

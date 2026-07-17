@@ -44,6 +44,7 @@ class EvolvableTest < ActiveSupport::TestCase
     assert_equal "pup_2", new_form.key
     @monster.reload
     assert_equal "pup_2", @monster.monster_species.key
+    assert_equal 0, @user.reload.points
     assert_equal 1, @monster.dex_no, "evolution is in-place (same dex line)"
     assert @monster.evolved_at.present?
   end
@@ -65,5 +66,28 @@ class EvolvableTest < ActiveSupport::TestCase
     add_reviewed_reports(3)
     @user.evolve_active_monster!
     assert_includes @user.badges.reload.pluck(:key), "first_evolve"
+  end
+
+  test "failed evolution does not spend points" do
+    @user.update!(points: 100)
+    add_reviewed_reports(2)
+
+    assert_nil @user.evolve_active_monster!
+    assert_equal 100, @user.reload.points
+    assert_equal "pup_1", @monster.reload.monster_species.key
+  end
+
+  test "a stale request cannot evolve two stages or spend twice" do
+    @user.update!(points: 1000)
+    5.times do |i|
+      Report.create!(user: @user, classroom: @classroom, book_title: "우수책#{i}", reviewed: true, level: "A")
+    end
+    stale_monster = UserMonster.find(@monster.id)
+
+    assert_equal "pup_2", @user.evolve_monster!(@monster).key
+    assert_nil @user.evolve_monster!(stale_monster)
+
+    assert_equal "pup_2", @monster.reload.monster_species.key
+    assert_equal 900, @user.reload.points
   end
 end

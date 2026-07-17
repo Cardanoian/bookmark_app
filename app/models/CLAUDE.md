@@ -19,7 +19,7 @@
 
 ### 반려몬스터
 - `monster_species.rb` — 도감 종 카탈로그(시드). element·rarity enum, 진화 라인(evolves_from 자기참조)×stage, `evolve_condition` JSON 규칙(허용 키 화이트리스트·JSON 검증). 도감 분모는 설계 라인 24 고정. `has_many :next_forms, dependent: :nullify` + **DB 자기참조 FK `evolves_from_id` 도 `on_delete: :nullify`**(Phase 6 #8) — 이전 폼 삭제 시 다음 폼의 참조만 끊는다.
-- `user_monster.rb` — 학생 보유/발견 개체(라인당 1행, 제자리 진화). `evolvable?`는 `ReadingStats#meets?`로 조건 평가, `evolve!`로 monster_species 교체.
+- `user_monster.rb` — 학생 보유/발견 개체(라인당 1행, 제자리 진화). `evolvable?`는 `ReadingStats#meets?`로 조건 평가, `evolution_cost`는 현재 단계 points 조건을 비용으로 노출, `evolve!`는 조건부 갱신으로 중복 진화를 방지.
 
 ### 게이미피케이션
 - `badge.rb` — 뱃지 카탈로그(13종 시드). `KEYS` 상수로 조건 트리거(Badgeable concern이 소비).

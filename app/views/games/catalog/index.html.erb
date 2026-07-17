@@ -1,24 +1,7 @@
 <% content_for :title, "독서 게임 · 책갈피" %>
 
 <div class="page-shell page-shell-wide space-y-6">
-  <header class="page-header">
-    <div>
-      <p class="text-sm font-medium text-steel">게임</p>
-      <h1 class="page-title"><span aria-hidden="true">🎮</span> 독서 게임</h1>
-      <p class="page-subtitle">책을 고르면 바로 게임이 만들어져요. 기다릴 필요 없어요!</p>
-    </div>
-  </header>
-
   <%= render "shared/student_nav", active: :games %>
-
-  <section class="card">
-    <h2 class="text-sm font-semibold text-ink">즐길 수 있는 게임</h2>
-    <div class="mt-3 flex flex-wrap gap-2">
-      <% @games.each do |key, meta| %>
-        <span class="badge <%= game_accent(key) %>"><span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %></span>
-      <% end %>
-    </div>
-  </section>
 
   <% if @books.any? %>
     <div class="space-y-4">

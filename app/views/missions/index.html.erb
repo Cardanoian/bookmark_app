@@ -1,13 +1,6 @@
 <% content_for :title, "미션 · 책갈피" %>
 
 <div class="page-shell page-shell-content space-y-6">
-  <header class="page-header">
-    <div>
-      <p class="text-sm font-medium text-steel">미션</p>
-      <h1 class="page-title"><span aria-hidden="true">🎯</span> 미션</h1>
-    </div>
-  </header>
-
   <%= render "shared/student_nav", active: :missions %>
 
   <% if @missions.any? %>

@@ -3,13 +3,6 @@
 <div class="page-shell page-shell-wide space-y-6" data-controller="dex">
   <%= turbo_stream_from current_user, :active_monster %>
 
-  <header class="page-header">
-    <div>
-      <p class="text-sm font-medium text-steel">몬스터 도감</p>
-      <h1 class="page-title">함께 성장하는 반려 몬스터</h1>
-    </div>
-  </header>
-
   <%= render "shared/student_nav", active: :monsters %>
 
   <div class="grid gap-4 sm:grid-cols-3">

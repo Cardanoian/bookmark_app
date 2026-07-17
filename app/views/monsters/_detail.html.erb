@@ -4,7 +4,7 @@
        data-controller="monster-care"
        data-monster-care-celebrate-value="<%= celebrate %>">
     <div class="text-6xl" aria-hidden="true" data-monster-care-target="sprite">
-      <%= user_monster ? monster_sprite(current_species, img_class: "h-20 w-20 object-contain") : "❔" %>
+      <%= user_monster ? monster_sprite(current_species, img_class: "mx-auto h-20 w-20 object-contain") : "❔" %>
     </div>
     <p class="mt-2 text-xs text-muted">No.<%= format("%02d", dex_no) %></p>
     <h1 class="text-2xl font-bold text-ink"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>
@@ -43,7 +43,7 @@
 
     <div class="mb-4 flex flex-wrap justify-center gap-2">
       <% if evolvable %>
-        <%= button_to "진화하기 ✨", evolve_monster_path(dex_no), method: :post,
+        <%= button_to "#{user_monster.evolution_cost}P로 진화하기 ✨", evolve_monster_path(dex_no), method: :post,
               class: "btn btn-yellow" %>
       <% end %>
       <% unless current_user.active_monster_id == user_monster.id %>

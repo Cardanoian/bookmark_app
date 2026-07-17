@@ -25,12 +25,23 @@ class UserMonster < ApplicationRecord
     ReadingStats.new(user).meets?(monster_species.evolve_condition)
   end
 
-  # 제자리 진화 실행(monster_species 교체 + evolved_at). 새 폼 반환(없으면 nil).
+  # 현재 단계에서 다음 단계로 진화할 때 소모할 포인트.
+  # evolve_condition 의 points 임계값을 진화 비용의 단일 진실로 사용한다.
+  def evolution_cost
+    monster_species&.evolve_condition&.fetch("points", 0).to_i
+  end
+
+  # 제자리 진화 실행(monster_species 교체 + evolved_at). 새 폼 반환(없거나 이미 진화했으면 nil).
+  # 현재 종을 WHERE 조건에 포함해 동시 진화 요청이 같은 단계를 두 번 확정하지 못하게 한다.
   def evolve!
     form = next_form
     return nil unless form
 
-    update!(monster_species: form, evolved_at: Time.current)
+    evolved = self.class.where(id: id, monster_species_id: monster_species_id)
+                        .update_all(monster_species_id: form.id, evolved_at: Time.current, updated_at: Time.current)
+    return nil if evolved.zero?
+
+    reload
     form
   end
 

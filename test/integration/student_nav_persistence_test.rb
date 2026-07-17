@@ -55,4 +55,33 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     assert_full_navbar missions_path, "미션"
     assert_full_navbar rankings_path, "랭킹"
   end
+
+  test "menu pages do not repeat the active menu as a page heading" do
+    [ reports_path, games_catalog_path, monsters_path, shop_path, missions_path, rankings_path ].each do |path|
+      get path
+
+      assert_response :success
+      assert_select "h1.page-title", count: 0, message: "#{path}에 중복 페이지 제목이 남아 있음"
+      assert_select ".page-subtitle", count: 0, message: "#{path}에 페이지 설명이 남아 있음"
+    end
+  end
+
+  test "report action and shop balance follow the student navbar" do
+    get reports_path
+    assert_select 'nav[aria-label="학생 메뉴"] + div[data-page-action="new-report"]', count: 1 do
+      assert_select "a[href=?]", new_report_path, text: "새 독후감 쓰기", count: 1
+    end
+
+    get shop_path
+    assert_select 'nav[aria-label="학생 메뉴"] + div[data-page-status="points-balance"]', count: 1 do
+      assert_select "#points_balance", text: @student.points.to_s, count: 1
+    end
+  end
+
+  test "game catalog does not repeat the available game summary" do
+    get games_catalog_path
+
+    assert_response :success
+    assert_select "h2", text: "즐길 수 있는 게임", count: 0
+  end
 end

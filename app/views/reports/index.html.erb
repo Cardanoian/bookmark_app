@@ -1,16 +1,13 @@
 <% content_for :title, "독후감 · 책갈피" %>
 
 <div class="page-shell page-shell-content">
-  <header class="page-header">
-    <h1 class="page-title">독후감</h1>
-    <% if policy(Report).create? %>
-      <div class="page-actions">
-        <%= link_to "새 독후감 쓰기", new_report_path, class: "btn btn-primary" %>
-      </div>
-    <% end %>
-  </header>
-
   <%= render "shared/student_nav", active: :reports %>
+
+  <% if policy(Report).create? %>
+    <div class="mb-6 flex justify-end sm:mb-8" data-page-action="new-report">
+      <%= link_to "새 독후감 쓰기", new_report_path, class: "btn btn-primary" %>
+    </div>
+  <% end %>
 
   <% if current_user.student? %>
     <%= turbo_stream_from current_user, :reports %>

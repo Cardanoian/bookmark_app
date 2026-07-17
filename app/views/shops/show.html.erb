@@ -1,17 +1,11 @@
 <% content_for :title, "케어 상점 · 책갈피" %>
 
 <div class="page-shell page-shell-content">
-  <header class="page-header">
-    <div>
-      <p class="text-sm font-medium text-steel">케어 상점</p>
-      <h1 class="page-title"><span aria-hidden="true">🛍️</span> 몬스터를 위한 아이템</h1>
-    </div>
-    <div class="page-actions">
-      <span class="badge badge-yellow">내 포인트 <span id="points_balance"><%= @balance %></span>P</span>
-    </div>
-  </header>
-
   <%= render "shared/student_nav", active: :shop %>
+
+  <div class="mb-6 flex justify-end sm:mb-8" aria-label="보유 포인트" data-page-status="points-balance">
+    <span class="badge badge-yellow">내 포인트 <span id="points_balance"><%= @balance %></span>P</span>
+  </div>
 
   <div id="shop_flash" class="mb-4"></div>
 

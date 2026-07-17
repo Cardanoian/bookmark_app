@@ -12,7 +12,7 @@
 - `ocr_controller.rb` — 사진 업로드 → 손글씨 OCR 초안(`create`). Gemini 키 없으면 거부. 성공 시 `OcrJob` + Turbo Stream.
 - `books_controller.rb` — 도서 카탈로그(`index`)·상세(`show`)·검색(`search`, 네이버 자동완성 JSON, 무키 시 로컬 폴백). index 는 페이지네이션(PER_PAGE=24)하고 **검색 upsert 캐시(`category: searched`)를 카탈로그에서 제외**해 무한 증가를 막는다(#2, searched 는 로컬 검색 폴백에서만 쓰임).
 - `learn_controller.rb` — 단계 학습 위저드 5단계(`index`/`advance`). 세션 진행 저장, 완료 시 독후감 초안으로 프리필.
-- `monsters_controller.rb` — 반려 몬스터 도감·상세 + `choose_starter`·`evolve`·`set_active`·`feed`(먹이/진화의 돌 소비).
+- `monsters_controller.rb` — 반려 몬스터 도감·상세 + `choose_starter`·`evolve`(조건의 필요 포인트를 원자 차감한 뒤 진화)·`set_active`·`feed`(먹이/진화의 돌 소비).
 - `shops_controller.rb` — 케어/진화 상점 조회(`show`). 잔액·인벤토리·카탈로그 표시(표현용).
 - `purchases_controller.rb` — 상점 구매(`create`, 포인트 sink). 트랜잭션 원자 차감, Turbo Stream 응답.
 - `rankings_controller.rb` — 랭킹·포디움·명예의 전당(`index`). tab = class/school/nation/challenge/hall.
