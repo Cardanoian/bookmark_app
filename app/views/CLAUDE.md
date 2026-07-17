@@ -25,7 +25,7 @@
 - `school_admin/` — 학교관리자 화면. `neis`(생기부)·`stats`(통계)
 - `schools/` — 학교 선택 하이브리드 피커 `_picker` partial(가입/로그인 공용). 시도/시군구 캐스케이딩 + 이름검색으로 학교 셀렉트를 채우고, `with_classroom: true`(로그인 폼)면 선택 학교의 학급만 스코프 로드.
 - `sessions/` — 로그인 표면 3화면. `new`(**안내 인덱스** — 처음 접속 시 학생/교직원 로그인 선택 카드, 폼 없음)·`student_new`(학생 로그인 폼, 학교 선택은 `schools/_picker` partial 렌더 + 학급 드롭다운)·`staff_new`(교직원 이메일·비밀번호 로그인 폼). 로그아웃은 별도 뷰 없이 `DELETE /session`.
-- `shared/` — 앱 공통 partial. `_flash`(notice/alert 를 `.state-banner`[--success/--error] 상단 고정 토스트로 통일 — `role`/`aria-live`; `layouts/application` 이 렌더)·`_empty_state`(디자인 토큰 빈 상태 카드 — dashed hairline-strong + surface-soft)·`_seasonal_banner`·`_student_nav`(학생 상단 7메뉴[내 서재·독후감·게임·도감·상점·미션·랭킹] **반응형 필 네비** — 아이콘[aria-hidden 이모지]+라벨, 데스크톱 줄바꿈/모바일 가로스크롤, 활성 탭=검은 필+`aria-current="page"`, 44px 터치, `active` 심볼 강조·`current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)
+- `shared/` — 앱 공통 partial. `_flash`(notice/alert 를 `.state-banner`[--success/--error] 상단 고정 토스트로 통일 — `role`/`aria-live`; `layouts/application` 이 렌더)·`_empty_state`(디자인 토큰 빈 상태 카드 — dashed hairline-strong + surface-soft)·`_seasonal_banner`·`_student_nav`(학생 상단 7메뉴[내 서재·독후감·게임·도감·상점·미션·랭킹] **반응형 네비** — 모바일은 현재 메뉴가 표시된 햄버거 `<details>` 아래 세로 목록, `sm` 이상은 기존 가로 줄바꿈 필 바. 아이콘[aria-hidden 이모지]+라벨, 활성 탭=검은 필+`aria-current="page"`, 44px 터치, `active` 심볼 강조·`current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)
 - `shops/` — 상점 상세 + `_shop_item` partial
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)
 - `teacher/` — 교사 화면. `dashboards`·`missions` CRUD·`prints`(상장·학급리포트·가정통신문·포트폴리오 인쇄물)·`quizzes`·`reviews`(독후감 첨삭)·`rubric_configs`·`students` + `_nav` partial

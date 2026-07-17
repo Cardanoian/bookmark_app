@@ -16,6 +16,7 @@
 - `controllers/photo_upload_controller.js` — 사진 업로드 전 Canvas 클라이언트 압축 + 미리보기(불가 시 원본 전송)
 - `controllers/report_edit_controller.js` — 고쳐쓰기(수정) 폼의 저장 버튼 dirty-check. 본문 textarea 를 원본과 비교해 **달라졌을 때만 "수정하기" 버튼 활성화**(`resubmit?` 본문-변경 재첨삭 가드와 짝). 기존 글 폼(`report.persisted?`)에만 부착하고, OCR 초안으로 textarea 가 교체돼도 기준값 유지. JS 미로딩 시 버튼은 그대로 활성(그레이스풀)
 - `controllers/school_picker_controller.js` — 학교 선택 하이브리드 피커. 시도→시군구 캐스케이딩(`/schools/gus`)과 이름검색(`/schools/search`)이 같은 학교 셀렉트를 채우며, gu 가 비거나 부정확해도 이름검색으로 항상 도달(graceful degrade). 로그인 폼(classroom 타깃 존재)이면 선택 학교의 학급을 `/schools/:id/classrooms` 로 스코프 로드
+- `controllers/student_nav_controller.js` — 학생 공용 네비의 모바일 `<details>` disclosure 보조. 메뉴 링크 선택·바깥 클릭·Escape 에서 닫고(Escape 는 summary 로 포커스 복원), `turbo:before-cache` 전에 열린 상태를 초기화한다. 열기/닫기 기본 동작은 네이티브 `<details>/<summary>`가 맡아 JS 미로딩 시에도 메뉴 접근 가능
 
 ## 패턴·규칙
 - **자동 등록**: 새 컨트롤러는 `controllers/이름_controller.js`로 추가하면 `index.js`의 eager-load가 자동 인식. 수동 등록 불필요.

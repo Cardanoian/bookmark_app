@@ -1,6 +1,6 @@
 <%# 학생 상단 네비게이션(반응형). locals: active(심볼)로 현재 탭 강조.
-    데스크톱=가로 줄바꿈 필 바 / 모바일=가로 스크롤 필 탭. 각 탭 최소 44px 터치.
-    아이콘은 장식용 이모지(aria-hidden) — 스크린리더는 라벨만 읽는다. %>
+    데스크톱=가로 줄바꿈 필 바 / 모바일=현재 메뉴 summary + 세로 disclosure.
+    아이콘은 장식용 이모지(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
   <% nav_items = [
@@ -12,8 +12,45 @@
        [ :missions, "미션",    missions_path,      "🎯" ],
        [ :rankings, "랭킹",    rankings_path,      "🏆" ]
      ] %>
-  <nav class="mb-6 sm:mb-8" aria-label="학생 메뉴">
-    <ul class="flex gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
+
+  <nav class="mb-6 sm:mb-8"
+       aria-label="학생 메뉴"
+       data-controller="student-nav"
+       data-action="click@window->student-nav#closeFromOutside keydown.esc@window->student-nav#close turbo:before-cache@document->student-nav#close">
+    <details class="group sm:hidden" data-student-nav-target="menu">
+      <summary class="flex min-h-[2.75rem] cursor-pointer list-none items-center justify-between gap-3 rounded-card border border-hairline bg-canvas px-4 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden"
+               aria-controls="student-mobile-menu"
+               data-student-nav-target="summary">
+        <span class="flex min-w-0 items-center gap-2">
+          <span aria-hidden="true" class="text-base leading-none"><%= current_item[3] %></span>
+          <span class="truncate"><%= current_item[1] %></span>
+        </span>
+        <span class="shrink-0">
+          <span aria-hidden="true" class="text-xl leading-none group-open:hidden">☰</span>
+          <span aria-hidden="true" class="hidden text-xl leading-none group-open:inline">×</span>
+          <span class="sr-only">학생 메뉴 열기 또는 닫기</span>
+        </span>
+      </summary>
+
+      <ul id="student-mobile-menu"
+          class="mt-2 space-y-1 rounded-card border border-hairline bg-canvas p-2 shadow-sm"
+          data-student-nav-layout="mobile">
+        <% nav_items.each do |key, label, path, icon| %>
+          <li>
+            <%= link_to path,
+                  aria: { current: (key == active ? "page" : nil) },
+                  data: { action: "student-nav#close" },
+                  class: "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl px-4 text-sm font-medium transition #{key == active ? "bg-primary text-white" : "text-steel hover:bg-surface hover:text-ink"}" do %>
+              <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
+              <span><%= label %></span>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </details>
+
+    <ul class="hidden gap-1.5 pb-1 sm:flex sm:flex-wrap" data-student-nav-layout="desktop">
       <% nav_items.each do |key, label, path, icon| %>
         <li class="shrink-0">
           <%= link_to path,
