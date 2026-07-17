@@ -1,14 +1,14 @@
 <%# locals: (user:, rank: nil) %>
 <%# 학급 랭킹 한 줄. Pointable 브로드캐스트에서도 재사용. %>
-<div id="<%= dom_id(user, :ranking) %>" class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+<div id="<%= dom_id(user, :ranking) %>" class="flex items-center justify-between rounded-lg border border-hairline-soft px-4 py-3">
   <div class="flex items-center gap-3">
     <% if rank %>
-      <span class="w-6 text-center text-sm font-bold text-gray-400"><%= rank %></span>
+      <span class="w-6 text-center text-sm font-bold <%= rank <= 3 ? "text-yellow-dark" : "text-muted" %>"><%= rank %></span>
     <% end %>
     <span class="text-2xl" aria-hidden="true">
       <%= user.active_monster ? monster_emoji(user.active_monster.species) : "🥚" %>
     </span>
-    <span class="text-sm font-medium text-gray-900"><%= user.name %></span>
+    <span class="text-sm font-medium text-ink"><%= user.name %></span>
   </div>
-  <span class="text-sm font-bold text-amber-600"><%= user.points %>P</span>
+  <span class="badge badge-yellow"><%= user.points %>P</span>
 </div>

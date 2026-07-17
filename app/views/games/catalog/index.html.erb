@@ -1,18 +1,21 @@
 <% content_for :title, "독서 게임 · 책갈피" %>
 
-<div class="w-full max-w-3xl mx-auto">
-  <header class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">🎮 독서 게임</h1>
-    <p class="mt-1 text-sm text-gray-500">책을 고르면 바로 게임이 만들어져요. 기다릴 필요 없어요!</p>
+<div class="page-shell page-shell-wide space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">게임</p>
+      <h1 class="page-title"><span aria-hidden="true">🎮</span> 독서 게임</h1>
+      <p class="page-subtitle">책을 고르면 바로 게임이 만들어져요. 기다릴 필요 없어요!</p>
+    </div>
   </header>
 
   <%= render "shared/student_nav", active: :games %>
 
-  <section class="mb-6 rounded-xl border border-gray-200 p-4">
-    <h2 class="text-sm font-semibold text-gray-900">즐길 수 있는 게임</h2>
+  <section class="card">
+    <h2 class="text-sm font-semibold text-ink">즐길 수 있는 게임</h2>
     <div class="mt-3 flex flex-wrap gap-2">
-      <% @games.each do |_key, meta| %>
-        <span class="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"><%= meta[:icon] %> <%= meta[:name] %></span>
+      <% @games.each do |key, meta| %>
+        <span class="badge <%= game_accent(key) %>"><span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %></span>
       <% end %>
     </div>
   </section>
@@ -20,15 +23,17 @@
   <% if @books.any? %>
     <div class="space-y-4">
       <% @books.each do |book| %>
-        <article class="rounded-xl border border-gray-200 p-4">
+        <article class="card">
           <div class="flex items-baseline justify-between">
-            <h3 class="text-base font-semibold text-gray-900"><%= book.title %></h3>
-            <% if book.author.present? %><span class="text-xs text-gray-400"><%= book.author %></span><% end %>
+            <h3 class="text-base font-semibold text-ink"><%= book.title %></h3>
+            <% if book.author.present? %><span class="text-xs text-muted"><%= book.author %></span><% end %>
           </div>
-          <div class="mt-3 flex flex-wrap gap-2">
+          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <% @games.each do |key, meta| %>
-              <%= link_to "#{meta[:icon]} #{meta[:name]}", public_send("games_#{key}_play_path", book_id: book.id),
-                    class: "rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100" %>
+              <%= link_to public_send("games_#{key}_play_path", book_id: book.id),
+                    class: "#{game_accent(key)} inline-flex items-center justify-center gap-1 rounded-lg px-3 min-h-[2.75rem] text-sm font-medium" do %>
+                <span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %>
+              <% end %>
             <% end %>
           </div>
         </article>

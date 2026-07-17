@@ -2,17 +2,21 @@
 
 <% tabs = { "class" => "우리 반", "school" => "우리 학교", "nation" => "전국", "challenge" => "챌린지", "hall" => "명예의 전당" } %>
 
-<div class="w-full max-w-2xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">랭킹</h1>
+<div class="page-shell page-shell-wide">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">랭킹</p>
+      <h1 class="page-title"><span aria-hidden="true">🏆</span> 순위표</h1>
+    </div>
   </header>
 
   <%= render "shared/student_nav", active: :rankings %>
 
-  <nav class="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+  <nav class="mb-6 flex flex-wrap gap-2" aria-label="랭킹 탭">
     <% tabs.each do |key, label| %>
       <%= link_to label, rankings_path(tab: key),
-            class: "rounded-full px-3 py-1 text-sm font-medium #{@tab == key ? "bg-amber-500 text-white" : "text-gray-500 hover:text-gray-700"}" %>
+            aria: { current: (@tab == key ? "page" : nil) },
+            class: "flex min-h-[2.75rem] items-center rounded-full px-4 text-sm font-medium transition #{@tab == key ? "bg-primary text-white" : "border border-hairline text-slate hover:bg-surface"}" %>
     <% end %>
   </nav>
 
@@ -38,18 +42,18 @@
         <% @ranking.each_with_index do |entry, index| %>
           <% rank = entry.meta[:rank] || index + 1 %>
           <% if entry.meta[:self] && rank > index + 1 %>
-            <div class="py-1 text-center text-gray-300" aria-hidden="true">⋯</div>
+            <div class="py-1 text-center text-muted" aria-hidden="true">⋯</div>
           <% end %>
-          <% row_class = entry.meta[:self] ? "border-amber-300 bg-amber-50" : "border-gray-100" %>
+          <% row_class = entry.meta[:self] ? "border-brand-blue bg-surface-featured" : "border-hairline-soft bg-canvas" %>
           <div class="flex items-center justify-between rounded-lg border px-4 py-3 <%= row_class %>">
             <div class="flex items-center gap-3">
-              <span class="w-8 text-center text-sm font-bold text-gray-400"><%= rank %></span>
-              <span class="text-sm font-medium text-gray-900">
+              <span class="w-8 text-center text-sm font-bold <%= rank <= 3 ? "text-yellow-dark" : "text-muted" %>"><%= rank %></span>
+              <span class="text-sm font-medium text-ink">
                 <%= entry.subject.respond_to?(:label) ? "#{entry.subject.school.name} #{entry.subject.label}" : entry.subject.name %>
-                <% if entry.meta[:self] %><span class="ml-1 text-xs font-normal text-amber-600">우리 학교</span><% end %>
+                <% if entry.meta[:self] %><span class="badge badge-info ml-1">우리 학교</span><% end %>
               </span>
             </div>
-            <span class="text-sm font-bold text-amber-600"><%= entry.score %>P</span>
+            <span class="text-sm font-bold text-yellow-dark"><%= entry.score %>P</span>
           </div>
         <% end %>
       </div>
@@ -59,15 +63,15 @@
 
   <% when "challenge" %>
     <% if @challenge && @ranking.any? %>
-      <p class="mb-4 text-sm font-medium text-gray-700"><%= @challenge.title %></p>
+      <p class="mb-4 text-sm font-medium text-slate"><%= @challenge.title %></p>
       <div class="space-y-2">
         <% @ranking.each_with_index do |entry, index| %>
-          <div class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+          <div class="flex items-center justify-between rounded-lg border border-hairline-soft px-4 py-3">
             <div class="flex items-center gap-3">
-              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
-              <span class="text-sm font-medium text-gray-900"><%= entry.subject.name %></span>
+              <span class="w-6 text-center text-sm font-bold <%= index < 3 ? "text-yellow-dark" : "text-muted" %>"><%= index + 1 %></span>
+              <span class="text-sm font-medium text-ink"><%= entry.subject.name %></span>
             </div>
-            <span class="text-sm font-bold text-amber-600"><%= entry.score %>회 참여</span>
+            <span class="text-sm font-bold text-yellow-dark"><%= entry.score %>회 참여</span>
           </div>
         <% end %>
       </div>
@@ -79,18 +83,19 @@
     <% if @ranking.any? %>
       <div class="space-y-2">
         <% @ranking.each_with_index do |entry, index| %>
-          <div class="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50 px-4 py-3">
+          <% row_class = index < 3 ? "border-brand-yellow bg-surface-yellow" : "border-hairline-soft bg-canvas" %>
+          <div class="flex items-center justify-between rounded-lg border px-4 py-3 <%= row_class %>">
             <div class="flex items-center gap-3">
-              <span class="w-6 text-center text-sm font-bold text-gray-400"><%= index + 1 %></span>
+              <span class="w-6 text-center text-sm font-bold <%= index < 3 ? "text-yellow-dark" : "text-muted" %>"><%= index + 1 %></span>
               <span class="text-2xl" aria-hidden="true">
                 <%= entry.subject.active_monster ? monster_emoji(entry.subject.active_monster.species) : "🥚" %>
               </span>
               <div>
-                <p class="text-sm font-medium text-gray-900"><%= entry.subject.name %></p>
-                <p class="text-xs text-gray-500">도감 <%= entry.meta[:dex] %> · 완전형 <%= entry.meta[:complete] %></p>
+                <p class="text-sm font-medium text-ink"><%= entry.subject.name %></p>
+                <p class="text-xs text-steel">도감 <%= entry.meta[:dex] %> · 완전형 <%= entry.meta[:complete] %></p>
               </div>
             </div>
-            <span class="text-sm font-bold text-amber-600">성장 <%= entry.score %></span>
+            <span class="text-sm font-bold text-yellow-dark">성장 <%= entry.score %></span>
           </div>
         <% end %>
       </div>

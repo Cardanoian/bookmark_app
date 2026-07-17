@@ -1,15 +1,15 @@
 <%# locals: (podium:) %>
-<%# Top3 포디움. %>
+<%# Top3 포디움. 1위는 .card-feature로 강조. %>
 <% medals = [ "🥇", "🥈", "🥉" ] %>
 <div class="mb-6 flex items-end justify-center gap-3">
   <% podium.each_with_index do |student, index| %>
-    <div class="rounded-xl border border-amber-100 bg-amber-50 p-4 text-center <%= "scale-105" if index.zero? %>">
+    <div class="<%= index.zero? ? "card-feature scale-105" : "card" %> text-center">
       <div class="text-2xl" aria-hidden="true"><%= medals[index] %></div>
       <div class="text-3xl" aria-hidden="true">
         <%= student.active_monster ? monster_emoji(student.active_monster.species) : "🥚" %>
       </div>
-      <p class="text-sm font-semibold text-gray-900"><%= student.name %></p>
-      <p class="text-xs font-bold text-amber-600"><%= student.points %>P</p>
+      <p class="text-sm font-semibold text-ink"><%= student.name %></p>
+      <p class="text-xs font-bold text-yellow-dark"><%= student.points %>P</p>
     </div>
   <% end %>
 </div>

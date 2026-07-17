@@ -1,18 +1,26 @@
 <% content_for :title, "어휘 낚시 · 책갈피" %>
 
-<div class="w-full max-w-2xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">🎣 어휘 낚시</h1>
-      <p class="mt-1 text-sm text-gray-500"><%= @quiz.book&.title %> · 낱말과 뜻을 바르게 이어 보세요!</p>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div class="flex items-start gap-3">
+      <span class="<%= game_accent("vocab") %> inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl" aria-hidden="true">🎣</span>
+      <div>
+        <p class="text-sm font-medium text-steel">독서 게임</p>
+        <h1 class="page-title"><span aria-hidden="true">🎣</span> 어휘 낚시</h1>
+        <p class="page-subtitle"><%= @quiz.book&.title %> · 낱말과 뜻을 바르게 이어 보세요!</p>
+      </div>
     </div>
-    <%= link_to "← 게임 고르기", games_catalog_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+    <div class="page-actions">
+      <%= link_to "← 게임 고르기", games_catalog_path, class: "text-sm text-steel hover:text-ink" %>
+    </div>
   </header>
 
   <% if flash[:notice] %>
-    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><%= flash[:notice] %></div>
+    <div class="state-banner state-banner--success"><%= flash[:notice] %></div>
   <% end %>
 
-  <%= render "games/matching_form", quiz: @quiz, game: "vocab" %>
+  <div class="card">
+    <%= render "games/matching_form", quiz: @quiz, game: "vocab" %>
+  </div>
   <%= render "games/regenerate", quiz: @quiz, game: "vocab" %>
 </div>

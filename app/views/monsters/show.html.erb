@@ -1,21 +1,28 @@
 <% content_for :title, "#{@current_species.name} · 몬스터 도감" %>
 
-<div class="w-full max-w-2xl mx-auto">
+<div class="page-shell page-shell-content space-y-6">
   <%= turbo_stream_from current_user, :active_monster %>
 
-  <header class="mb-4">
-    <%= link_to "← 도감으로", monsters_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  <header>
+    <%= link_to "← 도감으로", monsters_path, class: "text-sm text-steel hover:text-ink" %>
   </header>
 
   <% if flash[:notice] %>
-    <p class="mb-4 rounded-lg bg-green-50 px-4 py-2 text-sm text-green-700"><%= flash[:notice] %></p>
+    <div class="state-banner state-banner--success"><%= flash[:notice] %></div>
   <% elsif flash[:alert] %>
-    <p class="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700"><%= flash[:alert] %></p>
+    <div class="state-banner state-banner--error"><%= flash[:alert] %></div>
   <% end %>
 
-  <%= render "monsters/detail",
-        user_monster: @user_monster, current_species: @current_species, line: @line,
-        stats: @stats, evolvable: @evolvable, dex_no: @dex_no, foods: @foods,
-        awaiting_review_count: @awaiting_review_count,
-        celebrate: flash[:celebrate].present? %>
+  <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
+    <%= render "monsters/detail",
+          user_monster: @user_monster, current_species: @current_species, line: @line,
+          stats: @stats, evolvable: @evolvable, dex_no: @dex_no, foods: @foods,
+          awaiting_review_count: @awaiting_review_count,
+          celebrate: flash[:celebrate].present? %>
+
+    <div class="card">
+      <p class="mb-2 text-center text-xs font-medium text-steel">진화 로드맵</p>
+      <%= render "monsters/evolution_roadmap", line: @line, current: @user_monster %>
+    </div>
+  </div>
 </div>

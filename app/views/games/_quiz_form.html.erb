@@ -4,14 +4,14 @@
   <%= f.hidden_field :game, value: game %>
 
   <% quiz.quiz_questions.each_with_index do |question, index| %>
-    <fieldset class="rounded-xl border border-gray-200 p-4">
-      <legend class="px-1 text-sm font-semibold text-gray-900">
+    <fieldset class="rounded-lg border border-hairline p-4">
+      <legend class="px-1 text-sm font-semibold text-ink">
         <%= index + 1 %>. <%= question.prompt %>
       </legend>
       <div class="mt-2 space-y-2">
         <% question.choice_list.each_with_index do |choice, choice_index| %>
-          <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50">
-            <%= radio_button_tag "answers[#{question.id}]", choice_index, false, required: true, class: "text-amber-500" %>
+          <label class="flex items-center gap-2 rounded-lg border border-hairline-strong px-3 min-h-[2.75rem] text-sm text-ink has-[:checked]:border-brand-blue has-[:checked]:bg-surface-featured">
+            <%= radio_button_tag "answers[#{question.id}]", choice_index, false, required: true, class: "text-brand-blue" %>
             <%= choice %>
           </label>
         <% end %>
@@ -19,5 +19,5 @@
     </fieldset>
   <% end %>
 
-  <%= f.submit submit_label, class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white" %>
+  <%= f.submit submit_label, class: "btn btn-primary btn-block" %>
 <% end %>

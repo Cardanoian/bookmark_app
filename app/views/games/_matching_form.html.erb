@@ -6,22 +6,22 @@
 
   <% quiz.quiz_questions.each do |question| %>
     <% rights = question.match_rights %>
-    <fieldset class="rounded-xl border border-gray-200 p-4">
-      <legend class="px-1 text-sm font-semibold text-gray-900"><%= question.prompt %></legend>
+    <fieldset class="rounded-lg border border-hairline p-4">
+      <legend class="px-1 text-sm font-semibold text-ink"><%= question.prompt %></legend>
       <div class="mt-3 space-y-2">
         <% question.match_lefts.each_with_index do |left, left_index| %>
           <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 rounded-lg bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800"><%= left %></span>
-            <span class="text-gray-400">↔</span>
+            <span class="w-32 shrink-0 rounded-lg bg-teal-light px-3 py-2 text-sm font-medium text-moss-dark"><%= left %></span>
+            <span class="text-muted" aria-hidden="true">↔</span>
             <%= select_tag "answers[#{question.id}][#{left_index}]",
                   options_for_select(rights.each_with_index.map { |right, right_index| [ right, right_index ] }),
                   include_blank: "— 알맞은 뜻 고르기 —", required: true,
-                  class: "flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700" %>
+                  class: "form-select flex-1" %>
           </div>
         <% end %>
       </div>
     </fieldset>
   <% end %>
 
-  <%= f.submit "짝짓기 완성!", class: "rounded-lg bg-teal-500 px-5 py-2 text-sm font-medium text-white" %>
+  <%= f.submit "짝짓기 완성!", class: "btn btn-primary btn-block" %>
 <% end %>

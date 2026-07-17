@@ -1,77 +1,72 @@
 <%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, foods:, awaiting_review_count: 0, celebrate: false) %>
-<div id="monster_detail" class="rounded-2xl border border-gray-200 p-6">
+<div id="monster_detail" class="card">
   <div class="mb-6 text-center"
        data-controller="monster-care"
        data-monster-care-celebrate-value="<%= celebrate %>">
     <div class="text-6xl" aria-hidden="true" data-monster-care-target="sprite">
       <%= user_monster ? monster_sprite(current_species, img_class: "h-20 w-20 object-contain") : "❔" %>
     </div>
-    <p class="mt-2 text-xs text-gray-400">No.<%= format("%02d", dex_no) %></p>
-    <h1 class="text-2xl font-bold text-gray-900"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>
+    <p class="mt-2 text-xs text-muted">No.<%= format("%02d", dex_no) %></p>
+    <h1 class="text-2xl font-bold text-ink"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>
     <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium <%= element_badge_classes(current_species.element) %>">
       <%= element_label(current_species.element) %> · <%= current_species.stage %>단계
     </span>
   </div>
 
-  <div class="mb-6">
-    <p class="mb-2 text-center text-xs font-medium text-gray-500">진화 로드맵</p>
-    <%= render "monsters/evolution_roadmap", line: line, current: user_monster %>
-  </div>
-
   <% if user_monster %>
     <% condition = current_species.evolve_condition %>
     <% if condition.present? %>
-      <div class="mb-6 rounded-xl bg-gray-50 p-4">
-        <p class="mb-2 text-sm font-semibold text-gray-800">다음 진화 조건</p>
+      <div class="card-muted mb-6 p-4">
+        <p class="mb-2 text-sm font-semibold text-ink">다음 진화 조건</p>
         <ul class="space-y-1">
           <% condition.each do |key, target| %>
             <% current_value = condition_progress(stats, key, target) %>
             <% met = current_value >= target.to_i %>
             <li class="flex items-center justify-between text-sm">
-              <span class="text-gray-600"><%= condition_label(key) %></span>
-              <span class="<%= met ? "font-semibold text-green-600" : "text-gray-500" %>">
+              <span class="text-slate"><%= condition_label(key) %></span>
+              <span class="<%= met ? "font-semibold text-success-accent" : "text-steel" %>">
                 <%= current_value %> / <%= target %> <%= "✓" if met %>
               </span>
             </li>
           <% end %>
         </ul>
         <% if condition.keys.map(&:to_s).include?("reports") && awaiting_review_count.positive? %>
-          <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <p class="mt-3 state-banner text-xs">
             ✏️ AI 첨삭을 마친 독후감 <%= awaiting_review_count %>개가 선생님의 승인을 기다리고 있어요.
             선생님이 승인하면 '독후감 수' 진화 조건에 반영돼요.
           </p>
         <% end %>
       </div>
     <% else %>
-      <p class="mb-6 text-center text-sm font-medium text-amber-600">✨ 완전형에 도달했어요!</p>
+      <p class="mb-6 text-center text-sm font-medium text-yellow-dark">✨ 완전형에 도달했어요!</p>
     <% end %>
 
     <div class="mb-4 flex flex-wrap justify-center gap-2">
       <% if evolvable %>
         <%= button_to "진화하기 ✨", evolve_monster_path(dex_no), method: :post,
-              class: "rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" %>
+              class: "btn btn-yellow" %>
       <% end %>
       <% unless current_user.active_monster_id == user_monster.id %>
         <%= button_to "대표로 지정", set_active_monster_path(dex_no), method: :post,
-              class: "rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700" %>
+              class: "btn btn-secondary" %>
       <% end %>
     </div>
 
     <% if foods.present? %>
       <%= form_with url: feed_monster_path(dex_no), method: :post, class: "flex items-center justify-center gap-2" do %>
-        <select name="shop_item_id" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">
+        <select name="shop_item_id" class="form-select w-auto">
           <% foods.each do |purchase| %>
             <option value="<%= purchase.shop_item_id %>">
               <%= purchase.shop_item.icon %> <%= purchase.shop_item.name %> (<%= purchase.quantity %>개)
             </option>
           <% end %>
         </select>
-        <button type="submit" class="rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white">먹이 주기 🍪</button>
+        <button type="submit" class="btn btn-blue btn-sm">먹이 주기 🍪</button>
       <% end %>
     <% else %>
-      <p class="text-center text-xs text-gray-400">먹이가 없어요. <%= link_to "상점", shop_path, class: "text-amber-600 underline" %>에서 구매해 보세요.</p>
+      <p class="text-center text-xs text-muted">먹이가 없어요. <%= link_to "상점", shop_path, class: "text-brand-blue underline" %>에서 구매해 보세요.</p>
     <% end %>
   <% else %>
-    <p class="text-center text-sm text-gray-500">아직 발견하지 못한 몬스터예요. 독후감을 쓰고 미션에 참여하며 만나 보세요!</p>
+    <p class="text-center text-sm text-steel">아직 발견하지 못한 몬스터예요. 독후감을 쓰고 미션에 참여하며 만나 보세요!</p>
   <% end %>
 </div>

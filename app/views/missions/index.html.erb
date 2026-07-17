@@ -1,30 +1,39 @@
 <% content_for :title, "미션 · 책갈피" %>
 
-<div class="w-full max-w-2xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">학급 미션</h1>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">미션</p>
+      <h1 class="page-title"><span aria-hidden="true">🎯</span> 미션</h1>
+    </div>
   </header>
 
   <%= render "shared/student_nav", active: :missions %>
 
   <% if @missions.any? %>
-    <div class="space-y-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <% @missions.each do |mission| %>
-        <div class="rounded-xl border border-gray-200 p-4">
-          <div class="flex items-center justify-between">
+        <div class="card">
+          <div class="flex items-start justify-between gap-2">
             <div>
-              <p class="text-sm font-semibold text-gray-900"><%= mission.title %></p>
+              <p class="text-sm font-semibold text-ink"><%= mission.title %></p>
               <% if mission.book %>
-                <p class="text-xs text-gray-500"><%= mission.book.title %></p>
+                <p class="mt-1 text-xs text-muted"><%= mission.book.title %></p>
               <% end %>
             </div>
-            <div class="flex gap-2">
-              <%= link_to "상세", mission_path(mission), class: "rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700" %>
-              <% if current_user.student? %>
-                <%= button_to "참여하기", join_mission_path(mission), method: :post,
-                      class: "rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white" %>
-              <% end %>
-            </div>
+            <% if mission.end_date && mission.end_date < Date.current %>
+              <span class="badge badge-neutral">종료</span>
+            <% elsif mission.start_date && mission.start_date > Date.current %>
+              <span class="badge badge-info">예정</span>
+            <% else %>
+              <span class="badge badge-yellow">진행중</span>
+            <% end %>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <%= link_to "상세", mission_path(mission), class: "btn btn-secondary btn-sm" %>
+            <% if current_user.student? %>
+              <%= button_to "참여하기", join_mission_path(mission), method: :post, class: "btn btn-yellow btn-sm" %>
+            <% end %>
           </div>
         </div>
       <% end %>

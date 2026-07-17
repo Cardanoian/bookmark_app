@@ -98,7 +98,7 @@
 
 ### 🎨 디자인 개편 후속 (1차 묶음 완료 · 이월 작업)
 
-> **1차 묶음 완료(2026-07-17)** — `DESIGN_CHANGE_PLAN.md` 기반으로 **디자인 시스템 기반 + 대표 화면**을 개편했다(작업 트리, 미커밋). 구현: Tailwind v4 `@theme` 토큰(`DESIGN.md` 색·폰트·라운드 1:1 매핑, 기본 팔레트 유지로 기존 뷰 무회귀) · Pretendard 자체호스팅(`app/assets/fonts`, CSP `font_src :self`) · 공통 컴포넌트(`.btn*`/`.card*`/`.form-*`/`.badge*`/`.page-shell*`/`.state-banner*`/`.progress-bar`) · 유동 레이아웃(`application`·`admin` 오프캔버스 사이드바) · 학생 대시보드·로그인/가입 4화면·독후감 index/show/new/edit + partial. **Turbo Stream·Stimulus·Pundit 계약 전량 보존**, `bin/rails test` 746 runs 0 failures, architect APPROVED, deslop 완료. **비차단 정리(아래 🧹)도 2026-07-17 완료** — 이제 남은 이월은 화면군 확장(Phase 4~8)뿐이다.
+> **1차 묶음 완료(2026-07-17)** — `DESIGN_CHANGE_PLAN.md` 기반으로 **디자인 시스템 기반 + 대표 화면**을 개편했다(작업 트리, 미커밋). 구현: Tailwind v4 `@theme` 토큰(`DESIGN.md` 색·폰트·라운드 1:1 매핑, 기본 팔레트 유지로 기존 뷰 무회귀) · Pretendard 자체호스팅(`app/assets/fonts`, CSP `font_src :self`) · 공통 컴포넌트(`.btn*`/`.card*`/`.form-*`/`.badge*`/`.page-shell*`/`.state-banner*`/`.progress-bar`) · 유동 레이아웃(`application`·`admin` 오프캔버스 사이드바) · 학생 대시보드·로그인/가입 4화면·독후감 index/show/new/edit + partial. **Turbo Stream·Stimulus·Pundit 계약 전량 보존**, `bin/rails test` 746 runs 0 failures, architect APPROVED, deslop 완료. **비차단 정리(아래 🧹)도 2026-07-17 완료** · **Phase 4 게이미피케이션도 2026-07-17 완료** — 이제 남은 이월은 화면군 확장(Phase 5~8)뿐이다.
 
 #### 🧹 비차단 정리 (✅ 완료 2026-07-17 · 팀 2워커 · code-reviewer APPROVED · 746 테스트 그린)
 
@@ -111,9 +111,9 @@
 
 #### 📦 Phase 4~8 화면군 확장 (화면군 단위 별도 묶음 · 공통 컴포넌트 그대로 확장)
 
-> 각 Phase가 독립된 큰 작업이므로 **한 화면군씩** 스코프를 잡아 진행(한꺼번에 몰면 검증이 흐려짐). 학생 사용 빈도 순으로 Phase 4가 자연스러운 다음 순서.
+> 각 Phase가 독립된 큰 작업이므로 **한 화면군씩** 스코프를 잡아 진행(한꺼번에 몰면 검증이 흐려짐). **Phase 4(게이미피케이션) 완료(2026-07-17)** — 다음 권장 순서는 Phase 5(커뮤니티).
 
-- [ ] **Phase 4 · 게이미피케이션** *(권장 다음 순서)* — 게임 허브·독서게임 5종 플레이 화면·몬스터 도감/진화 로드맵·상점·미션·랭킹(Top100).
+- [x] **Phase 4 · 게이미피케이션** ✅ **완료(2026-07-17 · 팀 4워커 · code-reviewer APPROVED · 746 테스트 그린)** — 게임 허브(+신규 `GamesHelper` 게임별 액센트 색)·독서게임 5종 플레이(quiz·classic·vocab·whoami·book)·몬스터 도감(모바일 2열~데스크톱 6열 그리드·미발견 점선 잠금+🔒/sr-only)·진화 로드맵(단계형)·상점·미션(기간 기반 실상태 배지)·랭킹(Top3 포디움+Top100). **26개 뷰 + `GamesHelper` 개편**, Turbo Stream(구매→`dom_id(item,:shop)`·랭킹→`dom_id(user,:ranking)`·대표몬스터→`active_monster` 방송)·Stimulus(`dex`·`monster-care`)·폼 입력 필드명·Pundit·strict-locals 계약 **전량 byte-보존**. tailwind emit 실측·rubocop 0·raw 팔레트 0. 리뷰 지적 2건 수정 반영(미션 `진행중` 날조 배지→`start/end_date` 실판정, 포인트 노랑 텍스트 `text-brand-yellow-deep`→`text-yellow-dark` AA 대비 회귀 교정).
 - [ ] **Phase 5 · 커뮤니티** — 게시판(`topics`/`board_posts`/`forum_posts`)·좋아요·응원 UI.
 - [ ] **Phase 6 · 역할별 심화 화면** — 교사(검토·통계·학급관리)·사서(도서관)·교무관리자 대시보드/도구.
 - [ ] **Phase 7 · 관리자 콘솔 CRUD** — `/admin` 콘솔 전체 CRUD 화면(오프캔버스 사이드바 위 컨텐츠 영역).

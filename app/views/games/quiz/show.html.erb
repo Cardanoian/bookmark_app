@@ -1,18 +1,26 @@
 <% content_for :title, "독서 퀴즈 · 책갈피" %>
 
-<div class="w-full max-w-2xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">❓ 독서 퀴즈</h1>
-      <p class="mt-1 text-sm text-gray-500"><%= @quiz.title %> · 정답 한 문제당 <%= Games::QuizPlay::POINTS_PER_CORRECT %>포인트</p>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div class="flex items-start gap-3">
+      <span class="<%= game_accent("quiz") %> inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl" aria-hidden="true">❓</span>
+      <div>
+        <p class="text-sm font-medium text-steel">독서 게임</p>
+        <h1 class="page-title"><span aria-hidden="true">❓</span> 독서 퀴즈</h1>
+        <p class="page-subtitle"><%= @quiz.title %> · 정답 한 문제당 <%= Games::QuizPlay::POINTS_PER_CORRECT %>포인트</p>
+      </div>
     </div>
-    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+    <div class="page-actions">
+      <%= link_to "← 내 서재", root_path, class: "text-sm text-steel hover:text-ink" %>
+    </div>
   </header>
 
   <% if flash[:notice] %>
-    <div class="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700"><%= flash[:notice] %></div>
+    <div class="state-banner state-banner--success"><%= flash[:notice] %></div>
   <% end %>
 
-  <%= render "games/quiz_form", quiz: @quiz, game: "quiz", submit_label: "채점하기" %>
+  <div class="card">
+    <%= render "games/quiz_form", quiz: @quiz, game: "quiz", submit_label: "채점하기" %>
+  </div>
   <%= render "games/regenerate", quiz: @quiz, game: "quiz" %>
 </div>

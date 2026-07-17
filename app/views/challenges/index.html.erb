@@ -1,27 +1,29 @@
 <% content_for :title, "챌린지 · 책갈피" %>
 
-<div class="w-full max-w-2xl mx-auto">
-  <header class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">챌린지</h1>
-    <%= link_to "← 내 서재", root_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">챌린지</p>
+      <h1 class="page-title"><span aria-hidden="true">🔥</span> 챌린지</h1>
+    </div>
+    <div class="page-actions">
+      <%= link_to "← 내 서재", root_path, class: "text-sm text-steel hover:text-ink" %>
+    </div>
   </header>
 
   <% if @challenges.any? %>
-    <div class="space-y-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <% @challenges.each do |challenge| %>
-        <div class="rounded-xl border border-gray-200 p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-gray-900"><%= challenge.title %></p>
-              <p class="text-xs text-gray-500"><%= challenge.global? ? "전국" : "우리 학교" %> 챌린지</p>
-            </div>
-            <div class="flex gap-2">
-              <%= link_to "상세", challenge_path(challenge), class: "rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700" %>
-              <% if current_user.student? %>
-                <%= button_to "참여하기", join_challenge_path(challenge), method: :post,
-                      class: "rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white" %>
-              <% end %>
-            </div>
+        <div class="card">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-sm font-semibold text-ink"><%= challenge.title %></p>
+            <span class="badge badge-info"><%= challenge.global? ? "전국" : "우리 학교" %> 챌린지</span>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <%= link_to "상세", challenge_path(challenge), class: "btn btn-secondary btn-sm" %>
+            <% if current_user.student? %>
+              <%= button_to "참여하기", join_challenge_path(challenge), method: :post, class: "btn btn-yellow btn-sm" %>
+            <% end %>
           </div>
         </div>
       <% end %>
