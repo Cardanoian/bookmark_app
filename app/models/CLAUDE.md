@@ -15,11 +15,11 @@
 - `report.rb` — 독후감. RubricScorable 포함. input_mode(keyboard·wongoji·ocr)·ai_status(pending·processing·done·failed) enum, photo·drawing·audio 첨부(서버 매직바이트 재식별 검증), 5축 rubric/교사 조정 rubric 접근자, 고쳐쓰기(revision_of 자기참조)·diff 제공.
 
 ### 도서
-- `book.rb` — 도서. category(recommended·classic·searched) enum, report와 연결(`has_many :reports, dependent: :nullify`). **DB FK `reports.book_id → books` 도 `on_delete: :nullify` 로 정합화**(Phase 6 #6) — 도서 삭제 시 독후감을 남기고 참조만 끊는다(raw delete 경로 포함). `GRADE_BANDS` 상수(초등 1~2/3~4/5~6 표준 라벨) — 표시·필터 전용이며, 게임 밴드(g12·g34·g56)는 학생 학년에서 파생되므로 이 상수와 무관.
+- `book.rb` — 도서. category(recommended·classic·searched) enum, report와 연결(`has_many :reports, dependent: :nullify`). **DB FK `reports.book_id → books` 도 `on_delete: :nullify` 로 정합화**(Phase 6 #6) — 도서 삭제 시 독후감을 남기고 참조만 끊는다(raw delete 경로 포함). **`genre`(string, nullable) 컬럼**(10개 장르)은 무API `Books::GenreInference` 추론 보강 대상이며, 네이버 등록 도서는 `BookEnrichmentJob`이 공란을 채운다(고전은 여전히 category enum 의 classic). `GRADE_BANDS` 상수(초등 1~2/3~4/5~6 표준 라벨) — 표시·필터 전용이며, 게임 밴드(g12·g34·g56)는 학생 학년에서 파생되므로 이 상수와 무관.
 
 ### 반려몬스터
 - `monster_species.rb` — 도감 종 카탈로그(시드). element·rarity enum, 진화 라인(evolves_from 자기참조)×stage, `evolve_condition` JSON 규칙(허용 키 화이트리스트·JSON 검증). 도감 분모는 설계 라인 24 고정. `has_many :next_forms, dependent: :nullify` + **DB 자기참조 FK `evolves_from_id` 도 `on_delete: :nullify`**(Phase 6 #8) — 이전 폼 삭제 시 다음 폼의 참조만 끊는다. **`unlock_condition` JSON 컬럼**(자동 해금 규칙, `docs/monster_unlocks.md §5`)은 `evolve_condition`과 별개 컬럼이지만 같은 화이트리스트(`ALLOWED_CONDITION_KEYS`)·JSON 검증을 공유하며, 라인 단위 규칙이라 stage 1 폼에만 값이 있다(2·3단계는 nil).
-- `user_monster.rb` — 학생 보유/발견 개체(라인당 1행, 제자리 진화). `evolvable?`는 `ReadingStats#meets?`로 조건 평가, `evolution_cost`는 현재 단계 points 조건을 비용으로 노출, `evolve!`는 조건부 갱신으로 중복 진화를 방지.
+- `user_monster.rb` — 학생 보유/발견 개체(라인당 1행, 제자리 진화). `evolvable?`는 `ReadingStats#meets?`로 조건 평가, `evolution_cost`는 현재 단계 points 조건을 비용으로 노출, `evolve!`는 조건부 갱신으로 중복 진화를 방지. **`pending_celebration` scope**(`celebrated_at IS NULL`, 부분 인덱스 지원)로 아직 발견 연출을 안 보여 준 개체를 드레인한다(연출 모달 표시 후 `celebrated_at` 마킹으로 재노출 차단).
 
 ### 게이미피케이션
 - `badge.rb` — 뱃지 카탈로그(13종 시드). `KEYS` 상수로 조건 트리거(Badgeable concern이 소비).

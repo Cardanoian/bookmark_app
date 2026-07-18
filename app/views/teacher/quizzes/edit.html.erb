@@ -18,6 +18,13 @@
       <%= f.text_field :title, class: "form-input" %>
     </div>
 
+    <div>
+      <%= f.label :book_id, "도서(선택)", class: "form-label" %>
+      <%= render "books/autocomplete_field", form: f, book_id_field: :book_id,
+            title_field: nil, url: autocomplete_books_path, mode: "strict",
+            show_cover: false, selected_book: @quiz&.book %>
+    </div>
+
     <fieldset class="space-y-4">
       <legend class="text-sm font-semibold text-slate">문항</legend>
       <%= f.fields_for :quiz_questions do |qf| %>

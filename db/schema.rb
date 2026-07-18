@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_16_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -97,6 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_000002) do
     t.integer "category", default: 0, null: false
     t.string "cover_url"
     t.datetime "created_at", null: false
+    t.string "genre"
     t.string "grade_band"
     t.string "isbn"
     t.string "publisher"
@@ -419,6 +420,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_000002) do
 
   create_table "user_monsters", force: :cascade do |t|
     t.json "care"
+    t.datetime "celebrated_at"
     t.datetime "created_at", null: false
     t.integer "dex_no"
     t.datetime "evolved_at"
@@ -431,6 +433,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_16_000002) do
     t.index ["monster_species_id"], name: "index_user_monsters_on_monster_species_id"
     t.index ["user_id", "dex_no"], name: "index_user_monsters_on_user_id_and_dex_no", unique: true
     t.index ["user_id"], name: "index_user_monsters_on_user_id"
+    t.index ["user_id"], name: "index_user_monsters_pending_discovery", where: "celebrated_at IS NULL"
   end
 
   create_table "users", force: :cascade do |t|

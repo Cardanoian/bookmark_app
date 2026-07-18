@@ -15,6 +15,11 @@ Rails.application.routes.draw do
 
   resources :registrations, only: [ :new, :create ]
   resource :profile, only: [ :show ]
+  # 본인 비밀번호 변경(역할 무관, current_user 대상). 현재 비번 확인 후 변경.
+  get   "profile/password", to: "passwords#edit",   as: :edit_password
+  patch "profile/password", to: "passwords#update", as: :password
+  # 몬스터 발견 연출 확인(acknowledge) — 학생이 축하 모달을 본 뒤 celebrated_at 을 마킹(재노출 방지).
+  post "discoveries/acknowledge", to: "discoveries#acknowledge", as: :acknowledge_discoveries
   # 학교 선택 하이브리드 피커(가입/로그인 공개). 이름검색(search) + 시군구 캐스케이딩(gus)
   # + 로그인 종속 학급(:id/classrooms). 리터럴 경로를 :id 보다 먼저 선언한다.
   get "schools/search", to: "schools#search", as: :schools_search
@@ -31,8 +36,13 @@ Rails.application.routes.draw do
   resource :ocr, only: [ :create ], controller: "ocr"
 
   # 도서 검색·카탈로그 (P5.1/P5.2)
+  #   search    = 네이버+로컬 폴백 검색(무키 로컬 LIKE), 결과를 searched 로 캐시. 독후감 자동완성용(id 포함).
+  #   autocomplete = 로컬 카탈로그(비-searched) 전용 자동완성(외부호출 0). 퀴즈·게임 도서 선택용.
   resources :books, only: [ :index, :show ] do
-    collection { get :search }
+    collection do
+      get :search
+      get :autocomplete
+    end
   end
 
   # 단계 학습 위저드 5단계 (P5.5) — 세션 진행 저장, 완료 시 독후감 초안 연결.

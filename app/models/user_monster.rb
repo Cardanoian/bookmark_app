@@ -5,6 +5,12 @@ class UserMonster < ApplicationRecord
 
   validates :dex_no, uniqueness: { scope: :user_id }
 
+  # 아직 발견 연출을 보여 주지 않은(celebrated_at IS NULL) 개체. 부분 인덱스
+  # index_user_monsters_pending_discovery 로 조회한다. 학생이 아무 페이지나 로드하면
+  # 레이아웃이 이 스코프로 축하 모달 큐를 채우고, 연출 후 discoveries#acknowledge 가
+  # celebrated_at 을 마킹해 재노출을 막는다(영속 드레인 — flash·broadcast 유실 방지).
+  scope :pending_celebration, -> { where(celebrated_at: nil) }
+
   before_validation :set_dex_no_from_species, on: :create
 
   # 현재 폼(종). 가독성 별칭.

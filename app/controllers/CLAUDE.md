@@ -10,7 +10,7 @@
 - `dashboard_controller.rb` — 루트(`/`). 역할별 홈 화면으로 분기 렌더(학생·교사·교무·사서). 학생 내 서재에는 본인의 최근 독후감 5편을 조회하며, 총괄(superadmin)은 렌더 없이 `/admin` 콘솔로 리다이렉트.
 - `reports_controller.rb` — 독후감 CRUD + `revise`(고쳐쓰기) + `share`(우수작 공유 토글). `destroy`는 작성 학생 본인만 목록에서 실행한다. 제출 시 `AiReviewJob` 예약. index 는 페이지네이션(PER_PAGE=20). **학생 편집 경로는 고쳐쓰기 단일화**(상세 화면 제자리 '수정' 버튼 제거, `edit`/`update` 액션은 고쳐쓰기 저장에 계속 사용). **revise 는 동일 본문 재첨삭 AI 호출을 스킵**(#misc): 부모 첨삭 결과(rubric/avg/level)를 이어받아 done 으로 시작하고, 학생이 본문을 고쳐 저장하면 update 의 `resubmit?` 가드(작성자 본인+본문 변경 시에만)가 실제 재첨삭을 예약하며 안내도 "다시 첨삭 중"으로 분기. 완료는 AiReviewJob 이 상세 영역을 라이브 교체(수동 새로고침 불필요).
 - `ocr_controller.rb` — 사진 업로드 → 손글씨 OCR 초안(`create`). Gemini 키 없으면 거부. 성공 시 `OcrJob` + Turbo Stream.
-- `books_controller.rb` — 도서 카탈로그(`index`)·상세(`show`)·검색(`search`, 네이버 자동완성 JSON, 무키 시 로컬 폴백). index 는 페이지네이션(PER_PAGE=24)하고 **검색 upsert 캐시(`category: searched`)를 카탈로그에서 제외**해 무한 증가를 막는다(#2, searched 는 로컬 검색 폴백에서만 쓰임).
+- `books_controller.rb` — 도서 카탈로그(`index`)·상세(`show`)·검색(`search`, 네이버 자동완성 JSON, 무키 시 로컬 폴백)·자동완성(`autocomplete`, 로컬 카탈로그[비-searched]만 조회하는 도서 자동완성 JSON `{id,title,author,cover_url}`, 외부호출 0 — 퀴즈·게임 도서 선택용). index 는 페이지네이션(PER_PAGE=24)하고 **검색 upsert 캐시(`category: searched`)를 카탈로그에서 제외**해 무한 증가를 막는다(#2, searched 는 로컬 검색 폴백에서만 쓰임).
 - `learn_controller.rb` — 단계 학습 위저드 5단계(`index`/`advance`). 세션 진행 저장, 완료 시 독후감 초안으로 프리필.
 - `monsters_controller.rb` — 반려 몬스터 도감·상세(잠긴 카드에 해금 조건·진행도 표시) + `choose_starter`(선택 직후 나머지 라인 해금도 재평가)·`evolve`(조건의 필요 포인트를 원자 차감한 뒤 진화)·`set_active`·`feed`(먹이/진화의 돌 소비).
 - `shops_controller.rb` — 케어/진화 상점 조회(`show`). 잔액·인벤토리·카탈로그 표시(표현용).
@@ -27,6 +27,8 @@
 - `sessions_controller.rb` — **로그인 표면 2분화 + 안내 인덱스**. `new`(안내 인덱스 = 학생/교직원 선택 화면, 폼 없음)·`student_new`/`student_create`(학생, 튜플 신원 학교·학급·이름·비번, 조회는 `User.student` 한정)·`staff_new`/`staff_create`(교직원 = 교사·교무관리자·사서·총괄관리자, 이메일·비번, 조회는 학생 이외 역할 한정)·`destroy`(로그아웃 공용). 학생·교직원 인증 흐름은 공용 `attempt_login`(신원 조회 user + 스로틀 계정 키만 표면별로 다름)으로 통일된다. **브루트포스 방어(#7, fail2ban+정답-우선)**: 먼저 인증해 **정답은 항상 로그인**시키고 IP·계정 실패 카운터를 리셋한다(피해자 계정 락아웃 DoS·전산실 NAT 동시로그인 차단을 동시 해소 — 정답은 실패로 안 세므로 NAT 뒤 학급 동시 로그인이 IP 한도에 안 걸린다). **오답만** 카운트하고 한도 초과 시 추가 오답(추측)을 락아웃한다(IP 3분 10회 / 계정 10분 8회). 계정 키는 조회된 **user.id 로 정규화**(존재 시)해 "5"/"05" 등 id 문자열 변형 우회를 막는다. 카운팅은 `RateLimiter`(Solid Cache 원자 increment, `count`/`record_failure`/`reset`) 재사용 — 가변 싱글턴 없이 경쟁 상태 제거. 저장소는 테스트 주입 시임(`self.rate_limit_store`)으로만 교체. `load_form_collections`는 학교 선택 하이브리드 피커용으로 전량 School/Classroom 로드 대신 `@regions`(시도교육청 distinct)만 로드(학급은 학교 선택 시 `/schools/:id/classrooms` 로 스코프 로드, 전국 전량 로드 제거).
 - `registrations_controller.rb` — 공개 회원가입(교사 전용). 승인 게이트 없이 가입 즉시 로그인시켜(세션 부여 후 root 리다이렉트) 바로 활동하게 한다. 학급 배정까지 원자 처리. `load_form_collections`는 학교 선택 하이브리드 피커용으로 전량 School/Classroom 로드 대신 `@regions`(시도교육청 distinct)만 로드(전국 전량 로드 제거).
 - `schools_controller.rb` — 학교 선택 하이브리드 피커용 공개 3액션. `search`(q 이름검색 + region/gu 필터, 상한 100)·`gus`(시도 region → 시군구 목록)·`classrooms`(선택 학교의 학급만 스코프 조회, 로그인 폼용). 가입/로그인 폼에서 사용.
+- `passwords_controller.rb` — 본인 비밀번호 변경(`edit`/`update`, 역할무관). `update`는 `current_user.authenticate`(현재 비번 확인) 통과 시에만 새 비번으로 갱신한다. 표현·본인전용 액션이라 `skip_after_action :verify_authorized`.
+- `discoveries_controller.rb` — 몬스터 발견 연출 확인(`acknowledge`, 학생 게이트). 본인의 `pending_celebration`(미연출) user_monster 를 celebrated_at 마킹해 재노출을 막는다(연출 모달이 표시 즉시 호출, 멱등).
 
 `concerns/` 는 `monster_discovery.rb`(`MonsterDiscovery` — 활동 확정 지점[독후감 승인·토론 글·스타터 선택·게임 완료]에서 몬스터 해금을 재평가하고 flash 안내 문구를 만드는 공용 헬퍼. `application_controller.rb`가 include) 1개 파일을 둡니다(별도 CLAUDE.md 없음).
 

@@ -8,11 +8,12 @@
 
 - **학생 영역(최상위)**
   - `reports` — 독후감 CRUD + `revise`(고쳐쓰기)·`share`(공유) member 액션, `ocr`(사진 손글씨 인식) singular 리소스.
-  - `books`(index/show + `search` collection) — 도서 검색·카탈로그.
+  - `books`(index/show + `search`·`autocomplete` collection) — 도서 검색·카탈로그. `search`는 네이버+로컬폴백(응답에 로컬 `id` 포함), `autocomplete`는 로컬 카탈로그(비-searched)만 조회하는 도서 자동완성(외부호출 0, 퀴즈·게임 도서 선택용).
   - `learn`(index + `advance`) — 5단계 단계학습 위저드.
   - `namespace :games` — 독서게임 5종(Phase 3 온디맨드 + 소셜). **카탈로그** `games/catalog`(도서→게임 진입 관문) + **퀴즈 파이프라인 4종 표면의 `<표면>/play`**(book_id 온디맨드 진입; quiz·classic·vocab·whoami) + quiz 의 교사 published mcq 퀴즈 `:id` show 병행 + whoami `:id` show(=attempt 상태) 와 **`whoami/:attempt/reveal_hint`**(POST, 서버 힌트 공개) + **책 소개 대결** `book/play`(GET, 도서별 소개 목록·작성 폼)·`book/intros`(POST 작성)·`book/intros/:id/vote`(POST/DELETE 또래 1인 1표) + **`regenerate`**(POST, 다시 뽑기=콘텐츠 재생성; 무가챠 라우트 가드 준수차 `roll` 어휘 회피) + **`content_reports`**(POST, 콘텐츠 신고=무게이트 롤아웃 안전장치; system 판 `quiz_id`, 서로 다른 2명 시 자동 숨김+재생성) + 결과 기록용 `attempts#create`(퀴즈 4종). `play/…play` 라우트를 `:id` show 보다 먼저 선언해 "play" 가 id 로 오인되지 않게 한다. book 은 퀴즈 파이프라인 밖 소셜 도메인(Gemini/Quiz 미생성).
   - 커뮤니티 — `board_posts`(우수작, 중첩 `cheers`·`stickers`) + `topics`(토론방, 중첩 `forum_posts`).
-  - 게임화 — `monsters`(도감/`evolve`·`set_active`·`feed`·`choose_starter`), `shop`, `purchases`, `rankings`, `missions`·`challenges`(각 `join`).
+  - 게임화 — `monsters`(도감/`evolve`·`set_active`·`feed`·`choose_starter`), `shop`, `purchases`, `rankings`, `missions`·`challenges`(각 `join`) + `discoveries/acknowledge`(POST, `acknowledge_discoveries_path`) 몬스터 발견 연출 확인 후 celebrated_at 마킹(재노출 방지).
+  - 계정 — `profile/password`(GET passwords#edit / PATCH passwords#update, `edit_password_path`/`password_path`) 본인 비밀번호 변경(역할무관, 현재 비번 확인 후 변경).
 - **역할별 네임스페이스** (컨트롤러 `Xxx::BaseController` 가 자기 학교/권한 경계를 가드)
   - `namespace :teacher` — 담임교사. `dashboard`, 검토 큐 `reviews`(`approve`·`verify`·`batch_approve`), `students`(`reset_password`·`give_points`), `missions`·`quizzes`, `rubric_config`, 문서출력(`exports#reports_csv` + `prints` 의 표창장·가정통신문·포트폴리오·학급리포트).
   - `namespace :school_admin` — 교무관리자. `stats`, `neis`(생기부 자동요약). 자기 학교 경계.

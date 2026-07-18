@@ -30,6 +30,23 @@ class BooksController < ApplicationController
     render json: @results
   end
 
+  # 로컬 카탈로그 자동완성(외부 호출 0). 검색 캐시(searched)는 제외해 카탈로그 도서만
+  # 제안한다 — 독후감·게임 폼의 도서 연결용 공용 자동완성 계약(id 포함).
+  def autocomplete
+    authorize :book, :search?
+    term = params[:q].to_s.strip
+    return render(json: []) if term.blank?
+
+    pattern = "%#{Book.sanitize_sql_like(term)}%"
+    books = Book.where.not(category: :searched)
+                .where("title LIKE :q OR author LIKE :q", q: pattern)
+                .order(:title)
+                .limit(20)
+    render json: books.map { |book|
+      { id: book.id, title: book.title.to_s, author: book.author.to_s, cover_url: book.cover_url.to_s }
+    }
+  end
+
   private
 
   # 카탈로그에서 둘러볼 수 있는 카테고리(검색 캐시 searched 제외).

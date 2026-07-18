@@ -23,6 +23,8 @@ class Teacher::QuizzesController < Teacher::BaseController
     # 소유 학급만 배정 — 타 학급 id 주입 시 403(교차-학급 퀴즈 주입 방지, missions 패턴과 동일).
     @quiz.classroom = owned_classroom!(target_classroom)
     @quiz.scope = :classroom
+    # 폼리스 도서 검색이 넘긴 book_id 는 신뢰하지 않는다 — 카탈로그 도서(비-searched)만 연결.
+    @quiz.book_id = sanitized_book_id(quiz_params[:book_id])
 
     if @quiz.save
       generate_draft_questions(@quiz) if @quiz.book && @quiz.quiz_questions.empty?
@@ -38,7 +40,10 @@ class Teacher::QuizzesController < Teacher::BaseController
   def update
     # classroom_id 는 수정으로 변경 불가 — 소유 퀴즈를 타 학급으로 재배정하는 경로를 차단
     # (missions#update 와 동일한 방어). 학급은 생성 시점에만 소유 검증하에 정해진다.
-    if @quiz.update(quiz_params.except(:classroom_id))
+    attrs = quiz_params.except(:classroom_id)
+    # book_id 가 폼에 담겨 오면 서버 검증 — 카탈로그 도서(비-searched)만 연결, 그 외는 미연결(nil).
+    attrs[:book_id] = sanitized_book_id(attrs[:book_id]) if attrs.key?(:book_id)
+    if @quiz.update(attrs)
       redirect_to edit_teacher_quiz_path(@quiz), notice: "퀴즈를 저장했어요."
     else
       render :edit, status: :unprocessable_entity
@@ -59,7 +64,6 @@ class Teacher::QuizzesController < Teacher::BaseController
 
   def set_form_collections
     @classrooms = teacher_classrooms.order(:grade, :class_no).to_a
-    @books = Book.order(:title).to_a
   end
 
   def owns_quiz?(quiz)
@@ -70,6 +74,13 @@ class Teacher::QuizzesController < Teacher::BaseController
 
   def target_classroom
     Classroom.find_by(id: quiz_params[:classroom_id]) || teacher_classrooms.first
+  end
+
+  # 폼리스 도서 검색이 넘긴 book_id 를 서버에서 검증한다. 카탈로그 도서(비-searched)만 연결을
+  # 허용하고, 빈 값·searched 캐시·존재하지 않는 id 는 nil(연결 안 함)로 정규화한다.
+  def sanitized_book_id(raw)
+    return nil if raw.blank?
+    Book.where.not(category: :searched).where(id: raw).pick(:id)
   end
 
   # 도서 기반 초안 문항 생성(오프라인 폴백 내장). 학급 학년으로 눈높이(band) 반영. position 순으로 저장.

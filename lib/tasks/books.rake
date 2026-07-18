@@ -177,6 +177,8 @@ namespace :books do
         cover_url = row["cover_url"].to_s.strip.presence
         grade_band = row["primary_grade_band"].to_s.strip.presence
         grade_band = nil unless Book::GRADE_BANDS.include?(grade_band)
+        genre = row["genre"].to_s.strip.presence
+        genre = nil if genre == "미분류" # 미분류는 무장르로 남겨 BookEnrichmentJob 이 나중에 채우게 둔다
         category = row["project_category"].to_s.strip
         category = %w[recommended classic].include?(category) ? category : "recommended"
 
@@ -191,11 +193,12 @@ namespace :books do
           book.author = author
           book.isbn = isbn if isbn
         end
-        # publisher/cover_url/grade_band 는 TSV 값이 있을 때만 대입해 기존값을 비파괴 보존한다.
+        # publisher/cover_url/grade_band/genre 는 TSV 값이 있을 때만 대입해 기존값을 비파괴 보존한다.
         # summary 는 TSV 에 없는 컬럼이라 절대 건드리지 않는다(기존 큐레이션 요약 보존).
         book.publisher = publisher if publisher
         book.cover_url = cover_url if cover_url
         book.grade_band = grade_band if grade_band
+        book.genre = genre if genre
         book.category = category
         book.save!
 

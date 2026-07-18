@@ -3,26 +3,44 @@
 <div class="page-shell page-shell-wide space-y-6">
   <%= render "shared/student_nav", active: :games %>
 
-  <% if @books.any? %>
-    <div class="space-y-4">
-      <% @books.each do |book| %>
-        <article class="card">
-          <div class="flex items-baseline justify-between">
-            <h3 class="text-base font-semibold text-ink"><%= book.title %></h3>
-            <% if book.author.present? %><span class="text-xs text-muted"><%= book.author %></span><% end %>
-          </div>
-          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <% @games.each do |key, meta| %>
-              <%= link_to public_send("games_#{key}_play_path", book_id: book.id),
-                    class: "#{game_accent(key)} inline-flex items-center justify-center gap-1 rounded-lg px-3 min-h-[2.75rem] text-sm font-medium" do %>
-                <span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %>
-              <% end %>
-            <% end %>
-          </div>
-        </article>
+  <%# 폼리스 도서 검색(book-search) → 책 선택 시 book:selected 이벤트로 게임 칩 활성화(games-catalog). %>
+  <div data-controller="book-search games-catalog"
+       data-action="book:selected->games-catalog#bookSelected"
+       data-book-search-url-value="<%= autocomplete_books_path %>"
+       data-book-search-mode-value="strict"
+       class="space-y-5">
+    <div class="card space-y-3">
+      <div>
+        <%= label_tag :games_book_query, "먼저 읽은 책을 골라 주세요", class: "form-label" %>
+        <div class="relative">
+          <%= search_field_tag :q, nil,
+                id: "games_book_query",
+                placeholder: "책 제목이나 지은이로 검색",
+                autocomplete: "off",
+                data: {
+                  book_search_target: "input",
+                  action: "input->book-search#search"
+                },
+                class: "form-input" %>
+          <ul data-book-search-target="results"
+              class="absolute z-10 mt-1 hidden w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow"></ul>
+        </div>
+      </div>
+      <p class="text-sm text-steel" data-games-catalog-target="hint">
+        책을 고르면 아래 게임 중 하나를 시작할 수 있어요.
+      </p>
+    </div>
+
+    <%# 5종 게임 칩 — 책 선택 전에는 비활성(안내), 선택 후 book_id 로 진입 링크 활성화. %>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <% @games.each do |key, meta| %>
+        <a data-games-catalog-target="chip"
+           data-play-path="<%= public_send("games_#{key}_play_path") %>"
+           aria-disabled="true"
+           class="<%= game_accent(key) %> inline-flex items-center justify-center gap-1 rounded-lg px-3 min-h-[2.75rem] text-sm font-medium pointer-events-none opacity-50 transition">
+          <span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %>
+        </a>
       <% end %>
     </div>
-  <% else %>
-    <%= render "shared/empty_state", message: "아직 고를 수 있는 책이 없어요." %>
-  <% end %>
+  </div>
 </div>

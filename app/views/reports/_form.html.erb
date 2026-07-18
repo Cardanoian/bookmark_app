@@ -16,7 +16,16 @@
 
   <div>
     <%= f.label :book_title, "책 제목", class: "form-label" %>
-    <%= f.text_field :book_title, class: "form-input" %>
+    <%# 도서 자동완성(WS-D). 목록에서 고르면 hidden report[book_id] 가 채워지고, 안 고르면
+        표시 input(title_field: :book_title)이 report[book_title] 자유텍스트로 저장된다(fallback). %>
+    <%= render "books/autocomplete_field",
+          form: f,
+          book_id_field: :book_id,
+          title_field: :book_title,
+          url: search_books_path,
+          mode: "fallback",
+          show_cover: true,
+          selected_book: report.book %>
     <% if report.errors[:book_title].any? %>
       <p class="form-error"><%= report.errors.full_messages_for(:book_title).join(", ") %></p>
     <% end %>

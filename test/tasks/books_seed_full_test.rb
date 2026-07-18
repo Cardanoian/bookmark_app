@@ -118,4 +118,23 @@ class BooksSeedFullTest < ActiveSupport::TestCase
     end
     assert_equal 0, Book.count
   end
+
+  test "genre 열이 있으면 Book.genre 로 적재하고 미분류/공란은 무장르로 남긴다" do
+    headers = HEADERS + %w[genre]
+    file = Tempfile.new([ "books_genre", ".tsv" ])
+    CSV.open(file.path, "w", col_sep: "\t") do |csv|
+      csv << headers
+      csv << [ "장르있는책", "작가", "", "9791100000021", "recommended", "", "", "문학" ]
+      csv << [ "미분류책", "작가", "", "9791100000022", "recommended", "", "", "미분류" ]
+      csv << [ "공란장르책", "작가", "", "9791100000023", "recommended", "", "", "" ]
+    end
+
+    seed_full!(file.path)
+
+    assert_equal "문학", Book.find_by(title: "장르있는책").genre
+    assert_nil Book.find_by(title: "미분류책").genre, "미분류는 무장르로 남겨 나중에 보강한다"
+    assert_nil Book.find_by(title: "공란장르책").genre
+  ensure
+    file&.close!
+  end
 end

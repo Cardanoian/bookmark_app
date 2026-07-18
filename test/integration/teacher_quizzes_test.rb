@@ -90,5 +90,38 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
     assert_equal @classroom.id, quiz.reload.classroom_id, "classroom_id 는 수정으로 바뀌지 않는다"
   end
 
+  # WS-B 서버 검증 — 폼리스 도서 검색이 넘긴 book_id 를 신뢰하지 않는다.
+  # 카탈로그 도서(비-searched)만 연결하고, searched 캐시·무효 id 는 미연결(nil)이다.
+  test "create links a valid catalog book" do
+    login_as @teacher
+    post teacher_quizzes_path, params: { quiz: { title: "연결", book_id: @book.id } }
+    assert_equal @book.id, Quiz.order(:created_at).last.book_id
+  end
+
+  test "create does not link a searched-cache book" do
+    searched = Book.create!(title: "검색캐시", category: :searched)
+    login_as @teacher
+    post teacher_quizzes_path, params: { quiz: { title: "검색연결", book_id: searched.id } }
+    assert_nil Quiz.order(:created_at).last.book_id, "searched 캐시 도서는 퀴즈에 연결되지 않는다"
+  end
+
+  test "create does not link a nonexistent book" do
+    login_as @teacher
+    post teacher_quizzes_path, params: { quiz: { title: "유령도서", book_id: 999_999 } }
+    assert_nil Quiz.order(:created_at).last.book_id
+  end
+
+  test "update links a valid catalog book and rejects a searched one" do
+    quiz = Quiz.create!(title: "수정도서", created_by: @teacher, classroom: @classroom, scope: :classroom)
+    searched = Book.create!(title: "검색캐시2", category: :searched)
+    login_as @teacher
+
+    patch teacher_quiz_path(quiz), params: { quiz: { book_id: @book.id } }
+    assert_equal @book.id, quiz.reload.book_id
+
+    patch teacher_quiz_path(quiz), params: { quiz: { book_id: searched.id } }
+    assert_nil quiz.reload.book_id, "searched 캐시로 재지정하면 연결되지 않는다"
+  end
+
   private
 end

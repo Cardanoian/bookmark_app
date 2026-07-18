@@ -34,5 +34,12 @@
       <%= render "shared/student_header" if current_user&.student? %>
       <%= yield %>
     </main>
+
+    <%# 발견 연출 영속 드레인: 학생이면 미연출(celebrated_at IS NULL) 몬스터를 조회해
+        축하 모달 큐를 채운다. 부분 인덱스로 경량(보통 0행)이며 비학생엔 렌더하지 않는다. %>
+    <% if current_user&.student? %>
+      <% pending_monsters = current_user.user_monsters.pending_celebration.includes(:monster_species).order(:obtained_at).to_a %>
+      <%= render "shared/discovery_modal", monsters: pending_monsters if pending_monsters.any? %>
+    <% end %>
   </body>
 </html>

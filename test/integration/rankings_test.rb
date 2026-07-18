@@ -32,7 +32,8 @@ class RankingsTest < ActionDispatch::IntegrationTest
 
   test "class ranking renders each student's active monster image" do
     species = MonsterSpecies.find_by!(key: "pup_1")
-    monster = @s1.user_monsters.create!(monster_species: species)
+    # 이미 확립된 대표 몬스터(발견 연출 대상 아님) — celebrated_at 을 채워 발견 모달 드레인을 배제.
+    monster = @s1.user_monsters.create!(monster_species: species, celebrated_at: Time.current)
     @s1.update!(active_monster: monster)
     login_as @s1
 

@@ -136,7 +136,18 @@ class ReportsController < ApplicationController
   end
 
   def report_params
-    params.require(:report).permit(:book_id, :book_title, :body, :input_mode, :photo, :drawing, :audio)
+    permitted = params.require(:report).permit(:book_id, :book_title, :body, :input_mode, :photo, :drawing, :audio)
+    permitted[:book_id] = resolved_book_id(permitted[:book_id]) if permitted.key?(:book_id)
+    permitted
+  end
+
+  # 자동완성이 채운 book_id 를 검증한다(WS-D). 공백 문자열은 nil, 실존하지 않는 Book id 도 nil 로
+  # 무시해 book_title 자유텍스트 폴백으로 저장되게 한다(위조·스테일 id 로 인한 무효 참조 차단).
+  def resolved_book_id(raw)
+    id = raw.presence
+    return nil if id.nil?
+
+    Book.exists?(id) ? id : nil
   end
 
   # 제출/재제출: 재첨삭 대기 상태로 돌리고 AiReviewJob 을 예약한다.

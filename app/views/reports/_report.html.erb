@@ -1,10 +1,17 @@
 <%# 내 서재 목록·승인 실시간 갱신 대상. local: report %>
 <article id="<%= dom_id(report) %>" class="card">
   <div class="flex items-start justify-between gap-3">
-    <div class="min-w-0">
-      <%= link_to (report.book&.title.presence || report.book_title), report_path(report),
-            class: "font-semibold text-ink hover:underline" %>
-      <p class="mt-1 line-clamp-2 text-sm text-steel"><%= truncate(report.body.to_s, length: 80) %></p>
+    <div class="flex min-w-0 items-start gap-3">
+      <% if report.book&.cover_url.present? %>
+        <%= image_tag report.book.cover_url, alt: report.book.title,
+              class: "h-16 w-11 shrink-0 rounded border border-hairline-soft object-cover shadow-sm",
+              loading: "lazy" %>
+      <% end %>
+      <div class="min-w-0">
+        <%= link_to (report.book&.title.presence || report.book_title), report_path(report),
+              class: "font-semibold text-ink hover:underline" %>
+        <p class="mt-1 line-clamp-2 text-sm text-steel"><%= truncate(report.body.to_s, length: 80) %></p>
+      </div>
     </div>
     <div class="flex shrink-0 items-center gap-2">
       <%= level_badge(report.level) %>

@@ -40,6 +40,7 @@ module Books
       results = fetch_from_naver(term)
       if results
         cache(results)
+        attach_ids(results)
         results
       else
         local_matches(term)
@@ -86,6 +87,7 @@ module Books
         next if title.blank?
 
         {
+          id: nil, # 로컬 Book PK. cache 후 attach_ids 가 isbn 으로 채운다(미매칭이면 nil 유지).
           title: title,
           author: item["author"].to_s.tr("^", ",").squeeze(",").gsub(",", ", ").strip,
           publisher: item["publisher"].to_s,
@@ -101,6 +103,7 @@ module Books
       pattern = "%#{Book.sanitize_sql_like(query)}%"
       Book.where("title LIKE ?", pattern).order(:title).limit(20).map do |book|
         {
+          id: book.id,
           title: book.title.to_s,
           author: book.author.to_s,
           publisher: book.publisher.to_s,
@@ -124,13 +127,25 @@ module Books
         next if isbn.blank?
 
         book = Book.find_or_initialize_by(isbn: isbn)
+        is_new = book.new_record?
         book.title = attrs[:title] if attrs[:title].present?
         book.author = attrs[:author]
         book.publisher = attrs[:publisher]
         book.cover_url = attrs[:thumbnail]
         book.summary = attrs[:description]
-        book.category = :searched if book.new_record?
-        book.save
+        book.category = :searched if is_new
+        saved = book.save
+
+        # 신규로 캐시된 searched 도서(장르 미상)는 비동기 메타 보강(장르 등) 대상으로 예약한다.
+        BookEnrichmentJob.perform_later(book.id) if saved && is_new && book.genre.blank?
+      end
+    end
+
+    # 원격 결과에 로컬 Book PK 를 붙인다(cache upsert 후 isbn 매칭). 빈 isbn·미매칭은 nil.
+    def attach_ids(results)
+      results.each do |attrs|
+        isbn = attrs[:isbn]
+        attrs[:id] = isbn.present? ? Book.find_by(isbn: isbn)&.id : nil
       end
     end
 

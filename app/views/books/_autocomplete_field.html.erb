@@ -1,0 +1,61 @@
+<%#
+  공용 도서 자동완성 필드(book-search 컨트롤러와 짝). 독후감·게임 등 여러 폼이 재사용한다.
+
+  locals:
+    form          — 폼 빌더(필수). hidden book_id·(있으면) 표시 텍스트 필드를 이 폼에 그린다.
+    book_id_field — 선택한 Book PK 를 담을 hidden 필드 심볼(필수).
+    url           — 자동완성 조회 엔드포인트(필수). 예: autocomplete_books_path / books_search_path.
+    title_field   — 표시 텍스트를 매핑할 폼 필드 심볼(선택, 기본 nil). nil 이면 name 없는 순수
+                    검색 입력만 두고 값은 book_id(+book:selected 이벤트)로만 전달한다.
+    mode          — "fallback"(미선택 자유텍스트 허용) | "strict"(목록 선택만 유효). 기본 fallback.
+    show_cover    — 선택 도서 표지 미리보기 노출 여부(선택, 기본 false).
+    selected_book — 프리필용 Book(선택, 기본 nil). 있으면 input=title·hidden=id·표지=cover_url.
+%>
+<%
+  title_field   = local_assigns.fetch(:title_field, nil)
+  mode          = local_assigns.fetch(:mode, "fallback")
+  show_cover    = local_assigns.fetch(:show_cover, false)
+  selected_book = local_assigns.fetch(:selected_book, nil)
+
+  input_class = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+  input_data  = { book_search_target: "input", action: "input->book-search#search" }
+  hidden_data = { book_search_target: "bookId" }
+%>
+
+<div data-controller="book-search"
+     data-book-search-url-value="<%= url %>"
+     data-book-search-mode-value="<%= mode %>"
+     class="relative">
+
+  <% if show_cover %>
+    <%= tag.img(
+          src: selected_book&.cover_url.presence,
+          alt: "표지 미리보기",
+          data: { book_search_target: "cover" },
+          class: "mb-2 h-24 w-auto rounded border border-gray-200 #{'hidden' if selected_book&.cover_url.blank?}") %>
+  <% end %>
+
+  <% if title_field %>
+    <%
+      opts = { placeholder: "책 제목을 입력해 검색하세요", autocomplete: "off",
+               data: input_data, class: input_class }
+      opts[:value] = selected_book.title if selected_book
+    %>
+    <%= form.text_field title_field, opts %>
+  <% else %>
+    <%= text_field_tag :book_query, selected_book&.title,
+          name: nil,
+          placeholder: "책 제목을 입력해 검색하세요",
+          autocomplete: "off",
+          data: input_data, class: input_class %>
+  <% end %>
+
+  <%
+    hidden_opts = { data: hidden_data }
+    hidden_opts[:value] = selected_book.id if selected_book
+  %>
+  <%= form.hidden_field book_id_field, hidden_opts %>
+
+  <ul data-book-search-target="results"
+      class="absolute z-10 mt-1 hidden w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow"></ul>
+</div>

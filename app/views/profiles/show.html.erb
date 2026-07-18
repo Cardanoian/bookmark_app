@@ -68,9 +68,9 @@
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h2 id="profile-account-title" class="font-semibold text-ink">계정</h2>
-        <p class="mt-1 text-sm text-steel">공용 기기에서는 사용 후 꼭 로그아웃해 주세요.</p>
+        <p class="mt-1 text-sm text-steel">비밀번호를 바꾸거나, 공용 기기에서는 사용 후 꼭 로그아웃해 주세요.</p>
       </div>
-      <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary" %>
+      <%= link_to "비밀번호 변경", edit_password_path, class: "btn btn-secondary" %>
     </div>
   </section>
 </div>

@@ -10,7 +10,7 @@
 - `reviews_controller.rb` — 검토 큐(`index`)·수정(`update`, 5축 ±조정+코멘트)·승인(`approve`)·일괄승인(`batch_approve`)·진위확인(`verify`). 승인 시 뱃지·진화 재계산 + **몬스터 해금 재평가**(`evaluate_monster_unlocks`, flash 안내). 등급을 바꾸는 `update`도 저장 직후 동일하게 재평가한다.
 - `students_controller.rb` — 담임 학급 학생 관리(`index`/`create`/`destroy`) + `reset_password`·`give_points`(수동 포인트).
 - `missions_controller.rb` — 담임 학급 독서 미션 CRUD(제목·도서·기간). 소유 학급만 배정.
-- `quizzes_controller.rb` — 학급 퀴즈 CRUD + 도서 선택 시 `Ai::QuizDraftService` 초안 문항 생성 → 검수 후 published.
+- `quizzes_controller.rb` — 학급 퀴즈 CRUD + 도서 선택 시 `Ai::QuizDraftService` 초안 문항 생성 → 검수 후 published. **도서 선택은 전량 로드 `collection_select` 대신 공용 도서 자동완성(`books#autocomplete`)**을 쓰고, `create`/`update`는 넘어온 `book_id`가 실제 비-searched `Book`인지 서버에서 검증한다(위조·searched 캐시 주입 차단).
 - `rubric_configs_controller.rb` — 학급 루브릭 5축 가중치 설정(`edit`/`update`). 0..5 클램프, 채점에 반영.
 - `exports_controller.rb` — 독후감 사전·사후 5축 비교 원자료 CSV(`reports_csv`). gem 없이 RFC 4180 인코딩.
 - `prints_controller.rb` — 인쇄용 HTML(`layout "print"`): `award`(표창장)·`home_letter`(가정통신문)·`portfolio`(포트폴리오)·`class_report`(학급 리포트).

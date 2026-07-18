@@ -14,12 +14,15 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
   end
 
   # ── 카탈로그 진입 ─────────────────────────────────────────────────────
-  test "catalog lists playable games and books, linking to on-demand play" do
+  test "catalog offers a book search and links each game to on-demand play" do
     get games_catalog_path
     assert_response :success
     assert_includes response.body, "독서 퀴즈"
     assert_includes response.body, "어휘 낚시"
-    assert_select "a[href=?]", games_whoami_play_path(book_id: @book.id)
+    # WS-C 재구성: 책 전량 나열 대신 도서 검색(book-search) → 선택 시 JS 가 book_id 를 붙여 진입.
+    # 서버는 게임 칩에 book_id 없는 play 경로만 싣는다(data-play-path).
+    assert_select "[data-book-search-target=?]", "input"
+    assert_select "a[data-games-catalog-target='chip'][data-play-path=?]", games_whoami_play_path
   end
 
   # ── 퀴즈 파이프라인 4종 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────

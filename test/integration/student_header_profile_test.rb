@@ -33,7 +33,9 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", text: /헤더학생님의 독서 기록/
     assert_select "[aria-labelledby='profile-activity-title']", text: /작성한 독후감/
-    assert_select "[aria-labelledby='profile-account-title'] form[action='#{session_path}']"
+    # 계정 섹션은 비밀번호 변경 진입, 로그아웃은 공통 헤더로 이동했다(WS-G).
+    assert_select "[aria-labelledby='profile-account-title'] a[href='#{edit_password_path}']", text: /비밀번호 변경/
+    assert_select "header[aria-label='학생 공통 헤더'] form[action='#{session_path}']", text: /로그아웃/
     assert_select "a[aria-current='page'][href='#{profile_path}']", text: /마이페이지/
   end
 

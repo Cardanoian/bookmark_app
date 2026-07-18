@@ -3,11 +3,18 @@
 <% has_feedback = report.ai_status == "done" && report.rubric.present? %>
 <div id="<%= dom_id(report, :detail) %>" class="space-y-6">
   <header class="page-header">
-    <div class="min-w-0">
-      <h1 class="page-title">
-        <%= report.book&.title.presence || report.book_title %>
-      </h1>
-      <p class="page-subtitle"><%= report.user.name %> · <%= report.created_at.strftime("%Y-%m-%d") %></p>
+    <div class="flex min-w-0 items-start gap-3">
+      <% if report.book&.cover_url.present? %>
+        <%= image_tag report.book.cover_url, alt: report.book.title,
+              class: "h-20 w-14 shrink-0 rounded-md border border-hairline-soft object-cover shadow-sm",
+              loading: "lazy" %>
+      <% end %>
+      <div class="min-w-0">
+        <h1 class="page-title">
+          <%= report.book&.title.presence || report.book_title %>
+        </h1>
+        <p class="page-subtitle"><%= report.user.name %> · <%= report.created_at.strftime("%Y-%m-%d") %></p>
+      </div>
     </div>
     <div class="page-actions">
       <%= level_badge(report.level) %>
