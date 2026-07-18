@@ -73,5 +73,12 @@
         </div>
       </section>
     </div>
+
+    <%# 인근 도서관 대출 가능 표시 — 첫 렌더를 막지 않게 Turbo Frame lazy-load(§5.5). %>
+    <%= turbo_frame_tag "nearby_libraries",
+          src: nearby_libraries_reading_activity_path(book_id: @book.id),
+          loading: :lazy do %>
+      <section class="card"><p class="text-sm text-steel">인근 도서관을 찾는 중…</p></section>
+    <% end %>
   <% end %>
 </div>

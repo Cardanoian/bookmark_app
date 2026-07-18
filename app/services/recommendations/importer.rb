@@ -19,40 +19,53 @@ module Recommendations
 
       reader = XlsxReader.new(@path)
       entries = reader.read
+      missing_isbn_count = entries.count { |entry| entry.isbn.blank? }
+      if missing_isbn_count.positive?
+        raise Error, "ISBN이 없는 추천도서 #{missing_isbn_count}권은 등록할 수 없습니다."
+      end
+      invalid_isbn_count = entries.count { |entry| Books::Isbn.normalize(entry.isbn).nil? }
+      if invalid_isbn_count.positive?
+        raise Error, "유효하지 않은 ISBN 추천도서 #{invalid_isbn_count}권은 등록할 수 없습니다."
+      end
       digest = Digest::SHA256.file(@path).hexdigest
 
-      RecommendationImport.transaction do
+      result = RecommendationImport.transaction do
         if (existing = RecommendationImport.find_by(file_digest: digest))
           activate!(existing)
-          return Result.new(recommendation_import: existing, reused: true)
-        end
-
-        recommendation_import = RecommendationImport.create!(
-          filename: @filename,
-          file_digest: digest,
-          source_title: reader.source_title,
-          imported_by: imported_by,
-          imported_at: Time.current
-        )
-
-        seen_book_ids = Set.new
-        entries.each do |entry|
-          book = upsert_book!(entry)
-          next unless seen_book_ids.add?(book.id)
-
-          recommendation_import.book_recommendations.create!(
-            book: book,
-            issue: entry.issue,
-            section: entry.section,
-            published_on: entry.published_on,
-            position: seen_book_ids.size
+          Result.new(recommendation_import: existing, reused: true)
+        else
+          recommendation_import = RecommendationImport.create!(
+            filename: @filename,
+            file_digest: digest,
+            source_title: reader.source_title,
+            imported_by: imported_by,
+            imported_at: Time.current
           )
-        end
 
-        recommendation_import.update!(item_count: seen_book_ids.size)
-        activate!(recommendation_import)
-        Result.new(recommendation_import: recommendation_import, reused: false)
+          seen_book_ids = Set.new
+          entries.each do |entry|
+            book = upsert_book!(entry)
+            next unless seen_book_ids.add?(book.id)
+
+            recommendation_import.book_recommendations.create!(
+              book: book,
+              issue: entry.issue,
+              section: entry.section,
+              published_on: entry.published_on,
+              position: seen_book_ids.size
+            )
+          end
+
+          recommendation_import.update!(item_count: seen_book_ids.size)
+          activate!(recommendation_import)
+          Result.new(recommendation_import: recommendation_import, reused: false)
+        end
       end
+
+      # 업로드 응답을 네이버 왕복으로 지연시키지 않는다. 동일 파일 재업로드 때도 다시
+      # enqueue하여 이전 무키/일시 실패로 남은 표지를 자연스럽게 재시도한다(잡은 멱등).
+      RecommendationCoverEnrichmentJob.perform_later(result.recommendation_import.id)
+      result
     rescue XlsxReader::Error => error
       raise Error, error.message
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error
@@ -67,11 +80,7 @@ module Recommendations
     end
 
     def upsert_book!(entry)
-      book = if entry.isbn.present?
-        Book.find_or_initialize_by(isbn: entry.isbn)
-      else
-        Book.find_or_initialize_by(title: entry.title, author: entry.author)
-      end
+      book = Book.find_or_initialize_by(isbn: Books::Isbn.normalize(entry.isbn))
 
       book.assign_attributes(
         title: entry.title,

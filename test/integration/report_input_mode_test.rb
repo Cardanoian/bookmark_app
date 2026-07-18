@@ -110,7 +110,7 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     # 원격 책: book_id 없음 + remote_isbn + book_title → title_value fallback 으로 제목 프리필.
     with_gemini_available do
       get new_report_path(input_mode: :ocr,
-        report: { book_title: "원격으로 고른 책", remote_isbn: "9791234567890" })
+        report: { book_title: "원격으로 고른 책", remote_isbn: "9791234567896" })
     end
     assert_response :success
     assert_select "input[name='ocr[book_title]'][value=?]", "원격으로 고른 책", 1

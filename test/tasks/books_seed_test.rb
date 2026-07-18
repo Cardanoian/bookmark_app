@@ -1,51 +1,61 @@
 require "test_helper"
 require "rake"
+require "tempfile"
+require "csv"
 
-# books:seed 검증(계획 §3·§5). 밴드별 큐레이션 카탈로그가 표준 밴드 라벨로 멱등 적재되는지 확인.
 class BooksSeedTest < ActiveSupport::TestCase
+  HEADERS = %w[title author publisher isbn13 project_category cover_url primary_grade_band].freeze
+
   setup do
     Rails.application.load_tasks unless Rake::Task.task_defined?("books:seed")
-  end
-
-  def run_seed!
-    Rake::Task["books:seed"].reenable
-    capture_io { Rake::Task["books:seed"].invoke }
-  end
-
-  test "seeds a graded catalog across all three standard bands" do
-    run_seed!
-
-    Book::GRADE_BANDS.each do |band|
-      assert_operator Book.where(grade_band: band).count, :>, 0, "#{band} 밴드 도서가 있어야 한다"
+    @tsv = Tempfile.new([ "books_seed", ".tsv" ])
+    CSV.open(@tsv.path, "w", col_sep: "\t") do |csv|
+      csv << HEADERS
+      Book::GRADE_BANDS.each_with_index do |band, index|
+        csv << [ "밴드책#{index}", "작가", "출판사", TestBookIsbn.next,
+                 index == 2 ? "classic" : "recommended", "", band ]
+      end
     end
   end
 
-  test "every catalog book uses a standard grade band label" do
-    run_seed!
-
-    Book.where(category: [ :recommended, :classic ]).find_each do |book|
-      assert_includes Book::GRADE_BANDS, book.grade_band, "#{book.title} 의 grade_band 는 표준 라벨이어야 한다"
-    end
+  teardown do
+    @tsv&.close!
   end
 
-  test "seeds both recommended and classic categories" do
+  test "ISBN이 있는 전량 TSV를 유일한 카탈로그 소스로 적재한다" do
     run_seed!
 
-    assert_operator Book.recommended.count, :>, 0
-    assert_operator Book.classic.count, :>, 0
+    assert_equal Book::GRADE_BANDS.sort, Book.order(:grade_band).pluck(:grade_band).sort
+    assert_equal 2, Book.recommended.count
+    assert_equal 1, Book.classic.count
   end
 
-  test "meaningfully expands the catalog beyond the previous single-band 34" do
-    run_seed!
-
-    assert_operator Book.count, :>, 34, "다밴드 확장으로 이전 34권보다 늘어야 한다"
-  end
-
-  test "seeding is idempotent (find_or_initialize by title+author)" do
+  test "재실행해도 ISBN 기준으로 중복 등록하지 않는다" do
     run_seed!
     count = Book.count
+
     run_seed!
 
-    assert_equal count, Book.count, "재실행해도 중복되지 않는다"
+    assert_equal count, Book.count
+  end
+
+  test "TSV가 없으면 제목만 있는 축소 카탈로그를 만들지 않는다" do
+    missing = "/tmp/does-not-exist-#{SecureRandom.hex(4)}.tsv"
+
+    out, = run_seed!(missing)
+
+    assert_match(/skipped/, out)
+    assert_equal 0, Book.count
+  end
+
+  private
+
+  def run_seed!(path = @tsv.path)
+    ENV["BOOKS_TSV"] = path
+    Rake::Task["books:seed"].reenable
+    Rake::Task["books:seed_full"].reenable
+    capture_io { Rake::Task["books:seed"].invoke }
+  ensure
+    ENV.delete("BOOKS_TSV")
   end
 end

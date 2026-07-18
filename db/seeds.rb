@@ -151,10 +151,9 @@ end
 Rake::Task["monsters:seed"].invoke
 Rake::Task["badges:seed"].invoke
 
-# Book catalog. 전량 TSV가 있으면 오프라인 전체 카탈로그를 적재하고, 파일이 없는
-# 체크아웃에서만 코드 내 축소 큐레이션으로 폴백한다.
-books_tsv = Rails.root.join("db/seeds/elementary_books.tsv")
-Rake::Task[File.exist?(books_tsv) ? "books:seed_full" : "books:seed"].invoke
+# Book catalog. ISBN이 검증된 전량 TSV만 정본으로 적재한다. 파일이 없으면 seed_full이
+# 안내 후 no-op 하며, ISBN 없는 제목-only 축소 카탈로그로 폴백하지 않는다.
+Rake::Task["books:seed_full"].invoke
 
 # 최초 설치의 공식 추천도서. 이후에는 총괄관리자가 /admin/recommendation_imports 에서 올린
 # 최신 파일이 단일 진실이므로, 업로드 이력이 전혀 없는 DB 에서만 번들 XLSX 를 초기 적재한다.

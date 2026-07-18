@@ -34,7 +34,7 @@ class BooksControllerTest < ActionDispatch::IntegrationTest
         [ 200, {}, {
           "items" => [ {
             "title" => "원격성공책", "author" => "저자", "publisher" => "출판",
-            "image" => "http://img/ok", "isbn" => "9783030303030", "description" => "설명"
+            "image" => "http://img/ok", "isbn" => "9783030303037", "description" => "설명"
           } ]
         }.to_json ]
       end
@@ -57,7 +57,7 @@ class BooksControllerTest < ActionDispatch::IntegrationTest
       body = response.parsed_body
       assert_equal 1, body.size
       assert_equal "원격성공책", body.first["title"]
-      assert Rails.cache.read("book_meta:9783030303030"), "성공 시 서버 메타가 book_meta 캐시에 적재돼야 한다"
+      assert Rails.cache.read("book_meta:9783030303037"), "성공 시 서버 메타가 book_meta 캐시에 적재돼야 한다"
     ensure
       Books::SearchService.define_singleton_method(:new, original_new)
       Rails.cache = original_cache

@@ -82,8 +82,8 @@ module Books
     # 모든 실패(무키·네트워크·미일치·캐시 read 실패)는 예외 없이 nil 로 degrade 한다
     # (비차단 계약 — `@report.save` 밖 전처리에서 호출되며 save 를 막거나 롤백하지 않는다).
     def register(isbn)
-      isbn = isbn.to_s.strip
-      return nil if isbn.blank?
+      isbn = Books::Isbn.normalize(isbn)
+      return nil unless isbn
 
       existing = Book.find_by(isbn: isbn)
       return existing if existing
@@ -172,8 +172,8 @@ module Books
     # `save` 시점에 RecordNotUnique 를 낼 수 있다. 이를 rescue 해 선존 행을 재조회함으로써
     # 500 없이 단일 행으로 수렴시킨다(무키 기본 0 리스크, 키 환경 간헐·자가치유).
     def upsert(attrs)
-      isbn = attrs[:isbn]
-      return nil if isbn.blank?
+      isbn = Books::Isbn.normalize(attrs[:isbn])
+      return nil unless isbn
 
       book = Book.find_or_initialize_by(isbn: isbn)
       is_new = book.new_record?
@@ -203,7 +203,9 @@ module Books
 
     # 네이버는 "ISBN10 ISBN13" 처럼 공백 구분 문자열을 주기도 한다. 긴 쪽(ISBN13) 우선.
     def pick_isbn(raw)
-      raw.to_s.split.max_by(&:length).to_s
+      raw.to_s.split.sort_by { |candidate| -candidate.length }.filter_map do |candidate|
+        Books::Isbn.normalize(candidate)
+      end.first
     end
 
     def parse(body)

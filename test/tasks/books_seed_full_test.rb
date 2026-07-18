@@ -11,13 +11,18 @@ class BooksSeedFullTest < ActiveSupport::TestCase
 
   setup do
     Rails.application.load_tasks unless Rake::Task.task_defined?("books:seed_full")
+    @isbn1 = TestBookIsbn.next
+    @isbn2 = TestBookIsbn.next
+    @isbn3 = TestBookIsbn.next
     @tsv = write_tsv([
-      { title: "테스트책1", author: "홍길동", publisher: "테스트출판사", isbn13: "9791100000001",
+      { title: "테스트책1", author: "홍길동", publisher: "테스트출판사", isbn13: @isbn1,
         project_category: "recommended", cover_url: "https://example.com/1.jpg", primary_grade_band: "초등 1~2" },
-      { title: "테스트책2", author: "김철수", publisher: "", isbn13: "",
+      { title: "테스트책2", author: "김철수", publisher: "", isbn13: @isbn2,
         project_category: "classic", cover_url: "", primary_grade_band: "" },
-      { title: "테스트책3", author: "이영희", publisher: "미분류출판", isbn13: "9791100000003",
-        project_category: "unknown_category", cover_url: "", primary_grade_band: "검토필요" }
+      { title: "테스트책3", author: "이영희", publisher: "미분류출판", isbn13: @isbn3,
+        project_category: "unknown_category", cover_url: "", primary_grade_band: "검토필요" },
+      { title: "ISBN없는책", author: "누락", publisher: "", isbn13: "",
+        project_category: "recommended", cover_url: "", primary_grade_band: "" }
     ])
   end
 
@@ -42,15 +47,30 @@ class BooksSeedFullTest < ActiveSupport::TestCase
     ENV.delete("BOOKS_TSV")
   end
 
-  test "공란 컬럼은 nil 로 정규화되고 title 만 있으면 적재된다" do
+  test "선택 컬럼의 공란은 nil 로 정규화된다" do
     seed_full!
 
     book = Book.find_by(title: "테스트책2")
     assert_not_nil book
     assert_nil book.publisher
-    assert_nil book.isbn
     assert_nil book.cover_url
     assert_nil book.grade_band
+  end
+
+  test "ISBN이 공란이거나 유효하지 않은 행은 등록하지 않는다" do
+    invalid_tsv = write_tsv([
+      { title: "ISBN없는책", author: "누락", isbn13: "", project_category: "recommended" },
+      { title: "ISBN오류책", author: "오류", isbn13: "9791100000000", project_category: "recommended" }
+    ])
+
+    out, = seed_full!(invalid_tsv.path)
+
+    assert_nil Book.find_by(title: "ISBN없는책")
+    assert_nil Book.find_by(title: "ISBN오류책")
+    assert_match(/Skipped 1 rows without ISBN/, out)
+    assert_match(/Skipped 1 rows with invalid ISBN/, out)
+  ensure
+    invalid_tsv&.close!
   end
 
   test "project_category 를 recommended/classic 으로 매핑하고 미지 값은 recommended 로 폴백한다" do
@@ -77,10 +97,12 @@ class BooksSeedFullTest < ActiveSupport::TestCase
   end
 
   test "같은 title 이라도 isbn 이 다르면 별개 도서로 각각 보존된다" do
+    first_isbn = TestBookIsbn.next
+    second_isbn = TestBookIsbn.next
     tsv = write_tsv([
-      { title: "같은제목", author: "작가A", publisher: "", isbn13: "9791100000011",
+      { title: "같은제목", author: "작가A", publisher: "", isbn13: first_isbn,
         project_category: "recommended", cover_url: "", primary_grade_band: "" },
-      { title: "같은제목", author: "작가A", publisher: "", isbn13: "9791100000012",
+      { title: "같은제목", author: "작가A", publisher: "", isbn13: second_isbn,
         project_category: "recommended", cover_url: "", primary_grade_band: "" }
     ])
 
@@ -92,12 +114,12 @@ class BooksSeedFullTest < ActiveSupport::TestCase
   end
 
   test "기존 큐레이션 summary 는 건드리지 않는다" do
-    Book.create!(title: "테스트책1", author: "홍길동", isbn: "9791100000001",
+    Book.create!(title: "테스트책1", author: "홍길동", isbn: @isbn1,
                  summary: "손수 쓴 요약", category: :recommended)
 
     seed_full!
 
-    assert_equal "손수 쓴 요약", Book.find_by(isbn: "9791100000001").summary
+    assert_equal "손수 쓴 요약", Book.find_by(isbn: @isbn1).summary
   end
 
   test "searched 캐시 행이 같은 isbn 의 카탈로그 시드로 제자리 승격되어 독후감 링크를 보존한다" do
@@ -105,7 +127,7 @@ class BooksSeedFullTest < ActiveSupport::TestCase
     # 공존할 수 없다 → seed_full 은 별도 행을 새로 만들지 않고 선존 :searched 행을 제자리에서
     # 큐레이션(recommended)으로 승격한다. reports.book_id(on_delete: nullify)가 그 행을 참조 중이면
     # 삭제(비채택 옵션)는 링크를 끊으므로, 승격이 단일 행 수렴 + 링크 보존을 만족하는지 검증한다.
-    searched = Book.create!(title: "검색캐시책", isbn: "9791100000001", category: :searched)
+    searched = Book.create!(title: "검색캐시책", isbn: @isbn1, category: :searched)
 
     school = School.create!(name: "승격학교")
     classroom = Classroom.create!(school: school, grade: 5, class_no: 1)
@@ -114,8 +136,8 @@ class BooksSeedFullTest < ActiveSupport::TestCase
 
     seed_full!
 
-    assert_equal 1, Book.where(isbn: "9791100000001").count, "동일 isbn 은 단일 행으로 수렴한다(별도 행 미생성)"
-    promoted = Book.find_by(isbn: "9791100000001")
+    assert_equal 1, Book.where(isbn: @isbn1).count, "동일 isbn 은 단일 행으로 수렴한다(별도 행 미생성)"
+    promoted = Book.find_by(isbn: @isbn1)
     assert_equal searched.id, promoted.id, "새 행이 아니라 기존 :searched 행을 제자리 승격한다"
     assert_equal "recommended", promoted.category, ":searched → 카탈로그(recommended)로 승격된다"
 
@@ -136,9 +158,9 @@ class BooksSeedFullTest < ActiveSupport::TestCase
     file = Tempfile.new([ "books_genre", ".tsv" ])
     CSV.open(file.path, "w", col_sep: "\t") do |csv|
       csv << headers
-      csv << [ "장르있는책", "작가", "", "9791100000021", "recommended", "", "", "문학" ]
-      csv << [ "미분류책", "작가", "", "9791100000022", "recommended", "", "", "미분류" ]
-      csv << [ "공란장르책", "작가", "", "9791100000023", "recommended", "", "", "" ]
+      csv << [ "장르있는책", "작가", "", TestBookIsbn.next, "recommended", "", "", "문학" ]
+      csv << [ "미분류책", "작가", "", TestBookIsbn.next, "recommended", "", "", "미분류" ]
+      csv << [ "공란장르책", "작가", "", TestBookIsbn.next, "recommended", "", "", "" ]
     end
 
     seed_full!(file.path)

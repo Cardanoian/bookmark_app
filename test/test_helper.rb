@@ -25,6 +25,20 @@ end
 # deterministic.
 ActionCable::Server::Base
 
+# ISBN이 필수인 Book 테스트 데이터의 기본값. 개별 테스트가 ISBN 동작을 검증할 때는 명시값이
+# 이 기본값을 덮어쓴다. 프로세스별 순번 + 유효 체크디지트라 병렬 테스트 DB에서도 유일하다.
+module TestBookIsbn
+  @sequence = 0
+
+  def self.next
+    @sequence += 1
+    base = "979#{@sequence.to_s.rjust(9, "0")}" # ISBN-13의 앞 12자리
+    "#{base}#{Books::Isbn.isbn13_check_digit(base)}"
+  end
+end
+
+Book.attribute :isbn, :string, default: -> { TestBookIsbn.next }
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
@@ -49,6 +63,23 @@ module ActiveSupport
       Badge::KEYS.each do |key|
         Badge.find_or_create_by!(key: key) { |badge| badge.name = key }
       end
+    end
+
+    # ISBN 필수 DB 제약 도입 전 레거시 중복 정리기의 회귀 테스트 전용. CHECK만 잠시 무시하고
+    # 모델 콜백/검증을 우회해 과거 형식(하이픈·공란) 행을 재현한다. NOT NULL은 그대로 유지한다.
+    def create_legacy_book!(title:, isbn:, category: :recommended, **attributes)
+      connection = Book.connection
+      connection.execute("PRAGMA ignore_check_constraints = ON")
+      result = Book.insert_all!([ {
+        title: title,
+        isbn: isbn,
+        category: Book.categories.fetch(category.to_s),
+        created_at: Time.current,
+        updated_at: Time.current
+      }.merge(attributes) ], returning: %w[id])
+      Book.find(result.rows.first.first)
+    ensure
+      connection&.execute("PRAGMA ignore_check_constraints = OFF")
     end
 
     # 역할별 로그인 헬퍼(통합 테스트 공용). 로그인 표면이 둘로 나뉘었다(sessions_controller):

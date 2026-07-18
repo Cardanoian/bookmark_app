@@ -8,7 +8,7 @@ class AdminRecommendationImportsTest < ActionDispatch::IntegrationTest
 
   test "superadmin uploads XLSX and sees active recommendation list" do
     file = build_recommendation_xlsx([
-      { section: "어린이문학", title: "관리 추천책", author: "추천 작가", publisher: "추천사", isbn: "9787777777777" }
+      { section: "어린이문학", title: "관리 추천책", author: "추천 작가", publisher: "추천사", isbn: "9787777777779" }
     ])
 
     assert_difference -> { RecommendationImport.count }, 1 do

@@ -48,7 +48,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   test "remote_isbn 으로 원격 책을 등록해 draft.book_id 에 링크하고 OcrJob 을 예약한다" do
     login_as @student
 
-    isbn = "9791111111111"
+    isbn = "9791111111112"
     with_gemini_available do
       with_memory_cache do
         Rails.cache.write("book_meta:#{isbn}", {
@@ -77,7 +77,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
     with_gemini_available do
       assert_no_difference "Book.count" do
         assert_enqueued_with(job: OcrJob) do
-          post ocr_path, params: { ocr: { remote_isbn: "9780000000000", book_title: "무키 폴백책", photo: uploaded_photo } }
+          post ocr_path, params: { ocr: { remote_isbn: "9780000000002", book_title: "무키 폴백책", photo: uploaded_photo } }
         end
       end
     end
@@ -96,7 +96,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
       assert_no_difference("Report.count") do
         assert_no_difference("Book.count") do
           assert_no_enqueued_jobs(only: OcrJob) do
-            post ocr_path, params: { ocr: { remote_isbn: "9780000000000", book_title: "", photo: uploaded_photo } }
+            post ocr_path, params: { ocr: { remote_isbn: "9780000000002", book_title: "", photo: uploaded_photo } }
           end
         end
       end

@@ -12,6 +12,14 @@ class ReadingActivitiesController < ApplicationController
     @active_missions = StudentHomeQuery.new(Current.user).active_missions
   end
 
+  # 인근 도서관 대출 가능 섹션(Turbo Frame lazy-load 전용). resolve_book 실패 시엔 서비스를
+  # 인스턴스화하지 않고 빈 프레임만 렌더한다(방어). Current.school 은 nil 가능 → 서비스가 가드.
+  def nearby_libraries
+    book = resolve_book(params[:book_id])
+    @nearby = book && Library::NearbyAvailability.new(book: book, school: Current.school).call
+    render partial: "reading_activities/nearby_libraries", locals: { nearby: @nearby }
+  end
+
   private
 
   # 등록 도서(비-searched)만 허용. 없거나 searched·미존재면 nil → 책 선택 상태로 되돌린다(§4.2).

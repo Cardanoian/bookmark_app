@@ -41,7 +41,7 @@ class BooksCatalogTest < ActionDispatch::IntegrationTest
 
   # #2: 검색 upsert 캐시(category: searched)는 카탈로그 목록에 노출되지 않는다(무한 증가 방어).
   test "searched-category rows are excluded from the catalog index" do
-    Book.create!(title: "검색캐시책", author: "네이버", category: :searched, isbn: "9788900000001")
+    Book.create!(title: "검색캐시책", author: "네이버", category: :searched, isbn: "9788900000009")
     login_as @student
 
     get books_path

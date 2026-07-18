@@ -48,6 +48,24 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_operator popular_index, :<, discovery_index
   end
 
+  test "이 책은 어때요는 다른 책 보기로 다음 묶음을 순환한다" do
+    12.times do |index|
+      Book.create!(title: "발견책#{format('%02d', index)}", author: "발견작가", category: :recommended)
+    end
+
+    get root_path(discovery: 0)
+    assert_response :success
+    first_books = css_select("#book-discovery a[href*='book_id=']").map { |node| node["href"] }
+    assert_equal 6, first_books.size
+    assert_select "#book-discovery a", text: /다른 책 보기/
+
+    get root_path(discovery: 1)
+    assert_response :success
+    next_books = css_select("#book-discovery a[href*='book_id=']").map { |node| node["href"] }
+    assert_equal 6, next_books.size
+    assert_not_equal first_books, next_books
+  end
+
   test "홈은 진행 중 미션 카드를 표시한다" do
     mission = Mission.new(classroom: @classroom, title: "홈미션", reward_points: 20,
                           start_date: Date.current - 1, end_date: Date.current + 5)

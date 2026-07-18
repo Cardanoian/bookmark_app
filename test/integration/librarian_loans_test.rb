@@ -44,7 +44,7 @@ class LibrarianLoansTest < ActionDispatch::IntegrationTest
   end
 
   test "sync_data4library with an available client upserts national loans" do
-    swap_service(StubData4library.new([ { book_title: "정보나루책", isbn: "9781111111111", count: 555 } ])) do
+    swap_service(StubData4library.new([ { book_title: "정보나루책", isbn: "9781111111113", count: 555 } ])) do
       login_as @librarian
       assert_difference -> { LibraryLoan.where(source: :data4library).count }, 1 do
         post sync_data4library_librarian_loans_path

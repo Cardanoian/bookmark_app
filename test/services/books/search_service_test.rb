@@ -26,7 +26,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
         [ 200, {}, {
           "items" => [ {
             "title" => "네이버책", "author" => "박작가^김작가", "publisher" => "네이버출판",
-            "image" => "http://img/naver", "isbn" => "2222222222 9782222222222", "description" => "네이버 설명"
+            "image" => "http://img/naver", "isbn" => "2222222222 9782222222224", "description" => "네이버 설명"
           } ]
         }.to_json ]
       end
@@ -38,9 +38,9 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
     assert_equal 1, results.size
     assert_equal "네이버책", results.first[:title]
     assert_equal "박작가, 김작가", results.first[:author]
-    assert_equal "9782222222222", results.first[:isbn], "공백 구분 ISBN 은 긴 쪽(ISBN13)을 고른다"
+    assert_equal "9782222222224", results.first[:isbn], "공백 구분 ISBN 은 긴 쪽(ISBN13)을 고른다"
 
-    cached = Book.searched.find_by(isbn: "9782222222222")
+    cached = Book.searched.find_by(isbn: "9782222222224")
     assert cached, "네이버 결과는 searched 도서로 캐시돼야 한다"
     assert_equal "네이버책", cached.title
   end
@@ -75,8 +75,8 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
       stub.get("/v1/search/book.json") do
         [ 200, {}, {
           "items" => [
-            { "title" => "", "author" => "익명", "isbn" => "9783333333333" },
-            { "title" => "정상책", "author" => "정상작가", "isbn" => "9784444444444" }
+            { "title" => "", "author" => "익명", "isbn" => "9783333333335" },
+            { "title" => "정상책", "author" => "정상작가", "isbn" => "9784444444446" }
           ]
         }.to_json ]
       end
@@ -128,7 +128,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
         [ 200, {}, {
           "items" => [
             { "title" => "원격책", "author" => "저자", "publisher" => "출판",
-              "image" => "http://img/remote", "isbn" => "9785555555555", "description" => "설명" },
+              "image" => "http://img/remote", "isbn" => "9785555555557", "description" => "설명" },
             { "title" => "무isbn책", "author" => "저자2", "isbn" => "" }
           ]
         }.to_json ]
@@ -143,7 +143,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
       end
       assert_equal 2, results.size
 
-      cached = Rails.cache.read("book_meta:9785555555555")
+      cached = Rails.cache.read("book_meta:9785555555557")
       assert cached, "isbn 있는 결과는 book_meta 캐시에 적재돼야 한다"
       assert_equal "원격책", cached[:title]
       assert_nil Rails.cache.read("book_meta:"), "isbn 공란 결과는 캐시하지 않는다"
@@ -166,28 +166,28 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
     service = Books::SearchService.new(naver_id: "", naver_secret: "")
 
     with_memory_cache do
-      Rails.cache.write("book_meta:9786666666666", {
+      Rails.cache.write("book_meta:9786666666668", {
         id: nil, title: "서버메타 제목", author: "서버저자", publisher: "출판",
-        thumbnail: "http://img/x", isbn: "9786666666666", description: "설명"
+        thumbnail: "http://img/x", isbn: "9786666666668", description: "설명"
       })
 
       book = nil
       assert_difference "Book.count", 1 do
-        book = service.register("9786666666666")
+        book = service.register("9786666666668")
       end
-      assert_equal "9786666666666", book.isbn
+      assert_equal "9786666666668", book.isbn
       assert_equal "서버메타 제목", book.title, "저장된 title 은 캐시(서버 메타)에서 온다 — 클라 payload 아님"
       assert book.searched?, "네이버 신규 등록은 category: searched"
     end
   end
 
   test "#register returns the existing book when the isbn is already in the catalog" do
-    existing = Book.create!(title: "선존책", isbn: "9787777777777", category: :recommended)
+    existing = Book.create!(title: "선존책", isbn: "9787777777779", category: :recommended)
     service = Books::SearchService.new(naver_id: "", naver_secret: "")
 
     with_memory_cache do
       assert_no_difference "Book.count" do
-        assert_equal existing.id, service.register("9787777777777").id
+        assert_equal existing.id, service.register("9787777777779").id
       end
     end
   end
@@ -198,7 +198,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
         [ 200, {}, {
           "items" => [ {
             "title" => "폴백책", "author" => "폴백저자", "publisher" => "출판",
-            "image" => "http://img/f", "isbn" => "9788888888888", "description" => "설명"
+            "image" => "http://img/f", "isbn" => "9788888888880", "description" => "설명"
           } ]
         }.to_json ]
       end
@@ -208,7 +208,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
     with_memory_cache do # 캐시 비어 있음 → 미스 → #query 폴백
       book = nil
       assert_difference "Book.count", 1 do
-        book = service.register("9788888888888")
+        book = service.register("9788888888880")
       end
       assert_equal "폴백책", book.title
       assert book.searched?
@@ -218,14 +218,14 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
   test "#register returns nil when the query result isbn does not match the request" do
     connection = stub_connection do |stub|
       stub.get("/v1/search/book.json") do
-        [ 200, {}, { "items" => [ { "title" => "다른책", "isbn" => "9789999999999" } ] }.to_json ]
+        [ 200, {}, { "items" => [ { "title" => "다른책", "isbn" => "9789999999991" } ] }.to_json ]
       end
     end
     service = Books::SearchService.new(naver_id: "N", naver_secret: "S", naver_connection: connection)
 
     with_memory_cache do
       assert_no_difference "Book.count" do
-        assert_nil service.register("9781010101010"), "요청 isbn 과 불일치하면 등록하지 않는다"
+        assert_nil service.register("9781010101017"), "요청 isbn 과 불일치하면 등록하지 않는다"
       end
     end
   end
@@ -235,7 +235,7 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
 
     with_memory_cache do
       assert_no_difference "Book.count" do
-        assert_nil service.register("9781212121212")
+        assert_nil service.register("9781212121219")
       end
     end
   end
@@ -250,14 +250,14 @@ class Books::SearchServiceTest < ActiveSupport::TestCase
   # 단일 행으로 수렴함을 검증한다(소프트 검증이 못 잡는 레이스를 DB 인덱스+rescue 가 백스톱).
   # Minitest 6 은 minitest/mock 없음 — 싱글턴 메서드를 교체·복원한다(ocr_test.rb 관례).
   test "#upsert rescues RecordNotUnique and converges to the existing row" do
-    existing = Book.create!(title: "레이스책", isbn: "9782020202020", category: :searched)
+    existing = Book.create!(title: "레이스책", isbn: "9782020202022", category: :searched)
     service = Books::SearchService.new(naver_id: "", naver_secret: "")
     attrs = {
       id: nil, title: "레이스책", author: "저자", publisher: "출판",
-      thumbnail: "http://img", isbn: "9782020202020", description: "설명"
+      thumbnail: "http://img", isbn: "9782020202022", description: "설명"
     }
 
-    racing = Book.new(isbn: "9782020202020", title: "레이스책")
+    racing = Book.new(isbn: "9782020202022", title: "레이스책")
     racing.define_singleton_method(:save) do |*|
       raise ActiveRecord::RecordNotUnique, "duplicate isbn (simulated INSERT race)"
     end

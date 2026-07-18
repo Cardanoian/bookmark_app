@@ -18,11 +18,24 @@ class AdminContentTest < ActionDispatch::IntegrationTest
 
   test "book create and update" do
     assert_difference -> { Book.count }, 1 do
-      post admin_books_path, params: { book: { title: "관리도서", author: "저자", category: "classic" } }
+      post admin_books_path, params: { book: {
+        title: "관리도서", author: "저자", isbn: TestBookIsbn.next, category: "classic"
+      } }
     end
     book = Book.find_by(title: "관리도서")
     patch admin_book_path(book), params: { book: { title: "수정도서" } }
     assert_equal "수정도서", book.reload.title
+  end
+
+  test "book create rejects a missing ISBN" do
+    assert_no_difference -> { Book.count } do
+      post admin_books_path, params: {
+        book: { title: "ISBN 없는 관리도서", isbn: "", category: "recommended" }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "ISBN", response.body
   end
 
   test "badge create" do

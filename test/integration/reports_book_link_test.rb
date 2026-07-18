@@ -60,7 +60,7 @@ class ReportsBookLinkTest < ActionDispatch::IntegrationTest
   test "remote_isbn 과 빈 book_id 로 제출하면 원격 책을 등록해 report.book_id 에 링크한다" do
     login_as @student
 
-    isbn = "9791234567890"
+    isbn = "9791234567896"
     with_memory_cache do
       # 검색 버튼 시점에 서버가 적재해 두는 메타를 시드(클라 payload 아님) → register 가 재사용.
       Rails.cache.write("book_meta:#{isbn}", {
@@ -91,7 +91,7 @@ class ReportsBookLinkTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Book.count", "무키/캐시 미스면 Book 을 만들지 않는다" do
       post reports_path, params: { report: {
-        book_id: "", remote_isbn: "9780000000000", book_title: "폴백 텍스트 제목",
+        book_id: "", remote_isbn: "9780000000002", book_title: "폴백 텍스트 제목",
         body: "본문입니다.", input_mode: "keyboard"
       } }
     end

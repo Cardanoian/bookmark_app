@@ -22,8 +22,8 @@
       <%= f.text_field :publisher, class: "form-input" %>
     </div>
     <div>
-      <%= f.label :isbn, "ISBN", class: "form-label" %>
-      <%= f.text_field :isbn, class: "form-input" %>
+      <%= f.label :isbn, "ISBN (필수)", class: "form-label" %>
+      <%= f.text_field :isbn, required: true, inputmode: "numeric", autocomplete: "off", class: "form-input" %>
     </div>
     <div>
       <%= f.label :grade_band, "학년군", class: "form-label" %>

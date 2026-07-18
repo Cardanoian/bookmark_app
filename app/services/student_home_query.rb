@@ -3,8 +3,11 @@
 class StudentHomeQuery
   BOOK_LIMIT = 6
 
-  def initialize(user)
+  MAX_DISCOVERY_CYCLE = 10_000
+
+  def initialize(user, discovery_cycle: 0)
     @user = user
+    @discovery_cycle = discovery_cycle.to_i.clamp(0, MAX_DISCOVERY_CYCLE)
   end
 
   # 공식 추천도서: 총괄관리자가 마지막으로 활성화한 엑셀의 어린이 분과 중 아직 활동하지 않은 책.
@@ -23,15 +26,30 @@ class StudentHomeQuery
     selected_ids.filter_map { |id| books[id] }
   end
 
-  # 책 발견: 기존 추천·고전 혼합 카탈로그 중 아직 활동 안 한 책을 제목순으로 보여준다.
-  # 공식 추천 목록과 의미를 분리해 학생 화면에서는 "이 책은 어때요?"로 표현한다.
+  # 책 발견: 학생·날짜별 시작점을 기본값으로 삼고 "다른 책 보기"를 누를 때마다 다음 6권으로
+  # 순환한다. SQL RANDOM 대신 offset+고정 title 순을 써서 큰 카탈로그에서도 재현 가능하게 한다.
   def discovery_books
+    return @discovery_books if defined?(@discovery_books)
+
     scope = Book.where(category: [ Book.categories[:recommended], Book.categories[:classic] ])
                 .where.not(id: active_book_ids)
     if (recommendation_import = RecommendationImport.current)
       scope = scope.where.not(id: recommendation_import.book_recommendations.select(:book_id))
     end
-    scope.order(:title).limit(BOOK_LIMIT)
+    ordered = scope.order(:title, :id)
+    total = ordered.count
+    return @discovery_books = Book.none if total.zero?
+
+    offset = discovery_offset(total)
+    books = ordered.offset(offset).limit(BOOK_LIMIT).to_a
+    if books.size < BOOK_LIMIT
+      books.concat(ordered.where.not(id: books.map(&:id)).limit(BOOK_LIMIT - books.size).to_a)
+    end
+    @discovery_books = books
+  end
+
+  def next_discovery_cycle
+    @discovery_cycle >= MAX_DISCOVERY_CYCLE ? 0 : @discovery_cycle + 1
   end
 
   # 인기 도서(v1): 같은 학급 최근 30일 승인 독후감의 book_id 집계 상위. 학급 데이터 없으면 빈 결과.
@@ -72,6 +90,11 @@ class StudentHomeQuery
   end
 
   private
+
+  def discovery_offset(total)
+    seed = Date.current.jd + @user.id.to_i
+    ((seed + @discovery_cycle) * BOOK_LIMIT) % total
+  end
 
   # 이미 활동(독후감·게임)한 책 id — 공식 추천과 책 발견 목록에서 제외한다.
   def active_book_ids

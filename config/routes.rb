@@ -17,7 +17,10 @@ Rails.application.routes.draw do
   resource :profile, only: [ :show ]
   # 학생 정보구조(menu_refactor 심화 PR5): 내 서재(책별 활동 포트폴리오) + 독서활동(책 선택→독후감/게임 허브).
   resource :library, only: [ :show ], controller: "libraries"
-  resource :reading_activity, only: [ :show ], controller: "reading_activities"
+  resource :reading_activity, only: [ :show ], controller: "reading_activities" do
+    # 인근 도서관 대출 가능 표시(Turbo Frame lazy-load). book_id 는 쿼리로 전달.
+    get :nearby_libraries
+  end
   # 본인 비밀번호 변경(역할 무관, current_user 대상). 현재 비번 확인 후 변경.
   get   "profile/password", to: "passwords#edit",   as: :edit_password
   patch "profile/password", to: "passwords#update", as: :password

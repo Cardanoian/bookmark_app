@@ -9,10 +9,27 @@ class Book < ApplicationRecord
 
   enum :category, { recommended: 0, classic: 1, searched: 2 }, default: :recommended
 
+  before_validation :normalize_isbn
+
   validates :title, presence: true
-  # isbn 유일성(공란 허용) — DB 부분 유니크 인덱스(index_books_on_isbn, WHERE isbn IS NOT NULL
-  # AND isbn != '')와 짝을 이루는 소프트 게이트. 인덱스는 동시성까지 막는 하드 백스톱이고,
-  # 이 검증은 admin/books 등 폼 경로에서 중복 isbn 을 500(RecordNotUnique) 대신 폼 에러로
-  # 강등한다. allow_blank 로 텍스트-only(공란 isbn) 도서는 인덱스 술어와 동일하게 제약 밖.
-  validates :isbn, uniqueness: { allow_blank: true }
+  # 모든 Book은 특정 판본의 유효한 ISBN-13을 식별자로 가진다. ISBN 없는 학생 자유입력은
+  # Book 행을 만들지 않고 Report#book_title 폴백으로만 보존한다. 모델 검증은 폼/API를,
+  # DB NOT NULL + 형식 CHECK + UNIQUE 인덱스는 우회·동시성 경로를 막는다.
+  validates :isbn, presence: true, uniqueness: true
+  validate :isbn_must_be_valid
+
+  private
+
+  def normalize_isbn
+    return self.isbn = nil if isbn.blank?
+
+    normalized = Books::Isbn.normalize(isbn)
+    self.isbn = normalized if normalized
+  end
+
+  def isbn_must_be_valid
+    return if isbn.blank? || Books::Isbn.normalize(isbn) == isbn
+
+    errors.add(:isbn, "은 유효한 ISBN-10 또는 ISBN-13이어야 합니다")
+  end
 end
