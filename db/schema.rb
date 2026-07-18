@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000009) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000010) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -283,18 +283,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000009) do
     t.index ["key"], name: "index_monster_species_on_key", unique: true
   end
 
-  create_table "purchases", force: :cascade do |t|
-    t.datetime "bought_at"
-    t.datetime "created_at", null: false
-    t.integer "quantity", default: 1, null: false
-    t.integer "shop_item_id", null: false
-    t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
-    t.index ["shop_item_id"], name: "index_purchases_on_shop_item_id"
-    t.index ["user_id", "shop_item_id"], name: "index_purchases_on_user_id_and_shop_item_id", unique: true
-    t.index ["user_id"], name: "index_purchases_on_user_id"
-  end
-
   create_table "quiz_attempts", force: :cascade do |t|
     t.json "answers"
     t.datetime "created_at", null: false
@@ -437,18 +425,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000009) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "shop_items", force: :cascade do |t|
-    t.integer "category", default: 0
-    t.boolean "consumable", default: false, null: false
-    t.integer "cost", default: 0
-    t.datetime "created_at", null: false
-    t.json "effect"
-    t.string "icon"
-    t.string "image_key"
-    t.string "name"
-    t.datetime "updated_at", null: false
-  end
-
   create_table "stickers", force: :cascade do |t|
     t.integer "by_user_id", null: false
     t.datetime "created_at", null: false
@@ -487,7 +463,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000009) do
   end
 
   create_table "user_monsters", force: :cascade do |t|
-    t.json "care"
     t.datetime "celebrated_at"
     t.datetime "created_at", null: false
     t.integer "dex_no"
@@ -558,8 +533,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000009) do
   add_foreign_key "missions", "classrooms"
   add_foreign_key "missions", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id", on_delete: :nullify
-  add_foreign_key "purchases", "shop_items"
-  add_foreign_key "purchases", "users"
   add_foreign_key "quiz_attempts", "quizzes"
   add_foreign_key "quiz_attempts", "users"
   add_foreign_key "quiz_questions", "quizzes"

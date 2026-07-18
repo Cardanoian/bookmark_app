@@ -20,7 +20,6 @@
 - `ocr/` — (뷰 없음) 사진 업로드 후 `OcrController`가 compose(edit) 화면으로 redirect하고, 본문 채움/실패 안내는 `OcrJob`이 `report_editor` 채널로 방송한다(기존 `create.turbo_stream.erb`는 redirect 통일로 제거).
 - `passwords/` — 본인 비밀번호 변경 `edit`(현재/새/새 확인 3필드 폼, `PATCH password_path`, 역할무관). 오류는 공통 상단 토스트(`shared/_flash`)가 담당.
 - `profiles/` — 학생 마이페이지 `show`(독서가 레벨·활동 통계·바로가기 + 계정 섹션). **계정 섹션은 로그아웃 대신 `edit_password_path` 비밀번호 변경 링크**를 둔다(로그아웃은 `shared/_student_header`로 이동).
-- `purchases/` — 구매 처리 `create.turbo_stream.erb`(turbo_stream 전용)
 - `pwa/` — PWA 자산. `manifest.json.erb`·`service-worker.js`
 - `rankings/` — 랭킹 화면 + `_podium`·`_ranking_row` partial. 전국(`nation`) 탭은 Top100 + 본인이 Top100 밖이면 "우리 학교" 행을 별도 표기.
 - `registrations/` — 회원가입 `new`. 학교 선택은 `schools/_picker` partial 렌더(전량 select 아님).
@@ -29,7 +28,6 @@
 - `schools/` — 학교 선택 하이브리드 피커 `_picker` partial(가입/로그인 공용). 시도/시군구 캐스케이딩은 native `<select>`를 채우고, **이름검색은 목록형 드롭다운(hidden `school_id` + 결과 `<li>` 클릭 선택)**으로 학교를 고른다. `with_classroom: true`(로그인 폼)면 선택 학교의 학급만 스코프 로드.
 - `sessions/` — 로그인 표면 3화면. `new`(**안내 인덱스** — 처음 접속 시 학생/교직원 로그인 선택 카드, 폼 없음)·`student_new`(학생 로그인 폼, 학교 선택은 `schools/_picker` partial 렌더 + 학급 드롭다운)·`staff_new`(교직원 이메일·비밀번호 로그인 폼). 로그아웃은 별도 뷰 없이 `DELETE /session`.
 - `shared/` — 앱 공통 partial. `_flash`(notice/alert 를 `.state-banner`[--success/--error] 상단 고정 토스트로 통일 — `role`/`aria-live`; `layouts/application` 이 렌더)·`_empty_state`(디자인 토큰 빈 상태 카드 — dashed hairline-strong + surface-soft)·`_seasonal_banner`·`_student_nav`(학생 상단 **5메뉴**[홈·내 서재·독서활동·도감·랭킹, menu_refactor 심화 PR5 — 독후감·게임·상점·미션 상위 제거] **반응형 네비** — 모바일은 현재 메뉴가 표시된 햄버거 `<details>` 아래 세로 목록, `sm` 이상은 기존 가로 줄바꿈 필 바. 아이콘[aria-hidden 이모지]+라벨, 활성 탭=검은 필+`aria-current="page"`, 44px 터치, `active` 심볼 강조·`current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)·`_student_header`(학생 공통 헤더 — 뒤로가기·이름·마이페이지 버튼 + **마이페이지 버튼 오른쪽 로그아웃 `button_to`**[`DELETE /session`])·`_discovery_modal`(몬스터 발견 연출 큐 모달 — `dex_no`로 species 조회·스프라이트 렌더·에셋 누락 시 이모지 폴백, `discovery` 컨트롤러가 순차 등장·표시 즉시 acknowledge)
-- `shops/` — 상점 상세 + `_shop_item` partial. 중복 화면 제목을 생략하고 학생 메뉴 바로 아래에 현재 포인트를 표시한다.
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)
 - `teacher/` — 교사 화면. `dashboards`·**`missions`(menu_refactor 심화 PR4 — draft `_form`[제목·설명·기간·고정 2목표(승인 독후감·게임) target·보상], `index` 상태필터+`_status_badge`[초안/예정/진행 중/종료/취소/보관], `show` 미션 조건+발행 버튼+`ProgressCalculator.batch` 학생 진행 표, `edit` draft=전체폼/발행후=제목·설명만)**·`prints`(상장·학급리포트·가정통신문·포트폴리오 인쇄물)·`quizzes`·`reviews`(독후감 첨삭)·`rubric_configs`·`students` + `_nav` partial
 - `topics/` — 토론 주제 목록·상세 + `_forum_post`·`_like_button` partial

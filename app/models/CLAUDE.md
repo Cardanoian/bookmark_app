@@ -30,8 +30,6 @@
 - `mission_goal.rb` — 미션의 정량 목표(미션당 goal_type 1개). `belongs_to :mission`, **goal_type enum**(approved_reports=0[승인 독후감 수]·game_plays=1[게임 완료 수]). 검증: goal_type presence + `uniqueness scope: :mission_id`(DB 유니크 `[mission_id, goal_type]`와 짝) + `target_count > 0`(DB CHECK `chk_mission_goals_target_count_positive`와 짝).
 - `mission_participation.rb` — 학생별 미션 참여·완료·보상 원장(미션당 학생 1행). `belongs_to :mission·:user`. 검증: `user_id uniqueness scope: :mission_id`(DB 유니크 `[mission_id, user_id]`=정확히-1회 백스톱과 짝) + `reward_points_awarded >= 0`(DB CHECK와 짝). `completed_at`=완료(몬스터 지표), `rewarded_at`+`reward_points_awarded`=정확히-1회 보상 원장(PR3 Rewarder가 `WHERE rewarded_at IS NULL` 조건부 UPDATE로 선점). `User has_many :mission_participations`.
 - `challenge.rb` — 전역/학교 챌린지. scope(global·school) enum.
-- `purchase.rb` — 상점 구매 기록(user·shop_item).
-- `shop_item.rb` — 상점 카탈로그(포인트 sink). category(food·evolution_stone·care·decoration·accessory) enum.
 - `season.rb` — 랭킹 리셋 시즌. scope(global·school) enum.
 
 ### 커뮤니티
