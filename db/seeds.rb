@@ -67,8 +67,27 @@ unless sample_data.fetch("excluded_environments", []).include?(Rails.env)
       role = user_data.fetch("role")
       email = user_data["email"].presence
 
-      # 전국 시드 도입 전 합성 학교에 만들어진 교직원 샘플도 이메일로 찾아 실학교로 옮긴다.
+      # 전국 시드 도입 전 같은 이름의 합성 학교에 만들어진 샘플을 찾아 실학교로 옮긴다.
+      # 교직원은 이메일이 안정 식별자다. 이메일이 없는 학생은 비활성 동명 학교 + 같은 학년/반이
+      # 정확히 한 건일 때만 레거시 샘플로 간주해, 실제 동명이인 학생을 잘못 이동하지 않는다.
       user = User.find_by(email: email) if email
+      if user.nil?
+        legacy_scope = User.joins(:school).where(
+          name: name,
+          role: role,
+          schools: { name: sample_school.name, active: false }
+        )
+        if classroom_id
+          target_classroom = Classroom.find(classroom_id)
+          legacy_scope = legacy_scope.joins(:classroom).where(
+            classrooms: { grade: target_classroom.grade, class_no: target_classroom.class_no }
+          )
+        else
+          legacy_scope = legacy_scope.where(classroom_id: nil)
+        end
+        legacy_candidates = legacy_scope.limit(2).to_a
+        user = legacy_candidates.first if legacy_candidates.one?
+      end
       user ||= User.find_or_initialize_by(name: name, school_id: sample_school.id, classroom_id: classroom_id)
 
       if user.new_record?
@@ -78,7 +97,7 @@ unless sample_data.fetch("excluded_environments", []).include?(Rails.env)
         user.save!
         puts "Created sample #{role}: #{name} @ #{sample_school.name}"
       else
-        identity_changed = email && (user.school_id != sample_school.id || user.classroom_id != classroom_id)
+        identity_changed = user.school_id != sample_school.id || user.classroom_id != classroom_id
         user.school = sample_school if identity_changed
         user.classroom_id = classroom_id if identity_changed
         user.email = email if email && user.email.blank?
@@ -128,15 +147,31 @@ unless sample_data.fetch("excluded_environments", []).include?(Rails.env)
   end
 end
 
-# Gamification catalog (반려 몬스터 도감 + 뱃지 + 케어/진화 상점).
+# Gamification catalog (반려 몬스터 도감 + 뱃지). 상점은 menu_refactor 심화 PR7 에서 제거됨.
 Rake::Task["monsters:seed"].invoke
 Rake::Task["badges:seed"].invoke
-Rake::Task["shop_items:seed"].invoke
 
 # Book catalog. 전량 TSV가 있으면 오프라인 전체 카탈로그를 적재하고, 파일이 없는
 # 체크아웃에서만 코드 내 축소 큐레이션으로 폴백한다.
 books_tsv = Rails.root.join("db/seeds/elementary_books.tsv")
 Rake::Task[File.exist?(books_tsv) ? "books:seed_full" : "books:seed"].invoke
+
+# 최초 설치의 공식 추천도서. 이후에는 총괄관리자가 /admin/recommendation_imports 에서 올린
+# 최신 파일이 단일 진실이므로, 업로드 이력이 전혀 없는 DB 에서만 번들 XLSX 를 초기 적재한다.
+if RecommendationImport.none?
+  recommendation_xlsx = Dir[Rails.root.join("docs", "*.xlsx")].find do |path|
+    File.basename(path).unicode_normalize(:nfc).include?("추천도서목록")
+  end
+  if recommendation_xlsx
+    result = Recommendations::Importer.new(
+      path: recommendation_xlsx,
+      filename: File.basename(recommendation_xlsx)
+    ).call(imported_by: superadmin)
+    puts "Seeded official recommendations: #{result.recommendation_import.item_count} books"
+  else
+    puts "Official recommendation XLSX unavailable — skipping initial recommendation import."
+  end
+end
 
 # Sample published quiz so 독서게임(quiz) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke

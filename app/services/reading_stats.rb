@@ -28,13 +28,20 @@ class ReadingStats
   end
 
   # 하루 최다 독후감(역대 최댓값). 승인 독후감을 앱 시간대(Asia/Seoul) 제출일(created_at)별로
-  # 묶어 그날의 **서로 다른 book_id 수**를 세고, 일자별 값의 최댓값을 취한다(monster_unlocks.md §일일 판정).
-  # book_id 가 없는 독후감은 서로 다른 책으로 셀 수 없어 제외한다(distinct book 의미와 정합). 없으면 0.
+  # 묶어 그날의 **처음 인정된 서로 다른 책 수**를 세고, 일자별 값의 최댓값을 취한다.
+  # 같은 책으로 쓴 승인 독후감이 여러 날에 걸쳐 있어도 가장 먼저 작성한 한 편만 인정한다.
+  # 카탈로그 연결 글은 Book.title, 자유 입력 글은 book_title을 정규화해 같은 책을 판별하므로
+  # book_id 연결 여부가 섞여도 중복 인정하지 않는다(monster_unlocks.md §일일 판정). 없으면 0.
   def max_daily_reports
     @max_daily_reports ||= begin
-      pairs = approved_reports.where.not(book_id: nil).pluck(:created_at, :book_id)
-      by_day = pairs.group_by { |created_at, _book_id| created_at.in_time_zone("Asia/Seoul").to_date }
-      by_day.values.map { |rows| rows.map(&:last).uniq.size }.max || 0
+      rows = approved_reports.left_outer_joins(:book)
+                             .order("reports.created_at ASC", "reports.id ASC")
+                             .pluck("reports.created_at", "reports.book_id", "reports.book_title", "books.title")
+      first_report_per_book = rows.uniq { |row| report_book_key(row) }
+      by_day = first_report_per_book.group_by do |created_at, _book_id, _book_title, _catalog_title|
+        created_at.in_time_zone("Asia/Seoul").to_date
+      end
+      by_day.values.map(&:size).max || 0
     end
   end
 
@@ -156,6 +163,14 @@ class ReadingStats
 
   def approved_reports
     @user.reports.where(reviewed: true)
+  end
+
+  def report_book_key(row)
+    _created_at, book_id, book_title, catalog_title = row
+    normalized_title = (catalog_title.presence || book_title).to_s.squish.downcase
+    return [ :book_title, normalized_title ] if normalized_title.present?
+
+    [ :book_id, book_id ] if book_id.present?
   end
 
   def longest_consecutive_run(dates)

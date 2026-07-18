@@ -2,7 +2,6 @@
 <div class="w-full max-w-md mx-auto text-center">
   <h1 class="text-3xl font-bold text-ink">책갈피</h1>
   <p class="mt-2 mb-8 text-slate">어떻게 로그인할까요?</p>
-
   <div class="space-y-4">
     <%= link_to student_login_path,
           class: "card block bg-surface-featured text-center" do %>
@@ -10,16 +9,17 @@
       <span class="block text-xl font-bold text-ink">학생 로그인</span>
       <span class="mt-1 block text-sm text-brand-blue">학교·학급·이름으로 들어가요</span>
     <% end %>
-
     <%= link_to staff_login_path,
           class: "card block text-center" do %>
       <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface text-4xl" aria-hidden="true">👩‍🏫</span>
       <span class="block text-xl font-bold text-ink">선생님 로그인</span>
       <span class="mt-1 block text-sm text-steel">교사·관리자·사서 이메일 로그인</span>
     <% end %>
+    <%= link_to new_registration_path,
+          class: "card block text-center" do %>
+      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-teal-light text-4xl" aria-hidden="true">📝</span>
+      <span class="block text-xl font-bold text-ink">선생님 회원가입</span>
+      <span class="mt-1 block text-sm text-steel">가입 후 바로 활동할 수 있어요</span>
+    <% end %>
   </div>
-
-  <p class="mt-8 text-sm">
-    <%= link_to "교사 가입 신청", new_registration_path, class: "text-brand-blue underline" %>
-  </p>
 </div>

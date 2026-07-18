@@ -109,14 +109,11 @@ Rails.application.routes.draw do
     member do
       post :evolve
       post :set_active
-      post :feed
     end
     collection do
       post :choose_starter
     end
   end
-  resource  :shop, only: [ :show ]
-  resources :purchases, only: [ :create ]
   resources :rankings, only: [ :index ]
   # 미션은 상위 메뉴/독립 화면 없이 홈·독서활동 문맥에 노출한다(menu_refactor 심화 PR6 — 세션 참여방식 제거).
   # 자동 배정·자동 진행이라 학생 join 액션이 없다. challenge 는 이번 범위에서 세션 참여 유지.
@@ -196,9 +193,9 @@ Rails.application.routes.draw do
       end
     end
     resources :books
+    resources :recommendation_imports, only: [ :index, :create ]
     resources :quizzes
     resources :badges
-    resources :shop_items
     resources :monster_species
     resources :moderation, only: [ :index ] do
       member do

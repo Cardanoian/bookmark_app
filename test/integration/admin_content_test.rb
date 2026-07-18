@@ -31,19 +31,7 @@ class AdminContentTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "shop_item create with JSON effect" do
-    assert_difference -> { ShopItem.count }, 1 do
-      post admin_shop_items_path, params: { shop_item: { name: "관리간식", category: "food", cost: 5, effect_json: '{"hunger": 3}' } }
-    end
-    assert_equal({ "hunger" => 3 }, ShopItem.find_by(name: "관리간식").effect)
-  end
-
-  test "shop_item create rejects invalid JSON effect" do
-    assert_no_difference -> { ShopItem.count } do
-      post admin_shop_items_path, params: { shop_item: { name: "깨진효과", category: "food", cost: 5, effect_json: "{broken" } }
-    end
-    assert_response :unprocessable_entity
-  end
+  # 상점 아이템 admin CRUD 는 menu_refactor 심화 PR7 에서 제거됨.
 
   test "quiz create with a nested question" do
     assert_difference -> { Quiz.count }, 1 do

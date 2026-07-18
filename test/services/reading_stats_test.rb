@@ -114,11 +114,41 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 1, @stats.max_daily_reports
   end
 
-  test "max_daily_reports excludes reports without a book and is zero when none qualify" do
-    report(reviewed: true, book_title: "책제목만", book: nil)
+  test "max_daily_reports counts title-only reports and deduplicates normalized titles" do
+    day = Time.utc(2026, 6, 1, 3)
+    report(reviewed: true, created_at: day, book_title: "책제목만", book: nil)
+    report(reviewed: true, created_at: day, book_title: "  책제목만  ", book: nil)
+    report(reviewed: true, created_at: day, book_title: "Other Book", book: nil)
+    report(reviewed: true, created_at: day, book_title: "other book", book: nil)
+
+    assert_equal 2, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports recognizes the same book only once across different days" do
+    first_day = Time.utc(2026, 6, 1, 3)
+    later_day = Time.utc(2026, 6, 2, 3)
+    report(reviewed: true, created_at: first_day, book_title: "강아지 똥", book: nil)
+    report(reviewed: true, created_at: later_day, book_title: "  강아지 똥  ", book: nil)
+    report(reviewed: true, created_at: later_day, book_title: "다른 책", book: nil)
+
+    # 날짜별로만 중복 제거하면 나중 날이 2편이지만, 전체 기간으로는 각 책이 1편씩이다.
+    assert_equal 1, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports deduplicates linked and title-only reports for the same book" do
+    first_day = Time.utc(2026, 6, 1, 3)
+    later_day = Time.utc(2026, 6, 2, 3)
+    book = Book.create!(title: "강아지 똥", category: :recommended)
+    report(reviewed: true, created_at: first_day, book: book, book_title: nil)
+    report(reviewed: true, created_at: later_day, book: nil, book_title: "강아지 똥")
+    report(reviewed: true, created_at: later_day, book: nil, book_title: "다른 책")
+
+    assert_equal 1, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports is zero when there are no approved reports" do
+    report(reviewed: false, book_title: "미승인", book: nil)
     assert_equal 0, @stats.max_daily_reports
-    report(reviewed: false, book: Book.create!(title: "미승인", category: :recommended))
-    assert_equal 0, @stats.max_daily_reports # 미승인은 제외
   end
 
   # 3B — game_plays 원장 기반 지표.

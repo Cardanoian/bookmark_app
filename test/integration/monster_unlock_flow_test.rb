@@ -83,4 +83,39 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
     end
     assert_includes flash[:notice], "새 몬스터"
   end
+
+  # 조건을 충족했으나 어떤 쓰기 트리거(승인·게임·토론·스타터)도 거치지 않아 고착된 라인은,
+  # 학생이 도감을 여는 순간 조회-시 self-heal 재평가로 해금된다(트리거 커버리지 갭 보정).
+  # 재현: dex 10 조건 { b_or_better: 3 } 을 승인 경로가 아닌 직접 생성으로 채워 해금이 누락된 상태.
+  def seed_stuck_b_or_better!
+    3.times do
+      Report.create!(user: @student, classroom: @classroom, book: @book, book_title: "책",
+                     ai_status: :done, level: "B", reviewed: true, reviewed_at: Time.current)
+    end
+    refute @student.user_monsters.exists?(dex_no: 10), "사전 조건: 조건 충족 전이 아니라 '충족했으나 미해금(고착)' 상태여야 한다"
+  end
+
+  test "opening the collection index heals a met-but-locked unlock (dex 10 b_or_better)" do
+    seed_stuck_b_or_better!
+    login_as @student
+
+    assert_difference -> { @student.user_monsters.where(dex_no: 10).count }, 1 do
+      get monsters_path
+    end
+
+    # 멱등: 재조회는 중복 해금하지 않는다(discover_monster! 의 owns_line? 가드).
+    assert_no_difference -> { @student.user_monsters.where(dex_no: 10).count } do
+      get monsters_path
+    end
+  end
+
+  test "opening a monster detail page heals a met-but-locked unlock" do
+    seed_stuck_b_or_better!
+    login_as @student
+
+    assert_difference -> { @student.user_monsters.where(dex_no: 10).count }, 1 do
+      get monster_path(10)
+    end
+    assert_response :success
+  end
 end

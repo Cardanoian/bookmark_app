@@ -1,10 +1,14 @@
 # 몬스터 도감·진화·발견 연출(P4.5/P4.7). 라인(dex_no) 단위로 조회하며 제자리 진화한다.
 class MonstersController < ApplicationController
-  before_action :set_user_monster, only: [ :evolve, :set_active, :feed ]
+  before_action :set_user_monster, only: [ :evolve, :set_active ]
 
   # 도감: 시드된 12 라인 그리드 + 완성도(분모 24 고정).
   def index
     authorize :monster, :index?
+    # 조회 시 self-heal: 해금 조건은 충족했으나 쓰기 트리거(승인·게임·토론 등)를 거치지 않아
+    # 고착된 라인을 도감을 여는 순간 재평가해 해금한다(트리거 커버리지 갭 보정). 신규 발견은
+    # 레이아웃의 pending_celebration 드레인이 같은 렌더에서 축하 모달로 표면화한다.
+    evaluate_monster_unlocks(current_user)
     @lines = MonsterSpecies.where(stage: 1).order(:dex_no).to_a
     @owned = current_user.user_monsters.includes(:monster_species).index_by(&:dex_no)
     @evolvable_ids = current_user.evolvable_monsters.map(&:id).to_set
@@ -17,6 +21,9 @@ class MonstersController < ApplicationController
   # 상세: 종·단계·진화 조건 진행률(ReadingStats 대비)·케어 상태.
   def show
     authorize :monster, :show?
+    # 조회 시 self-heal(index 와 동일): 이 상세를 열 때 조건 충족·미해금 라인을 재평가해,
+    # 아래 @user_monster 조회가 방금 해금된 개체를 집어 즉시 "보유"로 렌더되게 한다.
+    evaluate_monster_unlocks(current_user)
     @dex_no = params[:id].to_i
     @line = MonsterSpecies.where(dex_no: @dex_no).order(:stage).to_a
     raise ActiveRecord::RecordNotFound, "unknown dex_no #{@dex_no}" if @line.empty?
@@ -29,8 +36,6 @@ class MonstersController < ApplicationController
     # (ReadingStats#reports = 승인 독후감)에 아직 안 잡힌 글 수. 조건에 reports 키가 있을 때
     # "승인되면 반영된다"는 안내를 띄워 첨삭 완료/승인 대기의 시점 차이를 학생에게 설명한다.
     @awaiting_review_count = current_user.reports.done.where(reviewed: false).count
-    @foods = current_user.purchases.includes(:shop_item)
-                         .select { |purchase| purchase.quantity.positive? && feed_item?(purchase.shop_item) }
   end
 
   # 스타터 선택(온보딩). 보유 0 인 학생만. 잘못/중복 선택 거부(가챠/랜덤 없음).
@@ -77,28 +82,6 @@ class MonstersController < ApplicationController
     redirect_to monster_path(@user_monster.dex_no), notice: "#{@user_monster.species.name}(을)를 대표 몬스터로 정했어요."
   end
 
-  # 먹이주기: 먹이/진화의 돌 소비(수량 -1) → 케어 상태 갱신(effect json 반영).
-  def feed
-    authorize @user_monster, :feed?, policy_class: MonsterPolicy
-    item = ShopItem.find(params[:shop_item_id])
-    purchase = current_user.purchases.find_by(shop_item: item)
-
-    unless feed_item?(item) && purchase
-      return redirect_to monster_path(@user_monster.dex_no), alert: "먹이가 부족해요. 상점에서 먼저 구매해 주세요."
-    end
-
-    # 원자적 조건부 차감: precheck→decrement 의 read-modify-write 는 동시 요청 두 건이
-    # 수량 1 을 모두 통과시켜 이중 소비/음수를 만든다(lost update). 수량>0 을 WHERE 로 걸어
-    # 실제 감소한 행이 있을 때만 케어 효과를 적용한다. 정적 SQL 문자열(주입 표면 없음).
-    decremented = Purchase.where(id: purchase.id).where("quantity > 0").update_all("quantity = quantity - 1")
-    if decremented.zero?
-      return redirect_to monster_path(@user_monster.dex_no), alert: "먹이가 부족해요. 상점에서 먼저 구매해 주세요."
-    end
-
-    apply_care(item)
-    redirect_to monster_path(@user_monster.dex_no), notice: "#{item.name}(으)로 몬스터를 돌봤어요. 🍪"
-  end
-
   private
 
   def set_user_monster
@@ -119,17 +102,5 @@ class MonstersController < ApplicationController
       partial: "monsters/active_monster",
       locals: { monster: monster, user: current_user }
     )
-  end
-
-  def feed_item?(item)
-    item.food? || item.evolution_stone?
-  end
-
-  def apply_care(item)
-    care = (@user_monster.care || {}).dup
-    care["fed_count"] = care["fed_count"].to_i + 1
-    care["last_fed_at"] = Time.current.iso8601
-    care["evolve_boost"] = care["evolve_boost"].to_i + 1 if item.effect.is_a?(Hash) && item.effect["evolve_boost"]
-    @user_monster.update!(care: care)
   end
 end

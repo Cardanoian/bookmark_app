@@ -8,28 +8,7 @@ class GamificationModelsTest < ActiveSupport::TestCase
     @user = User.create!(school: @school, classroom: @classroom, name: "게임화학생", password: "password")
   end
 
-  test "ShopItem category enum defines five categories" do
-    assert_equal(
-      { "food" => 0, "evolution_stone" => 1, "care" => 2, "decoration" => 3, "accessory" => 4 },
-      ShopItem.categories
-    )
-  end
-
-  test "Purchase belongs to user and shop_item" do
-    item = ShopItem.create!(name: "간식", category: :food)
-    purchase = Purchase.create!(user: @user, shop_item: item, quantity: 2, bought_at: Time.current)
-    assert_equal @user, purchase.user
-    assert_equal item, purchase.shop_item
-    assert_equal 2, purchase.quantity
-  end
-
-  test "Purchase is unique per user and shop_item" do
-    item = ShopItem.create!(name: "장식", category: :decoration)
-    Purchase.create!(user: @user, shop_item: item, quantity: 1, bought_at: Time.current)
-    assert_raises(ActiveRecord::RecordNotUnique) do
-      Purchase.create!(user: @user, shop_item: item, quantity: 1, bought_at: Time.current)
-    end
-  end
+  # 상점(ShopItem·Purchase)은 menu_refactor 심화 PR7 에서 제거됨.
 
   test "Challenge scope enum defines global and school" do
     assert_equal({ "global" => 0, "school" => 1 }, Challenge.scopes)

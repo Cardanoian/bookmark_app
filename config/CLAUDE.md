@@ -19,7 +19,7 @@
   - `namespace :teacher` — 담임교사. `dashboard`, 검토 큐 `reviews`(`approve`·`verify`·`batch_approve`), `students`(`reset_password`·`give_points`), `missions`·`quizzes`, `rubric_config`, 문서출력(`exports#reports_csv` + `prints` 의 표창장·가정통신문·포트폴리오·학급리포트).
   - `namespace :school_admin` — 교무관리자. `stats`, `neis`(생기부 자동요약). 자기 학교 경계.
   - `namespace :librarian` — 사서. `dashboard`, `events`, `loans`(`sync_data4library`·`import_csv`). 자기 학교 경계.
-  - `namespace :admin` — 총괄관리자(superadmin) 전용. root=`analytics#show`, 전 자원 관리(`schools`·`users`·`books`·`quizzes`·`badges`·`shop_items`·`monster_species`·`moderation`·`settings`·`analytics`). `Admin::BaseController` 가 superadmin 외 전 역할 403.
+  - `namespace :admin` — 총괄관리자(superadmin) 전용. root=`analytics#show`, 전 자원 관리(`schools`·`users`·`books`·`recommendation_imports`[XLSX index/create]·`quizzes`·`badges`·`shop_items`·`monster_species`·`moderation`·`settings`·`analytics`). `Admin::BaseController` 가 superadmin 외 전 역할 403.
 - 그 외 `/up` = 헬스체크(`rails/health#show`), PWA 라우트는 주석 처리(비활성).
 
 ## 파일

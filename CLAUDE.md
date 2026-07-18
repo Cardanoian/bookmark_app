@@ -16,6 +16,9 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 
 전체 개요·실행법·역할표는 [`README.md`](README.md), 설계 문서는 [`docs/`](docs/CLAUDE.md) 참고.
 
+학생 메뉴 5개 재편·상점 제거·독서활동 통합·학급 미션 재설계의 상세 구현 계획은
+[menu_refactor.md](menu_refactor.md)를 참고합니다.
+
 ## 디렉토리 인덱스 (마트료시카)
 
 이 프로젝트는 폴더마다 `CLAUDE.md`를 두어, **각 CLAUDE.md만 따라 읽어도 구조를 파악**할 수 있게 되어 있습니다.

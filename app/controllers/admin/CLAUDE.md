@@ -9,6 +9,7 @@
 - `analytics_controller.rb` — 전교 통합 통계(`show`) + 원자료 CSV 내보내기(`export`, gem 없이 RFC 4180 직접 인코딩). `/admin` 루트.
 - `badges_controller.rb` — 전역 뱃지 카탈로그 CRUD.
 - `books_controller.rb` — 전역 도서 카탈로그 CRUD(제목 검색). index 페이지네이션(PER_PAGE=50).
+- `recommendation_imports_controller.rb` — 공식 추천도서 XLSX 관리(index/create). 업로드 파일에서 어린이 분과만 트랜잭션으로 교체하고, 현재 목록·최근 업로드 이력을 표시한다. 실패 시 기존 활성 목록을 보존한다.
 - `moderation_controller.rb` — 게시판·토론·토픽 신고/숨김 관리(`index`/`hide`/`unhide`). `kind` 파라미터로 대상 모델 분기. **index 는 3섹션(board/forum/topic)을 통짜 로드하지 않고 각각 독립 page 파라미터(`board_page`/`forum_page`/`topic_page`)로 페이지네이션**(`paginate_section`, PER_PAGE=25, #4).
 - `monster_species_controller.rb` — 몬스터 종·진화 규칙 CRUD(element/rarity, evolves_from, evolve_condition JSON).
 - `quizzes_controller.rb` — 전역(global) 퀴즈 CRUD. 문항 중첩 폼, 보기(choices)는 줄바꿈 텍스트 → 배열 정규화. index 페이지네이션(PER_PAGE=50).

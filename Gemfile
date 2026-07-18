@@ -22,6 +22,9 @@ gem "jbuilder"
 # CSV parsing (전량 학교 시드 db/seeds/schools.csv). Ruby 3.4+ 부터 기본 젬에서 빠져 명시 의존.
 gem "csv"
 
+# 총괄관리자 추천도서 XLSX 업로드. 워크북 XML은 Rails 의 nokogiri, 컨테이너는 rubyzip 으로 읽는다.
+gem "rubyzip", "~> 3.4"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
 

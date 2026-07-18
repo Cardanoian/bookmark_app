@@ -1,6 +1,7 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "xlsx_test_helper"
 
 # 테스트는 외부 API 를 절대 호출하지 않는다. credentials 에 실 키가 들어 있어도
 # 테스트 환경에서는 외부 서비스 키를 공란으로 강제해 모든 클라이언트가 오프라인
@@ -31,6 +32,8 @@ module ActiveSupport
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
+
+    include XlsxTestHelper
 
     # Add more helper methods to be used by all tests here...
 

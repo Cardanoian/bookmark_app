@@ -3,7 +3,7 @@
 '책갈피'(Rails 8.1)의 전체 자동화 테스트 모음이다. 모델·정책·서비스 단위 테스트부터 역할별 화면·플로우를 검증하는 integration 테스트까지 포함한다. 테스트는 **외부 API를 절대 호출하지 않으며**(`test_helper.rb`가 credentials 키를 공란으로 강제 → 도서검색·정보나루·Gemini가 오프라인 폴백 경로를 탄다), 원격 성공 경로는 스텁 커넥션을 DI로 주입해 검증한다.
 
 ## 하위 카테고리
-- `test_helper.rb` — 공통 설정. 외부 키 공란 강제(오프라인 폴백), 병렬 실행, `fixtures :all`, 헬퍼 `seed_monster_species!`(24라인×3단계=72폼 시드)·`seed_badges!`(뱃지 13종)·**`login_as(user)`**(역할별 로그인 공용 헬퍼 — 학생은 튜플 `student_login_path`, 교직원은 이메일 `staff_login_path`. 교직원 계정에 이메일이 없으면 로그인용 합성 이메일을 즉석 부여[검증 우회 `update_column`, 트랜잭션 롤백]. 통합 테스트는 이 헬퍼로 로그인 표면 분리를 흡수).
+- `test_helper.rb` — 공통 설정. 외부 키 공란 강제(오프라인 폴백), 병렬 실행, `fixtures :all`, `seed_monster_species!`·`seed_badges!`·`login_as(user)` 및 `xlsx_test_helper.rb`의 최소 XLSX 생성기를 포함한다.
 - `models/` — 모델 단위: 뱃지·도서·학급·학교·리포트·토픽·유저·몬스터종·유저몬스터, 게임화/퀴즈 데이터 모델(`quiz_question`의 1-based `answer_number` 가상 접근자 포함), **`game_play`**(부분 유니크 인덱스 2종의 일일 dedup — book 있는/없는 플레이 각각), 몬스터 시드 무결성, 마이그레이션 FK 존재 검증. **Phase 6 보강(#5)**: `library_loan`·`library_event`·`user_badge`·`forum_post`·`forum_post_like`(좋아요 uniqueness·likes_count counter_cache 증감) 모델 검증, `app_setting`(API 키 저장 차단 보안검증 추가), `monster_seed_integrity`(스타터 3종 정합 + `image_key` WebP 72종의 누락·잔존 파일 검증), **`fk_on_delete_roundtrip`**(reports→books·monster_species 자기참조 on_delete nullify 동작 + SQLite up/down 왕복 무손실; 이 파일만 `use_transactional_tests = false` — DDL 커밋 후 teardown 에서 up 복원·행 정리). **`monster_species`**는 `unlock_condition` JSON 검증(evolve_condition과 별개 컬럼·화이트리스트 공유)도 함께 커버한다.
 - `models/concerns/` — 공유 모듈: `Badgeable`·`Evolvable`·`Leveling`·`Pointable`·`RubricScorable`.
 - `controllers/` — 컨트롤러 공용 로직 단위: `axis_averages_parity`(전교 5축 SQL 집계 == 인메모리 집계 parity, #3).
@@ -12,6 +12,7 @@
 - `services/ai/` — Gemini 클라이언트·OCR·퀴즈 초안·첨삭(review)·규칙기반 첨삭·검증(verify). 무키 시 규칙기반 폴백 + 스텁 성공 경로.
 - `services/books/`·`services/library/` — 도서 검색(네이버) 및 정보나루(data4library) 서비스: 무키 폴백·정규화·파싱. `services/books/`는 `search_service` + **`catalog_enricher`**(큐레이션 보강, service/throttle DI, 무키 no-op) + **`genre_inference`**(무API 장르 추론 — n-gram kNN·STRONG_GENRE_RULES) 3파일.
 - `services/schools/` — NEIS 학교기본정보 연동: `gu_parser`(도농복합시·단층제·시도 토큰 생략)·`neis_fetcher`(전체 건수 페이지네이션, 후속 페이지 실패/HTTP 200 API 오류/국내 필터)·`snapshot_validator`(필수값·중복·전국 최소 건수·17개 교육청).
+- `services/recommendations/` — 실제 번들 XLSX의 어린이 분과 203권 파싱 계약, ISBN upsert, 청소년 제외, digest 멱등, 활성 목록 교체, 실패 롤백을 검증한다.
 - `services/games/`·기타 서비스 — 퀴즈 플레이 멱등 적립(포인트 파밍 차단), 몬스터 획득, 랭킹 집계, 독서 통계(`reading_stats` — `max_daily_reports`·`game_plays`/`distinct_games`/`game_books` 신규 지표 포함). **`monster_unlock`**(fixpoint 캐스케이드 — dex_count 20 도달 시 같은 `evaluate!` 호출에서 dex 24 동시 해금, AND 다중조건, 멱등 재실행, 라인 지급 실패 rescue).
 - `jobs/` — 백그라운드 잡: `AiReviewJob`(AI 첨삭)·`OcrJob`(사진 OCR)·`BookEnrichmentJob`(무API genre 보강 — 공란만 채움·멱등).
 - `helpers/` — 뷰 헬퍼(`TeacherHelper`, `MonstersHelper`의 WebP 렌더·이모지 폴백).

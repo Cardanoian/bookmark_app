@@ -16,7 +16,7 @@
   <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
     <%= render "monsters/detail",
           user_monster: @user_monster, current_species: @current_species, line: @line,
-          stats: @stats, evolvable: @evolvable, dex_no: @dex_no, foods: @foods,
+          stats: @stats, evolvable: @evolvable, dex_no: @dex_no,
           awaiting_review_count: @awaiting_review_count,
           celebrate: flash[:celebrate].present? %>
 

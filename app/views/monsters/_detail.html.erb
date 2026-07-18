@@ -1,4 +1,4 @@
-<%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, foods:, awaiting_review_count: 0, celebrate: false) %>
+<%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, awaiting_review_count: 0, celebrate: false) %>
 <div id="monster_detail" class="card">
   <div class="mb-6 text-center"
        data-controller="monster-care"
@@ -51,21 +51,6 @@
               class: "btn btn-secondary" %>
       <% end %>
     </div>
-
-    <% if foods.present? %>
-      <%= form_with url: feed_monster_path(dex_no), method: :post, class: "flex items-center justify-center gap-2" do %>
-        <select name="shop_item_id" class="form-select w-auto">
-          <% foods.each do |purchase| %>
-            <option value="<%= purchase.shop_item_id %>">
-              <%= purchase.shop_item.icon %> <%= purchase.shop_item.name %> (<%= purchase.quantity %>개)
-            </option>
-          <% end %>
-        </select>
-        <button type="submit" class="btn btn-blue btn-sm">먹이 주기 🍪</button>
-      <% end %>
-    <% else %>
-      <p class="text-center text-xs text-muted">먹이가 없어요. <%= link_to "상점", shop_path, class: "text-brand-blue underline" %>에서 구매해 보세요.</p>
-    <% end %>
   <% else %>
     <% unlock_condition = line.first&.unlock_condition %>
     <% if unlock_condition.present? %>

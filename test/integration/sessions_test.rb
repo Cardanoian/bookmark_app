@@ -14,7 +14,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
   end
 
   # ── 안내 인덱스(선택 화면) ─────────────────────────────────────────────
-  test "the landing index offers student and staff login choices" do
+  test "the landing index offers login choices and a teacher registration card" do
     get new_session_path
 
     assert_response :success
@@ -22,6 +22,11 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "선생님 로그인"
     assert_includes response.body, student_login_path
     assert_includes response.body, staff_login_path
+    assert_select "a.card[href='#{new_registration_path}']" do
+      assert_select "span[aria-hidden='true']", text: "📝"
+      assert_select "span", text: "교사 회원가입"
+      assert_select "span", text: "가입 후 바로 활동할 수 있어요"
+    end
   end
 
   test "an unauthenticated request redirects to the landing index" do
@@ -69,6 +74,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'type="email"'
     assert_includes response.body, "선생님 로그인"
+    assert_select "a.btn.btn-secondary.btn-block[href='#{new_registration_path}']", text: "교사 회원가입"
   end
 
   test "successful staff login by email redirects to root and sets the session" do

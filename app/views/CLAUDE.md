@@ -3,12 +3,12 @@
 컨트롤러가 렌더하는 모든 ERB 템플릿이 리소스 디렉토리 단위로 모여 있습니다. 학생·교사·사서·학교관리자·총괄관리자 5개 역할의 화면이 공존하며, 역할별 레이아웃(application·admin·print·mailer)으로 감쌉니다. 부분 화면은 partial(`_이름.html.erb`), 비동기 부분 갱신은 turbo_stream(`.turbo_stream.erb`)으로 응답합니다.
 
 ## 파일 / 하위 리소스
-- `admin/` — 총괄관리자 콘솔. analytics·badges·books·moderation·monster_species·quizzes·schools·settings·shop_items·users의 index/show/new/edit + `_form` CRUD 화면. 목록 페이지네이션은 공통 `admin/shared/_pager`(검색·필터 파라미터 유지) + `admin/moderation/_pager`(섹션별 독립 page) 사용(#4·#misc).
+- `admin/` — 총괄관리자 콘솔. 기존 전역 CRUD 화면 + `recommendation_imports/index`(추천도서 XLSX 업로드, 현재 어린이 추천 목록, 이력). 목록 페이지네이션은 공통 `admin/shared/_pager` + `admin/moderation/_pager`를 사용한다.
 - `board_posts/` — 학급 게시판. 목록·상세 + `_board_post`·`_cheer_button`·`_sticker` partial
 - `books/` — 도서 목록·상세 + `_book_card`·`_autocomplete_field`(공용 도서 자동완성 필드 — 표시 input + hidden `book_id` + 결과목록 + 표지, strict/fallback. `book_search` 컨트롤러 부착, 퀴즈·게임·독후감 공용. **opt-in 원격검색 확장**(모두 기본 off·미전달 시 마크업 불변): `remote_search_url`이면 루트에 remote-search-url value 출력, `show_search_button`이면 입력 옆 `type: "button"` "🔍 검색" 버튼(`book-search#manualSearch`), `isbn_field`(+`isbn_value`)면 원격 선택 isbn 을 스태시할 hidden("isbn" 타깃, 등록은 제출 시 서버) — 독후감 새 글에서 타이핑=로컬 autocomplete, 검색버튼=네이버 remote_search 로 2-URL 분리) partial
 - `challenges/` — 챌린지(도전과제) 목록·상세
 - `cheers/` — 응원 반영 `update.turbo_stream.erb`(turbo_stream 전용)
-- `dashboard/` — 역할별 대시보드(`student`·`teacher`·`librarian`·`school_admin`). **학생 `student`는 홈(menu_refactor 심화 PR5)** — 이어하기(최근 활동)·진행 중 우리 반 미션(목표별 `progress-bar`)·추천/인기 도서(`_home_book_grid`, 독서활동 진입)·활성 몬스터·포인트 요약. 전체 독후감 기록은 내 서재로 이동. 총괄관리자(superadmin)는 별도 대시보드 없이 `dashboard#show`에서 `/admin` 콘솔로 리다이렉트한다.
+- `dashboard/` — 역할별 대시보드. 학생 홈은 이어하기·미션 다음에 **공식 추천도서 → 우리 반 인기 도서 → "이 책은 어때요?" 책 발견** 순으로 `_home_book_grid`를 렌더하고, 활성 몬스터·포인트를 요약한다.
 - `libraries/` — **내 서재 `show`(menu_refactor 심화 PR5)**. 책별 활동 카드(승인/검토 중 독후감·게임 완료 배지 + 최근 활동일 + "이 책으로 활동하기" 독서활동 진입) + kind 필터(전체/독후감/게임) + 책 미연결 레거시 독후감 그룹. `StudentLibraryQuery` 소비.
 - `reading_activities/` — **독서활동 허브 `show`(menu_refactor 심화 PR5)**. 책 미선택=등록 도서 자동완성(`books/_autocomplete_field` strict, GET→book_id) / 선택=선택 도서 카드(+책 바꾸기)+미션 문맥 배너+활동 카드 2종(독후감 쓰기→`new_report_path` book 전달, 독서 게임 5종 칩→`games_<표면>_play_path(book_id:)`).
 - `forum_post_likes/` — 토론 글 좋아요 반영 `update.turbo_stream.erb`(turbo_stream 전용)

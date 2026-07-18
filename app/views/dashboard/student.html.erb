@@ -52,11 +52,11 @@
     </section>
   <% end %>
 
-  <%# 3) 추천 도서 %>
+  <%# 3) 총괄관리자 업로드 기반 공식 추천도서 %>
   <% recommended = @home.recommended_books.to_a %>
   <% if recommended.any? %>
     <section class="space-y-3">
-      <h2 class="text-lg font-bold text-ink">📖 추천 도서</h2>
+      <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
       <%= render "dashboard/home_book_grid", books: recommended %>
     </section>
   <% end %>
@@ -70,7 +70,16 @@
     </section>
   <% end %>
 
-  <%# 5) 활성 몬스터·포인트 요약 %>
+  <%# 5) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
+  <% discovery = @home.discovery_books.to_a %>
+  <% if discovery.any? %>
+    <section class="space-y-3">
+      <h2 class="text-lg font-bold text-ink">✨ 이 책은 어때요?</h2>
+      <%= render "dashboard/home_book_grid", books: discovery %>
+    </section>
+  <% end %>
+
+  <%# 6) 활성 몬스터·포인트 요약 %>
   <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
     <div class="lg:col-span-2">
       <% if current_user.active_monster.nil? %>

@@ -18,7 +18,6 @@ module ApplicationHelper
     reports#index
     games/catalog#index
     monsters#index
-    shops#show
     rankings#index
     books#index
     learn#index

@@ -8,6 +8,14 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @student = User.create!(school: @school, classroom: @classroom, name: "메뉴학생", password: "password")
     @book = Book.create!(title: "메뉴책", author: "지은이", category: :recommended)
+    @recommended_book = Book.create!(title: "공식추천책", author: "추천인", category: :recommended)
+    recommendation_import = RecommendationImport.create!(
+      filename: "추천.xlsx", file_digest: "student-menu-recommendations", source_title: "테스트 추천",
+      imported_at: Time.current, item_count: 1, active: true
+    )
+    recommendation_import.book_recommendations.create!(
+      book: @recommended_book, section: "어린이문학", position: 1
+    )
     login_as @student
   end
 
@@ -23,11 +31,21 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_select "nav[aria-label='학생 메뉴'] span", text: "미션", count: 0
   end
 
-  test "홈은 이어하기·추천 도서를 렌더한다" do
+  test "홈은 추천도서·우리 반 인기 도서·책 발견 순서로 렌더한다" do
+    peer = User.create!(school: @school, classroom: @classroom, name: "메뉴친구", password: "password")
+    Report.create!(user: peer, classroom: @classroom, book: @book, book_title: @book.title, reviewed: true)
+
     get root_path
     assert_response :success
-    assert_select "a", text: /독서활동/
-    assert_match "추천 도서", response.body
+    assert_select "a[href=?]", reading_activity_path
+    recommended_index = response.body.index("추천도서")
+    popular_index = response.body.index("우리 반 인기 도서")
+    discovery_index = response.body.index("이 책은 어때요?")
+    assert recommended_index
+    assert popular_index
+    assert discovery_index
+    assert_operator recommended_index, :<, popular_index
+    assert_operator popular_index, :<, discovery_index
   end
 
   test "홈은 진행 중 미션 카드를 표시한다" do

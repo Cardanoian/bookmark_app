@@ -14,12 +14,13 @@ class User < ApplicationRecord
   has_many :user_monsters, dependent: :destroy
   has_many :user_badges, dependent: :destroy
   has_many :badges, through: :user_badges
-  has_many :purchases, dependent: :destroy
   has_many :forum_posts, dependent: :destroy
   has_many :cheers, dependent: :destroy
   has_many :quiz_attempts, dependent: :destroy
   has_many :game_plays, dependent: :destroy
   has_many :mission_participations, dependent: :destroy
+  has_many :recommendation_imports, foreign_key: :imported_by_id, dependent: :nullify,
+                                    inverse_of: :imported_by
 
   enum :role, { student: 0, teacher: 1, school_admin: 2, librarian: 3, superadmin: 4 }, default: :student
   enum :mode, { normal: 0, easy: 1 }, default: :normal

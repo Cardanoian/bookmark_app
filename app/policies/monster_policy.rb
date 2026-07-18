@@ -20,10 +20,6 @@ class MonsterPolicy < ApplicationPolicy
     owns_record?
   end
 
-  def feed?
-    owns_record?
-  end
-
   private
 
   # record 는 current_user 스코프로 조회된 UserMonster(또는 미보유 시 nil).

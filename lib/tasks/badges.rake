@@ -29,27 +29,3 @@ namespace :badges do
     puts "Seeded badges. Badge.count = #{Badge.count}"
   end
 end
-
-namespace :shop_items do
-  desc "Seed a handful of shop items (food / evolution_stone / decoration)"
-  task seed: :environment do
-    items = [
-      { name: "책갈피 간식", category: :food,            icon: "🍪", cost: 20,  image_key: "snack",          consumable: true,  effect: { "restores" => "hunger" } },
-      { name: "진화의 돌",   category: :evolution_stone,  icon: "💎", cost: 100, image_key: "evolution_stone", consumable: true,  effect: { "evolve_boost" => true } },
-      { name: "책장 배경",   category: :decoration,       icon: "🖼️", cost: 50,  image_key: "bookshelf_bg",    consumable: false, effect: {} }
-    ]
-
-    items.each do |attrs|
-      item = ShopItem.find_or_initialize_by(name: attrs[:name])
-      item.category = attrs[:category]
-      item.icon = attrs[:icon]
-      item.cost = attrs[:cost]
-      item.image_key = attrs[:image_key]
-      item.consumable = attrs[:consumable]
-      item.effect = attrs[:effect]
-      item.save!
-    end
-
-    puts "Seeded shop items. ShopItem.count = #{ShopItem.count}"
-  end
-end

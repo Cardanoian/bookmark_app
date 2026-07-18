@@ -4,6 +4,8 @@ class Book < ApplicationRecord
   GRADE_BANDS = [ "초등 1~2", "초등 3~4", "초등 5~6" ].freeze
 
   has_many :reports, dependent: :nullify
+  has_many :book_recommendations, dependent: :destroy
+  has_many :recommendation_imports, through: :book_recommendations
 
   enum :category, { recommended: 0, classic: 1, searched: 2 }, default: :recommended
 

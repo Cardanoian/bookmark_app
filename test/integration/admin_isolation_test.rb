@@ -20,16 +20,16 @@ class AdminIsolationTest < ActionDispatch::IntegrationTest
   end
 
   # 모든 관리자 GET 라우트 그룹(analytics/schools/users/books/quizzes/badges/
-  # shop_items/monster_species/moderation/settings/export).
+  # monster_species/moderation/settings/export). 상점 아이템은 PR7 에서 제거됨.
   def admin_get_paths
     [
       admin_root_path,
       admin_schools_path,
       admin_users_path,
       admin_books_path,
+      admin_recommendation_imports_path,
       admin_quizzes_path,
       admin_badges_path,
-      admin_shop_items_path,
       admin_monster_species_index_path,
       admin_moderation_index_path,
       admin_settings_path,

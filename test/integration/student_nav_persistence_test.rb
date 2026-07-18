@@ -63,15 +63,10 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "report action and shop balance follow the student navbar" do
+  test "report action follows the student navbar" do
     get reports_path
     assert_select 'nav[aria-label="학생 메뉴"] + div[data-page-action="new-report"]', count: 1 do
       assert_select "a[href=?]", new_report_path, text: "새 독후감 쓰기", count: 1
-    end
-
-    get shop_path
-    assert_select 'nav[aria-label="학생 메뉴"] + div[data-page-status="points-balance"]', count: 1 do
-      assert_select "#points_balance", text: @student.points.to_s, count: 1
     end
   end
 

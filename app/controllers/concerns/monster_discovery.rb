@@ -1,5 +1,7 @@
-# 활동 확정(독후감 승인·토론 글·스타터·게임 완료) 지점에서 몬스터 해금을 재평가하고
-# flash 안내 문구를 만드는 공용 헬퍼(monster_unlocks.md §4). 트리거 컨트롤러가 include 한다.
+# 활동 확정(독후감 승인·토론 글·스타터·게임 완료) 지점과 도감 조회(monsters#index/#show)
+# self-heal 시점에서 몬스터 해금을 재평가하고 flash 안내 문구를 만드는 공용 헬퍼
+# (monster_unlocks.md §4). 트리거 컨트롤러가 include 한다. 조회 self-heal 은 위 쓰기 트리거를
+# 거치지 않고 조건이 충족된 라인(등급 재부여·수동 데이터 등)이 고착되지 않게 하는 안전망이다.
 module MonsterDiscovery
   extend ActiveSupport::Concern
 
