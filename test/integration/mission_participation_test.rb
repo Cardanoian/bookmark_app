@@ -18,7 +18,7 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     # 곰 라인(dex 13) 발견 + 대표 지정. 곰 1→2 진화 조건: points:100, missions:1.
     @bear = MonsterAcquisition.new(@student).discover_monster!(13)
     @student.update!(active_monster: @bear)
-    @mission = Mission.create!(classroom: @classroom, title: "봄 독서 미션")
+    @mission = Mission.create!(classroom: @classroom, title: "봄 독서 미션", start_date: Date.current, end_date: Date.current + 7)
   end
 
   test "mission participation links the report and drives the evolution engine" do

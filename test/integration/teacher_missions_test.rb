@@ -24,7 +24,7 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
   end
 
   test "index lists missions" do
-    Mission.create!(classroom: @classroom, title: "겨울 미션")
+    Mission.create!(classroom: @classroom, title: "겨울 미션", start_date: Date.current, end_date: Date.current + 7)
     login_as @teacher
     get teacher_missions_path
     assert_response :success
@@ -32,14 +32,14 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
   end
 
   test "update edits a mission" do
-    mission = Mission.create!(classroom: @classroom, title: "원제목")
+    mission = Mission.create!(classroom: @classroom, title: "원제목", start_date: Date.current, end_date: Date.current + 7)
     login_as @teacher
     patch teacher_mission_path(mission), params: { mission: { title: "새제목" } }
     assert_equal "새제목", mission.reload.title
   end
 
   test "destroy removes a mission" do
-    mission = Mission.create!(classroom: @classroom, title: "삭제미션")
+    mission = Mission.create!(classroom: @classroom, title: "삭제미션", start_date: Date.current, end_date: Date.current + 7)
     login_as @teacher
     assert_difference -> { Mission.count }, -1 do
       delete teacher_mission_path(mission)
@@ -47,7 +47,7 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
   end
 
   test "a non-담임 teacher cannot edit another classroom's mission" do
-    mission = Mission.create!(classroom: @classroom, title: "보호미션")
+    mission = Mission.create!(classroom: @classroom, title: "보호미션", start_date: Date.current, end_date: Date.current + 7)
     login_as @other_teacher
     patch teacher_mission_path(mission), params: { mission: { title: "침입" } }
     assert_response :forbidden

@@ -43,7 +43,9 @@ class GamificationModelsTest < ActiveSupport::TestCase
   end
 
   test "Mission belongs to classroom and optional book" do
-    mission = Mission.create!(classroom: @classroom, title: "미션")
+    # menu_refactor 심화: title·start_date·end_date 는 이제 필수 검증(모델 재설계).
+    mission = Mission.create!(classroom: @classroom, title: "미션",
+                              start_date: Date.current, end_date: Date.current + 7)
     assert_equal @classroom, mission.classroom
     assert_nil mission.book
   end

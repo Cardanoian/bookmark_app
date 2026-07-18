@@ -144,7 +144,7 @@ class ReadingStatsTest < ActiveSupport::TestCase
   end
 
   test "missions and challenges count distinct ids" do
-    mission = Mission.create!(classroom: @classroom, title: "미션")
+    mission = Mission.create!(classroom: @classroom, title: "미션", start_date: Date.current, end_date: Date.current + 7)
     challenge = Challenge.create!(title: "챌린지")
     report(mission_id: mission.id)
     report(mission_id: mission.id)

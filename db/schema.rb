@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -202,16 +202,53 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
     t.index ["school_id"], name: "index_library_loans_on_school_id"
   end
 
+  create_table "mission_goals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "goal_type", null: false
+    t.integer "mission_id", null: false
+    t.integer "position"
+    t.integer "target_count", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mission_id", "goal_type"], name: "index_mission_goals_on_mission_id_and_goal_type", unique: true
+    t.index ["mission_id"], name: "index_mission_goals_on_mission_id"
+    t.check_constraint "target_count > 0", name: "chk_mission_goals_target_count_positive"
+  end
+
+  create_table "mission_participations", force: :cascade do |t|
+    t.datetime "assigned_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "mission_id", null: false
+    t.integer "reward_points_awarded", default: 0, null: false
+    t.datetime "rewarded_at"
+    t.datetime "unassigned_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["mission_id", "user_id"], name: "index_mission_participations_on_mission_id_and_user_id", unique: true
+    t.index ["mission_id"], name: "index_mission_participations_on_mission_id"
+    t.index ["user_id", "completed_at"], name: "index_mission_participations_on_user_id_and_completed_at"
+    t.index ["user_id"], name: "index_mission_participations_on_user_id"
+    t.check_constraint "reward_points_awarded >= 0", name: "chk_mission_participations_reward_nonneg"
+  end
+
   create_table "missions", force: :cascade do |t|
     t.integer "book_id"
+    t.datetime "cancelled_at"
     t.integer "classroom_id", null: false
     t.datetime "created_at", null: false
+    t.integer "created_by_id"
+    t.text "description"
     t.date "end_date"
+    t.datetime "published_at"
+    t.integer "reward_points", default: 0, null: false
     t.date "start_date"
+    t.integer "status", default: 0, null: false
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["book_id"], name: "index_missions_on_book_id"
+    t.index ["classroom_id", "status", "start_date"], name: "index_missions_on_classroom_id_and_status_and_start_date"
     t.index ["classroom_id"], name: "index_missions_on_classroom_id"
+    t.index ["created_by_id"], name: "index_missions_on_created_by_id"
   end
 
   create_table "monster_species", force: :cascade do |t|
@@ -487,8 +524,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
   add_foreign_key "library_events", "books", on_delete: :nullify
   add_foreign_key "library_events", "schools", on_delete: :nullify
   add_foreign_key "library_loans", "schools", on_delete: :nullify
+  add_foreign_key "mission_goals", "missions"
+  add_foreign_key "mission_participations", "missions"
+  add_foreign_key "mission_participations", "users"
   add_foreign_key "missions", "books", on_delete: :nullify
   add_foreign_key "missions", "classrooms"
+  add_foreign_key "missions", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id", on_delete: :nullify
   add_foreign_key "purchases", "shop_items"
   add_foreign_key "purchases", "users"

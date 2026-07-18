@@ -10,6 +10,7 @@
 - `quizzes.rake` — `quizzes:seed`. 시드된 도서 1권(기본 "마당을 나온 암탉")에 대해 게시(published) 전역 퀴즈 1개를 만들어 quiz(mcq) 게임을 즉시 플레이 가능하게 함. 문항은 `Ai::QuizDraftService` 로 5개 생성. `title` 기준 멱등. **Phase 1 콘텐츠축 메타(#9-seed)**: 퀴즈에 origin=teacher·content_axis=mcq·band(전역이라 g56 폴백)·content_version=1, 문항에 question_type=mcq_single·source=manual 을 명시해 신규 컬럼과 함께 재현되게 함(`test/tasks/quizzes_seed_test.rb`).
 - `badges.rake` — `badges:seed`(뱃지 13종) + `shop_items:seed`(먹이·진화의 돌·장식 상점 아이템). 각각 `key`/`name` 기준 멱등.
 - `games.rake` — `games:warm`(Phase 3 §3.5, A5). 카탈로그(추천/고전) 도서를 대상으로 `Games::ContentProvider.warm!` 로 **band×content_axis 워밍 잡을 사전 큐잉**해 학생 첫 플레이의 콜드-첫-오프라인 노출(특히 matching/hint_reveal)을 줄인다. 예산·rate limit·스코프 플래그를 준수하고 무키면 아무것도 적재하지 않으며(오프라인만), dedup(이미 워밍 중/AI 게시됨)은 `GenerateGameContentJob` 이 자체 가드한다. 시드 아닌 운영 태스크(스케줄/도서 지정 시 수동 실행).
+- `missions.rake` — **시드 아닌 데이터 전환 태스크**(menu_refactor 심화 §2.B, PR1). **`missions:backfill_legacy`**(멱등: 레거시 참여 `reports.mission_id` 별 `[mission, user]` 최초 시각으로 완료 `MissionParticipation` 을 `find_or_initialize` + `||=` 백필해 `ReadingStats#missions` 를 completed_at 기준으로 전환[PR2]해도 몬스터 조건이 퇴행하지 않게 보존; 실제 완료행은 skip, 레거시는 `reward_points_awarded=0`; 목표 없는 참여 미션은 `status=archived`; `created_by_id` 는 담임으로 백필) + **`missions:verify_backfill`**(학생별 old[reports distinct mission_id] vs new[완료 participation] 대조, mismatch 출력·있으면 abort — **mismatch=0 이 reader 전환 PR2 배포 게이트**). 개발 DB에 레거시 미션이 없으면 vacuously 통과(created=0).
 
 ## 패턴·규칙
 

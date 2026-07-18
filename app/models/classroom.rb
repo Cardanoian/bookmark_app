@@ -5,6 +5,7 @@ class Classroom < ApplicationRecord
   belongs_to :teacher, class_name: "User", optional: true
   has_many :users, dependent: :nullify
   has_many :reports, dependent: :destroy
+  has_many :missions, dependent: :destroy
 
   validates :class_no, uniqueness: { scope: [ :school_id, :grade ] }
 
