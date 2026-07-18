@@ -3,7 +3,7 @@
 `app/models`의 모델에 `include`되는 재사용 concern 모듈들입니다. 포인트 적립→뱃지→진화로 이어지는 게이미피케이션 루프의 4개 축(Pointable·Leveling·Evolvable·Badgeable)은 모두 `User`에 얹혀 협력하고, RubricScorable는 `Report`의 5축 채점을 맡습니다. ReadingDomain은 모델이 아닌 서비스·잡·다른 concern이 공유하는 순수 상수 모듈입니다.
 
 ## 파일
-- `pointable.rb` — **User** mixin. `award_points`(원자 증가→reload→뱃지·진화·랭킹 방송 연쇄)와 `spend_points!`(조건부 차감으로 double-spend 방지) 포인트 프리미티브.
+- `pointable.rb` — **User** mixin. `award_points`(원자 증가→reload→뱃지·진화·랭킹 방송 연쇄)와 `spend_points!`(조건부 차감으로 double-spend 방지) 포인트 프리미티브. **미션 보상용 트랜잭션 안전 프리미티브(menu_refactor 심화 §2.A.1)**: `credit_points!`(update_counters 원자 증가만 — reload·후크·방송 없음, `spend_points!`의 대칭)와 `run_point_side_effects!`(reload·`refresh_badges!`·`check_evolution!`·`broadcast_ranking_change` — 커밋 후 실행). `Missions::Rewarder`가 claim(조건부 UPDATE)+`credit_points!`를 한 트랜잭션으로 감싸 이중지급·under-award 를 동시에 막고, 방송·후크는 커밋 후 `run_point_side_effects!`로 돌린다(award_points 4개 호출부는 무변경 — 폭발 반경 0).
 - `leveling.rb` — **User** mixin. 누적 포인트 임계(LEVEL_PATH)로 트레이너 레벨(1..6)·칭호(TRAINER_TITLES) 계산.
 - `evolvable.rb` — **User** mixin. 활성/보유 몬스터의 진화 가능 여부 판정(`check_evolution!`·`evolvable_monsters`)과 필요 포인트 차감+진화를 원자 처리하는 `evolve_monster!`/`evolve_active_monster!`.
 - `badgeable.rb` — **User** mixin. `refresh_badges!`가 Badge::KEYS 13종 조건을 `ReadingStats`로 평가해 충족 뱃지를 멱등 부여. 도감 뱃지 분모는 설계 라인 24 고정.

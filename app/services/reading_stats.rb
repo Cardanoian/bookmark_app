@@ -75,9 +75,13 @@ class ReadingStats
     end
   end
 
-  # 참여 미션 수(mission_id distinct).
+  # 완료 미션 수(mission_participations.completed_at 기준, menu_refactor 심화 PR2 전환).
+  # [교정] 옛 구현은 reports.mission_id(참여) 를 셌으나, 재설계 후 완료 판정의 단일 진실은
+  # participation.completed_at 이다. mission.status 로 필터하지 않는다 — 레거시 백필은 미션을
+  # archived 로 두므로 status 필터 시 완료가 통째로 사라져 몬스터 조건(bear·squirrel·robot·
+  # dino·dokkaebi)이 퇴행한다. (mission_id,user_id) 유니크라 count == distinct mission 수.
   def missions
-    @missions ||= @user.reports.where.not(mission_id: nil).distinct.count(:mission_id)
+    @missions ||= @user.mission_participations.where.not(completed_at: nil).count
   end
 
   # 참여 챌린지 수(challenge_id distinct).

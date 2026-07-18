@@ -143,12 +143,17 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 1, @stats.revisions
   end
 
-  test "missions and challenges count distinct ids" do
-    mission = Mission.create!(classroom: @classroom, title: "미션", start_date: Date.current, end_date: Date.current + 7)
+  # [PR2 전환] missions 는 완료 participation(completed_at) 을 센다(reports.mission_id 아님).
+  test "missions counts completed participations; challenges count distinct report ids" do
+    completed = Mission.create!(classroom: @classroom, title: "완료미션", start_date: Date.current, end_date: Date.current + 7)
+    MissionParticipation.create!(mission: completed, user: @user, completed_at: Time.current)
+    # 미완료 참여는 세지 않는다.
+    pending = Mission.create!(classroom: @classroom, title: "진행미션", start_date: Date.current, end_date: Date.current + 7)
+    MissionParticipation.create!(mission: pending, user: @user)
+
     challenge = Challenge.create!(title: "챌린지")
-    report(mission_id: mission.id)
-    report(mission_id: mission.id)
     report(challenge_id: challenge.id)
+
     assert_equal 1, @stats.missions
     assert_equal 1, @stats.challenges
   end

@@ -47,6 +47,16 @@ class Mission < ApplicationRecord
     published? && end_date.present? && Date.current > end_date
   end
 
+  # draft → published 전환 + 학급 학생 자동 배정(menu_refactor 심화 §10.2). 상태 전환은
+  # 트랜잭션(검증=목표≥1), 배정·즉시 평가·방송은 커밋 후(AssignmentSync)로 분리한다.
+  def publish!
+    return false unless draft?
+
+    transaction { update!(status: :published, published_at: Time.current) }
+    Missions::AssignmentSync.on_publish(self)
+    true
+  end
+
   private
 
   def end_date_not_before_start_date

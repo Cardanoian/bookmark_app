@@ -30,6 +30,28 @@ module Pointable
     affected.positive?
   end
 
+  # 조건 없는 원자 적립 프리미티브(트랜잭션 안전). spend_points! 의 대칭.
+  # award_points 가 쓰는 update_counters(콜백·reload·방송 없는 원자 증가)를 재사용해 lost update 를
+  # 막되, reload·후크·방송은 하지 않는다 — 미션 Rewarder 가 claim(조건부 UPDATE)+credit 를 한
+  # 트랜잭션으로 감싸 이중지급·under-award 를 동시에 막고, 방송·후크는 커밋 후 run_point_side_effects!
+  # 로 실행하기 위함(menu_refactor 심화 §2.A.1). 0/음수 no-op.
+  def credit_points!(amount)
+    amount = amount.to_i
+    return false if amount <= 0
+
+    self.class.update_counters(id, points: amount)
+    true
+  end
+
+  # 포인트 변동의 커밋 후 사이드이펙트(뱃지·진화·랭킹 방송). 트랜잭션 밖에서만 호출한다.
+  # credit_points! 처럼 트랜잭션 안에서 원자 적립한 뒤, 커밋 후 이 메서드로 후크를 실행한다.
+  def run_point_side_effects!
+    reload
+    refresh_badges!
+    check_evolution!
+    broadcast_ranking_change
+  end
+
   # 포인트 변동 시 학급 랭킹 행을 실시간 갱신(§10). 구독자 없어도 안전한 단일 행 replace.
   # spend_points! 는 방송하지 않으므로 구매 등 트랜잭션 경로에서는 호출자가 커밋 후 직접 호출한다(§0.3).
   def broadcast_ranking_change

@@ -65,6 +65,10 @@ class Teacher::ReviewsController < ApplicationController
     broadcast_to_student(report)
     report.user.refresh_badges!
     report.user.check_evolution!
+    # 미션 진행 평가(menu_refactor 심화 §2.A.3). M5: evaluate_monster_unlocks 앞에 두어 같은 요청에서
+    # 미션완료→몬스터해금이 즉시 반영되게 하고, 반환값은 그대로 evaluate_monster_unlocks(discovered
+    # 배열)로 유지한다(batch_approve 의 discovered.concat 의존 — 반환값 바뀌면 크래시).
+    Missions::EvaluateProgress.new(report.user).on_report_approved(report)
     evaluate_monster_unlocks(report.user)
   end
 

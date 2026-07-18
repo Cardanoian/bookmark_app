@@ -31,7 +31,7 @@
 - `cable.yml` — Action Cable. development=async, production=`solid_cable`(cable DB).
 - `cache.yml` — Solid Cache. 항목당 max_size 256MB, production 은 cache DB 사용.
 - `queue.yml` — Solid Queue 디스패처/워커(모든 큐, 스레드 3, `JOB_CONCURRENCY` 프로세스).
-- `recurring.yml` — Solid Queue 반복 작업. production 에서 매시 완료 잡 정리.
+- `recurring.yml` — Solid Queue 반복 작업(production). 매시 완료 잡 정리 + **미션 완료·보상 주기 재평가**(`Missions::ReevaluateJob`, menu_refactor 심화 §2.A.6 안전망2 — 이벤트 훅 미스·지연배정 갭 백스톱, Rewarder 멱등이라 재실행 안전). dev/test 는 production 전용이라 즉시 평가 + 수동 `missions:reevaluate` rake 로 커버.
 - `storage.yml` — Active Storage 서비스(local=Disk, test=임시). S3/GCS 는 주석 예시.
 - `importmap.rb` — importmap-rails 핀(turbo·stimulus + `app/javascript/controllers`). 자체 호스팅, 외부 CDN 미사용.
 - `deploy.yml` — Kamal 배포 매니페스트. 서비스명 `bookmark_app`, SSL 자동(Let's Encrypt), 로컬 레지스트리(`localhost:5555`), 영구 볼륨(`/rails/storage`). 시크릿 ENV 는 **`RAILS_MASTER_KEY` 하나뿐**(이 키로 컨테이너가 credentials 를 복호화해 API 키를 런타임에 읽음 — 단일 소스). API 키를 서버 ENV 로 우회 주입하지 않는다(`docs/API_KEYS.md` §6). `.kamal/secrets` 도 `RAILS_MASTER_KEY` 한 줄만 담는다.
