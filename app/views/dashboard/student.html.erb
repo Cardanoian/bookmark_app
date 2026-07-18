@@ -6,7 +6,42 @@
   <h1 class="sr-only">홈</h1>
   <%= render "shared/student_nav", active: :home %>
 
-  <%# 1) 환영 및 이어하기 %>
+  <%# 1) 활성 몬스터·포인트 요약 (navbar 바로 아래) %>
+  <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div class="lg:col-span-2">
+      <% if current_user.active_monster.nil? %>
+        <div class="card-feature">
+          <h2 class="text-base font-bold text-ink"><span aria-hidden="true">🥚</span> 첫 반려 몬스터를 골라 볼까요?</h2>
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
+              <%= button_to choose_starter_monsters_path, params: { key: starter.key }, class: "card text-center" do %>
+                <span class="block"><%= monster_sprite(starter, img_class: "mx-auto h-20 w-20 object-contain") %></span>
+                <span class="mt-2 block text-sm font-semibold text-ink"><%= starter.name %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
+      <% end %>
+    </div>
+    <div class="stat-card">
+      <span class="stat-card__label">보유 포인트</span>
+      <span class="stat-card__value"><%= current_user.points %>P</span>
+      <span class="badge badge-yellow self-start">Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %></span>
+    </div>
+  </section>
+
+  <%# 2) 총괄관리자 업로드 기반 공식 추천도서 %>
+  <% recommended = @home.recommended_books.to_a %>
+  <% if recommended.any? %>
+    <section class="space-y-3">
+      <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
+      <%= render "dashboard/home_book_grid", books: recommended %>
+    </section>
+  <% end %>
+
+  <%# 3) 환영 및 이어하기 %>
   <section class="card-feature">
     <h2 class="text-lg font-bold text-ink"><%= current_user.name %>님, 오늘도 책 한 권 어때요?</h2>
     <% if (report = @home.continue_report) %>
@@ -23,7 +58,7 @@
     <% end %>
   </section>
 
-  <%# 2) 진행 중인 우리 반 미션 %>
+  <%# 4) 진행 중인 우리 반 미션 %>
   <% missions = @home.active_missions %>
   <% if missions.any? %>
     <section class="space-y-3">
@@ -52,16 +87,7 @@
     </section>
   <% end %>
 
-  <%# 3) 총괄관리자 업로드 기반 공식 추천도서 %>
-  <% recommended = @home.recommended_books.to_a %>
-  <% if recommended.any? %>
-    <section class="space-y-3">
-      <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
-      <%= render "dashboard/home_book_grid", books: recommended %>
-    </section>
-  <% end %>
-
-  <%# 4) 우리 반 인기 도서 %>
+  <%# 5) 우리 반 인기 도서 %>
   <% popular = @home.popular_books.to_a %>
   <% if popular.any? %>
     <section class="space-y-3">
@@ -70,7 +96,7 @@
     </section>
   <% end %>
 
-  <%# 5) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
+  <%# 6) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
   <% discovery = @home.discovery_books.to_a %>
   <% if discovery.any? %>
     <section id="book-discovery" class="space-y-3">
@@ -83,30 +109,4 @@
       <%= render "dashboard/home_book_grid", books: discovery %>
     </section>
   <% end %>
-
-  <%# 6) 활성 몬스터·포인트 요약 %>
-  <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <div class="lg:col-span-2">
-      <% if current_user.active_monster.nil? %>
-        <div class="card-feature">
-          <h2 class="text-base font-bold text-ink"><span aria-hidden="true">🥚</span> 첫 반려 몬스터를 골라 볼까요?</h2>
-          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
-              <%= button_to choose_starter_monsters_path, params: { key: starter.key }, class: "card text-center" do %>
-                <span class="block"><%= monster_sprite(starter, img_class: "mx-auto h-20 w-20 object-contain") %></span>
-                <span class="mt-2 block text-sm font-semibold text-ink"><%= starter.name %></span>
-              <% end %>
-            <% end %>
-          </div>
-        </div>
-      <% else %>
-        <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
-      <% end %>
-    </div>
-    <div class="stat-card">
-      <span class="stat-card__label">보유 포인트</span>
-      <span class="stat-card__value"><%= current_user.points %>P</span>
-      <span class="badge badge-yellow self-start">Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %></span>
-    </div>
-  </section>
 </div>
