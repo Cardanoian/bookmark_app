@@ -1,23 +1,32 @@
 <% content_for :title, "#{@topic.title} · 책갈피" %>
 
+<%= render "shared/student_nav", active: :activity %>
+
 <div class="page-shell page-shell-reading space-y-6">
   <header class="space-y-2">
     <%= link_to "← 토론방 목록", topics_path, class: "text-sm text-steel hover:text-ink" %>
     <h1 class="page-title"><%= @topic.title %></h1>
-    <p><span class="badge badge-neutral"><%= @topic.classroom? ? "우리 반 토론" : "우리 학교 토론" %></span></p>
+    <p class="flex flex-wrap items-center gap-2">
+      <span class="badge badge-neutral"><%= @topic.classroom? ? "우리 반 토론" : "우리 학교 토론" %></span>
+      <% if @topic.book %>
+        <span class="text-sm text-steel"><span aria-hidden="true">📖</span> <%= @topic.book.title %></span>
+      <% end %>
+    </p>
   </header>
 
   <section class="space-y-3">
     <% if @forum_posts.any? %>
       <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post,
-            locals: { liked_post_ids: @liked_post_ids } %>
+            locals: { liked_post_ids: @liked_post_ids, reported_post_ids: @reported_post_ids } %>
     <% else %>
       <%= render "shared/empty_state", message: "첫 글을 남겨 보세요.", icon: "✏️" %>
     <% end %>
   </section>
 
   <%= form_with model: @forum_post, url: topic_forum_posts_path(@topic), method: :post, class: "card space-y-3" do |f| %>
-    <%= f.text_area :text, rows: 3, required: true, placeholder: "생각을 나눠 보세요", class: "form-textarea" %>
+    <%= f.text_area :text, rows: 3, required: true,
+          minlength: ForumPost::TEXT_LENGTH.min, maxlength: ForumPost::TEXT_LENGTH.max,
+          placeholder: "생각을 나눠 보세요. 친구를 존중하는 고운 말로 써요.", class: "form-textarea" %>
     <div class="flex justify-end">
       <%= f.submit "글 남기기", class: "btn btn-yellow btn-sm" %>
     </div>

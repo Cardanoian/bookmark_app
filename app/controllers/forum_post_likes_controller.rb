@@ -1,6 +1,7 @@
 # 게시판 글 좋아요(👍, P5.4). 1인 1좋아요(unique). forum_post.likes_count 를 counter_cache 로
 # 증감하고 Turbo Stream 으로 좋아요 버튼/카운트를 갱신한다.
 class ForumPostLikesController < ApplicationController
+  before_action :require_reading_discussion!
   before_action :set_forum_post
 
   def create

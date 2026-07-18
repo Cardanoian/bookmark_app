@@ -36,9 +36,10 @@
 - `board_post.rb` — 우수작 게시판 글(report당 1개). hidden 숨김 스코프, 응원 수는 report 카운터 캐시로 위임.
 - `cheer.rb` — 응원(👏). 게시물당 사용자 1인 1회.
 - `sticker.rb` — 문장 스티커 동료평가. report 본문 위치에 붙는 이모지.
-- `topic.rb` — 토론방. scope(classroom·school) enum으로 경계 구분, hidden 스코프.
-- `forum_post.rb` — 토론 글. topic counter_cache, 좋아요는 forum_post_likes(1인 1좋아요)로 likes_count counter_cache.
+- `topic.rb` — 토론방. scope(classroom·school) enum으로 경계 구분, hidden 스코프, `hidden_by`(숨김 귀속). book 을 걸면 **책 앵커드 독서 토론**(독서활동 화면 진입점). **검증(reading_discussion)**: 제목 길이(`TITLE_LENGTH` 2..60)·금칙어(`Moderation::TextDenylist::FORUM`)·**scope_boundary_present**(classroom 스코프면 classroom_id, school 스코프면 school_id 필수 — 교사 개설 시 학급 미확정으로 인한 **고아 토픽** 저장 차단).
+- `forum_post.rb` — 토론 글. topic counter_cache(forum_posts_count), 좋아요는 forum_post_likes(1인 1좋아요)로 likes_count counter_cache, 신고는 forum_post_reports(1인 1신고)로 **reports_count** counter_cache, `hidden_by`(숨김 귀속). **검증(reading_discussion)**: text 길이(`TEXT_LENGTH` 2..500)·금칙어(FORUM 리스트). `reported_by?(user)`.
 - `forum_post_like.rb` — 토론 글 좋아요(👍). `(forum_post, user)` 유일성=**1인 1좋아요**(cheer 패턴), `forum_post.likes_count` counter_cache.
+- `forum_post_report.rb` — 토론 글 신고(reading_discussion). `(forum_post, user)` 유일성=**1인 1신고**(quiz_report 패턴), `forum_post.reports_count` counter_cache, `reason`(nullable). **자동 숨김 없음**(또래 저작물 집단신고 괴롭힘 방지) — 접수는 **저자 학급 담임** 대시보드 "신고된 토론 글" 사후 검토 신호로만 쓰이고, 실제 숨김은 담임(`Teacher::ForumModerations`)·총괄(`Admin::Moderation`)의 수동 판단.
 
 ### 퀴즈
 - `quiz.rb` — 독서 퀴즈. scope(classroom·global) enum, published 노출 통제, quiz_questions nested attributes. **온디맨드 콘텐츠축 캐시 메타(Phase 1)**: `content_axis`(mcq·matching·hint_reveal, 캐시·dedup 키) / `band`(g12·g34·g56) / `origin`(teacher·system, `scopes:false` — `Quiz.origins[:system]` 해시만 사용) / `generation_status`(ready·warming·failed) / `content_version` / `reported` enum·컬럼 / `reports_count`(신고 카운터 캐시). 표면은 저장하지 않음. 정수 매핑 고정(Phase 2b 부분 유니크 인덱스·point_award 상한이 의존).
@@ -63,7 +64,7 @@
 - `library_event.rb` — 이달의 책·행사(사서가 학교 단위 등록, book 선택).
 
 ### 설정
-- `app_setting.rb` — 전역 시스템 설정(key로 조회, value는 JSON). get/set/`feature_enabled?(flag, scope:)` 제공. API 키·시크릿류는 검증으로 저장 차단. **스코프형 기능 플래그(Phase 2b C3)**: `feature_enabled?`가 전역 kill switch + 학급/학교 스코프 오버라이드(`"<flag>:classroom:<id>"`/`":school:<id>"`, 학급 우선→학교)를 반영해 **한 학급 사고를 전교 off 없이 격리**하고 파일럿→확대 롤아웃을 지원한다. 전역 값 false=하드 kill(스코프 무시), 미설정=파일럿(기본 off), true=확대(기본 on). `on_demand_games` 가 온디맨드 게임 워밍의 전역 kill switch 키.
+- `app_setting.rb` — 전역 시스템 설정(key로 조회, value는 JSON). get/set/`feature_enabled?(flag, scope:, default:)` 제공. API 키·시크릿류는 검증으로 저장 차단. **스코프형 기능 플래그(Phase 2b C3)**: `feature_enabled?`가 전역 kill switch + 학급/학교 스코프 오버라이드(`"<flag>:classroom:<id>"`/`":school:<id>"`, 학급 우선→학교)를 반영해 **한 학급 사고를 전교 off 없이 격리**하고 파일럿→확대 롤아웃을 지원한다. 전역 값 false=하드 kill(스코프 무시), true=확대(기본 on). **미설정(nil) 시 기본값은 `default:` 인자**(하위호환 default: false=파일럿 기본 off — `on_demand_games`; default: true=확대 기본 on — `reading_discussion`, 안전 스택 동반 출하). 하드 kill·스코프 오버라이드는 default 와 무관하게 항상 우선. `on_demand_games`(온디맨드 게임)·`reading_discussion`(독서 토론)이 kill switch 키.
 
 ## 하위 폴더
 - [`concerns/`](concerns/CLAUDE.md) — 모델에 mixin하는 도메인 concern 모듈(포인트·레벨·진화·뱃지·루브릭·독서도메인 상수).

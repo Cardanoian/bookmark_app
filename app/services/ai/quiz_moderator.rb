@@ -16,7 +16,8 @@ module Ai
   class QuizModerator
     # 결정적 금칙어(아동 부적절 최소 차단). 명백한 욕설/폭력 표현만 최소로 둔다 —
     # 일반 도서 내용에 오탐하지 않도록 보수적으로 유지한다(안전 "보장" 아님, 최소 방어선).
-    DENYLIST = %w[씨발 시발 개새끼 새끼 지랄 좆 병신 강간 자살해 죽여버 꺼져].freeze
+    # 단일 진실은 Moderation::TextDenylist::QUIZ(토론 글은 오탐 위험 낱말을 뺀 FORUM 리스트를 쓴다).
+    DENYLIST = Moderation::TextDenylist::QUIZ
 
     # LLM 자가검토가 부적절로 판정하는 임계(0.0 정상 ~ 1.0 강한 부적절).
     LLM_REJECT_THRESHOLD = 0.5
@@ -123,7 +124,7 @@ module Ai
     # ── ② 결정적 금칙어 denylist ─────────────────────────────────────
     def denylist_errors(set)
       haystack = Array(set).map { |item| item_text(item) }.join(" ")
-      hits = DENYLIST.select { |word| haystack.include?(word) }
+      hits = Moderation::TextDenylist.hits(haystack, list: Moderation::TextDenylist::QUIZ)
       hits.empty? ? [] : [ "금칙어 포함: #{hits.join(', ')}" ]
     end
 

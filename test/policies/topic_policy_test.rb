@@ -45,4 +45,18 @@ class TopicPolicyTest < ActiveSupport::TestCase
     @class1_topic.update!(hidden: true)
     assert_not_includes scope_for(@student1), @class1_topic
   end
+
+  # 교사는 classroom_id 가 nil 이라 학생 규칙(record.classroom_id == user.classroom_id)으로는
+  # 자기 반 토픽을 못 본다. 담임 관계(Classroom.teacher_id)로 경계를 판정해야 한다(결함 A 수정).
+  test "teacher (classroom_id nil) sees and enters topics for the class they teach" do
+    teacher = User.create!(school: @school, name: "정책담임", role: :teacher, email: "pt@example.com", password: "password")
+    @class1.update!(teacher: teacher)
+
+    assert_nil teacher.classroom_id
+    assert TopicPolicy.new(teacher, @class1_topic).show?, "담임은 자기 반 토픽을 열람할 수 있어야 한다"
+    assert_not TopicPolicy.new(teacher, @class2_topic).show?, "담임이 아닌 반 토픽은 차단"
+    assert_includes scope_for(teacher), @class1_topic
+    assert_not_includes scope_for(teacher), @class2_topic
+    assert_includes scope_for(teacher), @school_topic, "같은 학교 스코프 토픽은 보인다"
+  end
 end

@@ -6,4 +6,7 @@ app_settings:
     value:
       seasonal_banner_enabled: false
       on_demand_games: true
+      # 독서 토론(reading_discussion). 안전 스택(신고·교사 모더레이션·금칙어)을 함께 출하하므로
+      # 기본 확대(on). false=전역 하드 kill, "reading_discussion:classroom:<id>"=false 로 학급 격리.
+      reading_discussion: true
     description: 전역 기능 플래그(JSON 객체)

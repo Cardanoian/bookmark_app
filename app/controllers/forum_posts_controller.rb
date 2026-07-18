@@ -1,5 +1,6 @@
 # 토론 글 작성(P5.4). 토픽 경계 안 사용자만 글을 남길 수 있다(ForumPostPolicy).
 class ForumPostsController < ApplicationController
+  before_action :require_reading_discussion!
   before_action :set_topic
 
   def create

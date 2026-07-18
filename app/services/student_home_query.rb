@@ -89,6 +89,15 @@ class StudentHomeQuery
     end
   end
 
+  # 우리 반·우리 학교 최근 토론방(홈 진입점). TopicPolicy::Scope 의 학생 규칙을 그대로 미러해
+  # 경계를 지킨다(학생은 classroom_id·school_id 를 항상 가짐). 숨김 토픽은 visible 로 배제.
+  def recent_topics(limit: 4)
+    base = Topic.visible
+    classroom_scope = base.where(scope: :classroom, classroom_id: @user.classroom_id)
+    school_scope = base.where(scope: :school, school_id: @user.school_id)
+    classroom_scope.or(school_scope).includes(:book).order(created_at: :desc).limit(limit).to_a
+  end
+
   private
 
   def discovery_offset(total)

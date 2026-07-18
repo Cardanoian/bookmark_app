@@ -53,6 +53,42 @@
         </div>
       <% end %>
 
+      <%# 신고된 토론 글 사후 검토(reading_discussion). 저자가 담임 학급 소속인 글만 노출한다.
+          자동 숨김이 없으므로 교사가 직접 확인하고 필요하면 숨긴다(집단신고 괴롭힘 방지).
+          기능이 하드 kill 되면 모더레이션 컨트롤러도 막히므로 섹션 자체를 숨겨 버튼-리다이렉트 불일치를 없앤다. %>
+      <% if reading_discussion_enabled? && @reported_forum_posts.any? %>
+        <div class="card border-brand-red-dark bg-brand-red">
+          <h2 class="mb-1 text-lg font-semibold text-coral-dark">
+            <span aria-hidden="true">🚩</span> 신고된 토론 글 (<%= @reported_forum_posts.size %>)
+          </h2>
+          <p class="mb-3 text-xs text-coral-dark">
+            우리 반 학생의 토론 글이 신고됐어요. 내용을 확인하고, 문제가 있으면 숨겨 주세요.
+          </p>
+          <ul class="divide-y divide-brand-red-dark">
+            <% @reported_forum_posts.each do |post| %>
+              <li class="flex items-start justify-between gap-2 py-2 text-sm">
+                <span class="min-w-0">
+                  <span class="block text-coral-dark">
+                    <span class="font-semibold"><%= post.user.name %></span> · 「<%= post.topic.title %>」
+                    <span class="badge badge-danger ml-1">신고 <%= post.reports_count %></span>
+                    <% if post.hidden? %><span class="badge badge-neutral ml-1">숨김됨</span><% end %>
+                  </span>
+                  <span class="mt-0.5 block truncate text-xs text-coral-dark"><%= truncate(post.text, length: 80) %></span>
+                </span>
+                <span class="shrink-0">
+                  <% if post.hidden? %>
+                    <%= button_to "숨김 해제", teacher_forum_post_unhide_path(post), class: "btn btn-secondary btn-sm" %>
+                  <% else %>
+                    <%= button_to "숨기기", teacher_forum_post_hide_path(post), class: "btn btn-danger btn-sm",
+                          form: { data: { turbo_confirm: "이 토론 글을 숨길까요?" } } %>
+                  <% end %>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
       <div class="grid gap-6 md:grid-cols-2">
         <div class="card">
           <h2 class="mb-3 text-lg font-semibold text-ink">학급 5축 평균</h2>

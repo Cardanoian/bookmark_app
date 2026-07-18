@@ -102,9 +102,11 @@ Rails.application.routes.draw do
   resources :topics, only: [ :index, :show, :create ] do
     resources :forum_posts, only: [ :create ]
   end
-  # 토론 글 좋아요(👍, P5.4). forum_post_id 만으로 create/destroy(단수 like 리소스).
+  # 토론 글 좋아요(👍, P5.4)·신고(🚩, reading_discussion). forum_post_id 만으로 단수 리소스.
   resources :forum_posts, only: [] do
     resource :like, only: [ :create, :destroy ], controller: "forum_post_likes"
+    # 신고(1인 1신고). 자동 숨김 없이 저자 학급 담임 대시보드 사후 검토 신호가 된다.
+    resource :report, only: [ :create ], controller: "forum_post_reports"
   end
 
   # 게임화 — 몬스터 도감·진화, 케어 상점, 랭킹, 미션·챌린지
@@ -150,6 +152,10 @@ Rails.application.routes.draw do
     end
     resources :quizzes
     resource  :rubric_config, only: [ :edit, :update ]
+
+    # 토론 글 모더레이션(reading_discussion) — 담임이 자기 학급 학생 글만 숨김/해제(저자 학급 경계).
+    post "forum_posts/:id/hide",   to: "forum_moderations#hide",   as: :forum_post_hide
+    post "forum_posts/:id/unhide", to: "forum_moderations#unhide", as: :forum_post_unhide
 
     # 문서 출력(대회요건 연구06 원자료 CSV + 인쇄용 HTML)
     get "exports/reports_csv", to: "exports#reports_csv", as: :exports_reports_csv

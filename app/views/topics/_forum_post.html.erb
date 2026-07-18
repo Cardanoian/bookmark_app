@@ -1,8 +1,20 @@
-<%# 토론 글(P5.4). local: forum_post %>
+<%# 토론 글(P5.4 + reading_discussion). local: forum_post, liked_post_ids, (선택) reported_post_ids %>
+<% reported_ids = local_assigns.fetch(:reported_post_ids) { Set.new } %>
+<% can_report = current_user && forum_post.user_id != current_user.id && !reported_ids.include?(forum_post.id) %>
 <article id="<%= dom_id(forum_post) %>" class="card">
   <p class="whitespace-pre-wrap text-sm leading-relaxed text-ink"><%= forum_post.text %></p>
   <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-hairline-soft pt-3">
     <span class="text-xs font-medium text-steel"><%= forum_post.user.name %></span>
-    <%= render "topics/like_button", forum_post: forum_post, liked: liked_post_ids.include?(forum_post.id) %>
+    <div class="flex items-center gap-2">
+      <%= render "topics/like_button", forum_post: forum_post, liked: liked_post_ids.include?(forum_post.id) %>
+      <% if can_report %>
+        <%= button_to forum_post_report_path(forum_post), method: :post,
+              class: "btn btn-secondary btn-sm",
+              aria: { label: "이 글 신고하기" },
+              form: { data: { turbo_confirm: "이 글을 선생님께 신고할까요?" } } do %>
+          <span aria-hidden="true">🚩</span> 신고
+        <% end %>
+      <% end %>
+    </div>
   </div>
 </article>

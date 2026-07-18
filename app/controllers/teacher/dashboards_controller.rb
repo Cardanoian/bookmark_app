@@ -25,6 +25,14 @@ class Teacher::DashboardsController < Teacher::BaseController
     @reported_content = QuizReport.where(user_id: @students.select(:id))
                                   .includes(:user, quiz: :book)
                                   .order(created_at: :desc).limit(10).to_a
+
+    # 신고된 토론 글(reading_discussion 사후 검토): **저자(작성자)가 담임 학급 소속**인 글만 노출한다
+    # (신고자 학급이 아니라 저자 학급 기준 — 담임이 자기 학생의 글을 모더레이션하는 권한과 정합).
+    # 자동 숨김이 없으므로 1건이라도 신고되면 교사가 직접 확인·숨김하도록 노출한다.
+    @reported_forum_posts = ForumPost.where(user_id: @students.select(:id))
+                                     .where("forum_posts.reports_count > 0")
+                                     .includes(:user, :topic)
+                                     .order(reports_count: :desc, created_at: :desc).limit(10).to_a
   end
 
   private

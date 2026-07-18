@@ -10,6 +10,13 @@ class ReadingActivitiesController < ApplicationController
 
     @recent_reports = Current.user.reports.where(book_id: @book.id).order(created_at: :desc).limit(3).to_a
     @active_missions = StudentHomeQuery.new(Current.user).active_missions
+    # 이 책으로 나눈 독서 토론(책 앵커드 진입점). 경계는 policy_scope(TopicPolicy::Scope) 로 강제해
+    # 타 학급/학교 토픽이 새지 않게 하고, 기능 플래그가 꺼지면 섹션을 비운다.
+    @book_topics = if reading_discussion_enabled?
+      policy_scope(Topic).where(book_id: @book.id).order(created_at: :desc).limit(5).to_a
+    else
+      []
+    end
   end
 
   # 인근 도서관 대출 가능 섹션(Turbo Frame lazy-load 전용). resolve_book 실패 시엔 서비스를

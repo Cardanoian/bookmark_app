@@ -74,6 +74,35 @@
       </section>
     </div>
 
+    <%# 이 책으로 나누는 독서 토론(책 앵커드 진입점, reading_discussion). 기능 플래그가 꺼지면 숨김. %>
+    <% if reading_discussion_enabled? %>
+      <section class="card space-y-3">
+        <h3 class="font-semibold text-ink">💬 이 책으로 토론하기</h3>
+        <% if @book_topics.any? %>
+          <ul class="space-y-1.5">
+            <% @book_topics.each do |topic| %>
+              <li class="flex items-center justify-between gap-2">
+                <%= link_to topic.title, topic_path(topic), class: "min-w-0 truncate text-brand-blue underline" %>
+                <span class="shrink-0 text-xs text-steel"><span aria-hidden="true">💬</span> <%= topic.forum_posts_count %></span>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-steel">아직 이 책으로 나눈 토론이 없어요. 첫 토론을 열어 보세요!</p>
+        <% end %>
+
+        <% if policy(Topic).create? %>
+          <%= form_with model: Topic.new, url: topics_path, method: :post, class: "flex flex-wrap items-end gap-2 border-t border-hairline-soft pt-3" do |f| %>
+            <%= f.hidden_field :book_id, value: @book.id %>
+            <%= f.hidden_field :scope, value: "classroom" %>
+            <%= f.text_field :title, value: truncate("《#{@book.title}》 이야기", length: Topic::TITLE_LENGTH.max),
+                  maxlength: Topic::TITLE_LENGTH.max, "aria-label": "토론 주제", class: "form-input flex-1" %>
+            <%= f.submit "토론 열기", class: "btn btn-yellow btn-sm" %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+
     <%# 인근 도서관 대출 가능 표시 — 첫 렌더를 막지 않게 Turbo Frame lazy-load(§5.5). %>
     <%= turbo_frame_tag "nearby_libraries",
           src: nearby_libraries_reading_activity_path(book_id: @book.id),

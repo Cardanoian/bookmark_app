@@ -51,9 +51,14 @@ class AppSetting < ApplicationRecord
   #   전면중단 : "on_demand_games" => false (스코프 무시, 전부 오프라인 강등)
   #
   # scope 는 Classroom / School / User(classroom·school 소속) 아무거나 받는다(없으면 전역만).
-  def self.feature_enabled?(flag, scope: nil)
+  #
+  # default: 전역 값이 **미설정(nil)** 일 때의 기본값. on_demand_games 처럼 파일럿(기본 off)이
+  # 기본인 플래그는 default: false(기존 동작), reading_discussion 처럼 안전 스택을 함께 출하해
+  # **확대(기본 on)** 가 기본인 플래그는 default: true 로 호출한다. 하드 kill(false)·스코프
+  # 오버라이드는 default 와 무관하게 항상 우선한다(kill switch 실효 보장).
+  def self.feature_enabled?(flag, scope: nil, default: false)
     flags = get("feature_flags", {})
-    return false unless flags.is_a?(Hash)
+    return default unless flags.is_a?(Hash)
 
     key = flag.to_s
     global = flags[key]
@@ -62,7 +67,7 @@ class AppSetting < ApplicationRecord
     override = scope_flag(flags, key, scope)
     return !!override unless override.nil?
 
-    !!global
+    global.nil? ? default : !!global
   end
 
   private_class_method def self.scope_flag(flags, key, scope)

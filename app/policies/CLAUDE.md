@@ -13,6 +13,7 @@
 - `classroom_policy.rb` — 학급. show/Scope를 role별 분기(총괄=전체, 교사=담임 학급, 학생=소속 학급, 교무·사서=같은 학교).
 - `forum_post_policy.rb` — 토론 글. 대상 토픽을 열람 가능(TopicPolicy#show?)한 사용자만 작성.
 - `forum_post_like_policy.rb` — 토론 글 좋아요. 생성은 대상 토픽 열람 가능(TopicPolicy#show?)한 사용자만, 취소는 본인 좋아요만.
+- `forum_post_report_policy.rb` — 토론 글 신고(reading_discussion). 대상 토픽 열람 가능(TopicPolicy#show?) + **자기 글이 아닐 때만** 신고(`record.forum_post.user_id != user.id`). (교사 수동 숨김은 정책이 아니라 `Teacher::ForumModerations`가 `owned_student!`로 저자 학급 경계를 강제.)
 - `learn_policy.rb` — 단계 학습 위저드. 로그인 사용자면 진행(index·advance).
 - `mission_policy.rb` — 미션. 열람은 로그인 사용자, 참여(join)는 학생.
 - `monster_policy.rb` — 몬스터. 도감 열람은 로그인 사용자, 진화·대표지정·먹이주기는 보유자 본인만(owns_record?).
@@ -21,7 +22,7 @@
 - `quiz_attempt_policy.rb` — 퀴즈 플레이 기록. `create?`(제출)·`update?`(whoami 힌트 공개)는 **대상 퀴즈의 플레이 경계를 QuizPolicy#show? 로 위임**해 한 곳에서 강제(band/학급 클램프 재사용). `update?` 는 본인 attempt 이면서 플레이 가능해야 함. 열람은 본인 기록만.
 - `ranking_policy.rb` — 랭킹. 로그인 사용자면 열람.
 - `sticker_policy.rb` — 문장 스티커. 학생만 생성하되 대상 report의 게시물이 보이는 경우만.
-- `topic_policy.rb` — 토론방. 학생·교사는 자기 학급-스코프 또는 자기 학교-스코프 토픽만 열람(경계 밖 차단). 생성은 학생·교사. Scope로 경계 필터링.
+- `topic_policy.rb` — 토론방. 경계는 **역할별로 다르다**: 학생=자기 학급(`record.classroom_id == user.classroom_id`)+자기 학교, **교사=담당 학급(`Classroom.teacher_id == user.id`, 다학급 가능)+자기 학교**(교사는 `user.classroom_id`가 nil이라 학생 규칙 재사용 불가 — 이 분기가 없으면 담임이 자기 반 토픽을 못 봄), 총괄=전체. 생성은 학생·교사. Scope도 역할별 classroom_ids 로 경계 필터링.
 
 ## 패턴·규칙
 - **기본 거부**: `ApplicationPolicy`가 모든 액션을 `false`로 시작한다. 정책은 열어 줄 액션만 명시적으로 override한다.

@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
   before_action :enforce_not_suspended
   before_action :require_login
 
-  helper_method :current_user, :logged_in?, :ocr_available?
+  helper_method :current_user, :logged_in?, :ocr_available?, :reading_discussion_enabled?
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
@@ -58,5 +58,22 @@ class ApplicationController < ActionController::Base
 
   def user_not_authorized
     head :forbidden
+  end
+
+  # 독서 토론 기능 플래그(reading_discussion). 신고·모더레이션·금칙어 안전 스택을 함께 출하하므로
+  # **기본값은 활성(확대, default: true)** 이며, 관리자는 전역 하드 kill(feature_flags 에
+  # "reading_discussion" => false) 또는 학급/학교 스코프 off 오버라이드로만 차단한다
+  # (on_demand_games 규약과 동일). 학급 파일럿→확대 롤아웃도 스코프 오버라이드로 가능.
+  def reading_discussion_enabled?(user = current_user)
+    AppSetting.feature_enabled?("reading_discussion", scope: user, default: true)
+  end
+
+  # 토론 컨트롤러 진입 게이트. 뷰만 가리는 것으로는 URL 직접 요청을 막지 못하므로 컨트롤러에서
+  # 강제한다(kill switch·파일럿 격리 실효 보장). 비활성 시 홈으로 리다이렉트해 액션을 중단한다
+  # (before_action 리다이렉트는 이후 콜백·verify_authorized 를 건너뛴다).
+  def require_reading_discussion!
+    return if reading_discussion_enabled?
+
+    redirect_to root_path, alert: "지금은 독서 토론을 이용할 수 없어요."
   end
 end

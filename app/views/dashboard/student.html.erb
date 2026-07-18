@@ -96,6 +96,32 @@
     </section>
   <% end %>
 
+  <%# 5.5) 우리 반·우리 학교 책 이야기(reading_discussion 진입점). 기능 플래그가 꺼지면 숨김. %>
+  <% if reading_discussion_enabled? %>
+    <% topics = @home.recent_topics %>
+    <% if topics.any? %>
+      <section class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-lg font-bold text-ink">💬 우리 반 책 이야기</h2>
+          <%= link_to "토론방 가기 →", topics_path, class: "text-sm text-brand-blue underline" %>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <% topics.each do |topic| %>
+            <%= link_to topic_path(topic), class: "card flex items-center justify-between gap-2 hover:border-primary/40" do %>
+              <span class="min-w-0">
+                <span class="block truncate font-semibold text-ink"><%= topic.title %></span>
+                <% if topic.book %>
+                  <span class="block truncate text-xs text-steel"><span aria-hidden="true">📖</span> <%= topic.book.title %></span>
+                <% end %>
+              </span>
+              <span class="shrink-0 text-xs text-steel"><span aria-hidden="true">💬</span> <%= topic.forum_posts_count %></span>
+            <% end %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% end %>
+
   <%# 6) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
   <% discovery = @home.discovery_books.to_a %>
   <% if discovery.any? %>
