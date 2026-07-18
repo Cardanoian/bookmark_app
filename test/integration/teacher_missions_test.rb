@@ -60,5 +60,97 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  # --- PR4: 목표·발행·잠금 ---
+
+  test "create builds mission goals and reward points" do
+    login_as @teacher
+    post teacher_missions_path, params: { mission: {
+      title: "목표 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
+      reward_points: 80, goals: { approved_reports: 3, game_plays: 2 }
+    } }
+    mission = Mission.order(:created_at).last
+    assert mission.draft?
+    assert_equal 80, mission.reward_points
+    assert_equal %w[approved_reports game_plays].sort, mission.mission_goals.map(&:goal_type).sort
+    assert_equal 3, mission.mission_goals.find_by(goal_type: :approved_reports).target_count
+  end
+
+  test "target 0 goal is excluded" do
+    login_as @teacher
+    post teacher_missions_path, params: { mission: {
+      title: "부분 목표", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
+      goals: { approved_reports: 2, game_plays: 0 }
+    } }
+    mission = Mission.order(:created_at).last
+    assert_equal [ "approved_reports" ], mission.mission_goals.map(&:goal_type)
+  end
+
+  test "publish transitions to published and auto-assigns classroom students" do
+    mission = Mission.new(classroom: @classroom, title: "발행미션", reward_points: 30,
+                          start_date: Date.current, end_date: Date.current + 7)
+    mission.mission_goals.build(goal_type: :approved_reports, target_count: 1)
+    mission.save!
+    login_as @teacher
+    post publish_teacher_mission_path(mission)
+    assert mission.reload.published?
+    assert MissionParticipation.exists?(mission: mission, user: @student)
+  end
+
+  test "publish without goals keeps draft with alert" do
+    mission = Mission.create!(classroom: @classroom, title: "무목표", start_date: Date.current, end_date: Date.current + 7)
+    login_as @teacher
+    post publish_teacher_mission_path(mission)
+    assert mission.reload.draft?
+    assert_not MissionParticipation.exists?(mission: mission)
+  end
+
+  test "published mission locks goals and dates on update but allows title" do
+    mission = Mission.new(classroom: @classroom, title: "잠금미션", start_date: Date.current, end_date: Date.current + 7)
+    mission.mission_goals.build(goal_type: :approved_reports, target_count: 2)
+    mission.save!
+    mission.publish!
+    login_as @teacher
+    patch teacher_mission_path(mission), params: { mission: {
+      title: "새 제목", start_date: (Date.current + 30).to_s, goals: { approved_reports: 9 }
+    } }
+    mission.reload
+    assert_equal "새 제목", mission.title           # 제목은 수정됨
+    assert_equal Date.current, mission.start_date    # 기간은 잠김
+    assert_equal 2, mission.mission_goals.first.target_count  # 목표는 잠김
+  end
+
+  test "published mission cannot be destroyed" do
+    mission = Mission.new(classroom: @classroom, title: "발행삭제금지", start_date: Date.current, end_date: Date.current + 7)
+    mission.mission_goals.build(goal_type: :approved_reports, target_count: 1)
+    mission.save!
+    mission.publish!
+    login_as @teacher
+    assert_no_difference -> { Mission.count } do
+      delete teacher_mission_path(mission)
+    end
+  end
+
+  test "non-담임 teacher cannot publish another classroom's mission" do
+    mission = Mission.new(classroom: @classroom, title: "타학급발행", start_date: Date.current, end_date: Date.current + 7)
+    mission.mission_goals.build(goal_type: :approved_reports, target_count: 1)
+    mission.save!
+    login_as @other_teacher
+    post publish_teacher_mission_path(mission)
+    assert_response :forbidden
+    assert mission.reload.draft?
+  end
+
+  test "status filter scopes the list" do
+    draft = Mission.create!(classroom: @classroom, title: "초안하나", start_date: Date.current, end_date: Date.current + 7)
+    published = Mission.new(classroom: @classroom, title: "발행하나", start_date: Date.current, end_date: Date.current + 7)
+    published.mission_goals.build(goal_type: :approved_reports, target_count: 1)
+    published.save!
+    published.publish!
+    login_as @teacher
+    get teacher_missions_path(status: "draft")
+    assert_match "초안하나", response.body
+    assert_no_match(/발행하나/, response.body)
+  end
+
   private
 end

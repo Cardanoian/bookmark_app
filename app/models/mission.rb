@@ -47,12 +47,16 @@ class Mission < ApplicationRecord
     published? && end_date.present? && Date.current > end_date
   end
 
-  # draft → published 전환 + 학급 학생 자동 배정(menu_refactor 심화 §10.2). 상태 전환은
-  # 트랜잭션(검증=목표≥1), 배정·즉시 평가·방송은 커밋 후(AssignmentSync)로 분리한다.
+  # draft → published 전환 + 학급 학생 자동 배정(menu_refactor 심화 §10.2). 검증(목표≥1) 실패 시
+  # errors 를 채우고 false 를 반환한다(예외 없음 — 호출부가 분기). 배정·즉시 평가·방송은 상태 저장
+  # 커밋 후(AssignmentSync)로 분리한다.
   def publish!
     return false unless draft?
 
-    transaction { update!(status: :published, published_at: Time.current) }
+    self.status = :published
+    self.published_at = Time.current
+    return false unless save
+
     Missions::AssignmentSync.on_publish(self)
     true
   end

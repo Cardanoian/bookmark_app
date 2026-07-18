@@ -10,25 +10,40 @@
         <%= link_to "새 미션", new_teacher_mission_path, class: "btn btn-blue" %>
       </header>
 
+      <%# 상태 필터 %>
+      <nav class="flex flex-wrap gap-1.5" aria-label="미션 상태 필터">
+        <% [ [ nil, "전체" ], [ "draft", "초안" ], [ "published", "발행" ], [ "cancelled", "취소" ], [ "archived", "보관" ] ].each do |value, label| %>
+          <%= link_to label, teacher_missions_path(status: value),
+                aria: { current: (@status_filter == value ? "page" : nil) },
+                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status_filter == value ? "bg-primary text-white" : "text-steel hover:bg-surface"}" %>
+        <% end %>
+      </nav>
+
       <% if @missions.any? %>
         <div class="space-y-3">
           <% @missions.each do |mission| %>
             <div class="card flex items-center justify-between gap-3">
               <span class="min-w-0">
-                <span class="block font-medium text-ink"><%= mission.title %></span>
+                <span class="flex items-center gap-2">
+                  <span class="font-medium text-ink truncate"><%= mission.title %></span>
+                  <%= render "teacher/missions/status_badge", mission: mission %>
+                </span>
                 <span class="block text-xs text-steel">
                   <%= mission.classroom&.label %>
-                  <% if mission.start_date || mission.end_date %>
-                    · <%= mission.start_date %> ~ <%= mission.end_date %>
+                  <% if mission.start_date %> · <%= mission.start_date %> ~ <%= mission.end_date %><% end %>
+                  <% if mission.mission_goals.any? %>
+                    · 목표 <%= mission.mission_goals.size %>개 · <%= mission.reward_points %>P
                   <% end %>
                 </span>
               </span>
               <div class="flex shrink-0 items-center gap-2">
                 <%= link_to "보기", teacher_mission_path(mission), class: "text-sm text-brand-blue" %>
-                <%= link_to "수정", edit_teacher_mission_path(mission), class: "text-sm text-slate" %>
-                <%= button_to "삭제", teacher_mission_path(mission), method: :delete,
-                      form: { data: { turbo_confirm: "삭제할까요?" } },
-                      class: "btn btn-sm btn-danger" %>
+                <% if mission.draft? %>
+                  <%= link_to "수정", edit_teacher_mission_path(mission), class: "text-sm text-slate" %>
+                  <%= button_to "삭제", teacher_mission_path(mission), method: :delete,
+                        form: { data: { turbo_confirm: "초안을 삭제할까요?" } },
+                        class: "btn btn-sm btn-danger" %>
+                <% end %>
               </div>
             </div>
           <% end %>

@@ -1,17 +1,92 @@
 <% content_for :title, "#{@mission.title} · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 
 <div class="page-shell page-shell-content space-y-4">
   <%= link_to "← 미션 관리", teacher_missions_path, class: "text-sm text-steel hover:text-ink" %>
-  <h1 class="page-title"><%= @mission.title %></h1>
-  <div class="card space-y-2 text-sm text-ink">
-    <p><span class="text-steel">학급:</span> <%= @mission.classroom&.label %></p>
-    <% if @mission.book %>
-      <p><span class="text-steel">도서:</span> <%= @mission.book.title %></p>
-    <% end %>
-    <p><span class="text-steel">기간:</span> <%= @mission.start_date %> ~ <%= @mission.end_date %></p>
+  <div class="flex items-center gap-2">
+    <h1 class="page-title"><%= @mission.title %></h1>
+    <%= render "teacher/missions/status_badge", mission: @mission %>
   </div>
+
+  <div class="card space-y-2 text-sm text-ink">
+    <% if @mission.description.present? %><p class="text-steel"><%= @mission.description %></p><% end %>
+    <p><span class="text-steel">학급:</span> <%= @mission.classroom&.label %></p>
+    <p><span class="text-steel">기간:</span> <%= @mission.start_date %> ~ <%= @mission.end_date %></p>
+    <p><span class="text-steel">완료 보상:</span> <%= @mission.reward_points %>P</p>
+    <div>
+      <span class="text-steel">목표:</span>
+      <% if @mission.mission_goals.any? %>
+        <ul class="mt-1 list-inside list-disc">
+          <% @mission.mission_goals.each do |goal| %>
+            <li><%= goal_label[goal.goal_type] %> <%= goal.target_count %><%= goal.goal_type == "approved_reports" ? "편" : "회" %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <span class="text-red-600">없음 — 발행하려면 목표를 추가하세요</span>
+      <% end %>
+    </div>
+  </div>
+
+  <%# 액션: draft 는 발행/수정/삭제, published 는 상태 안내 %>
   <div class="page-actions">
-    <%= link_to "수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
+    <% if @mission.draft? %>
+      <%= button_to "발행하기", publish_teacher_mission_path(@mission), method: :post,
+            form: { data: { turbo_confirm: "발행하면 목표·기간·보상을 바꿀 수 없어요. 발행할까요?" } },
+            class: "btn btn-primary", disabled: @mission.mission_goals.empty? %>
+      <%= link_to "수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
+      <%= button_to "삭제", teacher_mission_path(@mission), method: :delete,
+            form: { data: { turbo_confirm: "초안을 삭제할까요?" } }, class: "btn btn-danger btn-sm" %>
+    <% else %>
+      <%= link_to "제목·설명 수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
+    <% end %>
     <%= link_to "목록", teacher_missions_path, class: "text-sm text-steel" %>
   </div>
+
+  <%# 학생 진행 현황(발행 후). batch 로 N+1 없이 집계. %>
+  <% if @mission.published? %>
+    <section class="space-y-2">
+      <h2 class="text-base font-semibold text-ink">학생 진행 현황
+        <span class="text-sm font-normal text-steel">(완료 <%= @progress.count { |_id, p| p[:completed] } %>/<%= @participations.size %>명)</span>
+      </h2>
+      <% if @participations.any? %>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[24rem] text-sm">
+            <thead>
+              <tr class="border-b border-hairline text-left text-steel">
+                <th class="py-2 pr-3 font-medium">학생</th>
+                <% @mission.mission_goals.each do |goal| %>
+                  <th class="py-2 pr-3 font-medium"><%= goal_label[goal.goal_type] %></th>
+                <% end %>
+                <th class="py-2 font-medium">상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @participations.each do |participation| %>
+                <% prog = @progress[participation.user_id] || { goals: [], completed: false } %>
+                <tr class="border-b border-hairline/60">
+                  <td class="py-2 pr-3 text-ink"><%= participation.user.name %></td>
+                  <% prog[:goals].each do |g| %>
+                    <td class="py-2 pr-3 <%= g[:met] ? "text-green-700 font-semibold" : "text-steel" %>">
+                      <%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %>
+                    </td>
+                  <% end %>
+                  <td class="py-2">
+                    <% if participation.rewarded_at? %>
+                      <span class="text-green-700">완료 · <%= participation.reward_points_awarded %>P 지급</span>
+                    <% elsif prog[:completed] %>
+                      <span class="text-blue-700">완료(집계 중)</span>
+                    <% else %>
+                      <span class="text-steel">진행 중</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-sm text-steel">아직 배정된 학생이 없어요.</p>
+      <% end %>
+    </section>
+  <% end %>
 </div>

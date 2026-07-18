@@ -30,7 +30,7 @@
 - `shared/` — 앱 공통 partial. `_flash`(notice/alert 를 `.state-banner`[--success/--error] 상단 고정 토스트로 통일 — `role`/`aria-live`; `layouts/application` 이 렌더)·`_empty_state`(디자인 토큰 빈 상태 카드 — dashed hairline-strong + surface-soft)·`_seasonal_banner`·`_student_nav`(학생 상단 7메뉴[내 서재·독후감·게임·도감·상점·미션·랭킹] **반응형 네비** — 모바일은 현재 메뉴가 표시된 햄버거 `<details>` 아래 세로 목록, `sm` 이상은 기존 가로 줄바꿈 필 바. 아이콘[aria-hidden 이모지]+라벨, 활성 탭=검은 필+`aria-current="page"`, 44px 터치, `active` 심볼 강조·`current_user.student?` 가드. 대시보드·독후감·게임 카탈로그·도감·상점·미션·랭킹 페이지가 공용 렌더해 메뉴 전반에서 navbar 유지)·`_student_header`(학생 공통 헤더 — 뒤로가기·이름·마이페이지 버튼 + **마이페이지 버튼 오른쪽 로그아웃 `button_to`**[`DELETE /session`])·`_discovery_modal`(몬스터 발견 연출 큐 모달 — `dex_no`로 species 조회·스프라이트 렌더·에셋 누락 시 이모지 폴백, `discovery` 컨트롤러가 순차 등장·표시 즉시 acknowledge)
 - `shops/` — 상점 상세 + `_shop_item` partial. 중복 화면 제목을 생략하고 학생 메뉴 바로 아래에 현재 포인트를 표시한다.
 - `stickers/` — 스티커 부여 `create.turbo_stream.erb`(turbo_stream 전용)
-- `teacher/` — 교사 화면. `dashboards`·`missions` CRUD·`prints`(상장·학급리포트·가정통신문·포트폴리오 인쇄물)·`quizzes`·`reviews`(독후감 첨삭)·`rubric_configs`·`students` + `_nav` partial
+- `teacher/` — 교사 화면. `dashboards`·**`missions`(menu_refactor 심화 PR4 — draft `_form`[제목·설명·기간·고정 2목표(승인 독후감·게임) target·보상], `index` 상태필터+`_status_badge`[초안/예정/진행 중/종료/취소/보관], `show` 미션 조건+발행 버튼+`ProgressCalculator.batch` 학생 진행 표, `edit` draft=전체폼/발행후=제목·설명만)**·`prints`(상장·학급리포트·가정통신문·포트폴리오 인쇄물)·`quizzes`·`reviews`(독후감 첨삭)·`rubric_configs`·`students` + `_nav` partial
 - `topics/` — 토론 주제 목록·상세 + `_forum_post`·`_like_button` partial
 
 ## 패턴·규칙

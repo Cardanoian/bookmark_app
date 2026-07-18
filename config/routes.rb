@@ -143,7 +143,9 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :missions
+    resources :missions do
+      member { post :publish }
+    end
     resources :quizzes
     resource  :rubric_config, only: [ :edit, :update ]
 
