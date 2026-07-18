@@ -24,7 +24,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_includes response.body, staff_login_path
     assert_select "a.card[href='#{new_registration_path}']" do
       assert_select "span[aria-hidden='true']", text: "📝"
-      assert_select "span", text: "교사 회원가입"
+      assert_select "span", text: "선생님 회원가입"
       assert_select "span", text: "가입 후 바로 활동할 수 있어요"
     end
   end
@@ -74,7 +74,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'type="email"'
     assert_includes response.body, "선생님 로그인"
-    assert_select "a.btn.btn-secondary.btn-block[href='#{new_registration_path}']", text: "교사 회원가입"
+    assert_select "a.btn.btn-secondary.btn-block[href='#{new_registration_path}']", text: "선생님 회원가입"
   end
 
   test "successful staff login by email redirects to root and sets the session" do
