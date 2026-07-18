@@ -74,7 +74,7 @@ class LearnController < ApplicationController
     end.join("\n\n")
 
     session.delete(:learn_wizard)
-    redirect_to new_report_path(report: { book_title: book_title, body: body }),
+    redirect_to new_report_path(input_mode: :keyboard, report: { book_title: book_title, body: body }),
                 notice: "단계 학습을 마쳤어요! 모아 둔 내용으로 독후감을 완성해 볼까요?"
   end
 end

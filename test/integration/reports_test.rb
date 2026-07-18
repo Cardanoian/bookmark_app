@@ -140,6 +140,8 @@ class ReportsTest < ActionDispatch::IntegrationTest
     get report_path(report)
     assert_response :success
     assert_select "form[action=?]", revise_report_path(report), 1, "고쳐쓰기 버튼(button_to)이 있어야 한다"
+    assert_select "a.btn.btn-secondary[href=?]", reports_path, text: "목록",
+      message: "목록 링크가 다른 액션과 같은 버튼 형태여야 한다"
     assert_select "a[href=?]", edit_report_path(report), count: 0, message: "제자리 수정 링크는 제거되어야 한다"
   end
 

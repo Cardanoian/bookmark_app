@@ -1,0 +1,9 @@
+# API 키나 시크릿은 이 파일에 넣지 않습니다. credentials 또는 환경 변수만 사용합니다.
+app_settings:
+  - key: feature_flags
+    # on_demand_games: false는 전면 중단, true는 전체 활성화입니다.
+    # 학급/학교별 오버라이드는 관리 화면에서 추가하며 이 기본 문서는 기존 설정을 덮어쓰지 않습니다.
+    value:
+      seasonal_banner_enabled: false
+      on_demand_games: true
+    description: 전역 기능 플래그(JSON 객체)

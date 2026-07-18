@@ -1,26 +1,38 @@
 <% content_for :title, "새 독후감 · 책갈피" %>
 
+<%
+  # 새 글 진입 분기(§5, input_mode 우선). input_mode 가 있으면 해당 폼으로 바로 가고,
+  # 없으면 1스텝에서 고른 책 유무로 스텝(책 고르기 → 모드 선택)을 가른다.
+  # 빈 문자열 파라미터(report[book_title]="")는 present? 로 걸러져 book_chooser 로 낙하한다.
+  input_mode  = params[:input_mode].presence || params.dig(:report, :input_mode).presence
+  book_chosen = params.dig(:report, :book_title).presence || params.dig(:report, :book_id).presence
+%>
+
 <div class="page-shell page-shell-form">
   <header class="page-header">
     <div>
       <h1 class="page-title">새 독후감 쓰기</h1>
       <p class="page-subtitle">
-        <% if params[:input_mode] == "ocr" %>
-          책 제목을 고르고 독후감 사진을 올려 주세요.
-        <% elsif params[:input_mode] == "keyboard" || params[:report].present? %>
+        <% if input_mode == "ocr" %>
+          고른 책의 독후감 사진을 올려 주세요.
+        <% elsif input_mode == "keyboard" %>
           읽은 책을 떠올리며 생각과 느낌을 자유롭게 적어 보세요.
-        <% else %>
+        <% elsif book_chosen %>
           어떻게 독후감을 써 볼까요?
+        <% else %>
+          먼저 어떤 책의 독후감을 쓸지 골라요.
         <% end %>
       </p>
     </div>
   </header>
 
-  <% if params[:input_mode] == "ocr" %>
+  <% if input_mode == "ocr" %>
     <%= render "reports/photo_capture", report: @report %>
-  <% elsif params[:input_mode] == "keyboard" || params[:report].present? %>
+  <% elsif input_mode == "keyboard" %>
     <%= render "reports/form", report: @report %>
+  <% elsif book_chosen %>
+    <%= render "reports/mode_chooser", report: @report %>
   <% else %>
-    <%= render "reports/mode_chooser" %>
+    <%= render "reports/book_chooser" %>
   <% end %>
 </div>

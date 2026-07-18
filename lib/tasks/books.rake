@@ -163,8 +163,9 @@ namespace :books do
     # 8,502행 규모라 트랜잭션으로 감싸 원자성·성능을 확보한다.
     processed = 0
     ActiveRecord::Base.transaction do
-      # SearchService 가 만든 :searched 캐시 행은 카탈로그 시드 대상이 아니다 — isbn 이 겹쳐도
-      # 그 캐시 행을 카탈로그 행으로 덮어쓰지 않는다(CatalogEnricher#reconcile_searched_duplicate! 와 정합).
+      # isbn 없는(텍스트-only) 행의 title+author dedup 은 :searched 캐시를 제외한 카탈로그 안에서만
+      # 한다. isbn 있는 행은 아래에서 :searched 를 포함해 제자리 승격한다(부분 유니크 인덱스
+      # index_books_on_isbn 로 동일 isbn 공존 불가 → 별도 행 대신 승격, reports.book_id 링크 보존).
       scope = Book.where.not(category: :searched)
 
       CSV.foreach(path, col_sep: "\t", headers: true) do |row|
@@ -183,7 +184,11 @@ namespace :books do
         category = %w[recommended classic].include?(category) ? category : "recommended"
 
         book = if isbn
-          scope.find_or_initialize_by(isbn: isbn)
+          # 같은 isbn 의 선존 행(학생 검색이 만든 :searched 캐시 포함)을 제자리에서 큐레이션으로
+          # 승격한다 — 그래서 :searched 제외 scope 를 쓰지 않는다. 부분 유니크 인덱스로 동일 isbn
+          # 공존이 불가하고, reports.book_id(on_delete: nullify)가 :searched 행을 참조할 수 있어
+          # 삭제 대신 승격해 독후감의 책 링크를 보존한다(아래 category 대입이 카탈로그로 승급).
+          Book.find_or_initialize_by(isbn: isbn)
         else
           scope.find_or_initialize_by(title: title, author: author)
         end

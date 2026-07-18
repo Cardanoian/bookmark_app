@@ -30,6 +30,14 @@ class BooksController < ApplicationController
     render json: @results
   end
 
+  # 검색 버튼(원격) 전용 도서 검색(JSON). 네이버 결과를 반환하며 서버가 정규화 메타를
+  # isbn 키로 짧게 캐시한다(제출 시 SearchService#register 가 재사용). 타이핑 자동완성과
+  # 분리 — 무키/실패 시 [](로컬 폴백 없음). 도서 폼의 "검색" 버튼에만 배정한다.
+  def remote_search
+    authorize :book, :search?
+    render json: Books::SearchService.new.remote_search(params[:q])
+  end
+
   # 로컬 카탈로그 자동완성(외부 호출 0). 검색 캐시(searched)는 제외해 카탈로그 도서만
   # 제안한다 — 독후감·게임 폼의 도서 연결용 공용 자동완성 계약(id 포함).
   def autocomplete

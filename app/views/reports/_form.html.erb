@@ -6,6 +6,10 @@
 <% first_submit = local_assigns.fetch(:first_submit, false) %>
 <%= form_with model: report, class: "space-y-6",
       data: ((report.persisted? && !first_submit) ? { controller: "report-edit" } : {}) do |f| %>
+  <%# 직접 쓰기 폼임을 못박아, create 검증 실패 render :new 재렌더 시 input_mode 우선 분기가
+      _form 으로 복원되게 한다(book_title 만 남아 mode_chooser 로 새는 회귀 차단). 값은 모델의
+      input_mode 를 따르므로(고정값 아님) edit 로 재사용될 때 OCR 초안의 ocr 모드를 훼손하지 않는다. %>
+  <%= f.hidden_field :input_mode %>
   <% if report.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
       <span aria-hidden="true">⚠️</span>
@@ -25,7 +29,11 @@
           form: f,
           book_id_field: :book_id,
           title_field: :book_title,
-          url: search_books_path,
+          url: autocomplete_books_path,
+          remote_search_url: remote_search_books_path,
+          isbn_field: :remote_isbn,
+          isbn_value: params.dig(:report, :remote_isbn),
+          show_search_button: true,
           mode: "fallback",
           show_cover: true,
           selected_book: report.book %>

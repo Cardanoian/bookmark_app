@@ -42,6 +42,7 @@ Rails.application.routes.draw do
     collection do
       get :search
       get :autocomplete
+      get :remote_search
     end
   end
 

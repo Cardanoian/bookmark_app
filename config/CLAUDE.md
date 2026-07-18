@@ -8,7 +8,7 @@
 
 - **학생 영역(최상위)**
   - `reports` — 독후감 CRUD + `revise`(고쳐쓰기)·`share`(공유) member 액션, `ocr`(사진 손글씨 인식) singular 리소스.
-  - `books`(index/show + `search`·`autocomplete` collection) — 도서 검색·카탈로그. `search`는 네이버+로컬폴백(응답에 로컬 `id` 포함), `autocomplete`는 로컬 카탈로그(비-searched)만 조회하는 도서 자동완성(외부호출 0, 퀴즈·게임 도서 선택용).
+  - `books`(index/show + `search`·`autocomplete`·`remote_search` collection) — 도서 검색·카탈로그. `search`는 네이버+로컬폴백(응답에 로컬 `id` 포함), `autocomplete`는 로컬 카탈로그(비-searched)만 조회하는 도서 자동완성(외부호출 0, 퀴즈·게임 도서 선택용), **`remote_search`(`remote_search_books_path`)는 독후감 새 글 "🔍 검색" 버튼 전용 네이버 도서검색**(서버가 `book_meta:<isbn>` 캐시 적재→제출 시 `SearchService#register` 재사용, 무키/실패 시 [](로컬 폴백 없음 — 타이핑 autocomplete 와 분리)).
   - `learn`(index + `advance`) — 5단계 단계학습 위저드.
   - `namespace :games` — 독서게임 5종(Phase 3 온디맨드 + 소셜). **카탈로그** `games/catalog`(도서→게임 진입 관문) + **퀴즈 파이프라인 4종 표면의 `<표면>/play`**(book_id 온디맨드 진입; quiz·classic·vocab·whoami) + quiz 의 교사 published mcq 퀴즈 `:id` show 병행 + whoami `:id` show(=attempt 상태) 와 **`whoami/:attempt/reveal_hint`**(POST, 서버 힌트 공개) + **책 소개 대결** `book/play`(GET, 도서별 소개 목록·작성 폼)·`book/intros`(POST 작성)·`book/intros/:id/vote`(POST/DELETE 또래 1인 1표) + **`regenerate`**(POST, 다시 뽑기=콘텐츠 재생성; 무가챠 라우트 가드 준수차 `roll` 어휘 회피) + **`content_reports`**(POST, 콘텐츠 신고=무게이트 롤아웃 안전장치; system 판 `quiz_id`, 서로 다른 2명 시 자동 숨김+재생성) + 결과 기록용 `attempts#create`(퀴즈 4종). `play/…play` 라우트를 `:id` show 보다 먼저 선언해 "play" 가 id 로 오인되지 않게 한다. book 은 퀴즈 파이프라인 밖 소셜 도메인(Gemini/Quiz 미생성).
   - 커뮤니티 — `board_posts`(우수작, 중첩 `cheers`·`stickers`) + `topics`(토론방, 중첩 `forum_posts`).

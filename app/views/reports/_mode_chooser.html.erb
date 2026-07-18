@@ -1,6 +1,23 @@
-<%# 새 독후감 쓰기 — 입력 모드 선택 화면. 카드 2개(직접 쓰기/사진으로 쓰기). local 없음. %>
+<%# 새 독후감 쓰기 2스텝 — 입력 모드 선택. 1스텝에서 고른 책을 keyboard/ocr 폼으로 넘긴다.
+    카드 2개(직접 쓰기/사진으로 쓰기) + 책 다시 고르기. local: report %>
+<%
+  # 선택한 책을 다음 스텝(폼)으로 전달할 파라미터. remote_isbn 은 @report accessor 가 없어
+  # 원본 파라미터에서 그대로 이어 준다(제출 시 서버가 isbn 으로 등록).
+  chosen_book = { book_id: report.book_id, book_title: report.book_title,
+                  remote_isbn: params.dig(:report, :remote_isbn) }
+%>
 <div class="space-y-4">
-  <%= link_to new_report_path(input_mode: :keyboard),
+  <div class="card flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <span class="block text-xs text-steel">고른 책</span>
+      <span class="block truncate font-bold text-ink">
+        <%= report.book_title.presence || report.book&.title || "선택한 책" %>
+      </span>
+    </div>
+    <%= link_to "책 다시 고르기", new_report_path, class: "btn btn-secondary btn-sm shrink-0" %>
+  </div>
+
+  <%= link_to new_report_path(input_mode: :keyboard, report: chosen_book),
         class: "card card-feature block text-center" do %>
     <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface-featured text-4xl" aria-hidden="true">✏️</span>
     <span class="block text-xl font-bold text-ink">직접 쓰기</span>
@@ -8,7 +25,7 @@
   <% end %>
 
   <% if ocr_available? %>
-    <%= link_to new_report_path(input_mode: :ocr),
+    <%= link_to new_report_path(input_mode: :ocr, report: chosen_book),
           class: "card card-feature block text-center" do %>
       <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-light text-4xl" aria-hidden="true">📸</span>
       <span class="block text-xl font-bold text-ink">사진으로 쓰기</span>

@@ -1,0 +1,30 @@
+<%# 새 독후감 쓰기 1스텝 — 책 고르기(진입). 타이핑=로컬 카탈로그 자동완성, 🔍 검색=네이버 원격.
+    GET 제출로 report[book_id|book_title|remote_isbn] 를 실어 모드 선택 스텝으로 넘어간다.
+    목록에 없어도 자유텍스트 제목만으로 다음 스텝으로 갈 수 있다(fallback). %>
+<div class="card space-y-4">
+  <p class="text-sm text-steel">
+    먼저 어떤 책의 독후감을 쓸지 골라요. 목록에 없으면 🔍 검색으로 찾을 수 있어요.
+  </p>
+
+  <%= form_with url: new_report_path, method: :get, scope: :report, class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :book_title, "책 제목", class: "form-label" %>
+      <%= render "books/autocomplete_field",
+            form: f,
+            book_id_field: :book_id,
+            title_field: :book_title,
+            url: autocomplete_books_path,
+            remote_search_url: remote_search_books_path,
+            isbn_field: :remote_isbn,
+            isbn_value: params.dig(:report, :remote_isbn),
+            show_search_button: true,
+            mode: "fallback",
+            show_cover: true %>
+    </div>
+
+    <div class="page-actions">
+      <%= f.submit "다음", class: "btn btn-primary" %>
+      <%= link_to "취소", reports_path, class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

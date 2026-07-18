@@ -188,6 +188,21 @@ kamal deploy    # 이후 배포
 - `config/environments/production.rb`의 메일러 `default_url_options` host 교체
 - 서버에 `RAILS_MASTER_KEY` 주입 (`.kamal/secrets`가 `config/master.key`에서 처리)
 - Active Storage 영속 스토리지 · SQLite 볼륨 마운트/백업 전략 확정
+- **`books.isbn` 유니크 인덱스 마이그레이션 배포 전 중복 점검**(아래 드라이런) — 중복이 있으면 인덱스 추가가 실패하므로 배포 전 반드시 1회 확인
+
+### 배포 전 드라이런 — `books.isbn` 중복 점검
+
+`books.isbn` 부분 유니크 인덱스를 도입하는 마이그레이션은 같은 isbn 행이 2개 이상이면 실패합니다. 배포 직전, 운영 서버에서 **읽기 전용**으로 1회 확인하세요(데이터를 변경하지 않습니다).
+
+```bash
+# 로컬/서버 콘솔에서 실행 (읽기 전용)
+bin/rails runner 'd = Book.where.not(isbn: [nil, ""]).group(:isbn).having("COUNT(*) > 1").count; puts d.empty? ? "✅ 중복 isbn 0건 — 유니크 인덱스 배포 안전" : "⚠️ 중복 isbn #{d.size}건: #{d.inspect} (인덱스 추가 전 정리 필요)"'
+
+# Kamal 운영 서버에서 원격 실행
+kamal app exec -i 'bin/rails runner "d = Book.where.not(isbn: [nil, %q()]).group(:isbn).having(%q(COUNT(*) > 1)).count; puts d.empty? ? %q(OK: 중복 0건) : %Q(WARN: 중복 #{d.size}건 #{d.inspect})"'
+```
+
+`✅ 중복 0건`이면 그대로 배포합니다. 중복이 나오면(정상 운영 시 발생하지 않아야 함) 인덱스 추가 전에 중복 행 정리가 필요합니다.
 
 ---
 

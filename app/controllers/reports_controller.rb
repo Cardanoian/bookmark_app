@@ -23,7 +23,7 @@ class ReportsController < ApplicationController
   end
 
   def create
-    @report = Current.user.reports.new(report_params)
+    @report = Current.user.reports.new(report_params_with_registered_book)
     @report.classroom = Current.user.classroom
     link_participation(@report)
     authorize @report
@@ -118,10 +118,13 @@ class ReportsController < ApplicationController
     @report = Report.find(params[:id])
   end
 
-  # 새 독후감 기본값 + 위저드(P5.5) 초안 프리필(book_title/body).
+  # 새 독후감 기본값 + 위저드(P5.5)·책 선택 스텝 초안 프리필(book_id/book_title/body).
+  # book_id 는 표시(표지·@report.book)용으로만 프리필하며, 위조·스테일 id 는 @report.book 이
+  # nil 이라 표시에만 영향을 준다. 실제 저장 시 book_id 는 report_params 의 resolved_book_id 가
+  # 재검증하므로 무효 참조는 저장되지 않는다.
   def prefill_attributes
     attrs = { input_mode: params[:input_mode].presence || "keyboard" }
-    attrs.merge!(params.require(:report).permit(:book_title, :body).to_h) if params[:report].present?
+    attrs.merge!(params.require(:report).permit(:book_id, :book_title, :body).to_h) if params[:report].present?
     attrs
   end
 
@@ -141,6 +144,20 @@ class ReportsController < ApplicationController
   def report_params
     permitted = params.require(:report).permit(:book_id, :book_title, :body, :input_mode, :photo, :drawing, :audio)
     permitted[:book_id] = resolved_book_id(permitted[:book_id]) if permitted.key?(:book_id)
+    permitted
+  end
+
+  # 제출 시 도서 등록(save 밖 저장 전처리·비차단). book_id 가 비어 있고 검색 버튼으로 고른
+  # 원격 책의 remote_isbn 이 있으면 Books::SearchService#register(캐시-우선)로 등록해 book_id 로
+  # 링크한다. register 는 raise 하지 않고 nil 로 degrade 하므로(무키·미일치·실패), 실패 시
+  # book_id 공란인 채 book_title 폴백으로 저장된다(save 를 막거나 롤백하지 않는다).
+  # remote_isbn 은 books/reports 컬럼이 아니므로 permit 하지 않고 params.dig 로만 소비한다.
+  def report_params_with_registered_book
+    permitted = report_params
+    if permitted[:book_id].blank? && (isbn = params.dig(:report, :remote_isbn)).present?
+      book = Books::SearchService.new.register(isbn)
+      permitted[:book_id] = book.id if book
+    end
     permitted
   end
 

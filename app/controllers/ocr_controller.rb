@@ -12,9 +12,17 @@ class OcrController < ApplicationController
       return
     end
 
-    # 도서 참조 가드 — draft 생성 전에 배치. book_id(실존 Book)·book_title 이 모두 없으면
-    # 가짜 "사진 독후감" 없이 조기 거부한다(book_reference_present 실패로 인한 RecordInvalid 500 차단).
-    if resolved_book_id(params.dig(:ocr, :book_id)).nil? && params.dig(:ocr, :book_title).blank?
+    # 유효 book_id 계산(가드·draft 공용). 자동완성이 채운 book_id 를 우선 검증하고, 없으면
+    # 검색 버튼으로 고른 원격 책의 remote_isbn 을 제출 시 등록(캐시-우선·비차단)해 링크한다.
+    # register 는 raise 하지 않고 nil 로 degrade 하므로(무키·미일치·실패) 등록 실패는 아래
+    # 가드에서 book_title 폴백으로 통과한다. remote_isbn 은 컬럼이 아니라 permit 하지 않고
+    # params.dig 로만 소비한다.
+    book_id = resolved_book_id(params.dig(:ocr, :book_id)) ||
+      Books::SearchService.new.register(params.dig(:ocr, :remote_isbn))&.id
+
+    # 도서 참조 가드 — draft 생성 전에 배치. 유효 book_id(실존/등록 Book)·book_title 이 모두
+    # 없으면 가짜 "사진 독후감" 없이 조기 거부한다(book_reference_present 실패로 인한 RecordInvalid 500 차단).
+    if book_id.nil? && params.dig(:ocr, :book_title).blank?
       skip_authorization
       redirect_back fallback_location: new_report_path(input_mode: :ocr),
         alert: "책 제목을 먼저 입력해 주세요."
@@ -29,7 +37,7 @@ class OcrController < ApplicationController
       return
     end
 
-    @report = find_or_build_draft
+    @report = find_or_build_draft(book_id)
     authorize @report, :update?
 
     @report.photo.attach(params[:ocr][:photo])
@@ -44,14 +52,15 @@ class OcrController < ApplicationController
 
   # 기존 초안(내 글) 을 쓰거나, 없으면 사진 독후감 초안을 새로 만든다. 도서 참조 가드를 이미
   # 통과했으므로 book_id/book_title 중 하나는 유효하다("사진 독후감" placeholder 불필요).
-  def find_or_build_draft
+  # book_id 는 create 에서 계산한 값(자동완성 검증 또는 제출 시 등록 결과)을 그대로 받는다.
+  def find_or_build_draft(book_id)
     if params.dig(:ocr, :report_id).present?
       Current.user.reports.find(params[:ocr][:report_id])
     else
       Current.user.reports.create!(
         classroom: Current.user.classroom,
         input_mode: :ocr,
-        book_id: resolved_book_id(params.dig(:ocr, :book_id)),
+        book_id: book_id,
         book_title: params.dig(:ocr, :book_title).presence
       )
     end

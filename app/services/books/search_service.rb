@@ -10,6 +10,9 @@ module Books
   class SearchService
     NAVER_BASE = "https://openapi.naver.com".freeze
     NAVER_PATH = "/v1/search/book.json".freeze
+    # 검색 버튼(원격) 결과 메타의 서버측 캐시 TTL. 검색~제출 사이 재사용 창(OCR 편집 등
+    # 긴 세션 감안). 만료되면 register 가 `#query` 폴백으로 자동 degrade(튜너블).
+    META_CACHE_TTL = 6.hours
 
     # connection 은 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단)한다.
     # 키 소스: ENV 가 있으면 우선, 없으면 credentials 폴백(운영자 대안 경로, docs/API_KEYS.md §5·§6).
@@ -55,6 +58,43 @@ module Books
       return [] if term.blank?
 
       fetch_from_naver(term) || []
+    end
+
+    # 검색 버튼(원격) 전용(§Step2·Q3 캐시 방식). 네이버 결과를 표시용으로 반환하면서
+    # 각 결과의 정규화 메타를 isbn 키로 짧게 캐시한다(제출 시 `#register` 가 재사용 →
+    # 네이버 이중 왕복·제출 블로킹 제거). `books` 테이블엔 쓰지 않으므로(캐시만) 카탈로그
+    # 오염·고아 행 0. 빈 isbn 결과는 캐시하지 않는다. 무키/실패 시 `#query` 가 [] 반환.
+    def remote_search(term)
+      results = query(term)
+      results.each do |attrs|
+        isbn = attrs[:isbn]
+        Rails.cache.write("book_meta:#{isbn}", attrs, expires_in: META_CACHE_TTL) if isbn.present?
+      end
+      results
+    end
+
+    # 제출 시 도서 등록(캐시-우선 3단, raise 금지). 클라이언트가 보낸 title/author 는 절대
+    # 저장하지 않고 서버/캐시가 네이버에서 도출한 메타만 저장한다(불변식 "학생 저작 Book 0").
+    #   1) 이미 등록/카탈로그에 있으면(isbn 매칭) 그 Book 을 반환.
+    #   2) 검색 시 적재한 캐시 히트면 upsert → Book 반환(네이버 재호출 없음 — 대부분 경로).
+    #   3) 미스(TTL 만료 등)면 `#query(isbn)` 폴백 재조회 후, 요청 isbn 과 정확히 일치하는
+    #      항목만 upsert. 없으면 nil.
+    # 모든 실패(무키·네트워크·미일치·캐시 read 실패)는 예외 없이 nil 로 degrade 한다
+    # (비차단 계약 — `@report.save` 밖 전처리에서 호출되며 save 를 막거나 롤백하지 않는다).
+    def register(isbn)
+      isbn = isbn.to_s.strip
+      return nil if isbn.blank?
+
+      existing = Book.find_by(isbn: isbn)
+      return existing if existing
+
+      meta = Rails.cache.read("book_meta:#{isbn}")
+      return upsert(meta) if meta
+
+      match = query(isbn).find { |attrs| attrs[:isbn] == isbn }
+      match ? upsert(match) : nil
+    rescue StandardError
+      nil
     end
 
     private
@@ -122,23 +162,35 @@ module Books
     # 참조가 끊기므로, 미참조 오래된 행만 주기적으로 비우는 별도 정리 태스크로 다룬다
     # (카탈로그 제외가 1차 방어, 물리 정리는 후속). isbn upsert 자체가 중복 행을 막는다.
     def cache(results)
-      results.each do |attrs|
-        isbn = attrs[:isbn]
-        next if isbn.blank?
+      results.each { |attrs| upsert(attrs) }
+    end
 
-        book = Book.find_or_initialize_by(isbn: isbn)
-        is_new = book.new_record?
-        book.title = attrs[:title] if attrs[:title].present?
-        book.author = attrs[:author]
-        book.publisher = attrs[:publisher]
-        book.cover_url = attrs[:thumbnail]
-        book.summary = attrs[:description]
-        book.category = :searched if is_new
-        saved = book.save
+    # 단건 네이버 결과를 books 에 isbn upsert 한다(category: :searched). 빈 isbn 은 건너뛰고
+    # 저장된(또는 선존) Book 을 반환한다(`#register` 캐시-우선 경로가 재사용).
+    #
+    # 부분 유니크 인덱스(index_books_on_isbn) 도입 후, 동시 동일-isbn 신규 등록 레이스가
+    # `save` 시점에 RecordNotUnique 를 낼 수 있다. 이를 rescue 해 선존 행을 재조회함으로써
+    # 500 없이 단일 행으로 수렴시킨다(무키 기본 0 리스크, 키 환경 간헐·자가치유).
+    def upsert(attrs)
+      isbn = attrs[:isbn]
+      return nil if isbn.blank?
 
-        # 신규로 캐시된 searched 도서(장르 미상)는 비동기 메타 보강(장르 등) 대상으로 예약한다.
-        BookEnrichmentJob.perform_later(book.id) if saved && is_new && book.genre.blank?
-      end
+      book = Book.find_or_initialize_by(isbn: isbn)
+      is_new = book.new_record?
+      book.title = attrs[:title] if attrs[:title].present?
+      book.author = attrs[:author]
+      book.publisher = attrs[:publisher]
+      book.cover_url = attrs[:thumbnail]
+      book.summary = attrs[:description]
+      book.category = :searched if is_new
+      saved = book.save
+
+      # 신규로 캐시된 searched 도서(장르 미상)는 비동기 메타 보강(장르 등) 대상으로 예약한다.
+      BookEnrichmentJob.perform_later(book.id) if saved && is_new && book.genre.blank?
+      book
+    rescue ActiveRecord::RecordNotUnique
+      # 동시 동일-isbn 신규 등록 레이스 — 선존 행을 재조회해 단일 행으로 수렴.
+      Book.find_by(isbn: isbn)
     end
 
     # 원격 결과에 로컬 Book PK 를 붙인다(cache upsert 후 isbn 매칭). 빈 isbn·미매칭은 nil.

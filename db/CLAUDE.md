@@ -4,8 +4,8 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 33개 테이블, version `2026_07_18_000003`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
-- `seeds.rb` — 시드 오케스트레이션. `db/seed` 진입점으로, 아래 rake 태스크들을 순서대로 `invoke` 하고 그 사이에 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본 플래그를 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 33개 테이블, version `2026_07_18_000004`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `seeds.rb` — 시드 오케스트레이션. `db/seeds/accounts.yml`·`app_settings.yml`을 안전하게 읽고, 아래 rake 태스크들을 순서대로 `invoke` 하며 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본값을 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
   - 순서: `schools:seed_full`(CSV 없으면 `schools:seed`) → superadmin → **system 유저** → **비production 역할 샘플 계정** → `monsters:seed`·`badges:seed`·`shop_items:seed` → `books:seed_full`(TSV 없으면 `books:seed`) → `quizzes:seed` → `app_settings`. **`monsters:seed`는 라인 단위 `unlock_condition`도 stage 1 폼에 함께 적재**한다.
   - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
   - **역할 샘플 계정**: production에서는 생성하지 않는다. 학생·담임교사·교무관리자·사서 4종은 전국 CSV의 실학교 **포항원동초등학교(neis_code `8761159`)** 소속(김담임=`teacher@example.com`, 이학생, 박교무=`schooladmin@example.com`, 최사서=`librarian@example.com`). 교직원은 이메일로 기존 합성학교 샘플을 찾아 실학교로 동기화하며 비밀번호는 변경하지 않는다.
@@ -39,12 +39,15 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 16. **도서 장르 컬럼** (`20260718000001`): `books` 에 `genre`(string, nullable) 추가 — 10개 장르. 네이버 검색으로 새로 등록되는 도서는 비동기 `BookEnrichmentJob`(무API `Books::GenreInference`)이 공란 genre 를 채운다(고전은 여전히 `category` enum 의 classic). 컬럼 추가만이라 테이블 수 불변(33 유지).
 17. **몬스터 발견 연출 마킹 컬럼** (`20260718000002`): `user_monsters` 에 `celebrated_at`(datetime, nullable — NULL=미연출) + **부분 인덱스**(`index_user_monsters_pending_discovery`, `WHERE celebrated_at IS NULL`) 추가 — 발견 연출 영속 드레인(`pending_celebration` scope)용. 마이그레이션이 기존 보유분을 백필(확인 처리=현재시각 마킹)해 **신규 발견만** 드레인 큐에 뜨게 한다. 컬럼 추가만이라 테이블 수 불변(33 유지). `schema.rb` version 은 `2026_07_18_000002`.
 18. **학교 전량 동기화 메타데이터** (`20260718000003`): `schools` 에 `active`(기본 true), `data_source`(기본 manual), `synced_at` 추가 + `(active, region, gu)`·`data_source` 인덱스. NEIS 스냅샷에서 사라진 학교를 FK 관계와 함께 삭제하지 않고 비활성 보존하며 가입/검색에서는 active 학교만 노출한다. 컬럼·인덱스 추가라 테이블 수 불변(33 유지). `schema.rb` version 은 `2026_07_18_000003`.
+19. **도서 isbn 부분 유니크 인덱스** (`20260718000004`): 비유니크 `index_books_on_isbn` 를 **부분 유니크**(`unique: true, WHERE isbn IS NOT NULL AND isbn != ''`)로 교체 — 동시 동일-isbn 신규 등록(검색 캐시 upsert·제출 시 `SearchService#register`)을 DB 레벨에서 차단한다. blank/NULL isbn(텍스트-only 제목 도서)은 술어 밖이라 다건 공존 허용. dev 중복 isbn 0건 확인, 파괴 dedup 없이 인덱스만 교체(`up`/`down` 완전 가역). 이 인덱스가 기존 암묵 불변식 "`searched` 캐시행 + 큐레이션행이 동일 isbn 공존 가능"과 충돌해 **동일 isbn=단일 행**으로 통일했다(`Book` isbn uniqueness 소프트 검증 동반, `catalog_enricher`·`books:seed_full` 도 정합화 — 아래 seeds 참조). 컬럼 추가 없어 테이블 수 불변(33 유지). `schema.rb` version 은 `2026_07_18_000004`.
 
 ### seeds/ — 시드 데이터
 
+- `accounts.yml` — 총괄관리자의 credentials 미설정 시 기본값, 로그인 불가 system 유저의 신원, 비production 샘플 학교·학급·역할별 계정과 참조 관계. 운영 총괄관리자 값은 Rails credentials가 항상 우선하며 system 유저 비밀번호는 문서에 저장하지 않고 무작위 생성한다.
+- `app_settings.yml` — 최초 생성할 `AppSetting` 기본값. 민감 정보는 넣지 않으며, 재시드 시 이미 관리자가 변경한 값은 덮어쓰지 않는다.
 - `monsters.yml` — 반려 몬스터 도감 데이터(`docs/monsters.md §7` YAML 을 verbatim 반영). **24라인 × 3스테이지 = 72폼**. 6속성(story·knowledge·nature·emotion·adventure·imagination) 각 4라인, Phase 1(12라인)·Phase 2(12라인)로 구분. 라인당 `forms` 3개(stage 1·2·3), `evolve_condition` 은 다음 단계 승급 조건. **라인 단위 `unlock_condition`**(자동 해금 규칙, `docs/monster_unlocks.md §5`)은 스타터 이후 발견 조건이며 시더가 stage 1 폼에만 대입(2·3단계는 nil로 두어 재시드해도 조건이 새지 않게 함). `monsters:seed`(via `MonsterSeeder`)가 소비.
 - `schools.csv` — 2026-07-18 NEIS 국내 17개 시도교육청 코드 보유 초등학교 **6,333교** 전량 스냅샷. 헤더 `neis_code,name,region,gu,office_code,address`. `schools:fetch`가 전체 건수·17개 교육청·최소 건수·필수값·중복을 검증하고 원자 교체하며, `schools:seed_full`이 오프라인 배치 upsert/비활성 동기화로 소비한다. `db:seed`는 이 파일이 있으면 전량을 기본 적재한다.
-- `elementary_books.tsv` — 초등 전학년 도서 카탈로그 8,502행(정보나루 인기대출 + NLCY 추천 + 앱 큐레이션 병합). `books:seed_full`이 `isbn13` 우선(없으면 `title`+`author`)으로 오프라인·멱등 적재하며, 스키마에 있는 메타만 비파괴 갱신하고 `summary`는 보존한다. 파일이 있으면 `db:seed` 기본 도서 경로, 없으면 축소 `books:seed` 폴백이다.
+- `elementary_books.tsv` — 초등 전학년 도서 카탈로그 8,502행(정보나루 인기대출 + NLCY 추천 + 앱 큐레이션 병합). `books:seed_full`이 `isbn13` 우선(없으면 `title`+`author`)으로 오프라인·멱등 적재하며, 스키마에 있는 메타만 비파괴 갱신하고 `summary`는 보존한다. **isbn 있는 행은 `:searched` 캐시를 포함해 비-scoped `find_or_initialize_by(isbn:)`로 찾아 제자리 승격**(부분 유니크 인덱스 #19로 동일 isbn 공존 불가 → 별도 행 대신 category 만 카탈로그로 승급, id·isbn 보존으로 `reports.book_id` 링크 보존; isbn 없는 행은 기존 title+author scoped dedup 유지). 파일이 있으면 `db:seed` 기본 도서 경로, 없으면 축소 `books:seed` 폴백이다.
 
 ## 패턴·규칙
 

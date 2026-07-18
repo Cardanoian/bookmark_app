@@ -5,13 +5,20 @@
   <%= form_with url: ocr_path, scope: :ocr, method: :post, multipart: true, class: "space-y-4" do |f| %>
     <div>
       <%= f.label :book_title, "책 제목", class: "form-label" %>
+      <%# form scope 가 :ocr 이라 book_id/remote_isbn hidden 은 ocr[...] 로 생성돼 OcrController 가 소비한다. %>
       <%= render "books/autocomplete_field",
             form: f,
             book_id_field: :book_id,
             title_field: :book_title,
-            url: search_books_path,
+            url: autocomplete_books_path,
+            remote_search_url: remote_search_books_path,
+            isbn_field: :remote_isbn,
+            isbn_value: params.dig(:report, :remote_isbn),
+            title_value: report.book_title,
+            show_search_button: true,
             mode: "fallback",
-            show_cover: true %>
+            show_cover: true,
+            selected_book: report.book %>
     </div>
 
     <div>

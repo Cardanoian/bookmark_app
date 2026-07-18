@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000004) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -104,7 +104,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000003) do
     t.text "summary"
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["isbn"], name: "index_books_on_isbn"
+    t.index ["isbn"], name: "index_books_on_isbn", unique: true, where: "isbn IS NOT NULL AND isbn != ''"
     t.index ["title"], name: "index_books_on_title"
   end
 

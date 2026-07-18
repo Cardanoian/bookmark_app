@@ -100,15 +100,27 @@ class BooksSeedFullTest < ActiveSupport::TestCase
     assert_equal "손수 쓴 요약", Book.find_by(isbn: "9791100000001").summary
   end
 
-  test "searched 캐시 행과 isbn 이 겹쳐도 캐시 행을 덮어쓰지 않는다" do
+  test "searched 캐시 행이 같은 isbn 의 카탈로그 시드로 제자리 승격되어 독후감 링크를 보존한다" do
+    # 부분 유니크 인덱스(index_books_on_isbn)로 :searched 행과 카탈로그 행이 같은 isbn 으로
+    # 공존할 수 없다 → seed_full 은 별도 행을 새로 만들지 않고 선존 :searched 행을 제자리에서
+    # 큐레이션(recommended)으로 승격한다. reports.book_id(on_delete: nullify)가 그 행을 참조 중이면
+    # 삭제(비채택 옵션)는 링크를 끊으므로, 승격이 단일 행 수렴 + 링크 보존을 만족하는지 검증한다.
     searched = Book.create!(title: "검색캐시책", isbn: "9791100000001", category: :searched)
 
-    seed_full!
-    searched.reload
+    school = School.create!(name: "승격학교")
+    classroom = Classroom.create!(school: school, grade: 5, class_no: 1)
+    student = User.create!(school: school, classroom: classroom, name: "승격학생", password: "password")
+    report = Report.create!(user: student, classroom: classroom, book: searched, book_title: "검색캐시책")
 
-    assert_equal "검색캐시책", searched.title, "searched 행은 seed_full 이 건드리지 않는다"
-    assert_equal "recommended", Book.find_by(title: "테스트책1").category,
-                 "동일 isbn 이라도 카탈로그 신규 행이 별도로 생성된다(searched 캐시와 충돌하지 않음)"
+    seed_full!
+
+    assert_equal 1, Book.where(isbn: "9791100000001").count, "동일 isbn 은 단일 행으로 수렴한다(별도 행 미생성)"
+    promoted = Book.find_by(isbn: "9791100000001")
+    assert_equal searched.id, promoted.id, "새 행이 아니라 기존 :searched 행을 제자리 승격한다"
+    assert_equal "recommended", promoted.category, ":searched → 카탈로그(recommended)로 승격된다"
+
+    report.reload
+    assert_equal promoted.id, report.book_id, "승격은 삭제가 아니므로 기존 reports.book_id 링크를 보존한다"
   end
 
   test "파일이 없으면 안내 후 no-op(크래시 없음)" do

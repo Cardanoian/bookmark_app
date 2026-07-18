@@ -29,8 +29,12 @@ module Books
       match = pick_match(@service.query(book.title), book.title)
       return false if match.nil?
 
-      apply(book, match)
+      assign(book, match)
+      # 부분 유니크 인덱스(index_books_on_isbn) 하에선 같은 isbn 공존이 불가하므로, 큐레이션
+      # 행에 부여할 isbn 과 겹치는 선존 searched 캐시 행을 save! **이전**에 정리한다(정본=큐레이션
+      # 행). save 후 정리하면 저장 시점에 RecordNotUnique 가 난다.
       reconcile_searched_duplicate!(book)
+      book.save!
       true
     end
 
@@ -54,20 +58,26 @@ module Books
       title.to_s.gsub(/<[^>]+>/, "").gsub(/\s+/, "").strip
     end
 
-    def apply(book, match)
+    # 매치 메타를 큐레이션 도서에 대입만 한다(저장은 enrich_one 이 reconcile 뒤에 수행).
+    def assign(book, match)
       book.isbn = match[:isbn] if match[:isbn].present?
       book.cover_url = match[:thumbnail] if match[:thumbnail].present?
       book.publisher = match[:publisher] if match[:publisher].present?
       book.author = match[:author] if match[:author].present? && book.author.blank?
-      book.save!
     end
 
     # 큐레이션 행에 isbn 을 부여했을 때 같은 isbn 의 선존 :searched 캐시 행(학생 검색이 미리
-    # 만든 것)을 제거한다 — 큐레이션 행이 정본이므로 중복을 정리(계획 §3.2 Minor 2).
+    # 만든 것)을 정리한다 — 큐레이션 행이 정본. 단 그 :searched 행을 참조하던 독후감 링크는
+    # 삭제 전에 정본(큐레이션) 도서로 **이관**해 보존한다(reports.book_id 는 on_delete: nullify 라
+    # 곧바로 delete 하면 링크가 끊긴다 → books:seed_full 의 제자리 승격과 동일한 링크 보존 정책·§8).
     def reconcile_searched_duplicate!(book)
       return if book.isbn.blank?
 
-      Book.searched.where(isbn: book.isbn).where.not(id: book.id).delete_all
+      dupe_ids = Book.searched.where(isbn: book.isbn).where.not(id: book.id).ids
+      return if dupe_ids.empty?
+
+      Report.where(book_id: dupe_ids).update_all(book_id: book.id)
+      Book.where(id: dupe_ids).delete_all
     end
   end
 end
