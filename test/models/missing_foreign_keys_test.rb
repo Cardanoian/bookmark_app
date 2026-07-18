@@ -15,7 +15,7 @@ class MissingForeignKeysTest < ActiveSupport::TestCase
     [ :seasons, :schools, :school_id ],
     [ :quizzes, :books, :book_id ],
     [ :quizzes, :classrooms, :classroom_id ],
-    [ :missions, :books, :book_id ],
+    # [ :missions, :books, :book_id ] — menu_refactor 심화 PR6 에서 드롭(레거시 미션 지정 도서 컬럼)
     [ :library_loans, :schools, :school_id ]
   ].freeze
 

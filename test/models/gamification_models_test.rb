@@ -42,11 +42,11 @@ class GamificationModelsTest < ActiveSupport::TestCase
     assert Season.create!(name: "여름 시즌").global?
   end
 
-  test "Mission belongs to classroom and optional book" do
-    # menu_refactor 심화: title·start_date·end_date 는 이제 필수 검증(모델 재설계).
+  test "Mission belongs to a classroom" do
+    # menu_refactor 심화: title·start_date·end_date 필수 검증(재설계), book 연관은 PR6 에서 제거.
     mission = Mission.create!(classroom: @classroom, title: "미션",
                               start_date: Date.current, end_date: Date.current + 7)
     assert_equal @classroom, mission.classroom
-    assert_nil mission.book
+    assert_not mission.respond_to?(:book)
   end
 end

@@ -18,7 +18,6 @@
 - `shops_controller.rb` — 케어/진화 상점 조회(`show`). 잔액·인벤토리·카탈로그 표시(표현용).
 - `purchases_controller.rb` — 상점 구매(`create`, 포인트 sink). 트랜잭션 원자 차감, Turbo Stream 응답.
 - `rankings_controller.rb` — 랭킹·포디움·명예의 전당(`index`). tab = class/school/nation/challenge/hall.
-- `missions_controller.rb` — 학급 미션 조회·참여(`join` → 세션 플래그로 다음 독후감에 연결).
 - `challenges_controller.rb` — 전역/학교 챌린지 조회·참여(`join` → 세션 플래그로 다음 독후감에 연결).
 - `board_posts_controller.rb` — 우수작 게시판(`index`/`show`). 학생 화면에서 숨김 글 제외(정책 스코프).
 - `cheers_controller.rb` — 응원 👏(`create`/`destroy`). 1인 1회(unique) + Turbo Stream 버튼 갱신.

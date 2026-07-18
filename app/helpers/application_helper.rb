@@ -8,15 +8,17 @@ module ApplicationHelper
   # path helper 는 상수 값으로 저장할 수 없어(상수는 뷰 컨텍스트 밖에서 평가됨)
   # 심볼로 저장하고 렌더 시 public_send 로 호출한다.
 
-  # "controller_path#action_name" → 상위가 곧 내 서재(root)인 화면들.
-  #   최상위 7메뉴 + 네비 밖 최상위 목록(도서/학습/챌린지/게시판/토론/마이페이지).
+  # "controller_path#action_name" → 상위가 곧 홈(root)인 화면들.
+  #   최상위 5메뉴(홈·내 서재·독서활동·도감·랭킹, menu_refactor 심화 PR5) + 네비 밖 최상위 목록
+  #   (도서/학습/챌린지/게시판/토론/마이페이지). reports/games 는 독서활동 하위 흐름이라 별도 매핑.
   STUDENT_BACK_ROOT_SCREENS = %w[
     dashboard#show
+    libraries#show
+    reading_activities#show
     reports#index
     games/catalog#index
     monsters#index
     shops#show
-    missions#index
     rankings#index
     books#index
     learn#index
@@ -32,7 +34,6 @@ module ApplicationHelper
   STUDENT_BACK_PARENTS = {
     "reports"       => :reports_path,
     "monsters"      => :monsters_path,
-    "missions"      => :missions_path,
     "books"         => :books_path,
     "challenges"    => :challenges_path,
     "board_posts"   => :board_posts_path,

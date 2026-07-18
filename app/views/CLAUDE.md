@@ -16,7 +16,6 @@
 - `layouts/` — 역할별 레이아웃. `application`(기본 — **유동 페이지 셸**: 고정 mt-28·브레이크포인트 컨테이너 제거, `<main>`이 `max-w-[96rem] mx-auto` + 유동 거터[px-4/sm:px-6/lg:px-8]·세로 리듬[py-6] 소유, `shared/flash` 렌더, **`<main>` 뒤에 학생 전용 발견 드레인**[로그인 학생의 `pending_celebration`이 있으면 `shared/_discovery_modal` 렌더])·`admin`(총괄관리자 콘솔 — **반응형 오프캔버스 사이드바**: lg 이상 좌측 고정, 미만은 상단 햄버거로 여닫는 패널[`admin-sidebar` Stimulus 컨트롤러], `max-w-[96rem]` 넓은 본문, flash=`.state-banner`)·`print`(인쇄 전용, `@media print`)·`mailer`(html/text). 각 뷰는 `.page-shell*`(page-shell + -wide/-content/-reading/-form)로 `<main>` 안에서 max-width 만 제어한다.
 - `learn/` — 학습 홈(index)
 - `librarian/` — 사서 화면. `dashboards`·`events` CRUD·`loans`(대출 목록)
-- `missions/` — 미션 목록·상세
 - `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 이모지로 폴백한다. **잠긴(미보유) 카드·상세**는 헬퍼 `unlock_progress_items`로 해금 조건과 현재 진행도(예: "승인 독후감 4/6편 ✓")를 표시한다(`_monster_card`·`_detail`, `monsters_controller#index`/`#show`가 넘기는 `ReadingStats` 스냅샷 기준).
 - `ocr/` — (뷰 없음) 사진 업로드 후 `OcrController`가 compose(edit) 화면으로 redirect하고, 본문 채움/실패 안내는 `OcrJob`이 `report_editor` 채널로 방송한다(기존 `create.turbo_stream.erb`는 redirect 통일로 제거).
 - `passwords/` — 본인 비밀번호 변경 `edit`(현재/새/새 확인 3필드 폼, `PATCH password_path`, 역할무관). 오류는 공통 상단 토스트(`shared/_flash`)가 담당.

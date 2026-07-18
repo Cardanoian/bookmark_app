@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000008) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -232,7 +232,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
   end
 
   create_table "missions", force: :cascade do |t|
-    t.integer "book_id"
     t.datetime "cancelled_at"
     t.integer "classroom_id", null: false
     t.datetime "created_at", null: false
@@ -245,7 +244,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
     t.integer "status", default: 0, null: false
     t.string "title"
     t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_missions_on_book_id"
     t.index ["classroom_id", "status", "start_date"], name: "index_missions_on_classroom_id_and_status_and_start_date"
     t.index ["classroom_id"], name: "index_missions_on_classroom_id"
     t.index ["created_by_id"], name: "index_missions_on_created_by_id"
@@ -359,7 +357,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
     t.float "improvement"
     t.integer "input_mode", default: 0, null: false
     t.string "level", limit: 1
-    t.integer "mission_id"
     t.integer "points_awarded", default: 0, null: false
     t.float "prev_avg"
     t.boolean "reviewed", default: false, null: false
@@ -377,7 +374,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
     t.index ["classroom_id", "reviewed"], name: "index_reports_on_classroom_id_and_reviewed"
     t.index ["classroom_id"], name: "index_reports_on_classroom_id"
     t.index ["level"], name: "index_reports_on_level"
-    t.index ["mission_id"], name: "index_reports_on_mission_id"
     t.index ["reviewed"], name: "index_reports_on_reviewed"
     t.index ["revision_of_id"], name: "index_reports_on_revision_of_id"
     t.index ["user_id", "created_at"], name: "index_reports_on_user_id_and_created_at"
@@ -527,7 +523,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
   add_foreign_key "mission_goals", "missions"
   add_foreign_key "mission_participations", "missions"
   add_foreign_key "mission_participations", "users"
-  add_foreign_key "missions", "books", on_delete: :nullify
   add_foreign_key "missions", "classrooms"
   add_foreign_key "missions", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id", on_delete: :nullify
@@ -544,7 +539,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000007) do
   add_foreign_key "reports", "books", on_delete: :nullify
   add_foreign_key "reports", "challenges"
   add_foreign_key "reports", "classrooms"
-  add_foreign_key "reports", "missions"
   add_foreign_key "reports", "reports", column: "revision_of_id"
   add_foreign_key "reports", "users"
   add_foreign_key "seasons", "schools", on_delete: :nullify

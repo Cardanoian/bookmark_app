@@ -1,13 +1,12 @@
 # 학급 단위 독서 미션(menu_refactor 심화 §2.A). 기간·정량 목표·자동 배정·정확히-1회 포인트
 # 보상으로 재설계된다. 발행 생명주기는 status enum(draft/published/cancelled/archived)으로 관리하고,
 # 완료 판정의 단일 진실은 mission_participations.completed_at 이다(PR2 에서 ReadingStats#missions 전환).
-# book_id 는 레거시(참여방식) 컬럼으로 PR6 에서 드롭 예정이다.
+# 레거시 book_id 컬럼은 PR6 에서 드롭했다(특정 도서 목표는 후속 goal_type 으로 다룬다).
 class Mission < ApplicationRecord
   # 보상 상한 폴백(AppSetting "mission_reward_max_points" 미설정/무효 시).
   DEFAULT_REWARD_MAX_POINTS = 200
 
   belongs_to :classroom
-  belongs_to :book, optional: true
   belongs_to :created_by, class_name: "User", optional: true
 
   has_many :mission_goals, dependent: :destroy
