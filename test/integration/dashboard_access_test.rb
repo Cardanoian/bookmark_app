@@ -18,7 +18,8 @@ class DashboardAccessTest < ActionDispatch::IntegrationTest
     assert_match "대시학생", response.body
   end
 
-  test "student dashboard shows the student's recent reports" do
+  # menu_refactor 심화 PR5: 루트는 홈. 이어하기(최근 활동)를 보여 주고, 전체 기록은 내 서재로 이동.
+  test "student home shows continue-reading with the student's recent book" do
     school = School.create!(name: "서재초등학교")
     classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
     student = User.create!(school: school, classroom: classroom, name: "서재학생", password: "password")
@@ -30,12 +31,11 @@ class DashboardAccessTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "#recent-reports", text: /내가 읽은 책/
-    assert_select "#recent-reports", text: /남이 읽은 책/, count: 0
-    assert_select "#recent-reports", text: /아직 읽은 책이 없어요/, count: 0
+    assert_match "내가 읽은 책", response.body       # 이어하기 = 본인 최근 활동
+    assert_no_match(/남이 읽은 책/, response.body)   # 남의 글은 안 보임
   end
 
-  test "student dashboard shows the empty state when the student has no reports" do
+  test "student home shows a start-activity CTA when the student has no reports" do
     school = School.create!(name: "빈서재초등학교")
     classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
     student = User.create!(school: school, classroom: classroom, name: "빈서재학생", password: "password")
@@ -44,6 +44,6 @@ class DashboardAccessTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "#recent-reports", text: /아직 읽은 책이 없어요/
+    assert_match "독서활동 시작하기", response.body
   end
 end

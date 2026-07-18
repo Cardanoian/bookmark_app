@@ -1,0 +1,77 @@
+<% content_for :title, "독서활동 · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <h1 class="sr-only">독서활동</h1>
+  <%= render "shared/student_nav", active: :activity %>
+
+  <header class="page-header">
+    <h2 class="page-title">✏️ 독서활동</h2>
+  </header>
+
+  <% if @book.nil? %>
+    <%# 책 미선택 상태: 등록 도서 검색 → 선택 → 다음 %>
+    <section class="card space-y-3">
+      <p class="text-sm text-steel">먼저 읽은 책을 골라 주세요. 고른 책으로 독후감을 쓰거나 게임을 할 수 있어요.</p>
+      <%= form_with url: reading_activity_path, method: :get, class: "space-y-3" do |f| %>
+        <%= render "books/autocomplete_field", form: f, book_id_field: :book_id,
+              url: autocomplete_books_path, mode: "strict", show_cover: true %>
+        <%= f.submit "다음", class: "btn btn-primary btn-sm" %>
+      <% end %>
+      <p class="text-xs text-steel">찾는 책이 없으면 <%= link_to "독후감 새 글", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
+    </section>
+  <% else %>
+    <%# 선택 도서 카드 + 책 바꾸기 %>
+    <section class="card flex items-center gap-3">
+      <% if @book.cover_url.present? %>
+        <%= image_tag @book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover" %>
+      <% else %>
+        <span aria-hidden="true" class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+      <% end %>
+      <div class="min-w-0 flex-1">
+        <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
+        <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+      </div>
+      <%= link_to "책 바꾸기", reading_activity_path, class: "btn btn-secondary btn-sm shrink-0" %>
+    </section>
+
+    <%# 미션 문맥(진행 중 미션 목표 안내) %>
+    <% if @active_missions.any? %>
+      <div class="state-banner state-banner--info" role="note">
+        <span aria-hidden="true">🎯</span>
+        <span>
+          진행 중인 미션이 있어요 —
+          <% hints = @active_missions.flat_map { |m| m[:progress][:goals].reject { |g| g[:met] }.map { |g| goal_label[g[:type]] } }.uniq %>
+          <% if hints.any? %><%= hints.to_sentence %> 활동이 미션 진행에 반영돼요.<% else %>목표를 거의 다 채웠어요!<% end %>
+        </span>
+      </div>
+    <% end %>
+
+    <%# 활동 선택 카드 2종 %>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <section class="card space-y-2">
+        <h3 class="font-semibold text-ink">✍️ 독후감 쓰기</h3>
+        <p class="text-sm text-steel">이 책으로 독후감을 쓰고 AI 첨삭을 받아요.</p>
+        <%= link_to "독후감 쓰기", new_report_path(report: { book_id: @book.id, book_title: @book.title }),
+              class: "btn btn-primary btn-sm" %>
+        <% if @recent_reports.any? %>
+          <p class="text-xs text-steel">최근 독후감 <%= @recent_reports.size %>편 · <%= link_to "내 서재에서 보기", library_path, class: "text-brand-blue underline" %></p>
+        <% end %>
+      </section>
+
+      <section class="card space-y-2">
+        <h3 class="font-semibold text-ink">🎮 독서 게임</h3>
+        <p class="text-sm text-steel">이 책으로 5가지 게임을 즐겨요.</p>
+        <div class="flex flex-wrap gap-2">
+          <% [ [ "퀴즈", games_quiz_play_path(book_id: @book.id) ],
+                [ "고전 여행", games_classic_play_path(book_id: @book.id) ],
+                [ "어휘 낚시", games_vocab_play_path(book_id: @book.id) ],
+                [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ],
+                [ "책 소개 대결", games_book_play_path(book_id: @book.id) ] ].each do |label, path| %>
+            <%= link_to label, path, class: "rounded-full border border-hairline px-3 py-1.5 text-sm text-ink hover:border-primary/40 hover:bg-surface" %>
+          <% end %>
+        </div>
+      </section>
+    </div>
+  <% end %>
+</div>

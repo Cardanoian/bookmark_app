@@ -3,14 +3,14 @@
     아이콘은 장식용 이모지(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
+  <%# menu_refactor 심화 PR5: 학생 상위 메뉴 5개(홈·내 서재·독서활동·도감·랭킹). 독후감·게임·상점·미션은
+      상위 메뉴에서 제거(독후감·게임은 독서활동 하위 흐름, 미션은 홈·독서활동 문맥 카드). %>
   <% nav_items = [
-       [ :library,  "내 서재", root_path,         "🏠" ],
-       [ :reports,  "독후감",  reports_path,       "✍️" ],
-       [ :games,    "게임",    games_catalog_path, "🎮" ],
-       [ :monsters, "도감",    monsters_path,      "🐾" ],
-       [ :shop,     "상점",    shop_path,          "🛍️" ],
-       [ :missions, "미션",    missions_path,      "🎯" ],
-       [ :rankings, "랭킹",    rankings_path,      "🏆" ]
+       [ :home,     "홈",       root_path,             "🏠" ],
+       [ :library,  "내 서재",  library_path,          "📚" ],
+       [ :activity, "독서활동", reading_activity_path, "✏️" ],
+       [ :monsters, "도감",     monsters_path,         "🐾" ],
+       [ :rankings, "랭킹",     rankings_path,         "🏆" ]
      ] %>
   <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
 

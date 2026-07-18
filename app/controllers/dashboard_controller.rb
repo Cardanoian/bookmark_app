@@ -13,9 +13,8 @@ class DashboardController < ApplicationController
     when :superadmin
       redirect_to admin_root_path
     else
-      @recent_reports = Current.user.reports.includes(:book)
-        .order(created_at: :desc)
-        .limit(5).to_a
+      # 학생 홈(menu_refactor 심화 §2.D.3): 발견·이어하기·진행 중 미션 요약. 전체 기록은 내 서재로 이동.
+      @home = StudentHomeQuery.new(Current.user)
       render "dashboard/student"
     end
   end

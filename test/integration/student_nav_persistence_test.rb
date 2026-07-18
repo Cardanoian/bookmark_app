@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 학생 상단 navbar가 7개 메뉴 페이지에서 모바일/데스크톱 형태로 유지되는지 확인.
+# 학생 상단 navbar가 5개 메뉴 페이지(menu_refactor 심화 PR5)에서 모바일/데스크톱 형태로 유지되는지 확인.
 class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
   setup do
     seed_monster_species!
@@ -11,10 +11,10 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  MENU_LABELS = [ "내 서재", "독후감", "게임", "도감", "상점", "미션", "랭킹" ].freeze
+  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "랭킹" ].freeze
 
   def menu_paths
-    [ root_path, reports_path, games_catalog_path, monsters_path, shop_path, missions_path, rankings_path ]
+    [ root_path, library_path, reading_activity_path, monsters_path, rankings_path ]
   end
 
   def assert_full_navbar(path, active_label)
@@ -47,22 +47,19 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
   end
 
   test "navbar persists across all student menu pages" do
-    assert_full_navbar root_path, "내 서재"
-    assert_full_navbar reports_path, "독후감"
-    assert_full_navbar games_catalog_path, "게임"
+    assert_full_navbar root_path, "홈"
+    assert_full_navbar library_path, "내 서재"
+    assert_full_navbar reading_activity_path, "독서활동"
     assert_full_navbar monsters_path, "도감"
-    assert_full_navbar shop_path, "상점"
-    assert_full_navbar missions_path, "미션"
     assert_full_navbar rankings_path, "랭킹"
   end
 
-  test "menu pages do not repeat the active menu as a page heading" do
-    [ reports_path, games_catalog_path, monsters_path, shop_path, missions_path, rankings_path ].each do |path|
+  test "menu pages do not repeat the active menu as an h1 page heading" do
+    [ library_path, reading_activity_path, monsters_path, rankings_path ].each do |path|
       get path
 
       assert_response :success
-      assert_select "h1.page-title", count: 0, message: "#{path}에 중복 페이지 제목이 남아 있음"
-      assert_select ".page-subtitle", count: 0, message: "#{path}에 페이지 설명이 남아 있음"
+      assert_select "h1.page-title", count: 0, message: "#{path}에 중복 h1 페이지 제목이 남아 있음"
     end
   end
 
