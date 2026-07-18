@@ -50,6 +50,6 @@ class Admin::SchoolsController < Admin::BaseController
   end
 
   def school_params
-    params.require(:school).permit(:name, :neis_code, :region, :gu, :office_code)
+    params.require(:school).permit(:name, :neis_code, :region, :gu, :office_code, :address, :active)
   end
 end

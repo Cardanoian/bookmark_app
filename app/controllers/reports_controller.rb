@@ -47,6 +47,9 @@ class ReportsController < ApplicationController
       if resubmit?
         submit_for_review(@report)
         redirect_to @report, notice: "고쳐 썼어요! AI 선생님이 다시 첨삭하고 있어요."
+      elsif first_review? && @report.body.present?
+        submit_for_review(@report)
+        redirect_to @report, notice: "독후감을 제출했어요. AI 선생님이 첨삭 중이에요."
       else
         redirect_to @report, notice: "독후감을 저장했어요."
       end
@@ -159,5 +162,12 @@ class ReportsController < ApplicationController
   # 작성자가 본문을 바꿔 다시 낸 경우에만 재첨삭.
   def resubmit?
     Current.user.id == @report.user_id && @report.saved_change_to_body?
+  end
+
+  # 아직 AI 첨삭 이력이 없고(고쳐쓰기 아님) 본인 글이면 첫 제출로 간주(OCR 초안 등).
+  # revise 초안은 revision_of_id 가 있어 제외되므로 "동일 본문 재첨삭 스킵"이 유지된다.
+  # rubric 은 JSON 컬럼이라 nil·빈해시 모두 blank? true(미첨삭 판정).
+  def first_review?
+    Current.user.id == @report.user_id && @report.revision_of_id.nil? && @report.rubric.blank?
   end
 end

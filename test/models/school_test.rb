@@ -18,6 +18,14 @@ class SchoolTest < ActiveSupport::TestCase
     assert School.new(name: "사아초등학교", neis_code: nil).valid?
   end
 
+  test "active scope and form regions exclude inactive schools" do
+    School.create!(name: "운영초", region: "서울특별시교육청", active: true)
+    School.create!(name: "폐교초", region: "부산광역시교육청", active: false)
+
+    assert_equal [ "운영초" ], School.active.pluck(:name)
+    assert_equal [ "서울특별시교육청" ], School.form_regions
+  end
+
   test "has_many classrooms and destroys them" do
     school = School.create!(name: "자차초등학교")
     school.classrooms.create!(grade: 3, class_no: 1)

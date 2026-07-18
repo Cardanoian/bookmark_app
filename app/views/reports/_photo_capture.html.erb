@@ -1,0 +1,34 @@
+<%# 사진으로 쓰기 — 책 제목 선택 + 사진 업로드(카메라/갤러리) → OCR 초안 생성. local: report %>
+<div class="card space-y-4" data-controller="photo-upload">
+  <p class="text-sm text-steel">손으로 쓴 독후감을 찍으면 AI가 글자를 읽어 초안을 채워 줘요.</p>
+
+  <%= form_with url: ocr_path, scope: :ocr, method: :post, multipart: true, class: "space-y-4" do |f| %>
+    <div>
+      <%= f.label :book_title, "책 제목", class: "form-label" %>
+      <%= render "books/autocomplete_field",
+            form: f,
+            book_id_field: :book_id,
+            title_field: :book_title,
+            url: search_books_path,
+            mode: "fallback",
+            show_cover: true %>
+    </div>
+
+    <div>
+      <span class="form-label">독후감 사진</span>
+      <input type="file" accept="image/*" name="ocr[photo]"
+             data-photo-upload-target="input"
+             data-action="photo-upload#preview"
+             class="block w-full text-sm text-slate file:mr-3 file:rounded-full file:border-0 file:bg-brand-blue file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-on-primary">
+
+      <canvas data-photo-upload-target="canvas" class="hidden"></canvas>
+      <img data-photo-upload-target="preview" alt="미리보기"
+           class="hidden mt-3 max-h-48 rounded-lg border border-hairline">
+    </div>
+
+    <div class="page-actions">
+      <%= f.submit "📸 사진 인식하기", class: "btn btn-primary" %>
+      <%= link_to "취소", new_report_path, class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

@@ -2,8 +2,10 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Schools (reduced development set — one per 시도교육청).
-Rake::Task["schools:seed"].invoke
+# Schools. 검증된 전국 CSV가 있으면 모든 환경에서 전량을 오프라인 적재하고, 파일이 없는
+# 개발/테스트 체크아웃에서만 17개 축소 세트로 폴백한다.
+schools_csv = Rails.root.join("db/seeds/schools.csv")
+Rake::Task[File.exist?(schools_csv) ? "schools:seed_full" : "schools:seed"].invoke
 
 # Superadmin (총괄관리자) — seeded, never self-registered. school_id is NULL.
 # 신원·비밀번호는 credentials(:superadmin)를 단일 진실로 읽어 매 시드마다 동기화한다(리포에
@@ -36,16 +38,18 @@ end
 # 역할별 개발 샘플 계정 (학생·담임교사·교무관리자·사서) — 모두 같은 학교 소속으로 하드코딩.
 # 교직원(교사·교무관리자·사서)은 이메일로, 학생은 (학교·학급·이름) 튜플로 로그인한다(sessions_controller).
 # superadmin 은 위에서 credentials(:superadmin) 로 별도 시드된다. 모든 계정은 멱등(신원 튜플).
-sample_school = School.find_by(neis_code: "7150001") # 포항원동초등학교 (schools:seed 로 선적재)
+sample_school = School.find_by(neis_code: "8761159") unless Rails.env.production? # 포항원동초등학교
 
 if sample_school.nil?
-  puts "Sample school (neis_code 7150001) not found — skipping role sample accounts."
+  puts "Sample school unavailable in this environment — skipping role sample accounts."
 else
   # 신원 튜플로 멱등 생성하는 헬퍼. email 등 부가 속성은 attrs 로 전달.
   # 기존 계정이면 비어 있는 attrs(예: email 컬럼 신설 후)만 백필한다 — 비번은 건드리지 않아
   # db:reset 없이 재시드만으로 교직원 이메일 로그인이 가능해진다.
   seed_user = lambda do |name:, role:, classroom_id:, password:, **attrs|
-    user = User.find_or_initialize_by(name: name, school_id: sample_school.id, classroom_id: classroom_id)
+    # 전국 시드 도입 전 합성 학교에 만들어진 교직원 샘플도 이메일로 찾아 실학교로 옮긴다.
+    user = User.find_by(email: attrs[:email]) if attrs[:email].present?
+    user ||= User.find_or_initialize_by(name: name, school_id: sample_school.id, classroom_id: classroom_id)
     if user.new_record?
       user.role = role
       user.password = password
@@ -53,11 +57,17 @@ else
       user.save!
       puts "Created sample #{role}: #{name} @ #{sample_school.name}"
     else
+      identity_changed = attrs[:email].present? &&
+        (user.school_id != sample_school.id || user.classroom_id != classroom_id)
+      if identity_changed
+        user.school = sample_school
+        user.classroom_id = classroom_id
+      end
       backfill = attrs.reject { |attr, _| user.public_send(attr).present? }
-      if backfill.any?
+      if backfill.any? || identity_changed
         backfill.each { |attr, value| user.public_send("#{attr}=", value) }
         user.save!
-        puts "Backfilled #{backfill.keys.join(', ')} on sample #{role}: #{name}"
+        puts "Synced sample #{role}: #{name} @ #{sample_school.name}"
       else
         puts "Sample #{role} already exists: #{name}"
       end
@@ -90,8 +100,10 @@ Rake::Task["monsters:seed"].invoke
 Rake::Task["badges:seed"].invoke
 Rake::Task["shop_items:seed"].invoke
 
-# Book catalog (권장도서 + 고전).
-Rake::Task["books:seed"].invoke
+# Book catalog. 전량 TSV가 있으면 오프라인 전체 카탈로그를 적재하고, 파일이 없는
+# 체크아웃에서만 코드 내 축소 큐레이션으로 폴백한다.
+books_tsv = Rails.root.join("db/seeds/elementary_books.tsv")
+Rake::Task[File.exist?(books_tsv) ? "books:seed_full" : "books:seed"].invoke
 
 # Sample published quiz so 독서게임(quiz) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke

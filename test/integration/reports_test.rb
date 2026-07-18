@@ -181,9 +181,10 @@ class ReportsTest < ActionDispatch::IntegrationTest
   end
 
   # 새 글 폼은 위저드 초안을 그대로 제출할 수 있어야 하므로 dirty-check 를 걸지 않는다.
+  # (모드 선택 화면 도입 후 직접 쓰기 폼은 input_mode=keyboard 로 진입한다.)
   test "new report form is not gated by the dirty-check controller" do
     login_as @student
-    get new_report_path
+    get new_report_path(input_mode: :keyboard)
     assert_response :success
     assert_select "form[data-controller='report-edit']", count: 0
   end

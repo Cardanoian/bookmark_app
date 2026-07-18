@@ -7,9 +7,9 @@
 #
 # 오너가 학교도서관저널 전체 목록을 확정하면 아래 배열을 확장한다(현재는 확신 가능한 대표 큐레이션).
 #
-# books:seed_full 은 별도 태스크다 — db/seeds/elementary_books.tsv(script/build_elementary_books_tsv.rb
-# 산출물, 8,502행)를 오프라인·멱등 적재한다(schools:seed_full 미러). db/seeds.rb 에는 편입하지 않고
-# 수동 실행(`bin/rails books:seed_full`)한다.
+# books:seed_full 은 db/seeds/elementary_books.tsv(script/build_elementary_books_tsv.rb 산출물,
+# 8,502행)를 오프라인·멱등 적재한다(schools:seed_full 미러). TSV가 있으면 db/seeds.rb의
+# 기본 도서 적재 경로가 되고, 파일이 없는 체크아웃만 축소 books:seed 로 폴백한다.
 require "csv"
 
 namespace :books do

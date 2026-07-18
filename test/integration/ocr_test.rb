@@ -9,14 +9,15 @@ class OcrTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "OCR학생", password: "password")
   end
 
-  # P3.5 — 키 없음: 폼에서 사진 모드 숨김 + 서버에서 OCR 거부.
-  test "photo mode is hidden and OCR is refused when the Gemini key is blank" do
+  # P3.5 — 키 없음: 모드 선택 화면에서 사진 카드 비활성 + 서버에서 OCR 거부.
+  test "the photo card is disabled and OCR is refused when the Gemini key is blank" do
     login_as @student
 
     get new_report_path
     assert_response :success
-    assert_match "키보드로 입력해 주세요", response.body
-    assert_no_match(/value="ocr"/, response.body)
+    assert_select "a[href=?]", new_report_path(input_mode: :ocr), count: 0
+    assert_select "[aria-disabled='true']", 1
+    assert_match "지금은 사진 입력을 쓸 수 없어요", response.body
 
     assert_no_enqueued_jobs(only: OcrJob) do
       post ocr_path, params: { ocr: { book_title: "책", photo: uploaded_photo } }
@@ -24,20 +25,19 @@ class OcrTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_report_path
   end
 
-  # P3.5 — 키 있음(스텁): OcrJob 예약 + Turbo Stream 응답.
-  test "OCR enqueues a job and streams back when the key is available" do
+  # P3.5 — 키 있음(스텁): OcrJob 예약 + compose(edit) 화면으로 redirect(§4.3).
+  test "OCR enqueues a job and redirects to the compose screen when the key is available" do
     login_as @student
 
     with_gemini_available do
       assert_enqueued_with(job: OcrJob) do
-        post ocr_path,
-          params: { ocr: { book_title: "책", photo: uploaded_photo } },
-          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        post ocr_path, params: { ocr: { book_title: "책", photo: uploaded_photo } }
       end
     end
 
-    assert_response :success
-    assert_match "ocr_status", response.body
+    draft = @student.reports.order(:created_at).last
+    assert_not_nil draft
+    assert_redirected_to edit_report_path(draft)
   end
 
   private

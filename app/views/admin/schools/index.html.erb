@@ -15,13 +15,14 @@
   <div class="overflow-x-auto">
     <table class="w-full text-left text-sm">
       <thead class="border-b border-hairline text-steel">
-        <tr><th class="py-2 pr-4">학교명</th><th class="py-2 pr-4">지역</th><th class="py-2 pr-4">NEIS</th><th class="py-2"></th></tr>
+        <tr><th class="py-2 pr-4">학교명</th><th class="py-2 pr-4">지역</th><th class="py-2 pr-4">상태</th><th class="py-2 pr-4">NEIS</th><th class="py-2"></th></tr>
       </thead>
       <tbody>
         <% @schools.each do |school| %>
           <tr class="border-b border-hairline-soft">
             <td class="py-2 pr-4 font-medium text-ink"><%= link_to school.name, admin_school_path(school), class: "hover:underline" %></td>
             <td class="py-2 pr-4 text-slate"><%= school.region %></td>
+            <td class="py-2 pr-4 text-slate"><%= school.active? ? "운영" : "비활성" %></td>
             <td class="py-2 pr-4 text-slate"><%= school.neis_code %></td>
             <td class="py-2 text-right"><%= link_to "수정", edit_admin_school_path(school), class: "text-sm text-brand-blue hover:underline" %></td>
           </tr>

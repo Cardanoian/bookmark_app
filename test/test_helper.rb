@@ -10,7 +10,8 @@ Rails.application.credentials.tap do |creds|
   creds.instance_variable_set(:@config, creds.config.merge(
     gemini: { api_key: "" },
     naver: { client_id: "", client_secret: "" },
-    data4library: { api_key: "" }
+    data4library: { api_key: "" },
+    neis: { api_key: "" }
   ))
   creds.instance_variable_set(:@options, nil)
 end

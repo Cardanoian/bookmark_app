@@ -12,6 +12,9 @@
     <div class="flex justify-between py-1"><dt class="text-steel">지역</dt><dd class="text-ink"><%= @school.region %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">시군구</dt><dd class="text-ink"><%= @school.gu %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">NEIS 코드</dt><dd class="text-ink"><%= @school.neis_code %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">상태</dt><dd class="text-ink"><%= @school.active? ? "운영" : "비활성" %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">데이터 출처</dt><dd class="text-ink"><%= @school.data_source %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">도로명주소</dt><dd class="text-ink"><%= @school.address %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">학급 수</dt><dd class="text-ink"><%= @school.classrooms.size %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">사용자 수</dt><dd class="text-ink"><%= @school.users.size %></dd></div>
   </dl>

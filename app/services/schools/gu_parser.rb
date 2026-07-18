@@ -15,6 +15,7 @@ module Schools
 
     # 기초자치단체 토큰 접미(시/군/구)로 끝나는지 판정.
     GU_SUFFIX = /(시|군|구)\z/
+    SIDO_SUFFIX = /(특별시|광역시|특별자치시|도|특별자치도)\z/
 
     def self.parse(address, region: nil)
       new.parse(address, region: region)
@@ -28,6 +29,10 @@ module Schools
 
       sido = tokens.first
       return nil if single_tier?(sido, region)
+
+      # 일부 NEIS 주소는 시도 토큰 없이 "평택시 …"처럼 시작한다. 광역 시도명이 아니라
+      # 기초자치단체 토큰이면 첫 토큰 자체를 시군구로 사용한다.
+      return sido if sido.match?(GU_SUFFIX) && !sido.match?(SIDO_SUFFIX)
 
       # 시도 다음 토큰 중 시/군/구로 끝나는 첫 토큰(도농복합시의 하위 구는 이보다 뒤라 자연히 제외).
       tokens.drop(1).find { |token| token.match?(GU_SUFFIX) }

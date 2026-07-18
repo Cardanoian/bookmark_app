@@ -1,20 +1,26 @@
 <% content_for :title, "새 독후감 · 책갈피" %>
 
 <div class="page-shell page-shell-form">
-  <%= turbo_stream_from current_user, :report_editor %>
-
   <header class="page-header">
     <div>
       <h1 class="page-title">새 독후감 쓰기</h1>
-      <p class="page-subtitle">읽은 책을 떠올리며 생각과 느낌을 자유롭게 적어 보세요.</p>
+      <p class="page-subtitle">
+        <% if params[:input_mode] == "ocr" %>
+          책 제목을 고르고 독후감 사진을 올려 주세요.
+        <% elsif params[:input_mode] == "keyboard" || params[:report].present? %>
+          읽은 책을 떠올리며 생각과 느낌을 자유롭게 적어 보세요.
+        <% else %>
+          어떻게 독후감을 써 볼까요?
+        <% end %>
+      </p>
     </div>
   </header>
 
-  <%= render "reports/form", report: @report %>
-
-  <% if ocr_available? %>
-    <div class="mt-6">
-      <%= render "reports/ocr_upload", report: @report %>
-    </div>
+  <% if params[:input_mode] == "ocr" %>
+    <%= render "reports/photo_capture", report: @report %>
+  <% elsif params[:input_mode] == "keyboard" || params[:report].present? %>
+    <%= render "reports/form", report: @report %>
+  <% else %>
+    <%= render "reports/mode_chooser" %>
   <% end %>
 </div>

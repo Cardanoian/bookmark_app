@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_18_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_18_000003) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -348,14 +348,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_18_000002) do
   end
 
   create_table "schools", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
     t.string "address"
     t.datetime "created_at", null: false
+    t.string "data_source", default: "manual", null: false
     t.string "gu"
     t.string "name"
     t.string "neis_code"
     t.string "office_code"
     t.string "region"
+    t.datetime "synced_at"
     t.datetime "updated_at", null: false
+    t.index ["active", "region", "gu"], name: "index_schools_on_active_region_gu"
+    t.index ["data_source"], name: "index_schools_on_data_source"
     t.index ["name"], name: "index_schools_on_name"
     t.index ["neis_code"], name: "index_schools_on_neis_code", unique: true
   end

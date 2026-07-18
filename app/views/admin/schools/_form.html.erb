@@ -30,6 +30,14 @@
       <%= f.text_field :office_code, class: "form-input" %>
     </div>
   </div>
+  <div>
+    <%= f.label :address, "도로명주소", class: "form-label" %>
+    <%= f.text_field :address, class: "form-input" %>
+  </div>
+  <label class="flex items-center gap-2 text-sm text-ink">
+    <%= f.check_box :active %>
+    가입·로그인 학교 검색에 표시
+  </label>
 
   <div class="flex items-center gap-3">
     <%= f.submit "저장", class: "btn btn-primary" %>

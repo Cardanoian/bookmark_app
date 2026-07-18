@@ -27,6 +27,10 @@ class Schools::GuParserTest < ActiveSupport::TestCase
     assert_equal "청도군", Schools::GuParser.parse("경상북도 청도군 화양읍 범곡길 1")
   end
 
+  test "시도 토큰이 생략된 주소는 첫 시군구 토큰을 사용한다" do
+    assert_equal "평택시", Schools::GuParser.parse("평택시 고덕국제5로 165", region: "경기도교육청")
+  end
+
   test "특별자치도의 시를 추출한다" do
     assert_equal "춘천시", Schools::GuParser.parse("강원특별자치도 춘천시 백령로 100")
     assert_equal "제주시", Schools::GuParser.parse("제주특별자치도 제주시 문연로 6")

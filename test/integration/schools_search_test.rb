@@ -23,6 +23,17 @@ class SchoolsSearchTest < ActionDispatch::IntegrationTest
     assert_equal [], response.parsed_body
   end
 
+  test "search and gu options exclude inactive schools" do
+    School.create!(name: "운영강남초", region: "서울특별시교육청", gu: "강남구", active: true)
+    School.create!(name: "폐교서초초", region: "서울특별시교육청", gu: "서초구", active: false)
+
+    get schools_search_path, params: { q: "폐교" }
+    assert_equal [], response.parsed_body
+
+    get schools_gus_path, params: { region: "서울특별시교육청" }
+    assert_equal [ "강남구" ], response.parsed_body
+  end
+
   test "search filters by region and gu and includes gu in the payload" do
     School.create!(name: "서울강남초", region: "서울특별시교육청", gu: "강남구")
     School.create!(name: "부산해운대초", region: "부산광역시교육청", gu: "해운대구")

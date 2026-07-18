@@ -1,8 +1,11 @@
-<%# 독후감 작성·수정 폼. local: report %>
+<%# 독후감 작성·수정 폼. local: report, (선택) first_submit %>
 <%# 기존 글(고쳐쓰기/수정)만 dirty-check 대상: 본문이 달라져야 저장 활성화.
-    새 글은 위저드 초안이 프리필될 수 있어 컨트롤러를 붙이지 않는다. %>
+    새 글은 위저드 초안이 프리필될 수 있어 컨트롤러를 붙이지 않는다.
+    OCR 초안의 첫 제출(first_submit)도 마찬가지로 컨트롤러를 떼어 낸다 — OCR이 로드 전에
+    빠르게 완료되면 textarea 기준값이 이미 OCR 본문이 되어 "그대로 제출"이 막히기 때문. %>
+<% first_submit = local_assigns.fetch(:first_submit, false) %>
 <%= form_with model: report, class: "space-y-6",
-      data: (report.persisted? ? { controller: "report-edit" } : {}) do |f| %>
+      data: ((report.persisted? && !first_submit) ? { controller: "report-edit" } : {}) do |f| %>
   <% if report.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
       <span aria-hidden="true">⚠️</span>
@@ -47,7 +50,7 @@
   <% end %>
 
   <div class="page-actions">
-    <%= f.submit report.persisted? ? "수정하기" : "제출하기",
+    <%= f.submit (report.persisted? && !first_submit) ? "수정하기" : "제출하기",
           class: "btn btn-primary",
           data: { "report-edit-target": "submit" } %>
     <%= link_to "취소", reports_path, class: "btn btn-secondary" %>

@@ -6,7 +6,7 @@ class SchoolsController < ApplicationController
   # 이름검색(q) + 시도/시군구(region/gu) 필터 → 학교 목록 JSON. 전량 select 를 대체하는
   # 스케일-세이프 조회(계획 §2.4). 결과는 상한(100)해 페이로드를 봉인한다.
   def search
-    scope = School.all
+    scope = School.active
     if params[:q].present?
       term = School.sanitize_sql_like(params[:q].to_s)
       scope = scope.where("name LIKE ?", "%#{term}%")
@@ -24,7 +24,7 @@ class SchoolsController < ApplicationController
   def gus
     return render(json: []) if params[:region].blank?
 
-    list = School.where(region: params[:region]).where.not(gu: [ nil, "" ]).distinct.order(:gu).pluck(:gu)
+    list = School.active.where(region: params[:region]).where.not(gu: [ nil, "" ]).distinct.order(:gu).pluck(:gu)
     render json: list
   end
 

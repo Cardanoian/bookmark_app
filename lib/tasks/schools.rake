@@ -3,12 +3,14 @@
 # 세 태스크로 나뉜다(계획 §1):
 #   - schools:seed       — 축소 개발 세트(17개 시도교육청 대표교). dev/test/CI 결정성·속도용.
 #                          프로덕션에서는 no-op(합성 코드 오염 방지 — schools:seed_full 사용).
-#   - schools:fetch      — dev 전용. NEIS 학교기본정보 OpenAPI 로 전국 초등학교를 수집해
-#                          db/seeds/schools.csv 로 굽는다(네트워크 사용, 개발자가 갱신 시 수동).
+#   - schools:fetch      — dev 전용. NEIS 학교기본정보 OpenAPI 로 전국 초등학교를 수집·검증해
+#                          db/seeds/schools.csv 로 원자 교체(네트워크 사용, 개발자가 갱신 시 수동).
 #   - schools:seed_full  — db/seeds/schools.csv 를 읽어 upsert_all 로 전량 적재(오프라인·멱등).
 #
 # 시드는 네트워크를 타지 않는다(획득=fetch, 적재=seed_full 분리). 멱등 키는 neis_code(표준학교코드).
+# 완전한 스냅샷 적재 후 사라진 NEIS 학교는 삭제하지 않고 inactive 로 보존한다.
 require "csv"
+require "tempfile"
 
 namespace :schools do
   # CSV 컬럼(seed_full 이 읽고 fetch 가 쓰는 계약). 균일 컬럼셋(upsert_all 요건).
@@ -19,6 +21,29 @@ namespace :schools do
   # db/seeds/schools.csv 경로. 테스트는 ENV["SCHOOLS_CSV"] 로 fixture 를 주입한다.
   def schools_csv_path
     ENV["SCHOOLS_CSV"].presence || Rails.root.join("db/seeds/schools.csv").to_s
+  end
+
+  # 소형 fixture를 사용하는 테스트 전용 우회. 운영 전량 적재에서는 17개 교육청·최소 건수
+  # 검증을 반드시 통과해야 누락 학교 비활성화를 실행한다.
+  def schools_require_nationwide_snapshot?
+    ENV["SCHOOLS_ALLOW_PARTIAL"] != "1"
+  end
+
+  def write_schools_csv_atomically(path, rows)
+    directory = File.dirname(path)
+    tempfile = Tempfile.new([ "schools", ".csv" ], directory)
+    csv = CSV.new(tempfile)
+    csv << schools_csv_headers
+    rows.sort_by { |row| row[:neis_code] }.each do |row|
+      csv << schools_csv_headers.map { |header| row[header.to_sym] }
+    end
+    tempfile.flush
+    tempfile.fsync
+    tempfile.close
+    File.chmod(0o644, tempfile.path)
+    File.rename(tempfile.path, path)
+  ensure
+    tempfile&.close!
   end
 
   desc "Seed a reduced development set of schools (one per 시도교육청 region)"
@@ -52,7 +77,7 @@ namespace :schools do
 
     schools.each do |attrs|
       school = School.find_or_initialize_by(neis_code: attrs[:neis_code])
-      school.assign_attributes(attrs)
+      school.assign_attributes(attrs.merge(active: true, data_source: "sample"))
       school.save!
     end
 
@@ -68,17 +93,13 @@ namespace :schools do
     end
 
     rows = fetcher.fetch_all
-    if rows.empty?
-      puts "schools:fetch — NEIS returned no rows (network/parse failure). CSV unchanged."
-      next
-    end
-
-    CSV.open(schools_csv_path, "w") do |csv|
-      csv << schools_csv_headers
-      rows.each { |row| csv << schools_csv_headers.map { |header| row[header.to_sym] } }
-    end
+    Schools::SnapshotValidator.new(rows).validate!
+    write_schools_csv_atomically(schools_csv_path, rows)
 
     puts "Fetched #{rows.size} elementary schools → #{schools_csv_path}"
+  rescue Schools::NeisFetcher::FetchError, Schools::SnapshotValidator::InvalidSnapshot => error
+    warn "schools:fetch failed — #{error.message}. CSV unchanged."
+    raise
   end
 
   desc "Load the full school set from db/seeds/schools.csv via upsert_all (offline, idempotent)"
@@ -89,9 +110,14 @@ namespace :schools do
       next
     end
 
-    rows = CSV.read(path, headers: true).filter_map do |row|
+    table = CSV.read(path, headers: true)
+    unless table.headers == schools_csv_headers
+      raise Schools::SnapshotValidator::InvalidSnapshot,
+        "CSV 헤더가 다릅니다(필요: #{schools_csv_headers.join(',')})"
+    end
+
+    rows = table.filter_map do |row|
       name = row["name"].to_s.strip
-      next if name.blank? # upsert_all 은 AR 검증을 우회하므로 name 공백 행을 사전 제거
 
       # 모든 해시는 동일 컬럼 집합이어야 한다(upsert_all 균일 키 요건). 빈 값은 nil 로 정규화.
       {
@@ -104,14 +130,24 @@ namespace :schools do
       }
     end
 
-    rows.reject! { |r| r[:neis_code].blank? }
+    Schools::SnapshotValidator.new(rows).validate!(nationwide: schools_require_nationwide_snapshot?)
 
-    if rows.empty?
-      puts "schools:seed_full — no valid rows in #{path}."
-      next
+    synced_at = Time.current
+    import_rows = rows.map do |row|
+      row.merge(active: true, data_source: "neis", synced_at: synced_at)
     end
 
-    School.upsert_all(rows, unique_by: :neis_code, record_timestamps: true)
-    puts "Loaded #{rows.size} schools from #{path}. School.count = #{School.count}"
+    School.transaction do
+      # 구 버전의 합성 17교는 연결 레코드를 위해 남기되 선택 목록에서는 숨긴다. 같은 코드가
+      # 실제 NEIS 스냅샷에 있으면 아래 upsert가 즉시 neis/active 로 되돌린다.
+      School.where(neis_code: School::LEGACY_SAMPLE_CODES, data_source: %w[manual sample])
+        .update_all(active: false, data_source: "sample")
+      # 검증된 완전 스냅샷에 없는 NEIS 학교만 비활성화한다. 일반 manual 행은 보존한다.
+      School.where(data_source: "neis").update_all(active: false, synced_at: synced_at)
+      import_rows.each_slice(1_000) do |batch|
+        School.upsert_all(batch, unique_by: :neis_code, record_timestamps: true)
+      end
+    end
+    puts "Loaded #{rows.size} schools from #{path}. Active NEIS schools = #{School.active.where(data_source: 'neis').count}"
   end
 end

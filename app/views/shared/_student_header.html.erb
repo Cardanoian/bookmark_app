@@ -1,11 +1,16 @@
 <header class="mb-6 flex min-h-[3.5rem] w-full items-center gap-2 border-b border-hairline pb-4 sm:mb-8"
         aria-label="학생 공통 헤더">
-  <%= link_to student_back_path,
-        class: "btn btn-icon shrink-0",
-        aria: { label: "뒤로 가기" } do %>
-    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
+  <% if current_page?(student_back_path) %>
+    <%# 상위가 자기 자신(내 서재)이면 뒤로가기 숨김. 레이아웃 유지용 자리. %>
+    <span class="btn btn-icon shrink-0 invisible" aria-hidden="true"></span>
+  <% else %>
+    <%= link_to student_back_path,
+          class: "btn btn-icon shrink-0",
+          aria: { label: "뒤로 가기" } do %>
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+    <% end %>
   <% end %>
 
   <p class="min-w-0 flex-1 truncate text-lg font-bold text-ink"><%= current_user.name %></p>
