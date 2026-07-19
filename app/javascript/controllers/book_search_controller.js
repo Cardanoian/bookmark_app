@@ -103,7 +103,32 @@ export default class extends Controller {
     metaEl.textContent = meta ? ` ${meta}` : ""
 
     li.append(titleEl, metaEl)
+
+    const badges = this.badgeElements(item)
+    if (badges.length > 0) {
+      const badgeRow = document.createElement("div")
+      badgeRow.className = "mt-1 flex flex-wrap items-center gap-1"
+      badgeRow.append(...badges)
+      li.append(badgeRow)
+    }
     return li
+  }
+
+  // 로컬(카탈로그) 결과의 고전 여부·장르 배지(서버 book_meta_badges 와 시각 일치).
+  // 원격(네이버) 결과엔 genre/classic 필드가 없어 배지가 붙지 않는다(그레이스풀).
+  badgeElements(item) {
+    const badges = []
+    if (item.classic) badges.push(this.badge("고전", "badge-yellow"))
+    const genre = item.genre == null ? "" : String(item.genre).trim()
+    if (genre && genre !== "미분류") badges.push(this.badge(genre, "badge-neutral"))
+    return badges
+  }
+
+  badge(text, variant) {
+    const span = document.createElement("span")
+    span.className = `badge badge-sm ${variant}`
+    span.textContent = text
+    return span
   }
 
   // 항목 선택: 로컬(카탈로그) 항목은 hidden book_id, 원격(네이버) 항목은 hidden isbn 에 연결하고

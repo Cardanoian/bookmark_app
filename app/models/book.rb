@@ -10,6 +10,7 @@ class Book < ApplicationRecord
   enum :category, { recommended: 0, classic: 1, searched: 2 }, default: :recommended
 
   before_validation :normalize_isbn
+  before_validation :upgrade_cover_url_to_https
 
   validates :title, presence: true
   # 모든 Book은 특정 판본의 유효한 ISBN-13을 식별자로 가진다. ISBN 없는 학생 자유입력은
@@ -25,6 +26,17 @@ class Book < ApplicationRecord
 
     normalized = Books::Isbn.normalize(isbn)
     self.isbn = normalized if normalized
+  end
+
+  # 표지 URL 은 페이지의 이미지 하위리소스라, HTTPS 배포(force_ssl)에서 http:// 로 저장되면
+  # 브라우저가 혼합 콘텐츠(Mixed Content)로 차단해 표지가 뜨지 않는다. 알라딘·네이버 등 표지
+  # 호스트는 모두 https 를 지원하므로, 저장 전 선행 http:// 를 https:// 로 승격해 이 사고를
+  # 원천 차단한다(멱등 — 이미 https 이거나 blank 면 무변경). 시드·검색·보강·관리자 입력 등
+  # 모든 쓰기 경로가 이 콜백을 경유한다.
+  def upgrade_cover_url_to_https
+    return if cover_url.blank?
+
+    self.cover_url = cover_url.sub(%r{\Ahttp://}i, "https://")
   end
 
   def isbn_must_be_valid

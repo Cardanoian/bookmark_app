@@ -20,6 +20,7 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     get teacher_students_path
     assert_response :success
     assert_match @student.name, response.body
+    assert_match "0XP", response.body
   end
 
   test "create adds a student with a random temporary password surfaced to the teacher" do
@@ -51,12 +52,25 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     assert_not @student.authenticate("changed99")
   end
 
-  test "give_points increments the student's points via award_points" do
-    before = @student.points
+  test "give_points increments the student's points and experience via award_points" do
+    points_before = @student.points
+    experience_before = @student.experience
     login_as @teacher
     post give_points_teacher_student_path(@student), params: { points: 15 }
 
-    assert_equal before + 15, @student.reload.points
+    @student.reload
+    assert_equal points_before + 15, @student.points
+    assert_equal experience_before + 15, @student.experience
+    assert_match "15포인트와 15경험치를 지급", flash[:notice]
+  end
+
+  test "give_points rejects a non-positive amount without changing either balance" do
+    login_as @teacher
+    post give_points_teacher_student_path(@student), params: { points: -10 }
+
+    assert_equal 0, @student.reload.points
+    assert_equal 0, @student.experience
+    assert_match "1 이상의 정수", flash[:alert]
   end
 
   test "destroy removes the student" do
@@ -71,6 +85,7 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     post give_points_teacher_student_path(@student), params: { points: 15 }
     assert_response :forbidden
     assert_equal 0, @student.reload.points
+    assert_equal 0, @student.experience
   end
 
   test "a student is forbidden from student management" do

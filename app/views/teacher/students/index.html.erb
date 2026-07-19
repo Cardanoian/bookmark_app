@@ -31,11 +31,11 @@
                 <span class="min-w-0">
                   <span class="block font-medium text-ink"><%= student.name %></span>
                   <span class="block text-xs text-steel">
-                    <%= student.classroom&.label %> · <%= student.points %>P
+                    <%= student.classroom&.label %> · <%= student.points %>P · <%= student.experience %>XP · Lv.<%= student.trainer_level %>
                   </span>
                 </span>
                 <div class="flex flex-wrap items-center gap-2">
-                  <%= button_to "+10P", give_points_teacher_student_path(student), method: :post,
+                  <%= button_to "+10P · +10XP", give_points_teacher_student_path(student), method: :post,
                         params: { points: 10 }, class: "btn btn-blue btn-sm" %>
                   <%= button_to "비번 초기화", reset_password_teacher_student_path(student), method: :post,
                         class: "btn btn-secondary btn-sm" %>

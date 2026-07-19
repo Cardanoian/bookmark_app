@@ -52,8 +52,10 @@ class AiReviewJob < ApplicationJob
     Rails.logger.warn("AiReviewJob detail broadcast failed for report #{report&.id}: #{e.class}: #{e.message}")
   end
 
-  # 포인트 차액 적용. 양수는 award_points 로 적립해 뱃지·진화·랭킹 후크를 태우고,
-  # 음수(재첨삭으로 등급 하락)는 잔액을 조정한 뒤 뱃지를 재계산(멱등)한다.
+  # 포인트 차액 적용. 양수는 award_points 로 포인트·경험치를 함께 적립해 뱃지·진화·랭킹
+  # 후크를 태우고, 음수(재첨삭으로 등급 하락)는 그 보상에서 생긴 포인트·경험치를 함께
+  # 정정한 뒤 뱃지를 재계산(멱등)한다. 일반 포인트 소비와 달리 지급 원인 자체의 정정이므로
+  # 경험치도 회수해야 재첨삭 등급 등락으로 경험치를 반복 적립하는 허점이 생기지 않는다.
   #
   # 음수 델타에서 check_evolution! 을 재호출하지 않는 이유(#misc, 의도된 정책):
   #   ① 진화는 단조(monotonic)다 — 몬스터는 조건 충족 시 전진(evolve!)만 하고 역진화가 없다.
@@ -66,9 +68,9 @@ class AiReviewJob < ApplicationJob
       # award_points 가 원자 증가(update_counters)+reload+후크를 담당 — 여기서 이중 적용하지 않는다.
       user.award_points(delta, reason: "report_review")
     elsif delta.negative?
-      # 음수 델타는 0 바닥의 원자 차감으로 비원자 read-modify-write 경합을 없앤다.
+      # 음수 델타는 0 바닥의 원자 정정으로 비원자 read-modify-write 경합을 없앤다.
       # (포인트 임계 뱃지 조건은 없어 refresh_badges! 전 reload 는 필수는 아니나, 최신값 기준으로 재계산하도록 유지.)
-      User.where(id: user.id).update_all("points = MAX(points - #{delta.abs.to_i}, 0)")
+      user.revoke_points!(delta.abs)
       user.reload
       user.refresh_badges!
     end

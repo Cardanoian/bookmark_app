@@ -12,13 +12,16 @@
     <% if @mission.description.present? %><p class="text-steel"><%= @mission.description %></p><% end %>
     <p><span class="text-steel">학급:</span> <%= @mission.classroom&.label %></p>
     <p><span class="text-steel">기간:</span> <%= @mission.start_date %> ~ <%= @mission.end_date %></p>
-    <p><span class="text-steel">완료 보상:</span> <%= @mission.reward_points %>P</p>
+    <p><span class="text-steel">완료 보상:</span> <%= @mission.reward_points %>P + <%= @mission.reward_points %>XP</p>
     <div>
       <span class="text-steel">목표:</span>
       <% if @mission.mission_goals.any? %>
         <ul class="mt-1 list-inside list-disc">
           <% @mission.mission_goals.each do |goal| %>
-            <li><%= goal_label[goal.goal_type] %> <%= goal.target_count %><%= goal.goal_type == "approved_reports" ? "편" : "회" %></li>
+            <li>
+              <%= goal_label[goal.goal_type] %> <%= goal.target_count %><%= goal.goal_type == "approved_reports" ? "편" : "회" %>
+              <% if goal.book %><span class="text-steel">· 『<%= goal.book.title %>』</span><% else %><span class="text-steel">· 아무 책이나</span><% end %>
+            </li>
           <% end %>
         </ul>
       <% else %>
@@ -55,7 +58,10 @@
               <tr class="border-b border-hairline text-left text-steel">
                 <th class="py-2 pr-3 font-medium">학생</th>
                 <% @mission.mission_goals.each do |goal| %>
-                  <th class="py-2 pr-3 font-medium"><%= goal_label[goal.goal_type] %></th>
+                  <th class="py-2 pr-3 font-medium">
+                    <%= goal_label[goal.goal_type] %>
+                    <% if goal.book %><span class="block text-xs font-normal text-steel">『<%= goal.book.title %>』</span><% end %>
+                  </th>
                 <% end %>
                 <th class="py-2 font-medium">상태</th>
               </tr>
@@ -72,7 +78,7 @@
                   <% end %>
                   <td class="py-2">
                     <% if participation.rewarded_at? %>
-                      <span class="text-green-700">완료 · <%= participation.reward_points_awarded %>P 지급</span>
+                      <span class="text-green-700">완료 · <%= participation.reward_points_awarded %>P + <%= participation.reward_points_awarded %>XP 지급</span>
                     <% elsif prog[:completed] %>
                       <span class="text-blue-700">완료(집계 중)</span>
                     <% else %>

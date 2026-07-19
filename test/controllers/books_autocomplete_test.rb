@@ -11,7 +11,7 @@ class BooksAutocompleteTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "자동완성학생", password: "password")
 
     @recommended = Book.create!(title: "권장 어린왕자", author: "생텍쥐페리",
-                                cover_url: "http://img/prince", category: :recommended)
+                                cover_url: "http://img/prince", category: :recommended, genre: "문학")
     @by_author = Book.create!(title: "무제", author: "홍길동", category: :classic)
     @searched = Book.create!(title: "검색캐시 어린왕자", author: "익명", category: :searched)
   end
@@ -33,8 +33,22 @@ class BooksAutocompleteTest < ActionDispatch::IntegrationTest
     item = response.parsed_body.find { |row| row["title"] == "권장 어린왕자" }
     assert_equal @recommended.id, item["id"]
     assert_equal "생텍쥐페리", item["author"]
-    assert_equal "http://img/prince", item["cover_url"]
-    assert_equal %w[id title author cover_url].sort, item.keys.sort
+    # Book#upgrade_cover_url_to_https 콜백이 http→https 로 승격해 저장하므로 응답도 https.
+    assert_equal "https://img/prince", item["cover_url"]
+    # 자동완성 드롭다운 배지(고전 여부·장르)용 필드도 계약에 포함한다.
+    assert_equal "문학", item["genre"]
+    assert_equal false, item["classic"]
+    assert_equal %w[id title author cover_url genre classic].sort, item.keys.sort
+  end
+
+  test "autocomplete marks classic books so the dropdown can badge them" do
+    login_as(@student)
+    get autocomplete_books_path, params: { q: "홍길" }, as: :json
+
+    assert_response :success
+    item = response.parsed_body.find { |row| row["id"] == @by_author.id }
+    assert item, "저자 일치 도서가 응답에 있어야 한다"
+    assert_equal true, item["classic"], "classic 카테고리 도서는 classic: true 로 표시돼야 한다"
   end
 
   test "autocomplete matches by author too" do

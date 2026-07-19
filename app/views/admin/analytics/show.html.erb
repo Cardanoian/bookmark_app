@@ -63,7 +63,10 @@
         <% @ranking.each_with_index do |user, index| %>
           <li class="flex justify-between">
             <span class="text-ink"><%= index + 1 %>. <%= user.name %> (<%= user.school&.name %>)</span>
-            <span class="font-medium text-ink"><%= user.points %>P</span>
+            <span class="text-right">
+              <span class="block font-medium text-ink"><%= user.points %>P</span>
+              <span class="block text-xs text-steel"><%= user.experience %>XP · Lv.<%= user.trainer_level %></span>
+            </span>
           </li>
         <% end %>
       </ol>

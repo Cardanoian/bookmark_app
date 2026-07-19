@@ -12,6 +12,7 @@ class Teacher::DashboardsController < Teacher::BaseController
     @pending_count = reports.where(reviewed: false).count
     @a_ratio = a_ratio(reports)
     @avg_points = @students.average(:points).to_f.round(1)
+    @avg_experience = @students.average(:experience).to_f.round(1)
 
     @axis_averages = axis_averages(reports) # Relation → SQL 집계(본문·행 미적재)
     @axis_labels = ReadingDomain::RUBRIC_AXES.map { |axis| ReadingDomain::AXIS_LABELS[axis] }

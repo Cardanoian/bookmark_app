@@ -40,6 +40,7 @@
           <th class="py-2">학생</th>
           <th class="py-2">독후감</th>
           <th class="py-2">포인트</th>
+          <th class="py-2">경험치</th>
         </tr>
       </thead>
       <tbody>
@@ -48,6 +49,7 @@
             <td class="py-2 text-ink"><%= student.name %></td>
             <td class="py-2 text-slate"><%= @reports.count { |r| r.user_id == student.id } %></td>
             <td class="py-2 text-slate"><%= student.points %></td>
+            <td class="py-2 text-slate"><%= student.experience %></td>
           </tr>
         <% end %>
       </tbody>

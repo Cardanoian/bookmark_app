@@ -10,6 +10,7 @@
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold text-ink"><%= book.title %></span>
         <span class="block truncate text-xs text-steel"><%= book.author %></span>
+        <%= book_meta_badges(book) %>
       </span>
     <% end %>
   <% end %>

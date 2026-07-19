@@ -85,6 +85,63 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
     assert_equal [ "approved_reports" ], mission.mission_goals.map(&:goal_type)
   end
 
+  test "new form renders per-goal book pickers" do
+    login_as @teacher
+    get new_teacher_mission_path
+    assert_response :success
+    assert_match "mission[goal_books][approved_reports]", response.body
+    assert_match "mission[goal_books][game_plays]", response.body
+    assert_match "특정 책 지정", response.body
+    assert_match "같은 양의 포인트와 경험치", response.body
+  end
+
+  test "edit form prefills the pinned book" do
+    book = Book.create!(title: "지정된 책", category: :recommended)
+    mission = Mission.create!(classroom: @classroom, title: "수정용", start_date: Date.current, end_date: Date.current + 7)
+    mission.mission_goals.create!(goal_type: :approved_reports, target_count: 1, book: book)
+    login_as @teacher
+    get edit_teacher_mission_path(mission)
+    assert_response :success
+    assert_match "지정된 책", response.body # 자동완성 input 프리필 값
+  end
+
+  test "create can pin goals to specific books" do
+    report_book = Book.create!(title: "독후감 지정책", category: :recommended)
+    game_book = Book.create!(title: "게임 지정책", category: :classic)
+    login_as @teacher
+    post teacher_missions_path, params: { mission: {
+      title: "도서 지정 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
+      goals: { approved_reports: 1, game_plays: 1 },
+      goal_books: { approved_reports: report_book.id, game_plays: game_book.id }
+    } }
+    mission = Mission.order(:created_at).last
+    assert_equal report_book.id, mission.mission_goals.find_by(goal_type: :approved_reports).book_id
+    assert_equal game_book.id, mission.mission_goals.find_by(goal_type: :game_plays).book_id
+  end
+
+  test "blank goal book means any book (nil book_id)" do
+    login_as @teacher
+    post teacher_missions_path, params: { mission: {
+      title: "아무책 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
+      goals: { approved_reports: 1 }, goal_books: { approved_reports: "" }
+    } }
+    mission = Mission.order(:created_at).last
+    assert_nil mission.mission_goals.find_by(goal_type: :approved_reports).book_id
+  end
+
+  test "goal book is server-validated: searched-cache or forged id is dropped to nil" do
+    searched = Book.create!(title: "검색캐시책", category: :searched)
+    login_as @teacher
+    post teacher_missions_path, params: { mission: {
+      title: "위조 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
+      goals: { approved_reports: 1, game_plays: 1 },
+      goal_books: { approved_reports: searched.id, game_plays: 999_999 }
+    } }
+    mission = Mission.order(:created_at).last
+    assert_nil mission.mission_goals.find_by(goal_type: :approved_reports).book_id # searched 제외
+    assert_nil mission.mission_goals.find_by(goal_type: :game_plays).book_id       # 존재하지 않는 id 제외
+  end
+
   test "publish transitions to published and auto-assigns classroom students" do
     mission = Mission.new(classroom: @classroom, title: "발행미션", reward_points: 30,
                           start_date: Date.current, end_date: Date.current + 7)

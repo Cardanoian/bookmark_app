@@ -1,7 +1,12 @@
 <%# 미션 draft 폼(menu_refactor 심화 PR4). locals: mission, classrooms.
-    목표는 초기 2종(승인 독후감·게임) 고정 — target 양수면 목표로 저장(mission[goals][<type>]). %>
-<% report_target = mission.mission_goals.detect { |g| g.goal_type == "approved_reports" }&.target_count %>
-<% game_target = mission.mission_goals.detect { |g| g.goal_type == "game_plays" }&.target_count %>
+    목표는 초기 2종(승인 독후감·게임) 고정 — target 양수면 목표로 저장(mission[goals][<type>]).
+    종류별로 특정 책(mission[goal_books][<type>])을 지정하면 그 책의 활동만 인정, 비우면 아무 책이나 인정. %>
+<% report_goal = mission.mission_goals.detect { |g| g.goal_type == "approved_reports" } %>
+<% game_goal = mission.mission_goals.detect { |g| g.goal_type == "game_plays" } %>
+<% report_target = report_goal&.target_count %>
+<% game_target = game_goal&.target_count %>
+<%# 목표별 도서 hidden 은 미션 컬럼이 아니라 mission[goal_books][<type>] 로 보내므로 전용 빌더로 그린다. %>
+<% goal_books_form = ActionView::Helpers::FormBuilder.new("mission[goal_books]", nil, self, {}) %>
 <%= form_with model: mission, url: (mission.persisted? ? teacher_mission_path(mission) : teacher_missions_path),
       class: "card space-y-4" do |f| %>
   <% if mission.errors.any? %>
@@ -39,24 +44,40 @@
     </div>
   </div>
 
-  <fieldset class="space-y-2 rounded-card border border-hairline p-4">
+  <fieldset class="space-y-4 rounded-card border border-hairline p-4">
     <legend class="px-1 text-sm font-semibold text-ink">목표 <span class="text-steel">(하나 이상, 0이면 제외)</span></legend>
-    <div class="grid gap-4 sm:grid-cols-2">
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
       <label class="block">
         <span class="form-label">승인 독후감 수</span>
         <%= number_field_tag "mission[goals][approved_reports]", report_target, min: 0, max: 20, class: "form-input", placeholder: "예: 3" %>
       </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/autocomplete_field", form: goal_books_form, book_id_field: :approved_reports,
+              title_field: nil, url: autocomplete_books_path, mode: "strict",
+              show_cover: true, selected_book: report_goal&.book %>
+      </div>
+    </div>
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
       <label class="block">
         <span class="form-label">독서 게임 완료 수</span>
         <%= number_field_tag "mission[goals][game_plays]", game_target, min: 0, max: 50, class: "form-input", placeholder: "예: 2" %>
       </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/autocomplete_field", form: goal_books_form, book_id_field: :game_plays,
+              title_field: nil, url: autocomplete_books_path, mode: "strict",
+              show_cover: true, selected_book: game_goal&.book %>
+      </div>
     </div>
   </fieldset>
 
   <div>
     <%= f.label :reward_points, "완료 보상 포인트", class: "form-label" %>
     <%= f.number_field :reward_points, min: 0, max: Mission.reward_max_points, class: "form-input" %>
-    <p class="mt-1 text-xs text-steel">모든 목표를 달성하면 학생에게 한 번 지급돼요(최대 <%= Mission.reward_max_points %>P).</p>
+    <p class="mt-1 text-xs text-steel">모든 목표를 달성하면 같은 양의 포인트와 경험치가 한 번 지급돼요(최대 <%= Mission.reward_max_points %>P + XP).</p>
   </div>
 
   <div class="page-actions">

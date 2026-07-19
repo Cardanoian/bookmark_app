@@ -13,14 +13,16 @@
       </header>
 
       <% if @reports.any? %>
-        <%= form_with url: batch_approve_teacher_reviews_path, method: :post, class: "space-y-3" do %>
+        <div class="space-y-3">
           <div id="review_queue" class="space-y-3">
             <%= render partial: "teacher/reviews/report_row", collection: @reports, as: :report %>
           </div>
-          <button type="submit" class="btn btn-primary">
-            선택 일괄 승인
-          </button>
-        <% end %>
+          <%= form_with url: batch_approve_teacher_reviews_path, method: :post, id: "batch_approve_reports" do %>
+            <button type="submit" class="btn btn-primary">
+              선택 일괄 승인
+            </button>
+          <% end %>
+        </div>
       <% else %>
         <div id="review_queue">
           <%= render "shared/empty_state", message: "검토할 독후감이 아직 없습니다.", icon: "📝" %>

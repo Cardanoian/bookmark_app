@@ -28,6 +28,7 @@ class RankingsTest < ActionDispatch::IntegrationTest
     assert_match "랭킹일등", response.body
     assert_match "랭킹이등", response.body
     assert_match "🥇", response.body
+    assert_match "300XP", response.body
   end
 
   test "class ranking renders each student's active monster image" do

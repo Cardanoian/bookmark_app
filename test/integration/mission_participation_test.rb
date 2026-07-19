@@ -45,6 +45,7 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     part = MissionParticipation.find_by(mission: @mission, user: @student)
     assert part.completed_at.present?, "목표 충족 시 완료돼야 한다"
     assert_equal 100, part.reward_points_awarded
+    assert_equal 100, @student.reload.experience, "미션 포인트와 같은 양의 경험치가 지급돼야 한다"
     assert_operator ReadingStats.new(@student).missions, :>=, 1
 
     # 보상 100P(points 조건) + missions:1 → 곰 진화 가능.
@@ -66,5 +67,39 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     assert_equal 0, ReadingStats.new(@student).missions
   end
 
+  test "특정 도서 지정 미션은 그 책 독후감 승인 때만 완료·보상된다" do
+    target = Book.create!(title: "지정 도서")
+    other  = Book.create!(title: "다른 도서")
+    book_mission = Mission.new(classroom: @classroom, title: "지정도서 독후감", reward_points: 20,
+                               start_date: Date.current, end_date: Date.current + 7)
+    book_mission.mission_goals.build(goal_type: :approved_reports, target_count: 1, book: target)
+    book_mission.save!
+    book_mission.publish!
+    part = MissionParticipation.find_by(mission: book_mission, user: @student)
+
+    # 1) 다른 책 독후감 승인 → 지정도서 미션은 미완료.
+    approve_report_for(other)
+    assert_nil part.reload.completed_at, "다른 책 독후감은 지정도서 목표를 채우지 못한다"
+
+    # 2) 지정 책 독후감 승인 → 완료·보상.
+    experience_before = @student.reload.experience
+    approve_report_for(target)
+    assert part.reload.completed_at.present?, "지정 책 독후감으로 완료돼야 한다"
+    assert_equal 20, part.reward_points_awarded
+    assert_equal experience_before + 20, @student.reload.experience
+  end
+
   private
+
+  # 학생이 book 을 연결한 독후감을 제출하고 교사가 승인한다.
+  def approve_report_for(book)
+    login_as @student
+    post reports_path, params: { report: { book_id: book.id, book_title: book.title, body: "#{book.title} 독후감 본문입니다." } }
+    report = @student.reports.order(:created_at).last
+    delete session_path
+    login_as @teacher
+    post approve_teacher_review_path(report)
+    delete session_path
+    report
+  end
 end

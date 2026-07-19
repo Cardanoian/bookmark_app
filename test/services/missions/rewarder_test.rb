@@ -41,6 +41,7 @@ class Missions::RewarderTest < ActiveSupport::TestCase
     assert part.rewarded_at.present?
     assert_equal 70, part.reward_points_awarded
     assert_equal 70, @student.reload.points
+    assert_equal 70, @student.experience
   end
 
   test "반복 호출해도 추가 지급이 없다(멱등)" do
@@ -49,6 +50,7 @@ class Missions::RewarderTest < ActiveSupport::TestCase
     part = MissionParticipation.create!(mission: mission, user: @student)
     3.times { Missions::Rewarder.new.reward!(part) }
     assert_equal 40, @student.reload.points
+    assert_equal 40, @student.experience
     assert_equal 40, part.reload.reward_points_awarded
   end
 
@@ -59,6 +61,7 @@ class Missions::RewarderTest < ActiveSupport::TestCase
     part = MissionParticipation.create!(mission: mission, user: @student)
     assert_nil Missions::Rewarder.new.reward!(part)
     assert_equal 0, @student.reload.points
+    assert_equal 0, @student.experience
   end
 
   test "m6: 미발행(draft/archived) 미션은 지급하지 않는다" do

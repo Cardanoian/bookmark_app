@@ -22,8 +22,9 @@ class RankingBoard
   end
 
   # 학교 내 학급 집계(학생 포인트 합) 순위.
-  # 학급당 SUM/COUNT/SUM(3쿼리, 포인트 이중 합산)을 한 번의 그룹 집계로 접는다(P3.1).
-  # 출력(주체·순서·합계·평균)은 종전과 동일하다 — 학생 없는 학급도 합계 0·평균 0 으로 포함.
+  # 학급별 포인트·경험치 합과 인원수를 한 번의 그룹 집계로 읽는다(P3.1).
+  # 정렬 기준은 기존 포인트 합을 유지하고, 경험치 합은 함께 표시할 메타데이터로 제공한다.
+  # 학생 없는 학급도 합계 0·평균 0 으로 포함한다.
   def school_ranking
     school = @user.school
     return [] unless school
@@ -31,14 +32,14 @@ class RankingBoard
     classrooms = school.classrooms.to_a
     classroom_ids = classrooms.map(&:id)
     students = User.where(role: :student, classroom_id: classroom_ids)
-    totals = students.group(:classroom_id).sum(:points)
-    counts = students.group(:classroom_id).count
+    aggregates = students.group(:classroom_id)
+                         .pluck(:classroom_id, Arel.sql("SUM(points)"), Arel.sql("SUM(experience)"), Arel.sql("COUNT(*)"))
+                         .to_h { |classroom_id, points, experience, count| [ classroom_id, [ points, experience, count ] ] }
 
     classrooms.map do |classroom|
-      total = totals[classroom.id] || 0
-      count = counts[classroom.id] || 0
+      total, experience, count = aggregates.fetch(classroom.id, [ 0, 0, 0 ])
       avg = count.zero? ? 0 : (total.to_f / count).round(1)
-      Entry.new(subject: classroom, score: total, meta: { avg: avg })
+      Entry.new(subject: classroom, score: total, meta: { avg: avg, experience: experience })
     end.sort_by { |entry| -entry.score }
   end
 
@@ -47,8 +48,14 @@ class RankingBoard
   # 규모에 무관하다. Top N 밖이면 뷰어 본인 학교 순위를 별도 행(meta[:self])으로 덧붙여 소형·신규
   # 학교의 동기부여를 보존한다. 학교 미소속(school_id nil) 학생 집계는 순위에서 제외한다.
   def nation_ranking(limit: 100)
-    totals = User.where(role: :student).group(:school_id).sum(:points)
+    aggregates = User.joins(:school)
+                     .where(role: :student, schools: { active: true })
+                     .group(:school_id)
+                     .pluck(:school_id, Arel.sql("SUM(points)"), Arel.sql("SUM(experience)"))
+    totals = aggregates.to_h { |school_id, points, _experience| [ school_id, points ] }
+    experiences = aggregates.to_h { |school_id, _points, experience| [ school_id, experience ] }
     totals.delete(nil)
+    experiences.delete(nil)
     return [] if totals.empty?
 
     ranked_ids = totals.sort_by { |school_id, score| [ -score, school_id ] }.map(&:first)
@@ -62,11 +69,19 @@ class RankingBoard
 
     entries = ranked_ids.first(limit).each_with_index.filter_map do |school_id, index|
       school = schools_by_id[school_id]
-      Entry.new(subject: school, score: totals[school_id], meta: { rank: index + 1 }) if school
+      Entry.new(
+        subject: school,
+        score: totals[school_id],
+        meta: { rank: index + 1, experience: experiences[school_id] }
+      ) if school
     end
 
     if own_index && own_index >= limit && (own = schools_by_id[own_id])
-      entries << Entry.new(subject: own, score: totals[own_id], meta: { rank: own_index + 1, self: true })
+      entries << Entry.new(
+        subject: own,
+        score: totals[own_id],
+        meta: { rank: own_index + 1, self: true, experience: experiences[own_id] }
+      )
     end
 
     entries

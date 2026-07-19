@@ -60,4 +60,20 @@ class BookTest < ActiveSupport::TestCase
       Book.new(title: "빈 ISBN", isbn: "").save!(validate: false)
     end
   end
+
+  # HTTPS 배포(force_ssl)에서 http:// 표지는 혼합 콘텐츠로 차단되므로 저장 전 https 로 승격한다.
+  test "upgrades an http cover_url to https on save (mixed-content guard)" do
+    book = Book.create!(title: "표지 책", isbn: "9791111111112",
+                        cover_url: "http://image.aladin.co.kr/x.jpg")
+    assert_equal "https://image.aladin.co.kr/x.jpg", book.cover_url
+  end
+
+  test "leaves an https cover_url and blank cover_url untouched" do
+    https = Book.create!(title: "https 책", isbn: "9791111111112",
+                         cover_url: "https://image.aladin.co.kr/y.jpg")
+    assert_equal "https://image.aladin.co.kr/y.jpg", https.cover_url
+
+    blank = Book.create!(title: "표지 없는 책", isbn: "9788986621136", cover_url: nil)
+    assert_nil blank.cover_url
+  end
 end

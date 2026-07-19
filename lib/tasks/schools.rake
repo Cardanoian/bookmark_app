@@ -147,6 +147,13 @@ namespace :schools do
       import_rows.each_slice(1_000) do |batch|
         School.upsert_all(batch, unique_by: :neis_code, record_timestamps: true)
       end
+
+      # 전량 스냅샷에 존재하지 않는 구 합성 학교는 잘못된 검색/랭킹 원자료다. 연결 데이터가
+      # 없는 행은 즉시 제거하고, 연결 데이터가 있는 행은 데이터 마이그레이션 또는 운영자
+      # 확인 전까지 inactive 로 보존한다(사용자·학급의 연쇄 삭제 방지).
+      School.where(neis_code: School::LEGACY_SAMPLE_CODES, data_source: "sample")
+        .where.missing(:users, :classrooms)
+        .destroy_all
     end
     puts "Loaded #{rows.size} schools from #{path}. Active NEIS schools = #{School.active.where(data_source: 'neis').count}"
   end

@@ -17,6 +17,20 @@ module Books
     COMMON_FEATURE_RATIO = 0.18
     RULE_OVERRIDE_CONFIDENCE = 0.72
 
+    # 오탐이 거의 없는 고정밀 신호(고유명사·도메인 전문어). kNN 신뢰도와 **무관하게** 우선 적용한다.
+    # 동물·우주·공룡·음식처럼 문학 제목과 겹치는 넓은 주제어는 여기 두지 않고(STRONG_GENRE_RULES 로만
+    # 게이트) 이 티어는 "제목에 있으면 사실상 그 장르"인 낱말만 담는다. 순서대로 first-match.
+    DECISIVE_GENRE_RULES = [
+      [ "언어", /맞춤법|받아쓰기|영단어|영문법|한자|어휘력/iu ],
+      [ "역사·지리", /한국사|세계사|삼국시대|고조선|고구려|백제|신라|발해|고려시대|조선시대|임진왜란|독립운동|이집트|로마\s*제국|메소포타미아|문명|유적|위인전|세계\s*지리/iu ],
+      [ "사회·문화", /민주주의|대통령|국회|선거|헌법|인권|다문화|경제|금융|주식|세금/iu ],
+      [ "종교·신화", /성경|기독교|불교|그리스\s*로마\s*신화|북유럽\s*신화|단군\s*신화/iu ],
+      [ "철학·심리", /철학|심리학|MBTI/iu ],
+      [ "예술·체육", /미술사|음악사|바둑|태권도|올림픽|월드컵/iu ],
+      [ "총류·정보", /코딩|프로그래밍|인공지능|로블록스|백과사전|스크래치/iu ],
+      [ "자연과학", /물리학|생물학|천문학|곤충도감|식물도감|인체\s*탐험/iu ]
+    ].freeze
+
     STRONG_GENRE_RULES = [
       [ "언어", /맞춤법|받아쓰기|반대말|우리말|한글|국어|영어|영단어|어휘|낱말|문해력|글쓰기|속담|사자성어|관용어|한자/iu ],
       [ "역사·지리", /한국사|세계사|역사|조선|고려|고구려|백제|신라|삼국시대|문화유산|지리|세계\s*여행|위인/iu ],
@@ -54,8 +68,11 @@ module Books
       genre, winning_vote = votes.max_by { |_, vote| vote }
       total_vote = votes.values.sum
       confidence = total_vote.positive? ? winning_vote / total_vote : 0.0
-      rule_genre = strong_rule_genre(row[:title])
-      if rule_genre && confidence < RULE_OVERRIDE_CONFIDENCE
+      # 고정밀 신호는 kNN 신뢰도와 무관하게 우선, 넓은 주제어(STRONG)는 kNN 이 불확실할 때만 적용.
+      if (decisive_genre = decisive_rule_genre(row[:title]))
+        genre = decisive_genre
+        confidence = [ confidence, RULE_OVERRIDE_CONFIDENCE ].max
+      elsif (rule_genre = strong_rule_genre(row[:title])) && confidence < RULE_OVERRIDE_CONFIDENCE
         genre = rule_genre
         confidence = [ confidence, RULE_OVERRIDE_CONFIDENCE ].max
       end
@@ -170,8 +187,12 @@ module Books
     # 이웃이 없을 때(공유 특징 0 또는 분류된 이웃 자체가 0). 최빈 장르로 폴백하되, 최빈 장르조차
     # 없으면(분류된 이웃 0) 규칙 기반 강한 시그널만으로 추론한다(없으면 genre nil → 호출자가 스킵).
     def fallback_result(row)
-      genre = @fallback_genre || strong_rule_genre(row[:title])
+      genre = decisive_rule_genre(row[:title]) || @fallback_genre || strong_rule_genre(row[:title])
       Result.new(genre: genre, confidence: 0.0, neighbors: [], top_similarity: 0.0)
+    end
+
+    def decisive_rule_genre(title)
+      DECISIVE_GENRE_RULES.find { |_, pattern| title.to_s.match?(pattern) }&.first
     end
 
     def strong_rule_genre(title)

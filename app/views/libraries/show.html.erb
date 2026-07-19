@@ -31,6 +31,7 @@
               <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
                     class: "block truncate font-semibold text-ink hover:underline" %>
               <span class="block truncate text-xs text-steel"><%= entry.book.author %></span>
+              <%= book_meta_badges(entry.book) %>
               <div class="mt-1 flex flex-wrap gap-1.5 text-xs">
                 <% if entry.report_approved.positive? %><span class="badge badge-success">승인 독후감 <%= entry.report_approved %></span><% end %>
                 <% if entry.report_pending.positive? %><span class="badge badge-yellow">검토 중 <%= entry.report_pending %></span><% end %>

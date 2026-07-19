@@ -9,11 +9,20 @@ class PointableTest < ActiveSupport::TestCase
     @user = User.create!(school: @school, classroom: @classroom, name: "포인트학생", password: "password")
   end
 
-  test "award_points increments and persists points" do
+  test "award_points increments and persists points and experience together" do
     @user.award_points(30)
     assert_equal 30, @user.reload.points
+    assert_equal 30, @user.experience
     @user.award_points(20)
     assert_equal 50, @user.reload.points
+    assert_equal 50, @user.experience
+  end
+
+  test "a new account with an initial point balance starts with matching experience" do
+    user = User.create!(school: @school, classroom: @classroom, name: "초기포인트학생", password: "password", points: 120)
+
+    assert_equal 120, user.experience
+    assert_equal 2, user.trainer_level
   end
 
   test "award_points ignores zero and negative amounts" do
@@ -58,6 +67,7 @@ class PointableTest < ActiveSupport::TestCase
     threads.each(&:join)
 
     assert_equal 100, @user.reload.points, "동시 적립이 lost update 없이 합산돼야 한다"
+    assert_equal 100, @user.experience, "경험치도 포인트와 같은 양만큼 원자적으로 합산돼야 한다"
   end
 
   # 잔액이 한 번만 감당하는데 두 차감이 경쟁하면 정확히 하나만 성공하고 잔액은 절대 음수가 되지 않는다.
@@ -78,9 +88,10 @@ class PointableTest < ActiveSupport::TestCase
   end
 
   test "spend_points! deducts atomically and returns true on sufficient balance" do
-    @user.update!(points: 50)
+    @user.update!(points: 50, experience: 50)
     assert @user.spend_points!(30)
     assert_equal 20, @user.reload.points
+    assert_equal 50, @user.experience, "포인트 소비는 누적 경험치를 차감하지 않는다"
   end
 
   test "spend_points! returns false and does not change points when balance is insufficient" do
@@ -94,6 +105,14 @@ class PointableTest < ActiveSupport::TestCase
     assert_not @user.spend_points!(0)
     assert_not @user.spend_points!(-10)
     assert_equal 50, @user.reload.points
+  end
+
+  test "revoke_points! corrects both balances without going below zero" do
+    @user.update!(points: 10, experience: 30)
+
+    assert @user.revoke_points!(20)
+    assert_equal 0, @user.reload.points
+    assert_equal 10, @user.experience
   end
 
   private

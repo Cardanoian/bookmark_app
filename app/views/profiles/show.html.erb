@@ -17,8 +17,12 @@
           Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %>
         </h2>
       </div>
-      <span class="badge badge-yellow"><%= current_user.points %>P</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="badge badge-yellow">보유 <%= current_user.points %>P</span>
+        <span class="badge badge-neutral">경험치 <%= current_user.experience %>XP</span>
+      </div>
     </div>
+    <p class="mt-3 text-sm text-steel">활동으로 포인트와 경험치를 함께 얻어요. 진화에 포인트를 사용해도 경험치와 레벨은 내려가지 않아요.</p>
   </section>
 
   <section aria-labelledby="profile-activity-title">

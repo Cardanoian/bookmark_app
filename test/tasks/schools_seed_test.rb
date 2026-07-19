@@ -107,8 +107,18 @@ class SchoolsSeedTest < ActiveSupport::TestCase
     assert_equal 5, School.count, "동기화에서 빠진 행도 삭제하지 않는다"
   end
 
-  test "구 합성 학교는 삭제하지 않고 선택 목록에서 제외한다" do
+  test "연결 데이터가 없는 구 합성 학교는 제거한다" do
     legacy = School.create!(name: "구합성초", neis_code: "7150001", data_source: "manual")
+
+    seed_full!
+
+    assert_not School.exists?(legacy.id)
+  end
+
+  test "연결 데이터가 있는 구 합성 학교는 비활성 보존한다" do
+    legacy = School.create!(name: "구합성초", neis_code: "7150001", data_source: "manual")
+    classroom = Classroom.create!(school: legacy, grade: 3, class_no: 1)
+    User.create!(school: legacy, classroom: classroom, name: "보존학생", password: "password")
 
     seed_full!
 

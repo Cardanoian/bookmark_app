@@ -13,6 +13,7 @@
        [ :rankings, "랭킹",     rankings_path,         "🏆" ]
      ] %>
   <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
+  <% active_nav_classes = "border-brand-blue/25 bg-surface-featured font-semibold text-blue-pressed shadow-sm" %>
 
   <nav class="mb-6 sm:mb-8"
        aria-label="학생 메뉴"
@@ -41,7 +42,7 @@
             <%= link_to path,
                   aria: { current: (key == active ? "page" : nil) },
                   data: { action: "student-nav#close" },
-                  class: "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl px-4 text-sm font-medium transition #{key == active ? "bg-primary text-white" : "text-steel hover:bg-surface hover:text-ink"}" do %>
+                  class: "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl border px-4 text-sm font-medium transition #{key == active ? active_nav_classes : "border-transparent text-steel hover:bg-surface hover:text-ink"}" do %>
               <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
               <span><%= label %></span>
             <% end %>
@@ -55,7 +56,7 @@
         <li class="shrink-0">
           <%= link_to path,
                 aria: { current: (key == active ? "page" : nil) },
-                class: "flex min-h-[2.75rem] items-center gap-2 rounded-full px-4 text-sm font-medium transition #{key == active ? "bg-primary text-white" : "text-steel hover:bg-surface"}" do %>
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-full border px-4 text-sm font-medium transition #{key == active ? active_nav_classes : "border-transparent text-steel hover:bg-surface hover:text-ink"}" do %>
             <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
             <span><%= label %></span>
           <% end %>

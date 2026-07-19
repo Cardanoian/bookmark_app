@@ -27,6 +27,20 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     assert_match @student.name, response.body
   end
 
+  test "individual and batch approval controls submit to separate endpoints" do
+    login_as @teacher
+    get teacher_reviews_path
+
+    assert_select "form#batch_approve_reports[action=?]", batch_approve_teacher_reviews_path do
+      assert_select "button[type=submit]", text: "선택 일괄 승인"
+      assert_select "form", count: 1
+    end
+    assert_select "input[name='report_ids[]'][value=?][form=batch_approve_reports]", @report.id.to_s
+    assert_select "form[action=?]", approve_teacher_review_path(@report) do
+      assert_select "button[type=submit]", text: "승인"
+    end
+  end
+
   test "a student is forbidden from the review queue" do
     login_as @student
     get teacher_reviews_path

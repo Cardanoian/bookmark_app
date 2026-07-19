@@ -14,6 +14,7 @@
           <%= report.book&.title.presence || report.book_title %>
         </h1>
         <p class="page-subtitle"><%= report.user.name %> · <%= report.created_at.strftime("%Y-%m-%d") %></p>
+        <%= book_meta_badges(report.book) %>
       </div>
     </div>
     <div class="page-actions">

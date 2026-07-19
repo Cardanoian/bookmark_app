@@ -38,9 +38,15 @@ class Teacher::StudentsController < Teacher::BaseController
   end
 
   def give_points
-    amount = (params[:points].presence || 10).to_i
+    raw_amount = params[:points].presence || "10"
+    unless raw_amount.to_s.match?(/\A[1-9]\d*\z/)
+      return redirect_to teacher_students_path, alert: "선물할 포인트는 1 이상의 정수여야 해요."
+    end
+
+    amount = raw_amount.to_i
     @student.award_points(amount, reason: "교사 수동 지급")
-    redirect_to teacher_students_path, notice: "#{@student.name} 학생에게 #{amount}포인트를 지급했어요."
+    redirect_to teacher_students_path,
+                notice: "#{@student.name} 학생에게 #{amount}포인트와 #{amount}경험치를 지급했어요."
   end
 
   private

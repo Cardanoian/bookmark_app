@@ -18,8 +18,8 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
     mission
   end
 
-  def report(created_at:, reviewed: true, revision_of: nil, classroom: @classroom)
-    Report.create!(user: @student, classroom: classroom, book_title: "책",
+  def report(created_at:, reviewed: true, revision_of: nil, classroom: @classroom, book: nil)
+    Report.create!(user: @student, classroom: classroom, book: book, book_title: "책",
                    reviewed: reviewed, revision_of: revision_of, created_at: created_at)
   end
 
@@ -85,6 +85,62 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
     assert_not calc(part).completed?    # 독후감만 충족, 게임 미충족
     GamePlay.create!(user: @student, game_type: :quiz, book: Book.create!(title: "책2"), played_on: Date.current)
     assert calc(part).completed?
+  end
+
+  test "특정 도서 독후감 목표는 그 책 독후감만 센다" do
+    target_book = Book.create!(title: "지정책")
+    other_book = Book.create!(title: "딴책")
+    mission = build_mission(goals: [ { goal_type: :approved_reports, target_count: 1, book: target_book } ])
+    part = MissionParticipation.create!(mission: mission, user: @student, assigned_at: mission.start_date.to_time)
+
+    report(created_at: Time.current, book: other_book)   # 딴 책 — 미인정
+    report(created_at: Time.current, book: nil)          # 책 미연결 — 미인정
+    assert_equal 0, calc(part).call[:goals].first[:current]
+    assert_not calc(part).completed?
+
+    report(created_at: Time.current, book: target_book)  # 지정책 — 인정
+    assert_equal 1, calc(part).call[:goals].first[:current]
+    assert calc(part).completed?
+  end
+
+  test "특정 도서 게임 목표는 그 책 게임만 센다" do
+    target_book = Book.create!(title: "게임지정책")
+    other_book = Book.create!(title: "게임딴책")
+    mission = build_mission(goals: [ { goal_type: :game_plays, target_count: 1, book: target_book } ])
+    part = MissionParticipation.create!(mission: mission, user: @student, assigned_at: mission.start_date.to_time)
+
+    GamePlay.create!(user: @student, game_type: :quiz, book: other_book, played_on: Date.current)
+    assert_equal 0, calc(part).call[:goals].first[:current]
+
+    GamePlay.create!(user: @student, game_type: :quiz, book: target_book, played_on: Date.current)
+    assert_equal 1, calc(part).call[:goals].first[:current]
+    assert calc(part).completed?
+  end
+
+  test "도서 미지정(book_id nil) 목표는 아무 책 독후감이나 센다(기존 동작 보존)" do
+    b1 = Book.create!(title: "책하나")
+    b2 = Book.create!(title: "책둘")
+    mission = build_mission(goals: [ { goal_type: :approved_reports, target_count: 2 } ])
+    part = MissionParticipation.create!(mission: mission, user: @student, assigned_at: mission.start_date.to_time)
+    report(created_at: Time.current, book: b1)
+    report(created_at: Time.current, book: b2)
+    assert_equal 2, calc(part).call[:goals].first[:current]
+    assert calc(part).completed?
+  end
+
+  test "batch 도 특정 도서 목표를 그 책 활동만으로 집계한다" do
+    target_book = Book.create!(title: "배치지정책")
+    other_book = Book.create!(title: "배치딴책")
+    mission = build_mission(goals: [ { goal_type: :approved_reports, target_count: 1, book: target_book } ])
+    part = MissionParticipation.create!(mission: mission, user: @student, assigned_at: mission.start_date.to_time)
+    report(created_at: Time.current, book: other_book)
+    report(created_at: Time.current, book: target_book)
+
+    batch = Missions::ProgressCalculator.batch(mission, participations: [ part ])
+    row = batch[@student.id][:goals].first
+    assert_equal 1, row[:current]                       # 지정책 1편만
+    assert_equal "배치지정책", row[:book_title]           # 표시용 책 제목 노출
+    assert batch[@student.id][:completed]
   end
 
   test "목표가 없으면 completed? 는 false(vacuous-true 방지)" do

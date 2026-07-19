@@ -34,16 +34,23 @@ module Missions
     end
 
     # 교사 현황용 batch. participations(같은 mission) → { user_id => { completed:, goals: [...] } }.
+    # 특정 도서 목표(goal.book_id)면 그 책의 활동만 집계한다(goal_type 당 1개라 종류별 단건 필터).
     def self.batch(mission, participations:)
       user_ids = participations.map(&:user_id).uniq
-      goals = mission.mission_goals.order(:position, :id).to_a
+      goals = mission.mission_goals.includes(:book).order(:position, :id).to_a
       return user_ids.index_with { { completed: false, goals: [] } } if goals.empty? || user_ids.empty?
 
-      report_counts = Report.where(classroom_id: mission.classroom_id, reviewed: true, revision_of_id: nil,
-                                   user_id: user_ids, created_at: window_range(mission))
-                            .group(:user_id).count
-      game_counts = GamePlay.where(user_id: user_ids, played_on: mission.start_date..mission.end_date)
-                            .group(:user_id).count # (표시용 근사 — 전학 clamp 미적용)
+      report_goal = goals.find(&:approved_reports?)
+      game_goal = goals.find(&:game_plays?)
+
+      report_scope = Report.where(classroom_id: mission.classroom_id, reviewed: true, revision_of_id: nil,
+                                  user_id: user_ids, created_at: window_range(mission))
+      report_scope = report_scope.where(book_id: report_goal.book_id) if report_goal&.book_id
+      report_counts = report_scope.group(:user_id).count
+
+      game_scope = GamePlay.where(user_id: user_ids, played_on: mission.start_date..mission.end_date)
+      game_scope = game_scope.where(book_id: game_goal.book_id) if game_goal&.book_id
+      game_counts = game_scope.group(:user_id).count # (표시용 근사 — 전학 clamp 미적용)
 
       participations.each_with_object({}) do |participation, acc|
         rows = goals.map do |goal|
@@ -52,7 +59,8 @@ module Missions
           when "game_plays" then game_counts[participation.user_id].to_i
           else 0
           end
-          { type: goal.goal_type, current: current, target: goal.target_count, met: current >= goal.target_count }
+          { type: goal.goal_type, current: current, target: goal.target_count,
+            met: current >= goal.target_count, book_title: goal.book&.title }
         end
         acc[participation.user_id] = { completed: rows.all? { |row| row[:met] }, goals: rows }
       end
@@ -68,37 +76,44 @@ module Missions
     private
 
     def ordered_goals
-      @ordered_goals ||= @mission.mission_goals.order(:position, :id).to_a
+      @ordered_goals ||= @mission.mission_goals.includes(:book).order(:position, :id).to_a
     end
 
     def goal_row(goal)
       current = current_for(goal)
-      { type: goal.goal_type, current: current, target: goal.target_count, met: current >= goal.target_count }
+      { type: goal.goal_type, current: current, target: goal.target_count,
+        met: current >= goal.target_count, book_title: goal.book&.title }
     end
 
     def current_for(goal)
       case goal.goal_type
-      when "approved_reports" then approved_reports_count
-      when "game_plays" then game_plays_count
+      when "approved_reports" then approved_reports_count(goal)
+      when "game_plays" then game_plays_count(goal)
       else 0
       end
     end
 
-    def approved_reports_count
-      @approved_reports_count ||= @user.reports
-        .where(classroom_id: @mission.classroom_id, reviewed: true, revision_of_id: nil)
-        .where(created_at: self.class.window_range(@mission))
-        .count
+    # goal.book_id 별 메모(goal_type 당 1개라 종류별 단건 — 특정 도서면 그 책 독후감만 센다).
+    def approved_reports_count(goal)
+      (@approved_reports_count ||= {})[goal.book_id] ||= begin
+        scope = @user.reports
+          .where(classroom_id: @mission.classroom_id, reviewed: true, revision_of_id: nil)
+          .where(created_at: self.class.window_range(@mission))
+        scope = scope.where(book_id: goal.book_id) if goal.book_id
+        scope.count
+      end
     end
 
-    def game_plays_count
-      @game_plays_count ||= begin
+    def game_plays_count(goal)
+      (@game_plays_count ||= {})[goal.book_id] ||= begin
         start_d = [ @mission.start_date, assigned_on ].compact.max
         end_d   = [ @mission.end_date, unassigned_on ].compact.min
         if start_d.nil? || end_d.nil? || end_d < start_d
           0
         else
-          @user.game_plays.where(played_on: start_d..end_d).count
+          scope = @user.game_plays.where(played_on: start_d..end_d)
+          scope = scope.where(book_id: goal.book_id) if goal.book_id
+          scope.count
         end
       end
     end

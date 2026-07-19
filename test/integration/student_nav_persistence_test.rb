@@ -36,7 +36,10 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
             assert_select "a", text: /#{Regexp.escape(label)}/, count: 1,
               message: "#{path} #{layout} 메뉴에 '#{label}' 링크가 없음"
           end
-          assert_select 'a[aria-current="page"]', text: /#{Regexp.escape(active_label)}/, count: 1
+          assert_select 'a[aria-current="page"].bg-surface-featured.text-blue-pressed',
+            text: /#{Regexp.escape(active_label)}/, count: 1
+          assert_select 'a[aria-current="page"].bg-primary', count: 0,
+            message: "#{path} #{layout} 활성 메뉴에 검은 배경이 남아 있음"
         end
       end
     end

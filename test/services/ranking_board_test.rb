@@ -30,6 +30,7 @@ class RankingBoardTest < ActiveSupport::TestCase
 
     assert_equal @class1, ranking.first.subject
     assert_equal 600, ranking.first.score
+    assert_equal 600, ranking.first.meta[:experience]
     assert_equal @class2, ranking.second.subject
     assert_equal 500, ranking.second.score
   end
@@ -41,6 +42,7 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 1100, totals[@school]
     assert_equal 1000, totals[@school_b]
     assert_equal @school, ranking.first.subject
+    assert_equal 1100, ranking.first.meta[:experience]
   end
 
   test "hall of fame reflects dex completion and 완전형(stage 3) count" do
@@ -112,6 +114,23 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_nil ranking.find { |e| e.subject == empty_school },
                "학생이 없는 학교는 전국 순위에서 제외되어야 한다"
     assert_equal 2, ranking.size, "학생 있는 학교(@school, @school_b)만 집계"
+  end
+
+  test "nation ranking excludes inactive schools even when they have students" do
+    inactive_school = School.create!(name: "비활성학교", active: false, data_source: "sample")
+    inactive_class = Classroom.create!(school: inactive_school, grade: 3, class_no: 1)
+    User.create!(
+      school: inactive_school,
+      classroom: inactive_class,
+      name: "비활성학생",
+      points: 10_000,
+      password: "password"
+    )
+
+    ranking = RankingBoard.new(@s1).nation_ranking
+
+    assert_not_includes ranking.map(&:subject), inactive_school
+    assert_equal [ @school, @school_b ], ranking.map(&:subject)
   end
 
   # 계획 §2.3 — Top N(100) 상한 + Top100 밖이면 뷰어 본인 학교 순위를 별도 행(self)으로 덧붙인다.

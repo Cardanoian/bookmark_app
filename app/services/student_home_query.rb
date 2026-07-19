@@ -1,29 +1,38 @@
-# 학생 홈(menu_refactor 심화 §2.D.3·§5.1) — 발견·이어하기·현재 미션 요약 읽기 전용 조회.
+# 학생 홈(menu_refactor 심화 §2.D.3·§5.1) — 발견·현재 미션 요약 읽기 전용 조회.
 # 전체 기록을 홈에 복제하지 않는다. 각 섹션은 제한된 수량만 렌더하고 독립적으로 폴백한다.
 class StudentHomeQuery
   BOOK_LIMIT = 6
 
-  MAX_DISCOVERY_CYCLE = 10_000
+  MAX_CYCLE = 10_000
 
-  def initialize(user, discovery_cycle: 0)
+  def initialize(user, discovery_cycle: 0, recommend_cycle: 0)
     @user = user
-    @discovery_cycle = discovery_cycle.to_i.clamp(0, MAX_DISCOVERY_CYCLE)
+    @discovery_cycle = discovery_cycle.to_i.clamp(0, MAX_CYCLE)
+    @recommend_cycle = recommend_cycle.to_i.clamp(0, MAX_CYCLE)
   end
 
   # 공식 추천도서: 총괄관리자가 마지막으로 활성화한 엑셀의 어린이 분과 중 아직 활동하지 않은 책.
-  # 가나다순 원본이 매일 같은 앞 6권만 노출되지 않도록 목록을 날짜 기준으로 결정적으로 회전한다.
+  # 가나다순 원본이 매일 같은 앞 6권만 노출되지 않도록 날짜를 시작점으로 결정적으로 회전하고,
+  # "다른 책 보기"(recommend cycle)를 누를 때마다 다음 6권으로 순환한다(발견 섹션과 동형).
   def recommended_books
-    recommendation_import = RecommendationImport.current
-    return Book.none unless recommendation_import
+    return @recommended_books if defined?(@recommended_books)
 
-    ids = recommendation_import.book_recommendations
-                               .where.not(book_id: active_book_ids)
-                               .order(:position).pluck(:book_id)
-    return Book.none if ids.empty?
+    ids = recommended_book_ids
+    return @recommended_books = Book.none if ids.empty?
 
-    selected_ids = ids.rotate((Date.current.jd * BOOK_LIMIT) % ids.length).first(BOOK_LIMIT)
+    offset = ((Date.current.jd + @recommend_cycle) * BOOK_LIMIT) % ids.length
+    selected_ids = ids.rotate(offset).first(BOOK_LIMIT)
     books = Book.where(id: selected_ids).index_by(&:id)
-    selected_ids.filter_map { |id| books[id] }
+    @recommended_books = selected_ids.filter_map { |id| books[id] }
+  end
+
+  # 추천도서가 한 화면(BOOK_LIMIT)보다 많을 때만 "다른 책 보기"가 의미를 가진다.
+  def more_recommended_books?
+    recommended_book_ids.length > BOOK_LIMIT
+  end
+
+  def next_recommend_cycle
+    @recommend_cycle >= MAX_CYCLE ? 0 : @recommend_cycle + 1
   end
 
   # 책 발견: 학생·날짜별 시작점을 기본값으로 삼고 "다른 책 보기"를 누를 때마다 다음 6권으로
@@ -49,7 +58,7 @@ class StudentHomeQuery
   end
 
   def next_discovery_cycle
-    @discovery_cycle >= MAX_DISCOVERY_CYCLE ? 0 : @discovery_cycle + 1
+    @discovery_cycle >= MAX_CYCLE ? 0 : @discovery_cycle + 1
   end
 
   # 인기 도서(v1): 같은 학급 최근 30일 승인 독후감의 book_id 집계 상위. 학급 데이터 없으면 빈 결과.
@@ -67,18 +76,13 @@ class StudentHomeQuery
     counts.keys.filter_map { |id| books[id] }
   end
 
-  # 이어하기: 가장 최근 독후감(작성/첨삭/승인 어느 상태든) 1건. 없으면 nil(뷰가 CTA 폴백).
-  def continue_report
-    @user.reports.order(created_at: :desc).first
-  end
-
   # 진행 중(active·published) 미션과 목표 진행도. 현재 학생 한 명이라 단건 계산 허용(§11.3).
   # [{ mission:, progress: { completed:, goals: [...] }, participation: }]
   def active_missions
     participations = @user.mission_participations
                           .joins(:mission).merge(Mission.published)
                           .where("missions.start_date <= :d AND missions.end_date >= :d", d: Date.current)
-                          .includes(mission: :mission_goals)
+                          .includes(mission: { mission_goals: :book })
     participations.map do |participation|
       mission = participation.mission
       {
@@ -99,6 +103,20 @@ class StudentHomeQuery
   end
 
   private
+
+  # 활성 XLSX 추천 중 아직 활동하지 않은 book_id(position 순). recommended_books·more_recommended_books? 공용.
+  def recommended_book_ids
+    @recommended_book_ids ||= begin
+      recommendation_import = RecommendationImport.current
+      if recommendation_import
+        recommendation_import.book_recommendations
+                             .where.not(book_id: active_book_ids)
+                             .order(:position).pluck(:book_id)
+      else
+        []
+      end
+    end
+  end
 
   def discovery_offset(total)
     seed = Date.current.jd + @user.id.to_i

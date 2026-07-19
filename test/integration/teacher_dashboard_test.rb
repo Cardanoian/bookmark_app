@@ -8,6 +8,7 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     @teacher = User.create!(school: @school, classroom: @classroom, name: "대시담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
     @student = User.create!(school: @school, classroom: @classroom, name: "대시학생", password: "password")
+    @student.update!(points: 40, experience: 80)
 
     rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
     @a1 = Report.create!(user: @student, classroom: @classroom, book_title: "책1", rubric: rubric, avg: 4.2, level: "A", ai_status: :done, reviewed: true)
@@ -32,6 +33,8 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "67%", response.body # A 2 of 3 scored
     assert_match "검토 대기", response.body
+    assert_match "평균 경험치", response.body
+    assert_match "80.0", response.body
   end
 
   test "dashboard surfaces the weakest axis insight" do

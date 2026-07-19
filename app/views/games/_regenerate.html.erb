@@ -1,7 +1,7 @@
 <%# 다시 뽑기(§3.4) + 신고(무게이트 롤아웃 안전장치). 온디맨드(system) 판에서만 노출. locals: quiz, game %>
 <% if quiz.origin == "system" %>
   <div class="mt-2 flex flex-col gap-2 rounded-xl border border-hairline bg-surface-yellow p-4 sm:flex-row sm:items-center sm:justify-between">
-    <p class="form-hint text-yellow-dark"><span aria-hidden="true">🏅</span> 포인트는 최고 기록만 반영돼요. 새 문제를 뽑아도 이미 받은 포인트는 줄지 않아요.</p>
+    <p class="form-hint text-yellow-dark"><span aria-hidden="true">🏅</span> 포인트와 경험치는 최고 기록만 반영돼요. 새 문제를 뽑아도 이미 받은 보상은 줄지 않아요.</p>
     <%= button_to "🎲 다시 뽑기", games_regenerate_path,
           params: { book_id: quiz.book_id, surface: game },
           class: "btn btn-subtle btn-sm shrink-0" %>

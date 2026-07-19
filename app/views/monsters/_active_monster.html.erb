@@ -2,16 +2,16 @@
 <%# user_monster 은 Turbo 브로드캐스트가 자동 주입하는 로컬(사용하지 않음). %>
 <div id="active_monster" class="card bg-surface-featured">
   <% if monster %>
-    <div class="flex items-center gap-4"
+    <div class="flex items-center gap-5"
          data-controller="monster-care"
          data-monster-care-celebrate-value="<%= celebrate %>">
-      <span class="text-5xl" aria-hidden="true" data-monster-care-target="sprite">
-        <%= monster_sprite(monster.species, img_class: "h-14 w-14 object-contain") %>
+      <span class="shrink-0 text-6xl" aria-hidden="true" data-monster-care-target="sprite">
+        <%= monster_sprite(monster.species, img_class: "h-20 w-20 object-contain") %>
       </span>
-      <div>
-        <p class="text-xs font-medium text-yellow-dark">대표 몬스터</p>
-        <p class="text-lg font-bold text-ink"><%= monster.species.name %></p>
-        <p class="text-xs text-steel">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-yellow-dark">대표 몬스터</p>
+        <p class="text-2xl font-bold leading-tight text-ink"><%= monster.species.name %></p>
+        <p class="mt-0.5 text-sm text-steel">
           <%= monster.species.stage %>단계 · <%= element_label(monster.species.element) %>
         </p>
       </div>

@@ -17,6 +17,8 @@ module Recommendations
     def call(imported_by: nil)
       raise Error, "XLSX 파일만 업로드할 수 있습니다." unless File.extname(@filename).casecmp?(".xlsx")
 
+      @enrich_book_ids = []
+
       reader = XlsxReader.new(@path)
       entries = reader.read
       missing_isbn_count = entries.count { |entry| entry.isbn.blank? }
@@ -65,6 +67,10 @@ module Recommendations
       # 업로드 응답을 네이버 왕복으로 지연시키지 않는다. 동일 파일 재업로드 때도 다시
       # enqueue하여 이전 무키/일시 실패로 남은 표지를 자연스럽게 재시도한다(잡은 멱등).
       RecommendationCoverEnrichmentJob.perform_later(result.recommendation_import.id)
+      # 장르 공란 도서는 무API 추론 잡(BookEnrichmentJob)으로 비동기 보강한다(멱등).
+      # 추천 XLSX 유입 도서는 시드 사전계산·네이버 검색 경로를 모두 우회해 무장르로 남으므로,
+      # SearchService 신규 유입과 같은 자동 보강 트리거를 이 경로에도 건다(표지 잡과 동일 커밋 후 시점).
+      @enrich_book_ids.each { |book_id| BookEnrichmentJob.perform_later(book_id) }
       result
     rescue XlsxReader::Error => error
       raise Error, error.message
@@ -89,6 +95,7 @@ module Recommendations
       )
       book.category = :recommended if book.new_record? || book.searched?
       book.save!
+      @enrich_book_ids << book.id if book.genre.blank?
       book
     end
   end

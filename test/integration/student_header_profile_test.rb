@@ -34,6 +34,7 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
     get profile_path
     assert_response :success
     assert_select "h1", text: /헤더학생님의 독서 기록/
+    assert_select "[aria-labelledby='profile-growth-title']", text: /120XP/
     assert_select "[aria-labelledby='profile-activity-title']", text: /작성한 독후감/
     # 계정 섹션은 비밀번호 변경 진입, 로그아웃은 공통 헤더로 이동했다(WS-G).
     assert_select "[aria-labelledby='profile-account-title'] a[href='#{edit_password_path}']", text: /비밀번호 변경/

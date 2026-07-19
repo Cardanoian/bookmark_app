@@ -1,8 +1,8 @@
-# 트레이너(독서가) 레벨·칭호. 포인트 임계 → 1..6 레벨(§13.2).
+# 트레이너(독서가) 레벨·칭호. 누적 경험치 임계 → 1..6 레벨(§13.2).
 module Leveling
   extend ActiveSupport::Concern
 
-  # 레벨 임계 포인트(누적). 인덱스 0 == 레벨 1.
+  # 레벨 임계 경험치(누적). 인덱스 0 == 레벨 1.
   LEVEL_PATH = [ 0, 100, 250, 450, 700, 1000 ].freeze
 
   # 레벨별 칭호(§13.2).
@@ -17,7 +17,7 @@ module Leveling
 
   # 현재 트레이너 레벨(1..6).
   def trainer_level
-    LEVEL_PATH.rindex { |threshold| points.to_i >= threshold } + 1
+    LEVEL_PATH.rindex { |threshold| experience.to_i >= threshold } + 1
   end
 
   # 현재 트레이너 칭호.

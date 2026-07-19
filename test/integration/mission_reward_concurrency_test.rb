@@ -50,5 +50,6 @@ class MissionRewardConcurrencyTest < ActiveSupport::TestCase
     assert @participation.rewarded_at.present?
     assert_equal REWARD, @participation.reward_points_awarded
     assert_equal REWARD, @student.reload.points, "정확히 1회분만 적립돼야 한다(이중지급 없음)"
+    assert_equal REWARD, @student.experience, "경험치도 정확히 1회분만 적립돼야 한다"
   end
 end

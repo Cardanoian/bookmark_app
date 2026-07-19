@@ -10,7 +10,7 @@
         <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
       </header>
 
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <div class="stat-card">
           <span class="stat-card__label">총 독후감</span>
           <span class="stat-card__value"><%= @total_reports %></span>
@@ -26,6 +26,10 @@
         <div class="stat-card">
           <span class="stat-card__label">평균 포인트</span>
           <span class="stat-card__value"><%= @avg_points %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">평균 경험치</span>
+          <span class="stat-card__value"><%= @avg_experience %></span>
         </div>
       </div>
 

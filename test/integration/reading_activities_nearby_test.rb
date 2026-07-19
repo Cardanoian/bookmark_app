@@ -48,6 +48,8 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
+    assert_select ".page-shell.page-shell-wide", count: 1,
+      message: "독서활동 화면은 다른 학생 상위 메뉴와 같은 넓은 페이지 셸을 사용한다"
     assert_equal 0, stub.holdings_calls, "첫 show 렌더는 외부 API 를 호출하지 않는다(lazy frame)"
     # 단수 라우트 헬퍼가 book_id 를 쿼리로 실은 src 로 정상 렌더된다.
     assert_select "turbo-frame#nearby_libraries[src=?]",

@@ -52,4 +52,13 @@ class MissionGoalTest < ActiveSupport::TestCase
     assert other.valid?
     assert_nothing_raised { other.save! }
   end
+
+  test "book 은 선택(nil 허용)이며 특정 도서를 지정할 수 있다" do
+    without = MissionGoal.new(mission: @mission, goal_type: :approved_reports, target_count: 1)
+    assert without.valid?, without.errors.full_messages.to_sentence  # book 없이도 유효
+
+    book = Book.create!(title: "목표 도서")
+    with_book = MissionGoal.create!(mission: @mission, goal_type: :game_plays, target_count: 1, book: book)
+    assert_equal book.id, with_book.reload.book_id
+  end
 end

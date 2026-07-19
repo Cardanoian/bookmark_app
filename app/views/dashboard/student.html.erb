@@ -7,10 +7,10 @@
   <%= render "shared/student_nav", active: :home %>
 
   <%# 1) 활성 몬스터·포인트 요약 (navbar 바로 아래) %>
-  <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <div class="lg:col-span-2">
+  <section id="student-overview" class="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+    <div class="h-full [&>*]:h-full">
       <% if current_user.active_monster.nil? %>
-        <div class="card-feature">
+        <div class="card-feature h-full">
           <h2 class="text-base font-bold text-ink"><span aria-hidden="true">🥚</span> 첫 반려 몬스터를 골라 볼까요?</h2>
           <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
@@ -25,40 +25,38 @@
         <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
       <% end %>
     </div>
-    <div class="stat-card">
-      <span class="stat-card__label">보유 포인트</span>
-      <span class="stat-card__value"><%= current_user.points %>P</span>
-      <span class="badge badge-yellow self-start">Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %></span>
+    <div id="student-growth-summary" class="stat-card h-full">
+      <div class="flex w-full items-start gap-4">
+        <div class="flex min-w-0 flex-1 flex-col gap-2" data-growth-stat="experience">
+          <span class="text-xs font-medium text-steel">경험치</span>
+          <span class="stat-card__value"><%= current_user.experience %>XP</span>
+          <span class="badge badge-yellow self-start">Lv.<%= current_user.trainer_level %> · <%= current_user.trainer_title %></span>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col gap-2 border-l border-hairline-soft pl-4" data-growth-stat="points">
+          <span class="text-xs font-medium text-steel">보유 포인트</span>
+          <span class="stat-card__value"><%= current_user.points %>P</span>
+        </div>
+      </div>
     </div>
   </section>
 
   <%# 2) 총괄관리자 업로드 기반 공식 추천도서 %>
   <% recommended = @home.recommended_books.to_a %>
   <% if recommended.any? %>
-    <section class="space-y-3">
-      <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
+    <section id="recommended-books" class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
+        <% if @home.more_recommended_books? %>
+          <%= link_to "↻ 다른 책 보기",
+                root_path(recommend: @home.next_recommend_cycle, anchor: "recommended-books"),
+                class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
+        <% end %>
+      </div>
       <%= render "dashboard/home_book_grid", books: recommended %>
     </section>
   <% end %>
 
-  <%# 3) 환영 및 이어하기 %>
-  <section class="card-feature">
-    <h2 class="text-lg font-bold text-ink"><%= current_user.name %>님, 오늘도 책 한 권 어때요?</h2>
-    <% if (report = @home.continue_report) %>
-      <p class="mt-1 text-sm text-steel">
-        최근 활동: <span class="font-medium text-ink"><%= report.book&.title || report.book_title %></span>
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <%= link_to "이어서 보기", report_path(report), class: "btn btn-primary btn-sm" %>
-        <%= link_to "독서활동 시작", reading_activity_path, class: "btn btn-secondary btn-sm" %>
-      </div>
-    <% else %>
-      <p class="mt-1 text-sm text-steel">첫 독서활동을 시작해 볼까요?</p>
-      <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-primary btn-sm mt-3" %>
-    <% end %>
-  </section>
-
-  <%# 4) 진행 중인 우리 반 미션 %>
+  <%# 3) 진행 중인 우리 반 미션 %>
   <% missions = @home.active_missions %>
   <% if missions.any? %>
     <section class="space-y-3">
@@ -68,26 +66,28 @@
         <div class="card space-y-2">
           <div class="flex items-center justify-between gap-2">
             <span class="font-semibold text-ink"><%= mission.title %></span>
-            <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P</span>
+            <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP</span>
           </div>
           <% item[:progress][:goals].each do |g| %>
             <div>
               <div class="flex justify-between text-xs">
-                <span class="text-steel"><%= goal_label[g[:type]] %></span>
+                <span class="text-steel">
+                  <%= goal_label[g[:type]] %><% if g[:book_title] %> <span class="text-ink">『<%= g[:book_title] %>』</span><% end %>
+                </span>
                 <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
               </div>
               <div class="progress-bar mt-1"><span style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></span></div>
             </div>
           <% end %>
           <% if item[:participation].rewarded_at? %>
-            <p class="text-sm font-semibold text-green-700">🎉 완료! <%= item[:participation].reward_points_awarded %>P 받았어요</p>
+            <p class="text-sm font-semibold text-green-700">🎉 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
           <% end %>
         </div>
       <% end %>
     </section>
   <% end %>
 
-  <%# 5) 우리 반 인기 도서 %>
+  <%# 4) 우리 반 인기 도서 %>
   <% popular = @home.popular_books.to_a %>
   <% if popular.any? %>
     <section class="space-y-3">
@@ -96,7 +96,7 @@
     </section>
   <% end %>
 
-  <%# 5.5) 우리 반·우리 학교 책 이야기(reading_discussion 진입점). 기능 플래그가 꺼지면 숨김. %>
+  <%# 4.5) 우리 반·우리 학교 책 이야기(reading_discussion 진입점). 기능 플래그가 꺼지면 숨김. %>
   <% if reading_discussion_enabled? %>
     <% topics = @home.recent_topics %>
     <% if topics.any? %>
@@ -122,7 +122,7 @@
     <% end %>
   <% end %>
 
-  <%# 6) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
+  <%# 5) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
   <% discovery = @home.discovery_books.to_a %>
   <% if discovery.any? %>
     <section id="book-discovery" class="space-y-3">

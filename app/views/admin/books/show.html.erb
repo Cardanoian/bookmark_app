@@ -13,6 +13,7 @@
     <div class="flex justify-between py-1"><dt class="text-steel">출판사</dt><dd class="text-ink"><%= @book.publisher %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">ISBN</dt><dd class="text-ink"><%= @book.isbn %></dd></div>
     <div class="flex justify-between py-1"><dt class="text-steel">분류</dt><dd class="text-ink"><%= @book.category %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">장르</dt><dd class="text-ink"><%= book_genre_label(@book) || "—" %></dd></div>
   </dl>
   <% if @book.summary.present? %>
     <p class="card text-sm text-slate"><%= @book.summary %></p>

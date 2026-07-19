@@ -1,7 +1,9 @@
 <%# 검토 큐 행. AiReviewJob 방송 대상이므로 current_user 미사용. local: report %>
 <article id="<%= dom_id(report) %>" class="card flex items-center justify-between gap-3 p-3">
   <label class="flex min-w-0 items-center gap-3">
-    <%= check_box_tag "report_ids[]", report.id, false, class: "shrink-0 rounded border-hairline-strong" %>
+    <%= check_box_tag "report_ids[]", report.id, false,
+          form: "batch_approve_reports",
+          class: "shrink-0 rounded border-hairline-strong" %>
     <span class="min-w-0">
       <span class="block truncate font-medium text-ink">
         <%= report.user.name %> · <%= report.book&.title.presence || report.book_title %>

@@ -373,6 +373,12 @@
     background-color: var(--color-danger);
     color: #ffffff;
   }
+  /* 좁은 도서 카드(홈 그리드·목록)용 컴팩트 배지 — 장르·고전 메타 표시 */
+  .badge-sm {
+    padding: 0.0625rem 0.4375rem;
+    font-size: 0.6875rem;
+    gap: 0.125rem;
+  }
 
   /* ---- 진행 바 ------------------------------------------------------------ */
   .progress-bar {

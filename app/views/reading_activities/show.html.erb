@@ -1,7 +1,7 @@
 <% content_for :title, "독서활동 · 책갈피" %>
 <% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 
-<div class="page-shell page-shell-content space-y-6">
+<div class="page-shell page-shell-wide space-y-6">
   <h1 class="sr-only">독서활동</h1>
   <%= render "shared/student_nav", active: :activity %>
 
@@ -31,6 +31,7 @@
       <div class="min-w-0 flex-1">
         <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
         <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+        <%= book_meta_badges(@book) %>
       </div>
       <%= link_to "책 바꾸기", reading_activity_path, class: "btn btn-secondary btn-sm shrink-0" %>
     </section>

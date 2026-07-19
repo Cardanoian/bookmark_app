@@ -53,6 +53,8 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
     new_form = @student.reload.evolve_active_monster!
     assert_equal "owl_2", new_form.key, "게임 포인트로 owl_1 → owl_2 진화"
     assert_equal 0, @student.reload.points, "owl_1 진화 비용 100포인트 차감"
+    assert_equal 100, @student.experience, "진화에 포인트를 써도 누적 경험치는 유지"
+    assert_equal 2, @student.trainer_level, "진화에 포인트를 써도 레벨은 내려가지 않음"
     assert_equal 6, @monster.reload.dex_no, "제자리 진화(같은 라인)"
   end
 

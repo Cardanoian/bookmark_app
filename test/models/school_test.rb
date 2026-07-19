@@ -1,6 +1,13 @@
 require "test_helper"
 
 class SchoolTest < ActiveSupport::TestCase
+  test "legacy sample codes contain only the 17 synthetic school ids" do
+    assert_equal 17, School::LEGACY_SAMPLE_CODES.size
+    assert_equal School::LEGACY_SAMPLE_CODES.uniq, School::LEGACY_SAMPLE_CODES
+    assert_includes School::LEGACY_SAMPLE_CODES, "7150001"
+    assert_not_includes School::LEGACY_SAMPLE_CODES, "7010002"
+  end
+
   test "requires a name" do
     school = School.new(name: nil)
     assert_not school.valid?

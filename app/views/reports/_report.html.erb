@@ -10,6 +10,7 @@
       <div class="min-w-0">
         <%= link_to (report.book&.title.presence || report.book_title), report_path(report),
               class: "font-semibold text-ink hover:underline after:absolute after:inset-0 after:content-['']" %>
+        <%= book_meta_badges(report.book) %>
         <p class="mt-1 line-clamp-2 text-sm text-steel"><%= truncate(report.body.to_s, length: 80) %></p>
       </div>
     </div>

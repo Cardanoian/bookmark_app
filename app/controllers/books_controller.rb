@@ -51,7 +51,8 @@ class BooksController < ApplicationController
                 .order(:title)
                 .limit(20)
     render json: books.map { |book|
-      { id: book.id, title: book.title.to_s, author: book.author.to_s, cover_url: book.cover_url.to_s }
+      { id: book.id, title: book.title.to_s, author: book.author.to_s, cover_url: book.cover_url.to_s,
+        genre: book.genre.to_s, classic: book.classic? }
     }
   end
 

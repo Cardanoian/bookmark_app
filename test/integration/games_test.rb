@@ -53,13 +53,16 @@ class GamesTest < ActionDispatch::IntegrationTest
 
     assert_difference -> { QuizAttempt.count }, 1 do
       assert_difference -> { @student.reload.points }, 3 * Games::QuizPlay::POINTS_PER_CORRECT do
-        post games_attempts_path, params: { quiz_id: @quiz.id, game: "quiz", answers: all_correct }
+        assert_difference -> { @student.reload.experience }, 3 * Games::QuizPlay::POINTS_PER_CORRECT do
+          post games_attempts_path, params: { quiz_id: @quiz.id, game: "quiz", answers: all_correct }
+        end
       end
     end
 
     attempt = QuizAttempt.last
     assert_equal @student.id, attempt.user_id
     assert_equal 3, attempt.score
+    assert_match "경험치도 15XP 올랐어요", flash[:notice]
     assert_redirected_to games_quiz_path(@quiz)
   end
 

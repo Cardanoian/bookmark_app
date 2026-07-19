@@ -36,7 +36,7 @@ Zeitwerk 오토로드 경로 밖이라 스크립트끼리는 `require_relative`�
 
 ### 파일
 - `build_elementary_books_tsv.rb` — 카탈로그 생성 메인. 정보나루(data4library) 학년별(a8/a10/a12) 인기대출 API + NLCY(국립어린이청소년도서관) 사서 추천 목록 + 앱 큐레이션 `Book` 레코드를 병합해 `db/seeds/elementary_books.tsv`(8,502행, 탭 구분)를 만든다. `BOOKS_FROM`/`BOOKS_TO`/`BOOKS_LIMIT` ENV로 조회 기간·밴드별 상한을 조정. KDC 대분류/NLCY 주제를 10개 장르로 매핑하고, 널리 알려진 제목·저자 패턴(`CLASSIC_TITLES`/`CLASSIC_AUTHOR_PATTERN`)에 매칭되는 경우만 고전으로 보수적으로 표시한다(추측 대신 미상은 "검토필요"로 남김). 실행: `bin/rails runner script/build_elementary_books_tsv.rb`.
-- `book_genre_inference.rb` — `Books::GenreInference`. 이미 장르가 분류된 이웃 도서들에서 **가중 n-gram(제목 2·3-gram·낱말·시리즈명·저자·출판사) 코사인 유사도**로 장르를 추론하는 순수 PORO(외부 API 호출·KDC 코드 발명 없음). 유사도 신뢰도가 낮을 때는 규칙기반 강한 시그널(`STRONG_GENRE_RULES`, 정규식)을 우선한다. `build_elementary_books_tsv.rb`·`fill_missing_book_genres.rb` 공용.
+- `book_genre_inference.rb` — `Books::GenreInference`. 이미 장르가 분류된 이웃 도서들에서 **가중 n-gram(제목 2·3-gram·낱말·시리즈명·저자·출판사) 코사인 유사도**로 장르를 추론하는 순수 PORO(외부 API 호출·KDC 코드 발명 없음). 규칙은 2티어(`DECISIVE_GENRE_RULES`=고정밀 신호로 kNN 신뢰도 무관하게 우선, `STRONG_GENRE_RULES`=넓은 주제어라 유사도 신뢰도가 낮을 때만 우선)이며 app 판본과 동기화한다. `build_elementary_books_tsv.rb`·`fill_missing_book_genres.rb` 공용.
 - `fill_missing_book_genres.rb` — TSV의 공란/미분류 `genre` 행만 `Books::GenreInference`로 채우는 후처리 스크립트(`bin/rails runner`). **기존에 채워진 장르값은 절대 바꾸지 않는다**. 프로젝트 큐레이션 행(`selection_type` 에 `project_curated` 포함)은 추론 대신 "문학"으로 고정 확신 처리. 결과는 Tempfile 에 써서 `File.rename`으로 원자적으로 교체한다. 실행: `bin/rails runner script/fill_missing_book_genres.rb`(`BOOKS_TSV` ENV로 대상 파일 교체 가능).
 
 ### 패턴·규칙

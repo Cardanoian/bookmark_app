@@ -32,6 +32,30 @@ class Books::GenreInferenceTest < ActiveSupport::TestCase
     assert_operator result.confidence, :>=, Books::GenreInference::RULE_OVERRIDE_CONFIDENCE
   end
 
+  test "고정밀 규칙(DECISIVE)은 kNN 신뢰도가 높아도 우선한다(한국사→역사·지리)" do
+    # 이웃이 모두 '문학'이고 제목까지 강하게 겹쳐 kNN 은 문학을 높은 신뢰도로 뽑지만,
+    # 제목의 '한국사'는 고정밀 신호라 신뢰도와 무관하게 역사·지리로 덮어써야 한다.
+    neighbors = Array.new(4) { |i| Book.new(title: "말하는 고양이 대모험 #{i + 1}", author: "김작가", genre: "문학") }
+
+    result = Books::GenreInference.new(neighbors).infer(
+      Book.new(title: "말하는 고양이 한국사 대모험", author: "김작가")
+    )
+
+    assert_equal "역사·지리", result.genre, "고정밀 '한국사'는 확신에 찬 kNN(문학)도 덮어써야 한다"
+  end
+
+  test "넓은 주제어(STRONG)는 kNN 신뢰도가 높으면 덮어쓰지 않는다(우주는 게이트 유지)" do
+    # '우주'는 STRONG(자연과학)에만 있고 DECISIVE 엔 없다 — 문학 제목과 겹치기 쉬워
+    # kNN 이 확신할 때는 그대로 kNN 결과(문학)를 유지해야 한다(우주 모험 = 판타지 문학 보호).
+    neighbors = Array.new(4) { |i| Book.new(title: "말하는 고양이 대모험 #{i + 1}", author: "김작가", genre: "문학") }
+
+    result = Books::GenreInference.new(neighbors).infer(
+      Book.new(title: "말하는 고양이 우주 대모험", author: "김작가")
+    )
+
+    assert_equal "문학", result.genre, "넓은 주제어 '우주'는 확신에 찬 kNN 을 덮어쓰지 않는다"
+  end
+
   test "공유 특징이 없으면 최빈 장르로 폴백한다(신뢰도 0)" do
     neighbors = [
       Book.new(title: "완전히 다른 제목 하나", genre: "자연과학"),

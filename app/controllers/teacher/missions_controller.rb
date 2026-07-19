@@ -93,14 +93,26 @@ class Teacher::MissionsController < Teacher::BaseController
   end
 
   # 고정 2목표(승인 독후감·게임) 폼 입력 → mission_goals 재구성. target 이 양수인 종류만 목표로 만든다.
-  # draft 만 목표를 바꾼다(발행 후 update 는 이 경로를 타지 않음).
+  # 종류별로 특정 도서(mission[goal_books][<type>])를 지정하면 그 책의 활동만 인정, 없으면 아무 책이나
+  # 인정한다(book_id nil). draft 만 목표를 바꾼다(발행 후 update 는 이 경로를 타지 않음).
   def apply_goals(mission)
     mission.mission_goals.destroy_all if mission.persisted?
     mission.mission_goals.reset
     GOAL_TYPES.each do |goal_type|
       target = params.dig(:mission, :goals, goal_type).to_i
-      mission.mission_goals.build(goal_type: goal_type, target_count: target) if target.positive?
+      next unless target.positive?
+
+      book_id = sanitized_book_id(params.dig(:mission, :goal_books, goal_type))
+      mission.mission_goals.build(goal_type: goal_type, target_count: target, book_id: book_id)
     end
+  end
+
+  # 폼 자동완성이 넘긴 book_id 를 서버에서 검증한다 — 카탈로그 도서(비-searched)만 연결하고
+  # 위조·searched 캐시 주입은 무시(nil)한다(quizzes 와 동일 관용구).
+  def sanitized_book_id(raw)
+    return nil if raw.blank?
+
+    Book.where.not(category: :searched).where(id: raw).pick(:id)
   end
 
   def publish_error(mission)

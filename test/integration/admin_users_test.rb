@@ -26,6 +26,17 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_no_match "김학생", response.body
   end
 
+  test "show displays points and accumulated experience together" do
+    @student.update!(points: 30, experience: 80)
+    login_as @superadmin
+
+    get admin_user_path(@student)
+
+    assert_response :success
+    assert_match "경험치", response.body
+    assert_match "80", response.body
+  end
+
   test "suspend sets suspended true" do
     login_as @superadmin
     post suspend_admin_user_path(@student)
@@ -78,22 +89,25 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
       patch admin_user_path(@student), params: { user: { name: @student.name, points: 500 } }
     end
     assert_equal 500, @student.reload.points
+    assert_equal 500, @student.experience
   end
 
   # 목표값과의 차액(델타)만 반영한다(멱등 재적용 방지).
   test "admin points adjustment applies only the delta to the target value" do
-    @student.update_columns(points: 100)
+    @student.update_columns(points: 100, experience: 400)
     login_as @superadmin
     patch admin_user_path(@student), params: { user: { name: @student.name, points: 250 } }
     assert_equal 250, @student.reload.points
+    assert_equal 550, @student.experience, "상향 차액 150만큼 경험치도 적립"
   end
 
   # 하향 조정도 목표값에 안착한다(원자 차감, raw SQL 우회).
   test "admin can lower points to a target via atomic decrement" do
-    @student.update_columns(points: 300)
+    @student.update_columns(points: 300, experience: 700)
     login_as @superadmin
     patch admin_user_path(@student), params: { user: { name: @student.name, points: 120 } }
     assert_equal 120, @student.reload.points
+    assert_equal 700, @student.experience, "포인트 하향 조정은 누적 경험치를 낮추지 않는다"
   end
 
   # 음수 target 은 저장 없이 정확히 거부한다 — 예전엔 spend_points! 가 조용히 실패해도

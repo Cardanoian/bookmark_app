@@ -1,6 +1,10 @@
 class School < ApplicationRecord
   DATA_SOURCES = %w[manual sample neis].freeze
-  LEGACY_SAMPLE_CODES = (7010001..7170001).map(&:to_s).freeze
+  LEGACY_SAMPLE_CODES = %w[
+    7010001 7020001 7030001 7040001 7050001 7060001
+    7070001 7080001 7090001 7100001 7110001 7120001
+    7130001 7140001 7150001 7160001 7170001
+  ].freeze
 
   has_many :classrooms, dependent: :destroy
   has_many :users, dependent: :nullify

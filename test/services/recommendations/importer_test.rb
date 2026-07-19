@@ -41,6 +41,26 @@ class Recommendations::ImporterTest < ActiveJob::TestCase
     file&.close!
   end
 
+  test "enqueues genre enrichment for blank-genre books but skips already-classified ones" do
+    classified = Book.create!(title: "장르 있는 책", author: "작가", publisher: "출판사",
+                              isbn: "9781111111113", category: :recommended, genre: "문학")
+    file = build_recommendation_xlsx([
+      { section: "어린이문학", title: "장르 있는 책", author: "작가", publisher: "출판사", isbn: "9781111111113" },
+      { section: "어린이과학", title: "새 책", author: "새 작가", publisher: "새 출판사", isbn: "9783333333335" }
+    ])
+
+    # 공란 장르 신규 도서 1권만 보강 예약, 이미 장르가 있는 기존 도서는 제외한다.
+    assert_enqueued_jobs 1, only: BookEnrichmentJob do
+      import(file)
+    end
+
+    new_book = Book.find_by(isbn: "9783333333335")
+    assert_enqueued_with job: BookEnrichmentJob, args: [ new_book.id ]
+    assert_equal "문학", classified.reload.genre
+  ensure
+    file&.close!
+  end
+
   test "new successful upload replaces active list and same file is idempotent" do
     first_file = build_recommendation_xlsx([
       { section: "어린이문학", title: "첫 책", author: "첫 작가", publisher: "첫 출판사", isbn: "9784444444446" }

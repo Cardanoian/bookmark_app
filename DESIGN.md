@@ -825,7 +825,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 ### 레이아웃 & 반응형(구현)
 - `layouts/application`: 고정 `mt-28`·브레이크포인트 컨테이너 제거 → `<main>`이 `max-w-[96rem] mx-auto` + 유동 거터(`px-4 sm:px-6 lg:px-8`) + `py-6`. flash=`shared/_flash`(state-banner 토스트).
 - `layouts/admin`: 반응형 오프캔버스 사이드바(lg↑ 고정 / lg↓ 햄버거 패널 = `admin-sidebar` Stimulus, backdrop·Escape), 본문 `max-w-[96rem]`, `overflow-x-hidden` 가로스크롤 가드.
-- 학생 내비(`shared/_student_nav`): 반응형 필 탭(데스크톱 줄바꿈/모바일 가로스크롤), 활성=검은 필+`aria-current="page"`.
+- 학생 내비(`shared/_student_nav`): 반응형 필 탭(데스크톱 줄바꿈/모바일 disclosure), 활성=라벤더 파스텔 필+짙은 브랜드 블루 텍스트+`aria-current="page"`.
 
 ### 역할 톤(적용 현황)
 학생(대시보드·로그인 선택 카드)=밝은 파스텔+옐로 강조; 교직원·관리자(admin 콘솔·교직원 로그인)=차분한 흰 카드+헤어라인. 표준 CTA는 전 역할 공통 검은 필(`.btn-primary`), 옐로는 워드마크·레벨/포인트·태그 강조 한정.

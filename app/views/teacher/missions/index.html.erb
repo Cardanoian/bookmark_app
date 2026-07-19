@@ -32,7 +32,7 @@
                   <%= mission.classroom&.label %>
                   <% if mission.start_date %> · <%= mission.start_date %> ~ <%= mission.end_date %><% end %>
                   <% if mission.mission_goals.any? %>
-                    · 목표 <%= mission.mission_goals.size %>개 · <%= mission.reward_points %>P
+                    · 목표 <%= mission.mission_goals.size %>개 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP
                   <% end %>
                 </span>
               </span>

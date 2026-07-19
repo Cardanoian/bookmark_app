@@ -21,11 +21,13 @@ class Games::PointAwardTest < ActiveSupport::TestCase
     assert_equal 25, first.points_awarded, "저장값은 this_score(만점)"
     assert_equal 25, first.awarded_delta, "첫 만점은 전액"
     assert_equal 25, @student.reload.points
+    assert_equal 25, @student.experience
 
     second = play(quiz)
     assert_equal 25, second.points_awarded, "재플레이도 자기 점수를 저장(델타 아님)"
     assert_equal 0, second.awarded_delta, "재플레이 추가 포인트 0"
     assert_equal 25, @student.reload.points, "교사 퀴즈 재플레이로 파밍되지 않는다"
+    assert_equal 25, @student.experience, "재플레이로 경험치도 파밍할 수 없어야 한다"
   end
 
   # 회귀 방지: 교사 퀴즈 상한이 (텅 빈) system 집합을 읽으면 prior_max=0 → 매판 재지급(파밍).

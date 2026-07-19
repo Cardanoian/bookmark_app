@@ -15,6 +15,7 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
 
   test "student writes, AI reviews offline, teacher approves, points increase" do
     points_before = @student.points
+    experience_before = @student.experience
 
     # 1) 학생: 로그인 + 작성 + 첨삭 잡 실행(규칙기반, 네트워크 없음)
     login_as @student
@@ -26,6 +27,9 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
     report = @student.reports.order(:created_at).last
     assert report.reload.done?, "AI 첨삭이 완료(done)되어야 한다"
     assert_operator @student.reload.points, :>, points_before, "AI 첨삭으로 포인트가 올라야 한다"
+    assert_operator @student.experience, :>, experience_before, "AI 첨삭으로 경험치도 올라야 한다"
+    assert_equal @student.points - points_before, @student.experience - experience_before,
+                 "독후감 보상 포인트와 경험치는 같은 양이어야 한다"
 
     # 2) 교사: 로그인 + 승인
     delete session_path

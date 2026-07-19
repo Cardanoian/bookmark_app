@@ -44,6 +44,7 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     login_as @teacher
     get class_report_teacher_prints_path(classroom_id: @classroom.id)
     assert_response :success
+    assert_match "경험치", response.body
     assert_match "학급 성장 리포트", response.body
     assert_match "인쇄하기", response.body
   end

@@ -23,6 +23,7 @@ class AdminAnalyticsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "가나다초", response.body
     assert_match "라마바초", response.body
+    assert_match "50XP", response.body
   end
 
   test "export returns text/csv with a per-school row" do

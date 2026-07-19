@@ -39,7 +39,7 @@ module Games
     # "얻었어요"라고 말하지 않는다 — 파밍 차단 취지와 UX 를 일치시킨다.
     def result_notice(attempt)
       if attempt.awarded_delta.to_i.positive?
-        "#{attempt.score}문제 정답! #{attempt.awarded_delta}포인트를 얻었어요."
+        "#{attempt.score}문제 정답! #{attempt.awarded_delta}포인트를 얻었어요. 경험치도 #{attempt.awarded_delta}XP 올랐어요."
       else
         "#{attempt.score}문제 정답! 이미 받은 최고 기록이라 추가 포인트는 없어요."
       end

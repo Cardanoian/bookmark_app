@@ -44,6 +44,7 @@ class Missions::AssignmentSyncTest < ActiveSupport::TestCase
     part = MissionParticipation.find_by(mission: mission, user: @s1)
     assert part.completed_at.present?, "발행 즉시 평가로 완료돼야 한다"
     assert_equal 25, @s1.reload.points
+    assert_equal 25, @s1.experience
   end
 
   test "for_user 는 편입 학생을 현재 학급의 진행 중 미션에 배정하고 즉시 평가한다" do
@@ -58,6 +59,7 @@ class Missions::AssignmentSyncTest < ActiveSupport::TestCase
     assert part.present?, "편입 학생이 배정돼야 한다"
     assert part.completed_at.present?, "편입 즉시 평가로 완료돼야 한다"
     assert_equal 15, newbie.reload.points
+    assert_equal 15, newbie.experience
   end
 
   test "ReevaluateJob 백스톱도 미보상 완료를 지급한다(멱등)" do
@@ -69,8 +71,10 @@ class Missions::AssignmentSyncTest < ActiveSupport::TestCase
 
     Missions::ReevaluateJob.new.perform
     assert_equal 20, @s1.reload.points
+    assert_equal 20, @s1.experience
     # 재실행 멱등
     Missions::ReevaluateJob.new.perform
     assert_equal 20, @s1.reload.points
+    assert_equal 20, @s1.experience
   end
 end
