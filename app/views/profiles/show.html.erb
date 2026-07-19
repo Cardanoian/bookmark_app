@@ -27,14 +27,14 @@
       <%= link_to "독후감 전체 보기", reports_path, class: "text-sm font-medium text-steel hover:text-ink hover:underline" %>
     </div>
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div class="stat-card">
+      <%= link_to reports_path, class: "stat-card hover:bg-surface" do %>
         <span class="stat-card__label">작성한 독후감</span>
         <span class="stat-card__value"><%= @report_count %>편</span>
-      </div>
-      <div class="stat-card">
+      <% end %>
+      <%= link_to reports_path(reviewed: "true"), class: "stat-card hover:bg-surface" do %>
         <span class="stat-card__label">선생님 확인</span>
         <span class="stat-card__value"><%= @reviewed_report_count %>편</span>
-      </div>
+      <% end %>
       <div class="stat-card">
         <span class="stat-card__label">모은 배지</span>
         <span class="stat-card__value"><%= @badge_count %>개</span>

@@ -28,7 +28,8 @@
               <span aria-hidden="true" class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
             <% end %>
             <div class="min-w-0">
-              <span class="block truncate font-semibold text-ink"><%= entry.book.title %></span>
+              <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
+                    class: "block truncate font-semibold text-ink hover:underline" %>
               <span class="block truncate text-xs text-steel"><%= entry.book.author %></span>
               <div class="mt-1 flex flex-wrap gap-1.5 text-xs">
                 <% if entry.report_approved.positive? %><span class="badge badge-success">승인 독후감 <%= entry.report_approved %></span><% end %>
@@ -56,7 +57,8 @@
       <div class="space-y-2">
         <% @legacy_groups.each do |group| %>
           <div class="card flex items-center justify-between gap-3 text-sm">
-            <span class="min-w-0 truncate text-ink"><%= group.title %></span>
+            <%= link_to group.title, reports_path(book_title: group.title),
+                  class: "min-w-0 truncate text-ink hover:underline" %>
             <span class="shrink-0 text-xs text-steel">독후감 <%= group.report_total %>(승인 <%= group.report_approved %>)</span>
           </div>
         <% end %>

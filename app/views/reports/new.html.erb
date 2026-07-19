@@ -29,7 +29,15 @@
   <% if input_mode == "ocr" %>
     <%= render "reports/photo_capture", report: @report %>
   <% elsif input_mode == "keyboard" %>
-    <%= render "reports/form", report: @report %>
+    <%# 안내형 작성(guided compose, §1a): mode_chooser 의 "직접 쓰기" 카드가 guided=1 을 실어 보내고,
+        본문이 아직 비어 있으며(위저드/OCR 초안 없음) worker-1 의 @guided(질문 세트)가 준비돼 있으면
+        질문형 작성 화면을 먼저 보여 준다. 그 외(guided 미전달·본문 프리필 있음·@guided 미지원)는
+        기존 자유 서술 폼으로 낙하한다(안전 폴백). %>
+    <% if params[:guided].present? && @report.body.blank? && @guided && @guided[:questions].present? %>
+      <%= render "reports/guided_compose" %>
+    <% else %>
+      <%= render "reports/form", report: @report %>
+    <% end %>
   <% elsif book_chosen %>
     <%= render "reports/mode_chooser", report: @report %>
   <% else %>

@@ -4,7 +4,7 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 36개 테이블, version `2026_07_19_000002`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 36개 테이블, version `2026_07_19_190354`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
 - `seeds.rb` — 시드 오케스트레이션. `db/seeds/accounts.yml`·`app_settings.yml`을 안전하게 읽고, 아래 rake 태스크들을 순서대로 `invoke` 하며 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본값을 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
   - 순서: `schools:seed_full`(CSV 없으면 `schools:seed`) → superadmin → **system 유저** → **비production 역할 샘플 계정** → `monsters:seed`·`badges:seed` → `books:seed_full`(TSV 없으면 no-op, 축소 폴백 없음) → **업로드 이력이 없을 때만 docs 번들 추천도서 XLSX 초기 적재** → `quizzes:seed` → `app_settings`.
   - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
@@ -47,6 +47,7 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 24. **도서 ISBN-13 필수화** (`20260718000011`): 사전 `books:deduplicate_isbn` 병합·네이버 보강으로 공란/중복을 0건으로 만든 뒤 `books.isbn`을 **NOT NULL**, 숫자 13자리 CHECK(`chk_books_isbn13_format`), 전체 UNIQUE 인덱스로 강화한다. 모델·네이버 검색·TSV·추천 XLSX·관리자 폼은 `Books::Isbn`의 체크디지트 검증과 ISBN-10→13 정규화를 공유한다. ISBN 없는 자유입력 도서명은 Book 행 대신 `reports.book_title`에만 남긴다. 테이블 수 불변(35 유지). `schema.rb` version 은 `2026_07_18_000011`.
 25. **독서 토론 아동 안전 컬럼(reading_discussion PR)** (`20260719000001`): 고아였던 토론 스택을 표면화하며 함께 출하하는 **순수 additive**. `forum_posts` 에 `reports_count`(default 0, NOT NULL — forum_post_reports counter_cache, **2인 자동숨김이 아니라 교사 대시보드 사후검토 신호**)·`hidden_by_id`(숨김 귀속, board_posts 선례), `topics` 에 `hidden_by_id` 추가 + 각 인덱스. `Admin::Moderation` 의 `respond_to?(:hidden_by_id)` 분기가 자동 연동. 컬럼 추가만이라 테이블 수 불변(35 유지).
 26. **독서 토론 신고 원장** (`20260719000002`): `forum_post_reports`(forum_post·user FK + `reason` nullable, **`(forum_post_id, user_id)` UNIQUE**=1인 1신고, quiz_reports 패턴 복제). 자동 숨김 없이 저자 학급 담임 대시보드 사후 검토 신호로만 쓰인다(또래 저작물 집단신고 괴롭힘 방지). **+1 테이블(35→36)**. `schema.rb` version 은 `2026_07_19_000002`.
+27. **레거시 책 제목 공백 정규화 백필(독후감 열람)** (`20260719190354`): 자기 독후감 열람의 책별 필터(`reports?book_title=`)와 내 서재 레거시 그룹핑을 하나의 정규형으로 수렴시키기 위해, 기존 `reports.book_title` 값을 `squish`(앞뒤·중복 공백 정리)로 정규화한다. **데이터 전용·멱등**(`update_columns`로 콜백/타임스탬프 우회, `squish` 재실행 무해; `Report#normalize_book_title` before_validation 콜백이 이후 신규 저장을 같은 정규형으로 유지). 컬럼·테이블 구조 변경 없음(테이블 수 36 유지). `schema.rb` version 은 `2026_07_19_190354`.
 
 ### seeds/ — 시드 데이터
 

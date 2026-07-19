@@ -51,7 +51,8 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_select "input[type=submit][value=?]", "다음", 0
 
     # 두 모드 링크가 고른 책(book_title)을 실어 전달한다. book_id/remote_isbn 미전달이므로 nil 로 일치.
-    keyboard_href = new_report_path(input_mode: :keyboard,
+    # 직접 쓰기(keyboard) 링크는 안내형 작성 진입을 위해 guided=1 도 함께 싣는다(§1a).
+    keyboard_href = new_report_path(input_mode: :keyboard, guided: 1,
       report: { book_id: nil, book_title: @book.title, remote_isbn: nil })
     ocr_href = new_report_path(input_mode: :ocr,
       report: { book_id: nil, book_title: @book.title, remote_isbn: nil })

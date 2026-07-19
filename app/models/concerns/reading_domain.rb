@@ -135,6 +135,112 @@ module ReadingDomain
   # 가중치 미설정 학급용 기본값(모든 축 동일). 학년군 무관.
   DEFAULT_RUBRIC_WEIGHTS = { content: 1, emotion: 1, life: 1, structure: 1, spelling: 1 }.freeze
 
+  # 학년군별 안내형(가이드) 독후감 작성 문항. 학생이 빈 화면 앞에서 막히지 않도록 5축(RUBRIC_AXES)을
+  # 처음(intro)-가운데(body)-끝(conclusion) 흐름의 질문으로 풀어 준다. 문항 수·part 구성은 눈높이별로
+  # 다르다(g12=5 / g34=7 / g56=8). 각 문항은 축(axis)·위치(part)·질문(question)·힌트(hint)·예시(example)를
+  # 담고, ratio_hint(줄거리:생각 비율 안내)·spelling_tip(맞춤법 점검 안내)이 밴드별로 붙는다.
+  # 뷰(reports/new)가 `@guided[:questions].each` 로 소비한다(외부 API 무관·정적 상수).
+  GUIDED_QUESTIONS_BY_BAND = {
+    g56: {
+      questions: [
+        { axis: :content, part: :intro,
+          question: "이 책을 왜 읽게 되었나요? 제목·표지를 보고 어떤 생각이 들었나요?",
+          hint: "읽게 된 이유와 기대를 2~3문장으로 써 봐요.",
+          example: "저는 동물을 좋아해서 이 책을 읽게 되었습니다. 제목을 보고 재미있는 이야기일 것 같아 기대되었어요." },
+        { axis: :content, part: :body,
+          question: "가장 기억에 남는 장면은 무엇인가요? (줄거리는 짧게!)",
+          hint: "줄거리는 2~3문장만 써요.",
+          example: "주인공이 친구를 끝까지 도와주는 장면이 기억에 남았습니다." },
+        { axis: :emotion, part: :body,
+          question: "그 장면이 왜 기억에 남았나요? 어떤 생각·느낌이 들었나요?",
+          hint: "여기는 길게! 왜 그렇게 느꼈는지 써 봐요.",
+          example: "저도 친구가 어려울 때 도와준 적이 있어서 더욱 공감되었습니다." },
+        { axis: :emotion, part: :body,
+          question: "가장 슬프거나 놀라웠던 부분은 무엇이었나요? 왜 그렇게 느꼈나요?",
+          hint: "마음이 크게 움직인 장면을 떠올려 봐요.",
+          example: "주인공이 혼자 남겨지는 장면이 가장 슬펐습니다. 외로움이 느껴졌기 때문입니다." },
+        { axis: :life, part: :body,
+          question: "내가 주인공이라면 어떻게 했을까요? 나의 경험과 비슷한 일이 있었나요?",
+          hint: "'나라면?'과 내 경험을 상상해서 써 봐요.",
+          example: "나라면 조금 더 용기를 내어 먼저 도와주었을 것 같습니다. 저도 전학 온 친구를 도운 적이 있어요." },
+        { axis: :life, part: :body,
+          question: "주인공(또는 등장인물)에게 해 주고 싶은 말이 있나요?",
+          hint: "응원이나 조언을 한마디 써 봐요.",
+          example: "포기하지 않아서 정말 멋지다고 말해 주고 싶습니다." },
+        { axis: :life, part: :conclusion,
+          question: "이 책을 읽고 무엇을 느끼거나 배웠나요? 실천하고 싶은 점이 있나요?",
+          hint: "배운 점과 다짐을 써 봐요.",
+          example: "친구를 배려하는 마음이 얼마나 중요한지 알게 되었습니다. 앞으로 먼저 도와주고 싶습니다." },
+        { axis: :structure, part: :conclusion,
+          question: "친구들에게 추천한다면 왜 추천하고 싶나요? 별점(★)과 한 줄 평도 남겨 볼까요?",
+          hint: "추천 이유와 별점, 한 줄 평을 써 봐요.",
+          example: "★★★★★ 우정의 소중함을 배울 수 있어 친구들에게 추천합니다." }
+      ],
+      ratio_hint: "줄거리는 20~30%만, 내 생각·느낌은 70~80%! 처음-가운데-끝 순서로 이어 써요.",
+      spelling_tip: "다 썼으면 맞춤법과 띄어쓰기를 한 번 더 살펴봐요."
+    },
+    g34: {
+      questions: [
+        { axis: :content, part: :intro,
+          question: "이 책을 왜 읽고 싶었어요?",
+          hint: "읽고 싶었던 까닭을 써 봐요.",
+          example: "표지에 강아지가 있어서 읽고 싶었어요." },
+        { axis: :content, part: :body,
+          question: "가장 기억에 남는(재미있던) 장면은 무엇이에요? (줄거리는 짧게)",
+          hint: "줄거리는 짧게 써요.",
+          example: "친구를 도와주는 장면이 기억에 남아요." },
+        { axis: :emotion, part: :body,
+          question: "그 장면에서 어떤 느낌이 들었어요? 왜 그렇게 느꼈어요?",
+          hint: "느낌을 자세히 써 봐요.",
+          example: "따뜻한 마음이 들었어요. 저도 도움받은 적이 있거든요." },
+        { axis: :emotion, part: :body,
+          question: "가장 슬프거나 놀라웠던 부분은 무엇이에요?",
+          hint: "마음이 움직인 장면을 써요.",
+          example: "주인공이 길을 잃는 부분이 놀라웠어요." },
+        { axis: :life, part: :body,
+          question: "내가 주인공이라면 어떻게 했을까요?",
+          hint: "'나라면?'을 상상해 봐요.",
+          example: "나라면 어른에게 도와달라고 했을 거예요." },
+        { axis: :life, part: :conclusion,
+          question: "책을 읽고 무엇을 느끼거나 알게 됐어요?",
+          hint: "느낀 점·알게 된 점을 써요.",
+          example: "친구를 도우면 나도 기쁘다는 걸 알았어요." },
+        { axis: :content, part: :conclusion,
+          question: "친구에게 추천하고 싶어요? 왜요?",
+          hint: "추천 이유를 써 봐요.",
+          example: "재미있고 따뜻해서 추천하고 싶어요." }
+      ],
+      ratio_hint: "줄거리는 짧게, 내 생각·느낌을 더 많이 써 봐요!",
+      spelling_tip: "문장이 어색하지 않은지 다시 읽어 봐요."
+    },
+    g12: {
+      questions: [
+        { axis: :content, part: :intro,
+          question: "무슨 책을 읽었어요? 왜 골랐어요?",
+          hint: "고른 까닭을 써 봐요.",
+          example: "동물 책이라서 골랐어요." },
+        { axis: :content, part: :body,
+          question: "가장 재미있던 부분은 무엇이에요?",
+          hint: "재미있던 장면을 써요.",
+          example: "강아지가 뛰어노는 부분이요." },
+        { axis: :emotion, part: :body,
+          question: "그때 어떤 마음이 들었어요? (재미있어요/슬퍼요/기뻐요)",
+          hint: "마음을 써 봐요.",
+          example: "너무 재미있고 기뻤어요." },
+        { axis: :life, part: :conclusion,
+          question: "책을 읽고 무슨 생각을 했어요?",
+          hint: "든 생각을 써요.",
+          example: "나도 강아지를 키우고 싶어요." },
+        { axis: :content, part: :conclusion,
+          question: "친구에게 이 책 이야기를 해 주고 싶어요? 왜요?",
+          hint: "이유를 써 봐요.",
+          example: "재미있으니까 친구도 봤으면 좋겠어요." }
+      ],
+      ratio_hint: "줄거리보다 내 마음을 더 많이 써 봐요!",
+      spelling_tip: "소리 나는 대로 쓴 낱말이 없는지 봐요."
+    }
+  }.freeze
+
   # 손글씨 전사 프롬프트 — JSON {text} 강제. 학년군 무관(전사는 눈높이와 독립).
   OCR_PROMPT = <<~PROMPT.freeze
     당신은 초등학생이 손으로 쓴 독후감 사진을 정확히 전사하는 도우미입니다.
@@ -186,6 +292,18 @@ module ReadingDomain
   # (대상 학생은 학급이 있어 무영향).
   def self.game_band_for(grade)
     grade.to_i.zero? ? :g12 : band_for(grade)
+  end
+
+  # 안내형 독후감 작성용 밴드 판별. game_band_for 와 동형으로 학년 미상(nil/0/blank)을 **최저
+  # 밴드(:g12)** 로 고정한다(age-safety — 학급/학년이 없는 학생에게 어려운 5~6학년 문항을 기본
+  # 노출하지 않기 위함). 첨삭·대시보드용 band_for(g56 폴백)와 목적이 달라 guided 전용으로 둔다.
+  def self.guided_band_for(grade)
+    grade.to_i.zero? ? :g12 : band_for(grade)
+  end
+
+  # 밴드별 안내형 작성 문항 Hash 접근자. 미지원 band → :g56 폴백으로 항상 non-empty Hash 반환.
+  def self.guided_questions(band)
+    GUIDED_QUESTIONS_BY_BAND.fetch(band, GUIDED_QUESTIONS_BY_BAND[:g56])
   end
 
   # 학년군별 성취기준/추천활동 접근자. 미지원 band → 기본(:g56).

@@ -12,7 +12,7 @@
 - `application_record.rb` — 전 모델의 추상 베이스(`primary_abstract_class`).
 
 ### 독후감·AI 첨삭
-- `report.rb` — 독후감. RubricScorable 포함. input_mode(keyboard·wongoji·ocr)·ai_status(pending·processing·done·failed) enum, photo·drawing·audio 첨부(서버 매직바이트 재식별 검증), 5축 rubric/교사 조정 rubric 접근자, 고쳐쓰기(revision_of 자기참조)·diff 제공.
+- `report.rb` — 독후감. RubricScorable 포함. input_mode(keyboard·wongoji·ocr)·ai_status(pending·processing·done·failed) enum, photo·drawing·audio 첨부(서버 매직바이트 재식별 검증), 5축 rubric/교사 조정 rubric 접근자, 고쳐쓰기(revision_of 자기참조)·diff 제공. **`before_validation :normalize_book_title`**(`book_title.to_s.squish.presence`) — 자유입력 책 제목의 앞뒤·중복 공백을 정규화해 `StudentLibraryQuery` 레거시 그룹핑·내 서재 책별 독후감 필터(`reports?book_title=`)가 하나의 정규형으로 수렴하게 한다(정상 제목 불변, 기존 행은 백필 마이그레이션 #27로 정규화).
 
 ### 도서
 - `book.rb` — 도서. category(recommended·classic·searched) enum, report와 연결(`has_many :reports, dependent: :nullify`). **DB FK `reports.book_id → books` 도 `on_delete: :nullify` 로 정합화**(Phase 6 #6) — 도서 삭제 시 독후감을 남기고 참조만 끊는다(raw delete 경로 포함). **모든 Book은 유효한 ISBN 필수**: ISBN-10·하이픈 입력은 `Books::Isbn`으로 ISBN-13 숫자 13자리로 정규화하고 presence·유효성·uniqueness를 검증한다. DB도 `isbn NOT NULL` + 형식 CHECK + 전체 UNIQUE 인덱스로 우회·동시성 경로를 막는다(마이그레이션 #24). ISBN 없는 학생 자유입력은 Book을 만들지 않고 `Report#book_title`에만 보존한다. **`genre`(string, nullable) 컬럼**(10개 장르)은 무API `Books::GenreInference` 추론 보강 대상이며, 네이버 등록 도서는 `BookEnrichmentJob`이 공란을 채운다(고전은 여전히 category enum 의 classic). `GRADE_BANDS` 상수(초등 1~2/3~4/5~6 표준 라벨) — 표시·필터 전용이며, 게임 밴드(g12·g34·g56)는 학생 학년에서 파생되므로 이 상수와 무관.

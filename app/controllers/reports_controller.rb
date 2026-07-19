@@ -4,13 +4,28 @@ class ReportsController < ApplicationController
   PER_PAGE = 20
 
   # 학생은 자기 글, 교사는 담당 학급 글(정책 스코프). 무제한 목록을 페이지네이션한다.
+  # 필터(book_id/book_title/reviewed)는 반드시 policy_scope 위에만 얹어 위조 파라미터로 남의 글이
+  # 노출되지 않게 한다. book_title 은 레거시(book_id nil) 독후감 조회용이며 squish 로 정규화한다.
   def index
     authorize Report
     @page = [ params[:page].to_i, 1 ].max
-    records = policy_scope(Report).includes(:book, :user).order(created_at: :desc)
+    records = policy_scope(Report).includes(:book, :user)
+    # book_id(정식 도서)와 book_title(레거시 도서 미연결)은 상호배타 진입점이므로 함께 오면
+    # book_id 를 우선한다(둘을 AND 로 걸면 book_id=X AND book_id IS NULL 모순으로 항상 빈 결과).
+    if params[:book_id].present?
+      records = records.where(book_id: params[:book_id])
+    elsif params[:book_title].present?
+      records = records.where(book_id: nil, book_title: params[:book_title].to_s.squish)
+    end
+    records = records.where(reviewed: true) if params[:reviewed] == "true"
+    records = records.order(created_at: :desc)
                 .limit(PER_PAGE + 1).offset((@page - 1) * PER_PAGE).to_a
     @has_next_page = records.size > PER_PAGE
     @reports = records.first(PER_PAGE)
+
+    @book = Book.find_by(id: params[:book_id]) if params[:book_id].present?
+    @reviewed_filter = params[:reviewed] == "true"
+    @book_title_filter = params[:book_title].to_s.squish.presence
   end
 
   def show
@@ -18,6 +33,7 @@ class ReportsController < ApplicationController
   end
 
   def new
+    @guided = ReadingDomain.guided_questions(ReadingDomain.guided_band_for(Current.user.classroom&.grade))
     @report = Current.user.reports.new(prefill_attributes)
     authorize @report
   end

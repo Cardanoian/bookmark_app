@@ -16,6 +16,8 @@ class Report < ApplicationRecord
   enum :input_mode, { keyboard: 0, wongoji: 1, ocr: 2 }, default: :keyboard
   enum :ai_status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
+  before_validation :normalize_book_title
+
   validates :level, inclusion: { in: %w[A B C], allow_nil: true }
   validate :book_reference_present
   validate :attachments_within_limits
@@ -100,6 +102,13 @@ class Report < ApplicationRecord
 
   def tokenize_body(text)
     text.to_s.scan(/\p{Word}+/)
+  end
+
+  # 자유입력 책 제목의 앞뒤·중복 공백을 정리(squish)하고 빈 문자열은 nil 로 만든다. 검증·조회
+  # (index book_title 필터)가 정규화된 값을 단일 기준으로 쓰게 해 "이중  공백" 같은 레거시 표기가
+  # 필터에서 새지 않도록 한다. squish 는 정상 제목을 바꾸지 않으므로 기존 동작에 무해하다.
+  def normalize_book_title
+    self.book_title = book_title.to_s.squish.presence
   end
 
   def book_reference_present

@@ -18,6 +18,8 @@
 - `controllers/school_picker_controller.js` — 학교 선택 하이브리드 피커. 시도→시군구 캐스케이딩(`/schools/gus`)은 native `<select>`를 채우고, **이름검색(`/schools/search`)은 목록형 드롭다운(`<li>` 클릭 선택)**으로 결과를 띄워 클릭 시 hidden `school_id`를 세팅한다. gu 가 비거나 부정확해도 이름검색으로 항상 도달(graceful degrade). 로그인 폼(classroom 타깃 존재)이면 선택 학교의 학급을 `/schools/:id/classrooms` 로 캐스케이딩 스코프 로드
 - `controllers/games_catalog_controller.js` — 게임 카탈로그. `book:selected`(book_search) 이벤트를 구독해 5종 게임 칩을 활성화하고 각 칩의 진입 링크에 선택된 `book_id`를 세팅
 - `controllers/discovery_controller.js` — 몬스터 발견 연출 모달. 미연출 몬스터 큐를 순차 등장 애니메이션으로 보여 주고, 표시 즉시 `discoveries/acknowledge` fetch로 celebrated_at 을 마킹(재노출 방지)
+- `controllers/report_guide_controller.js` — **직접쓰기 안내 질문 단계(요구 1a)**. 밴드별 질문 답변(name 없는 answer 타깃 textarea)을 `assemble()`가 trim·빈 제외·`\n\n` join 해 숨겨진 `_form`의 `#report_body_field`에 주입(`input`/`change` 이벤트 dispatch로 리스너 호환)하고 질문 패널을 접어 폼을 노출한다. 답변은 `localStorage`(키 `guided:<userId||anon>:<bookKey>`)에 저장해 학생별로 격리·"이어서 쓰기" 복원, assemble/제출 성공 시 클리어. localStorage 접근은 try/catch 그레이스풀, JS 미로딩 시 질문·폼이 함께 보여 직접 작성 가능
+- `controllers/guide_modal_controller.js` — **사진쓰기 가이드 모달(요구 1b)**. `_photo_guide`의 자가점검 안내 카드를 connect 시 오버레이 dialog 로 승격·자동 오픈하고, "확인했어요" 버튼·Escape·배경 클릭·"작성 팁 다시 보기"로 여닫는다. `turbo:before-cache`에 상태 리셋. JS 미로딩 시 그냥 보이는 안내 카드로 완전 동작(그레이스풀)
 - `controllers/student_nav_controller.js` — 학생 공용 네비의 모바일 `<details>` disclosure 보조. 메뉴 링크 선택·바깥 클릭·Escape 에서 닫고(Escape 는 summary 로 포커스 복원), `turbo:before-cache` 전에 열린 상태를 초기화한다. 열기/닫기 기본 동작은 네이티브 `<details>/<summary>`가 맡아 JS 미로딩 시에도 메뉴 접근 가능
 
 ## 패턴·규칙

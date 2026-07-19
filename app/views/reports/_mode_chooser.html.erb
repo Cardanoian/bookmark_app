@@ -17,7 +17,7 @@
     <%= link_to "책 다시 고르기", new_report_path, class: "btn btn-secondary btn-sm shrink-0" %>
   </div>
 
-  <%= link_to new_report_path(input_mode: :keyboard, report: chosen_book),
+  <%= link_to new_report_path(input_mode: :keyboard, guided: 1, report: chosen_book),
         class: "card card-feature block text-center" do %>
     <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface-featured text-4xl" aria-hidden="true">✏️</span>
     <span class="block text-xl font-bold text-ink">직접 쓰기</span>
