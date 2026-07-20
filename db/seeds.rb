@@ -172,6 +172,11 @@ if RecommendationImport.none?
   end
 end
 
+# 저장된 Gemini 생성 줄거리(db/seeds/book_summaries.yml)를 도서 적재(seed_full + 추천 XLSX) 뒤
+# 주입한다. summary 가 blank 인 책만 채우며, 무키·YAML 없음에도 크래시 0(멱등·무네트워크). 이로써
+# 무키 배포도 시드만으로 접지 요약을 확보한다(AI 퀴즈 워밍 폴백·게임 가용성 게이트의 summary 소스).
+Rake::Task["books:seed_summaries"].invoke
+
 # Sample published quiz so 독서게임(quiz) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke
 

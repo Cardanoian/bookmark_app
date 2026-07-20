@@ -2,11 +2,64 @@
 # 8,502행)의 유효 ISBN 행만 오프라인·멱등 적재한다. books:seed 는 호환 태스크명으로
 # 이 정본 로더에 위임하며, 파일이 없으면 제목-only 축소 카탈로그를 만들지 않는다.
 require "csv"
+require "yaml"
+require "set"
 
 namespace :books do
   # db/seeds/elementary_books.tsv 경로. 테스트는 ENV["BOOKS_TSV"] 로 fixture 를 주입한다.
   def elementary_books_tsv_path
     ENV["BOOKS_TSV"].presence || Rails.root.join("db/seeds/elementary_books.tsv").to_s
+  end
+
+  # ── Gemini 줄거리 YAML 시드(db/seeds/book_summaries.yml) 공용 유틸 ─────────────────
+  # 이 YAML 은 BookSummaryJob 이 세팅한 **Gemini 생성 요약만**(summary_checked_at present) 담는
+  # 시드 자산이다. 무키 배포도 books:seed_summaries 로 이 텍스트를 주입해 접지 요약을 확보한다.
+  # 네이버 blurb(summary 있음·checked_at nil)는 별개라 담지 않는다(부호 구분 = summary_checked_at).
+  # 테스트는 ENV["BOOK_SUMMARIES_YML"] 로 경로를 주입한다.
+  # (상수 대신 메서드로 둔다 — 테스트가 load_tasks 를 반복 호출해도 상수 재초기화 경고가 없게.)
+  def book_summaries_header
+    <<~HEADER
+      # 자동 생성 파일 — Gemini(gemini-2.5-flash)가 만든 도서 줄거리 시드 자산입니다.
+      #   내보내기(부트스트랩): bin/rails books:export_summaries       (무키·무네트워크, 현재 DB의 Gemini 요약 export)
+      #   갱신: bin/rails books:generate_summaries[limit]             (Gemini 키 필요·네트워크·동기)
+      #   로드: bin/rails books:seed_summaries                        (무키·무네트워크·멱등)
+      # 수동 편집을 지양하세요. 키 = 정규화 ISBN-13(13자리 문자열) → { title, summary }.
+    HEADER
+  end
+
+  def book_summaries_yml_path
+    ENV["BOOK_SUMMARIES_YML"].presence || Rails.root.join("db/seeds/book_summaries.yml").to_s
+  end
+
+  # 파일이 없거나 비었거나 깨졌으면 {} 반환(크래시 0). 반환은 문자열 키 Hash(isbn => {"title","summary"}).
+  def read_book_summaries
+    path = book_summaries_yml_path
+    return {} unless File.exist?(path)
+
+    data = YAML.safe_load_file(path, aliases: false)
+    data.is_a?(Hash) ? data : {}
+  rescue Psych::Exception
+    {}
+  end
+
+  # ISBN 정렬 + 헤더 주석과 함께 덮어쓴다(결정적 출력으로 재실행 diff 최소화).
+  def write_book_summaries(data)
+    sorted = data.sort_by { |isbn, _entry| isbn.to_s }.to_h
+    File.write(book_summaries_yml_path, book_summaries_header + YAML.dump(sorted))
+  end
+
+  # 현재 DB 의 Gemini 생성 요약(summary_checked_at present·summary 존재)을 기존 YAML 에 병합해 쓴다.
+  # 네이버 blurb(checked_at nil)는 제외한다. 부트스트랩·crash-safe 재수출의 단일 로직.
+  def export_gemini_summaries
+    data = read_book_summaries
+    Book.where.not(summary_checked_at: nil).where.not(summary: [ nil, "" ])
+        .order(:isbn).find_each do |book|
+      next if book.isbn.blank?
+
+      data[book.isbn] = { "title" => book.title, "summary" => book.summary }
+    end
+    write_book_summaries(data)
+    data
   end
 
   desc "Seed the ISBN-bearing catalog from the full TSV (compatibility alias)"
@@ -120,5 +173,98 @@ namespace :books do
       puts "No rows changed. Review the list, then run: APPLY=1 bin/rails books:deduplicate_isbn"
     end
     abort "books:deduplicate_isbn completed with errors" if result.error_count.positive?
+  end
+
+  # 부트스트랩·재수출(Phase 4 후속): 현재 DB 의 Gemini 생성 요약을 db/seeds/book_summaries.yml 로
+  # 내보낸다. 무키·무네트워크(DB 읽고 YAML 쓰기만)라 언제든 안전하게 실행 가능하며, generate_summaries
+  # 의 crash-safe 재기록과 동일한 export 로직을 단독 실행한다(초기 파일 부트스트랩 담당).
+  desc "Export DB Gemini-generated summaries (summary_checked_at present) to db/seeds/book_summaries.yml (offline)"
+  task export_summaries: :environment do
+    data = export_gemini_summaries
+    puts "books:export_summaries — wrote #{data.size} summaries to #{book_summaries_yml_path}."
+  end
+
+  # 저장된 Gemini 요약을 매칭 도서에 주입한다. **summary 가 blank 인 책만** summary+summary_checked_at
+  # 을 세팅(checked_at 을 함께 세팅해 게이트가 "확인·앎"으로 인식, 재확인 안 하게). 순수 로컬·무네트워크
+  # ·멱등(Gemini 호출 0). YAML 없음/빈 경우 0건 처리, ISBN 매칭 안 되는 항목은 skip(로그). db:seed 배선.
+  desc "Load stored Gemini summaries from db/seeds/book_summaries.yml into matching books (offline, idempotent, no network)"
+  task seed_summaries: :environment do
+    data = read_book_summaries
+    if data.empty?
+      puts "books:seed_summaries — nothing to load (#{book_summaries_yml_path} missing or empty)."
+      next
+    end
+
+    applied = 0
+    skipped_present = 0
+    skipped_no_match = 0
+    data.each do |raw_isbn, entry|
+      summary = entry.is_a?(Hash) ? entry["summary"].to_s : ""
+      next if summary.blank?
+
+      isbn = Books::Isbn.normalize(raw_isbn) || raw_isbn.to_s
+      book = Book.find_by(isbn: isbn)
+      if book.nil?
+        skipped_no_match += 1
+        next
+      end
+      if book.summary.present? # blank 인 책만 채운다(멱등·기존 요약 보존)
+        skipped_present += 1
+        next
+      end
+
+      book.update(summary: summary, summary_checked_at: Time.current)
+      applied += 1
+    end
+    puts "books:seed_summaries — applied=#{applied} skipped_present=#{skipped_present} " \
+         "skipped_no_match=#{skipped_no_match} (of #{data.size} entries)."
+  end
+
+  # 카탈로그 도서(classic/recommended) 중 ① summary blank ② summary_checked_at nil ③ YAML 미포함 ISBN
+  # 인 책에 대해 limit 개(+ 일일 예산)만큼 Gemini 요약을 **동기 생성**하고 YAML 을 갱신한다. 무키면 skip.
+  # ⚠️ dev 큐 어댑터(async)에서 perform_later 는 프로세스 종료 시 유실되므로 반드시 perform_now(동기)로
+  # 이 프로세스 안에서 Gemini 호출·DB 반영을 완결한다. 각 known 직후 YAML rewrite(crash-safe). 네트워크
+  # 는 이 태스크에서만 발생(seed_summaries·앱 런타임은 무네트워크). 시드 아닌 운영 태스크(수동 실행).
+  desc "Generate Gemini summaries for catalog books lacking them and persist to YAML (networked, synchronous; no-op without a key)"
+  task :generate_summaries, [ :limit ] => :environment do |_task, args|
+    unless Ai::GeminiClient.available?
+      puts "books:generate_summaries — Gemini API key not configured; skipping generation (no network)."
+      next
+    end
+
+    limit = (args[:limit].presence || 50).to_i
+    known_isbns = read_book_summaries.keys.to_set
+    limiter = RateLimiter.new
+    budget_key = "book_summary:generate:#{Time.current.strftime('%Y%m%d')}"
+
+    data = read_book_summaries
+    processed = 0
+    known = 0
+    unknown = 0
+    Book.where(category: [ :classic, :recommended ])
+        .where(summary: [ nil, "" ], summary_checked_at: nil)
+        .order(category: :desc, id: :asc) # classic(1) 을 recommended(0) 보다 먼저
+        .find_each do |book|
+      break if processed >= limit
+      next if book.isbn.present? && known_isbns.include?(book.isbn) # ③ 이미 YAML 에 있으면 skip
+      break unless limiter.allow?(budget_key, **RateLimiter::WARMING_DAILY_BUDGET)
+
+      # 동기 처리(perform_now) — async perform_later 금지(프로세스 종료 시 잡 유실).
+      BookSummaryJob.perform_now(book.id)
+      book.reload
+      processed += 1
+
+      if book.summary.present? && book.summary_checked_at.present?
+        data[book.isbn] = { "title" => book.title, "summary" => book.summary }
+        write_book_summaries(data) # 각 known 직후 rewrite — 중단돼도 진행분 보존(crash-safe)
+        known += 1
+        puts "  [known]   #{book.title} (#{book.isbn})"
+      else
+        unknown += 1 # 모르는 책: 잡이 checked_at 만 세팅 → 다음 run 재처리 skip(YAML 미포함)
+        puts "  [unknown] #{book.title} (#{book.isbn})"
+      end
+    end
+    puts "books:generate_summaries — processed=#{processed} known=#{known} unknown=#{unknown}; " \
+         "YAML now has #{data.size} entries."
   end
 end
