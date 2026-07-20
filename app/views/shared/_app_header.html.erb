@@ -1,0 +1,11 @@
+<%# 전역 브랜드 헤더 밴드(워드마크-only). 옐로 밴드 vs 흰 바디로 헤더/본문 구분.
+    로그아웃/계정 컨트롤은 두지 않는다(기존 partial 유지 — 중복 방지). %>
+<header class="app-header app-header--sticky">
+  <div class="app-header__inner px-4 sm:px-6 lg:px-8">
+    <%= link_to root_path, class: "app-wordmark", aria: { label: "책갈피 홈" } do %>
+      <span aria-hidden="true">📖</span>
+      <span>책갈피</span>
+    <% end %>
+    <%# 우측 슬롯: v1 비움(후속 계정 메뉴 예약) %>
+  </div>
+</header>

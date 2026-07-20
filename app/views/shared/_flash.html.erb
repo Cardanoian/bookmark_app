@@ -1,7 +1,7 @@
 <%# 공통 flash — notice/alert 를 상태 배너(.state-banner)로 통일한 상단 고정 토스트.
     접근성: notice=status/polite, alert=alert/assertive. 배너 자체만 포인터 이벤트 수신. %>
 <% if notice.present? || alert.present? %>
-  <div class="pointer-events-none fixed inset-x-0 top-4 z-50 mx-auto flex w-full max-w-xl flex-col gap-2 px-4">
+  <div class="pointer-events-none fixed inset-x-0 top-20 z-50 mx-auto flex w-full max-w-xl flex-col gap-2 px-4">
     <% if notice.present? %>
       <div class="state-banner state-banner--success pointer-events-auto shadow-sm" role="status" aria-live="polite">
         <span aria-hidden="true">✅</span>

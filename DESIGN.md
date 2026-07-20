@@ -473,7 +473,7 @@ components:
 Pretendard가 80px 히어로 디스플레이부터 11px 마이크로 라벨까지 모든 타이포 표면을 지탱한다. Pretendard의 균형 잡힌 한글 자소와 넓은 웨이트 폭은 다정한 제품 사진·친근한 포지셔닝과 자연스럽게 어울린다. 블랙 필 프라이머리 버튼(`{rounded.full}`)이 마케팅·학생 CTA를 지배하고, 시그니처 카나리아 옐로({colors.brand-yellow})는 **워드마크·상단 프로모 배너·"옐로 태그" 피처 칩·레벨/포인트 강조**에만 쓰며 프라이머리 CTA로는 쓰지 않는다. 학생 화면이 파스텔로 밝게 열리는 동안, 담임·교무·사서·총괄 콘솔은 흰 카드와 옅은 헤어라인으로 차분하게 정돈된다.
 
 **핵심 특징:**
-- 흰 캔버스 + 카나리아 옐로({colors.brand-yellow}) 워드마크 = 알아보기 쉬운 오프닝 시그니처
+- 흰 캔버스 + 카나리아 옐로({colors.brand-yellow}) 워드마크 = 알아보기 쉬운 오프닝 시그니처 — 전역 상단에는 브랜드 옐로 헤더 밴드가 놓여 흰 바디와 또렷이 구분되는 것이 이 오프닝의 시그니처다
 - 블랙 필 프라이머리 CTA({colors.primary} + `{rounded.full}`)가 지배적 인터랙션 요소
 - 반려 몬스터 도감 **6속성 색**을 반영한 파스텔 피처 카드(옐로·로즈·코랄·틸·민트)
 - 모든 UI 표면에 Pretendard(한글 self-host) — 기하학적이고 살짝 둥근 성격
@@ -686,7 +686,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 
 **`badge-level`** — 레벨/포인트 사각 배지("Lv.3", "+30P"). 배경 `{colors.brand-yellow}`, 텍스트 `{colors.primary}`, 라운드 `{rounded.sm}`.
 
-**`promo-banner`** — 상단 내비 위 블랙 프로모 스트립. 배경 `{colors.primary}`, 텍스트 `{colors.on-primary}`. 인라인 옐로 필 강조 가능.
+**`promo-banner`** — 상단 내비 위 블랙 프로모 스트립. 배경 `{colors.primary}`, 텍스트 `{colors.on-primary}`. 인라인 옐로 필 강조 가능. 시즌/프로모 배너는 옐로 헤더 밴드와의 옐로-온-옐로 적층을 피해 항상 블랙 프로모 스트립(`{colors.primary}`/`{colors.on-primary}`)으로 렌더한다.
 
 ### Tables
 
@@ -722,7 +722,11 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### Navigation
 
-**Top Navigation** — 흰 스티키 바 + 옐로 책갈피 워드마크 + 가로 링크 + 우측 CTA. 배경 `{colors.canvas}`, 높이 ~64px. 좌측: 워드마크 + 링크(홈·책·게임·랭킹·나눔터), 우측: 로그인/포인트 + 블랙 필 CTA.
+**Top Navigation** — 브랜드 옐로 스티키 밴드(배경 `{colors.brand-yellow}`, 하단 경계 `{colors.brand-yellow-deep}` 1px) + 다크 잉크 워드마크(`{colors.ink}`). 전 역할(학생·교사·사서·교무·총괄) 공통 적용, 흰 바디와 또렷이 구분. 높이 ~56px(모바일 48px). v1은 워드마크-only(우측 계정 슬롯은 후속).
+
+**`app-header`** — 전역 브랜드 헤더 밴드. 배경 `{colors.brand-yellow}`, 하단 보더 `{colors.brand-yellow-deep}`, `sticky`(top:0, z-index 30), 내부 컨텐츠는 `{shell-max-wide}` 중앙정렬 + `<main>`과 동일 유틸 거터.
+
+**`app-wordmark`** — 헤더 밴드 좌측 책갈피 워드마크. 텍스트 `{colors.ink}`, 700 웨이트, `root` 링크. 옐로 위 대비 ≈ 10.5:1.
 
 **`teacher-sidebar`** — 담임 콘솔 좌측 사이드바(그룹형 메뉴). 배경 `{colors.surface}`, 타이포 `{typography.body-sm-medium}`, 우측 보더 `1px solid {colors.hairline}`. 검토 큐·학생 관리·미션/퀴즈·루브릭·리포트 그룹.
 
@@ -744,9 +748,10 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 - 파스텔 피처·몬스터 카드에 `{rounded.xxxl}`(28px)
 - 실제 제품 화면(몬스터·성장 카드·방사형)을 피처 일러스트로
 - 모든 UI 표면에 Pretendard 유지, 한글 본문 최소 14px
+- 전역 헤더 밴드는 `{colors.brand-yellow}` 배경 + 다크 워드마크로 흰 바디와 구분(옐로=악센트 원칙은 본문에서 유지)
 
 ### Don't
-- 표준 CTA나 큰 배경 면에 `{colors.brand-yellow}` 쓰지 않기
+- 표준 CTA나 큰 배경 면에 `{colors.brand-yellow}` 쓰지 않기(단, 전역 헤더 밴드는 예외 — 브랜드 아이덴티티로 허용. 그 외 본문 큰 면은 금지 유지)
 - 옐로 + 6속성 파스텔 외 임의 악센트색 추가하지 않기
 - 버튼 코너를 각지게 만들지 않기(필은 브랜드 시그니처)
 - 히어로 행간을 1.10 아래로 낮추지 않기
@@ -815,7 +820,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### 공통 컴포넌트 클래스 (`@layer components`)
 반복 빈도 높은 패턴만 클래스화(모든 조합 추상화하지 않음). HTML의 Tailwind 유틸이 항상 덮어쓸 수 있음.
-- **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide`(1536) / `-content`(1280) / `-reading`(840) / `-form`(960). **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`.
+- **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide`(1536) / `-content`(1280) / `-reading`(840) / `-form`(960). **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`(`.page-title`은 좌측 3px `{colors.brand-yellow}` 악센트 바로 강조 지점을 표시).
 - **버튼**: `.btn` + `.btn-primary`(검은 필=표준 CTA)/`-secondary`(아웃라인)/`-yellow`/`-blue`/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치.
 - **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`).
 - **폼**: `.form-label`/`.form-input`/`.form-select`/`.form-textarea`/`.form-hint`/`.form-error`(포커스 시 브랜드 블루 보더).
