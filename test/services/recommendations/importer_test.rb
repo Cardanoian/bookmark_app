@@ -61,6 +61,32 @@ class Recommendations::ImporterTest < ActiveJob::TestCase
     file&.close!
   end
 
+  # 게임 재구성 Phase 4 code-review 후속: 추천 XLSX 유입은 온디맨드 워밍(resolve)을 거치지 않아
+  # content_provider 의 §1d 트리거가 걸리지 않으므로, BookEnrichmentJob(장르)과 같은 방식으로
+  # 임포터가 직접 BookSummaryJob 을 예약한다(신규 유입 커버). 잡은 무키 no-op·멱등이라 안전.
+  test "enqueues summary generation for summary-blank, unchecked books but skips already-known/checked ones" do
+    known = Book.create!(title: "줄거리 있는 책", author: "작가", publisher: "출판사",
+                         isbn: "9781111111113", category: :recommended, summary: "이미 아는 줄거리.")
+    checked_unknown = Book.create!(title: "확인된 책", author: "작가2", publisher: "출판사2",
+                                   isbn: "9783333333335", category: :recommended, summary_checked_at: Time.current)
+    file = build_recommendation_xlsx([
+      { section: "어린이문학", title: "줄거리 있는 책", author: "작가", publisher: "출판사", isbn: "9781111111113" },
+      { section: "어린이과학", title: "확인된 책", author: "작가2", publisher: "출판사2", isbn: "9783333333335" },
+      { section: "어린이인문", title: "신규 미확인 책", author: "새 작가", publisher: "새 출판사", isbn: "9784444444446" }
+    ])
+
+    assert_enqueued_jobs 1, only: BookSummaryJob do
+      import(file)
+    end
+
+    new_book = Book.find_by(isbn: "9784444444446")
+    assert_enqueued_with job: BookSummaryJob, args: [ new_book.id ]
+    assert_equal "이미 아는 줄거리.", known.reload.summary
+    assert checked_unknown.reload.summary_checked_at.present?
+  ensure
+    file&.close!
+  end
+
   test "new successful upload replaces active list and same file is idempotent" do
     first_file = build_recommendation_xlsx([
       { section: "어린이문학", title: "첫 책", author: "첫 작가", publisher: "첫 출판사", isbn: "9784444444446" }

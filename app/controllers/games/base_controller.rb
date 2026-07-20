@@ -25,12 +25,34 @@ module Games
 
     # 온디맨드 진입 공통(§3.1): 도서 → 표면을 콘텐츠축으로 접어 캐시-우선 리졸브 → 즉시 렌더(무대기).
     # book 카탈로그 경계(BookPolicy)와 퀴즈 플레이 경계(QuizPolicy: band/학급)를 둘 다 인가한다.
+    #
+    # 가용성 게이트(Phase 4 §2c)는 `content_gate_allows?` 로 위임(아래) — 통과 못 하면 이미
+    # 리다이렉트가 수행되어 있으므로(`performed?` true) nil 을 반환하고, 호출 컨트롤러는 nil 을
+    # 받으면 렌더하지 않는다.
     def resolve_on_demand(surface)
       book = Book.find(params[:book_id])
       authorize book, :show?
+      return nil unless content_gate_allows?(book, surface)
+
       quiz = Games::ContentProvider.resolve(book: book, surface: surface, user: current_user)
       authorize quiz, :show?
       quiz
+    end
+
+    # 가용성 게이트 공통 판정(Phase 4 §2c). `resolve_on_demand`(quiz/whoami play) 뿐 아니라
+    # `RegenerateController#create`(다시 뽑기)도 같은 판정을 재사용해, 조작된 재생성 POST 로
+    # 비활성 책에 오프라인 Quiz 를 물질화하는 우회를 막는다. surface 가 SURFACE_MAP 밖(book·
+    # sequel)이면 게이트 대상이 아니라 true. 대상 표면(quiz→mcq·whoami→hint_reveal)이면
+    # `game_content_available?` 로 판정하고, 아니면 **오프라인 일반 문제를 서빙/재생성하지 말고**
+    # 독서활동으로 리다이렉트한 뒤 false 를 반환한다(콘텐츠 미생성 — resolve/regenerate 를 안 부름).
+    def content_gate_allows?(book, surface)
+      content_axis = Games::ContentProvider::SURFACE_MAP[surface.to_s]
+      return true unless content_axis
+      return true if Games::ContentProvider.game_content_available?(book: book, content_axis: content_axis, user: current_user)
+
+      redirect_to reading_activity_path(book_id: book.id),
+                  notice: "이 책은 아직 퀴즈가 없어요. 직접 문제를 내보거나 다른 활동을 해보세요!"
+      false
     end
 
     # 게임 완료 활동 원장 1행을 멱등 기록한다(monster_unlocks.md §게임 판정, Phase 3B).

@@ -16,6 +16,8 @@ module Games
     # 재사용하지 않으므로 새 판을 시작하려면 정상적으로 새 attempt 가 생성된다.
     def play
       quiz = resolve_on_demand("whoami")
+      return unless quiz # 가용성 게이트 → 독서활동으로 리다이렉트됨(§2c)
+
       authorize QuizAttempt.new(quiz: quiz, user: current_user), :create?
       attempt = current_user.quiz_attempts.where(quiz: quiz, played_at: nil).order(:id).last ||
                 quiz.quiz_attempts.create!(user: current_user, hint_reveals: {}, score: 0, points_awarded: 0)

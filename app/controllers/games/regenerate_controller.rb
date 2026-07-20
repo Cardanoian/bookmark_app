@@ -9,6 +9,10 @@ module Games
       authorize book, :show?
       surface = params[:surface].to_s
 
+      # 가용성 게이트(Phase 4 §2c, LOW 후속): resolve_on_demand 와 같은 판정 재사용 — 비활성 책은
+      # 조작된 POST 로도 오프라인 Quiz 를 물질화하지 못한다(고아 행 방지, 불변식 유지).
+      return unless content_gate_allows?(book, surface)
+
       # 다시 뽑기 per-user 스로틀(M1): 초과 시 새 content_version 을 만들지 않고 현재 판으로 안내한다
       # (오프라인 재생성의 무제한 DB 증식 차단). 정상 빈도에서는 영향 없음.
       unless Games::ContentProvider.regenerate_allowed?(current_user)

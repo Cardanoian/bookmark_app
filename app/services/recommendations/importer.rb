@@ -18,6 +18,7 @@ module Recommendations
       raise Error, "XLSX 파일만 업로드할 수 있습니다." unless File.extname(@filename).casecmp?(".xlsx")
 
       @enrich_book_ids = []
+      @summary_book_ids = []
 
       reader = XlsxReader.new(@path)
       entries = reader.read
@@ -71,6 +72,11 @@ module Recommendations
       # 추천 XLSX 유입 도서는 시드 사전계산·네이버 검색 경로를 모두 우회해 무장르로 남으므로,
       # SearchService 신규 유입과 같은 자동 보강 트리거를 이 경로에도 건다(표지 잡과 동일 커밋 후 시점).
       @enrich_book_ids.each { |book_id| BookEnrichmentJob.perform_later(book_id) }
+      # 줄거리 미확인 도서도 같은 이유로 BookSummaryJob 예약(genre 보강 미러, 게임 재구성 Phase 4
+      # code-review 후속). 추천 XLSX 유입은 온디맨드 워밍(resolve)을 거치지 않아 content_provider
+      # 의 §1d 트리거가 안 걸리므로, 신규 유입 커버를 위해 임포터가 직접 예약한다. 잡이 무키
+      # no-op·멱등이라 안전(BookEnrichmentJob 과 동형 — 조건 없이 항상 예약, 잡이 내부 가드).
+      @summary_book_ids.each { |book_id| BookSummaryJob.perform_later(book_id) }
       result
     rescue XlsxReader::Error => error
       raise Error, error.message
@@ -96,6 +102,7 @@ module Recommendations
       book.category = :recommended if book.new_record? || book.searched?
       book.save!
       @enrich_book_ids << book.id if book.genre.blank?
+      @summary_book_ids << book.id if book.summary.blank? && book.summary_checked_at.nil?
       book
     end
   end

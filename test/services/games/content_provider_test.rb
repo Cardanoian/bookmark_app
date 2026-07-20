@@ -352,6 +352,68 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     end
   end
 
+  # ── Phase 4 §2a 가용성 판정 ─────────────────────────────────────────────
+  test "game_content_available? is true for AI-eligible books (classic or has summary)" do
+    classic = Book.create!(title: "고전책", author: "저자", category: :classic)
+    assert Games::ContentProvider.game_content_available?(book: classic, content_axis: :mcq, user: @student),
+           "고전은 AI-적격이라 가용"
+    assert Games::ContentProvider.game_content_available?(book: @book, content_axis: :mcq, user: @student),
+           "summary 있는 책은 AI-적격이라 가용"
+  end
+
+  test "game_content_available? is false for a bare book with no summary and no substantive content" do
+    bare = Book.create!(title: "무명책", author: "무명", category: :recommended)
+    assert_not Games::ContentProvider.game_content_available?(book: bare, content_axis: :mcq, user: @student),
+               "AI-적격도 아니고 콘텐츠도 없는 책은 비활성"
+  end
+
+  test "game_content_available? ignores offline-only content but honors contributed/ai content" do
+    bare = Book.create!(title: "무명책2", author: "무명", category: :recommended)
+    # 오프라인만 있는 책은 여전히 비활성(일반 문제로 때우지 않는다).
+    provider.resolve(book: bare, surface: "quiz", user: @student) # offline v1 생성
+    assert_not Games::ContentProvider.game_content_available?(book: bare, content_axis: :mcq, user: @student),
+               "offline 세트만 있는 책은 비활성"
+
+    # 학생 승인 기여(contributed)가 물질화되면 가용.
+    contribution = QuizContribution.create!(user: @student, book: bare, classroom: @room_a,
+      content_axis: :mcq, band: :g56,
+      payload: { "prompt" => "기여?", "choices" => %w[가 나 다 라], "answer_index" => 1, "explanation" => "해설" })
+    Games::ContributionPublisher.publish!(contribution)
+    assert Games::ContentProvider.game_content_available?(book: bare, content_axis: :mcq, user: @student),
+           "contributed 콘텐츠가 있으면 가용"
+  end
+
+  # ── Phase 4 §1d 트리거: 줄거리 미확인 책 워밍 시 BookSummaryJob 도 함께 큐잉 ──
+  # classic 책(AI-적격, 가용성 게이트 통과)으로 검증한다 — bare recommended 책은 게이트가 resolve
+  # 전에 리다이렉트시켜 실제로는 이 트리거에 도달하지 못하는 경로다(code-review 후속, §2c 상호작용).
+  test "resolve enqueues a BookSummaryJob for a summary-blank, unchecked classic book (the actual reachable path)" do
+    classic = Book.create!(title: "고전줄거리없는책", author: "저자", category: :classic)
+    assert_enqueued_jobs 1, only: BookSummaryJob do
+      provider.resolve(book: classic, surface: "quiz", user: @student)
+    end
+  end
+
+  test "resolve does not enqueue a BookSummaryJob when the book already has a summary" do
+    assert_no_enqueued_jobs only: BookSummaryJob do
+      provider.resolve(book: @book, surface: "quiz", user: @student) # @book 은 summary 보유
+    end
+  end
+
+  test "resolve does not enqueue a BookSummaryJob when already checked (idempotent trigger)" do
+    bare = Book.create!(title: "확인된책", author: "저자", category: :recommended, summary_checked_at: Time.current)
+    assert_no_enqueued_jobs only: BookSummaryJob do
+      provider.resolve(book: bare, surface: "quiz", user: @student)
+    end
+  end
+
+  test "resolve enqueues no BookSummaryJob without an API key (offline only)" do
+    bare = Book.create!(title: "무키책", author: "저자", category: :recommended)
+    unconfigured = Games::ContentProvider.new(client: Ai::GeminiClient.new) # test 환경 = 무키
+    assert_no_enqueued_jobs only: BookSummaryJob do
+      unconfigured.resolve(book: bare, surface: "quiz", user: @student)
+    end
+  end
+
   # ── §2b 검증 후속 [LOW] find_or_create_offline 재경쟁 유한 재시도 ────────
   class FlakyContentProvider < Games::ContentProvider
     attr_accessor :fail_times

@@ -7,6 +7,8 @@ module Games
 
     def play
       @quiz = resolve_on_demand("quiz")
+      return unless @quiz # 가용성 게이트 → 독서활동으로 리다이렉트됨(§2c)
+
       render :show
     end
   end

@@ -63,14 +63,20 @@
       <section class="card space-y-2">
         <h3 class="font-semibold text-ink">🎮 독서 게임</h3>
         <p class="text-sm text-steel">이 책으로 게임을 즐겨요.</p>
+        <%# 퀴즈·나는 누구게?는 가용성 게이트(§2b) — 콘텐츠 만들 수 있는 책에만. 책 소개 대결·뒷이야기는 항상. %>
+        <% game_chips = [] %>
+        <% game_chips << [ "퀴즈", games_quiz_play_path(book_id: @book.id) ] if @quiz_available %>
+        <% game_chips << [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ] if @whoami_available %>
+        <% game_chips << [ "책 소개 대결", games_book_play_path(book_id: @book.id) ] %>
+        <% game_chips << [ "뒷이야기 이어쓰기", games_sequel_play_path(book_id: @book.id) ] %>
         <div class="flex flex-wrap gap-2">
-          <% [ [ "퀴즈", games_quiz_play_path(book_id: @book.id) ],
-                [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ],
-                [ "책 소개 대결", games_book_play_path(book_id: @book.id) ],
-                [ "뒷이야기 이어쓰기", games_sequel_play_path(book_id: @book.id) ] ].each do |label, path| %>
+          <% game_chips.each do |label, path| %>
             <%= link_to label, path, class: "rounded-full border border-hairline px-3 py-1.5 text-sm text-ink hover:border-primary/40 hover:bg-surface" %>
           <% end %>
         </div>
+        <% unless @quiz_available && @whoami_available %>
+          <p class="text-xs text-steel">아직 퀴즈·나는 누구게?를 만들 수 없는 책이에요. 직접 문제를 내거나 책 소개·뒷이야기로 즐겨 보세요!</p>
+        <% end %>
         <%# 학생 출제 기여(전국 공유 문제은행 §4.1) — 이 책 문제를 직접 낸다. 승인 후 전국 풀 편입. %>
         <div class="border-t border-hairline-soft pt-2">
           <%= link_to "✍️ 이 책 문제 내기", new_quiz_contribution_path(book_id: @book.id),

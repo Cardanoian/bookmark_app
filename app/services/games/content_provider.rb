@@ -72,6 +72,12 @@ module Games
         new(**deps).regenerate_allowed?(user)
       end
 
+      # 가용성 게이트(Phase 4 §2a). (book, band, content_axis)에 **진짜** 게임 콘텐츠를 만들 수
+      # 있는지 판정한다 — true 인 게임만 표시·플레이하고, false 면 "일반 문제로 때우지 않고 비활성".
+      def game_content_available?(book:, content_axis:, user:, **deps)
+        new(**deps).game_content_available?(book: book, content_axis: content_axis, user: user)
+      end
+
       def warm!(book, scope: nil, bands: ReadingDomain::BANDS, axes: nil, **deps)
         new(**deps).warm!(book, scope: scope, bands: bands, axes: axes)
       end
@@ -170,6 +176,19 @@ module Games
       @rate_limiter.allow?("regenerate:user:#{user.id}:#{hour_bucket}", **REGENERATE_PER_USER)
     end
 
+    # 가용성 판정(Phase 4 §2a). 다음 중 하나면 게임 가용(true):
+    #   ① 책이 **AI-적격**(classic 이거나 summary 존재) — Gemini/워밍이 접지된 콘텐츠를 만들 수 있다.
+    #   ② 그 (book, band, content_axis)에 **사람 기여/AI로 물질화된** ready·미신고 콘텐츠가 있다
+    #      (quiz_questions.source ∈ {ai, contributed}). offline 만 있는 축은 "일반 문제밖에 없는"
+    #      비활성 대상이라 여기서 제외한다.
+    # band 는 현재 학생 기준(game_band_for)으로 판정한다(QuizPolicy#within_band? 와 동일 함수).
+    def game_content_available?(book:, content_axis:, user:)
+      return true if ai_eligible?(book)
+
+      band = ReadingDomain.game_band_for(user.classroom&.grade)
+      substantive_content_exists?(book.id, band, content_axis.to_sym)
+    end
+
     # warm 사전생성(§3.5, A5): 카탈로그/과제 지정 도서를 첫 플레이 **전에** 워밍해 콜드-첫-오프라인
     # 노출(특히 hint_reveal)을 최소화한다(게임 재구성 Phase 1: matching 생성 경로 제거로 mcq·hint_reveal
     # 만 대상). band×content_axis 조합마다 워밍 잡을 1건씩 적재하되, 스코프 플래그·rate limit/예산을
@@ -238,10 +257,11 @@ module Games
     #   재워밍이 걸릴 수 있다(correctness 회귀 아님, RETRY_COOLDOWN·예산으로 상한된 소량 비효율 — 상세는
     #   maybe_retry_warming 주석).
     #
-    # ⚠️ 가용성 게이트 유예(Phase 3): "콘텐츠 없으면 게임 비활성"의 완전한 disable-gate 는 신뢰 가능한
-    #   Gemini 소스가 붙는 **Phase 4** 로 미룬다. Phase 3 에서 비활성화하면 기여가 쌓이기 전 대다수 책이
-    #   게임 없음이 되어 콜드스타트가 나빠지므로, MISS 시 오프라인 결정적 세트 생성(오프라인 플로어)을
-    #   그대로 유지한다(아동 무대기·항상 가용 불변식).
+    # ⚠️ 가용성 게이트(Phase 4 완성): "콘텐츠 없으면 게임 비활성"의 disable-gate 는 신뢰 가능한 Gemini
+    #   줄거리 소스(BookSummaryJob·AI-적격 판정)가 붙는 이 Phase 4 에서 **표시·플레이 게이트**로 완성했다
+    #   (`game_content_available?`). fetch_ready/resolve 자체는 아동 무대기·오프라인 플로어를 그대로
+    #   유지하며(AI-적격·콘텐츠 있는 책은 즉시 서빙), 게이트는 컨트롤러/뷰 층에서 "아무 콘텐츠도 만들 수
+    #   없는 책"만 막는다(§2b·§2c). 즉 여기 MISS 오프라인 생성은 게이트를 통과한 책에만 도달한다.
     def fetch_ready(book_id, band, content_axis)
       candidates = Quiz.where(origin: :system, generation_status: :ready, reported: false,
                               book_id: book_id, band: band, content_axis: content_axis)
@@ -312,6 +332,40 @@ module Games
       return unless warming_permitted?(user.classroom, book.id, rate_limit_key: user.id)
 
       GenerateGameContentJob.perform_later(book.id, band.to_s, content_axis.to_s)
+      maybe_enqueue_book_summary(book) # Phase 4 §1d — 줄거리 미확인 책이면 함께 1회 큐잉(워밍 예산 하)
+    end
+
+    # Phase 4 §1d 온디맨드 트리거. 워밍이 도는 시점(키 있음·예산 OK)에, 그 책이 아직 줄거리도
+    # 없고 Gemini 확인도 안 했으면 BookSummaryJob 을 함께 1회 큐잉한다(멱등·throttle 이라 중복 안전).
+    # 무키에서는 maybe_enqueue_warming 이 먼저 return 하므로 이 경로도 안 걸린다.
+    #
+    # ⚠️ 도달 범위(code-review 후속): 이 경로는 **`resolve` 가 실제로 호출된 책에만** 도달한다 —
+    #   `Games::BaseController#content_gate_allows?`(§2c)가 **비활성 책은 resolve 전에 리다이렉트**
+    #   시키므로, AI-부적격이고 기여/AI 콘텐츠도 없는 책은 여기 트리거가 절대 걸리지 않는다(영원히
+    #   미확인으로 고착되는 것을 막기 위한 부트스트랩은 이 메서드의 책임이 아니다). 비활성 책의
+    #   Gemini 확인 부트스트랩은 ① `ReadingActivitiesController#bootstrap_book_summary`(학생이 책을
+    #   선택하는 게이트 우회 지점, 온디맨드) ② `Recommendations::Importer`(신규 유입, BookEnrichmentJob
+    #   미러) ③ `games:backfill_book_summaries` rake(벌크)가 담당한다. 여기 트리거는 **이미 가용한**
+    #   책(고전·기여/AI 콘텐츠 보유)이 재생 중에 줄거리까지 채워지는 부가 경로일 뿐이다.
+    def maybe_enqueue_book_summary(book)
+      return unless book.summary.blank? && book.summary_checked_at.nil?
+
+      BookSummaryJob.perform_later(book.id)
+    end
+
+    # 책이 AI-적격이면(고전이거나 줄거리 존재) Gemini/워밍이 접지된 콘텐츠를 만들 수 있다.
+    def ai_eligible?(book)
+      book.classic? || book.summary.present?
+    end
+
+    # 그 (book, band, content_axis)에 offline 이 아닌 실질 콘텐츠(ai·contributed)로 물질화된
+    # ready·미신고 system 세트가 하나라도 있는지. GenerateGameContentJob#ai_ready_exists? 미러.
+    def substantive_content_exists?(book_id, band, content_axis)
+      Quiz.where(origin: :system, generation_status: :ready, reported: false,
+                 book_id: book_id, band: band, content_axis: content_axis)
+          .joins(:quiz_questions)
+          .where(quiz_questions: { source: [ :ai, :contributed ] })
+          .exists?
     end
 
     # HIT 이지만 아직 AI 워밍이 반영되지 않은(오프라인만 있는) 축이 **영구** 오프라인에 갇히지

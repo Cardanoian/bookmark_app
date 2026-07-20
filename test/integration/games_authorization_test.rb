@@ -14,7 +14,9 @@ class GamesAuthorizationTest < ActionDispatch::IntegrationTest
     @student_a = User.create!(school: @school, classroom: @room_a, name: "A반학생", password: "password")
     @student_b = User.create!(school: @school, classroom: @room_b, name: "B반학생", password: "password")
     @student_low = User.create!(school: @school, classroom: @room_low, name: "저학년학생", password: "password")
-    @book = Book.create!(title: "경계책", author: "저자", category: :recommended)
+    # summary 를 주어 AI-적격(가용) 책으로 둔다 — 이 테스트의 관심사는 밴드/학급 경계 클램프(§3.3)이지
+    # 가용성 게이트(Phase 4 §2)가 아니므로, 게이트를 통과하는 책으로 클램프만 검증한다.
+    @book = Book.create!(title: "경계책", author: "저자", summary: "경계 검증용 줄거리.", category: :recommended)
     AppSetting.set("feature_flags", { "on_demand_games" => true })
   end
 

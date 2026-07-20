@@ -7,7 +7,9 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     @school = School.create!(name: "메뉴초등학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @student = User.create!(school: @school, classroom: @classroom, name: "메뉴학생", password: "password")
-    @book = Book.create!(title: "메뉴책", author: "지은이", category: :recommended)
+    # summary 로 AI-적격(가용) 책 — 독서활동 게임 칩(퀴즈) 표시를 검증하므로 게이트를 통과시킨다
+    # (가용성 게이트 자체는 games_content_gate_test 가 검증).
+    @book = Book.create!(title: "메뉴책", author: "지은이", summary: "메뉴 검증용 줄거리.", category: :recommended)
     @recommended_book = Book.create!(title: "공식추천책", author: "추천인", category: :recommended)
     recommendation_import = RecommendationImport.create!(
       filename: "추천.xlsx", file_digest: "student-menu-recommendations", source_title: "테스트 추천",
