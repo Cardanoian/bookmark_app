@@ -722,7 +722,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### Navigation
 
-**Top Navigation** — 브랜드 옐로 스티키 밴드(배경 `{colors.brand-yellow}`, 하단 경계 `{colors.brand-yellow-deep}` 1px). 좌측에 앱 아이콘 로고 + 다크 잉크 워드마크(`{colors.ink}`), 학생은 좌측에 자식화면 뒤로가기(흰 원형)·우측에 계정 컨트롤(이름·마이페이지·로그아웃, 옐로 위 흰 필 + 헤어라인)을 함께 싣는다(구 학생 서브헤더 통합). 교직원·총괄은 워드마크만. 전 역할 공통 적용, 흰 바디와 또렷이 구분. 높이 ~56px(모바일 48px).
+**Top Navigation** — 브랜드 옐로 스티키 밴드(배경 `{colors.brand-yellow}`, 하단 경계 `{colors.brand-yellow-deep}` 1px). 좌측에 앱 아이콘 로고 + 다크 잉크 워드마크(`{colors.ink}`), 학생은 우측에 계정 컨트롤(이름 "○○님"·마이페이지·로그아웃, 옐로 위 흰 필 + 헤어라인 + 옅은 그림자)을 싣는다(구 학생 서브헤더 통합). 교직원·총괄은 워드마크만. 전 역할 공통 적용, 흰 바디와 또렷이 구분. 높이 ~56px(모바일 48px).
 
 **`app-header`** — 전역 브랜드 헤더 밴드. 배경 `{colors.brand-yellow}`, 하단 보더 `{colors.brand-yellow-deep}`, `sticky`(top:0, z-index 30), 내부 컨텐츠는 `{shell-max-wide}` 중앙정렬 + `<main>`과 동일 유틸 거터.
 

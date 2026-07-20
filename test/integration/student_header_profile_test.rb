@@ -13,19 +13,17 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "student header shows the student name, back link, and profile link across pages" do
+  test "the brand band shows the signed-in student's name and profile link across pages" do
     login_as @student
 
-    # 내 서재(홈)는 상위가 자기 자신이라 뒤로가기 버튼을 숨긴다(back_path: nil).
     get root_path
     assert_response :success
-    assert_student_header(back_path: nil)
+    assert_student_header
     assert_select "h1", text: /님의 서재/, count: 0
 
-    # 독후감 목록은 최상위 메뉴라 뒤로가기가 내 서재로 향한다.
-    get reports_path, headers: { "HTTP_REFERER" => root_url }
+    get reports_path
     assert_response :success
-    assert_student_header(back_path: root_path)
+    assert_student_header
   end
 
   test "profile summarizes the signed-in student's activity and account" do
@@ -63,15 +61,9 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
 
   private
 
-  # 이름·마이페이지·뒤로가기는 전역 밴드(app-header)로 이동했다.
-  # back_path: 경로면 밴드의 뒤로가기 링크(그 href)를, nil 이면 밴드에 뒤로가기 링크 부재를 단언한다.
-  def assert_student_header(back_path:)
+  # 이름·마이페이지는 전역 밴드(app-header)에 있다(구 학생 서브헤더는 제거됨).
+  def assert_student_header
     assert_select "header.app-header", text: /헤더학생/
     assert_select "header.app-header a[href='#{profile_path}']", text: /마이페이지/, count: 1
-    if back_path
-      assert_select "header.app-header a[aria-label='뒤로 가기'][href='#{back_path}']", count: 1
-    else
-      assert_select "header.app-header a[aria-label='뒤로 가기']", count: 0
-    end
   end
 end
