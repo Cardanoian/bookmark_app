@@ -14,8 +14,12 @@ class GamePlayTest < ActiveSupport::TestCase
     @user.game_plays.create!(game_type: game_type, book: book, played_on: played_on)
   end
 
-  test "game_type enum defines the five catalog games" do
-    assert_equal({ "quiz" => 0, "classic" => 1, "vocab" => 2, "whoami" => 3, "book" => 4 }, GamePlay.game_types)
+  # 게임 재구성 Phase 1: vocab(2) hard-delete(키 제거·정수 2 gap), classic(1) soft-deprecate(값 보존),
+  # quiz(0)/whoami(3)/book(4) 정수는 재배열하지 않고 그대로 유지한다.
+  test "game_type enum drops vocab but preserves the other integer mappings (no renumbering)" do
+    assert_equal({ "quiz" => 0, "classic" => 1, "whoami" => 3, "book" => 4 }, GamePlay.game_types)
+    assert_not GamePlay.game_types.key?("vocab"), "vocab 은 enum 에서 제거됐다(hard-delete)"
+    assert_equal 1, GamePlay.game_types["classic"], "classic(1)은 과거 기록 보존차 유지(soft-deprecate)"
   end
 
   # 책 있는 플레이: (user, game_type, book, 일자) 당 1회.
@@ -32,7 +36,7 @@ class GamePlayTest < ActiveSupport::TestCase
 
   test "different game_type on the same book and day is allowed" do
     play(game_type: :quiz)
-    assert_nothing_raised { play(game_type: :vocab) }
+    assert_nothing_raised { play(game_type: :whoami) }
   end
 
   test "different book on the same game and day is allowed" do

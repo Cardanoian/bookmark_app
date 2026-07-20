@@ -11,8 +11,9 @@ module Ai
   #   (mcq 는 하위호환용 choices/answer_index 도 함께 포함)
   #
   # 오프라인 세트는 무키·즉시·결정적·무중단 계약을 지킨다. 첫 판도 "이 책" 문제이지만
-  # 품질은 AI 보다 낮다(정직화). matching 은 줄거리에서 "뜻"을 추측하지 않고 **보장된 정답 쌍**
-  # (책 메타·일반 독서 용어)만 쓴다(EXECUTOR-NOTE #3: 결정적 ≠ 안전).
+  # 품질은 AI 보다 낮다(정직화).
+  # 게임 재구성 Phase 1: matching(vocab) 생성 경로 제거. mcq·hint_reveal 만 생성한다
+  # (Quiz#content_axis matching 값·QuestionScorer matching 은 과거 기록·보존차 유지하되 여기선 생성 안 함).
   class QuizDraftService
     # LLM 응답이 스키마를 벗어났을 때 → 폴백 신호.
     class InvalidResponse < StandardError; end
@@ -31,17 +32,6 @@ module Ai
     # 거치지 않고 학생에게 바로 노출되므로, "보기 정확히 4개" 계약을 이 상수+pad_options 로 스스로
     # 보장한다(§2b 검증 후속 [LOW/edge]).
     GENERIC_FILLER_DISTRACTORS = [ "잘 모르겠어요", "이 책과 관련이 없어요", "알 수 없어요", "관계없는 내용이에요" ].freeze
-
-    # 짝짓기 오프라인 세트용 **보장된 정답** 일반 독서 용어(어휘↔뜻). 학년군별 눈높이로 뜻을 달리해
-    # band 분화를 만든다. 줄거리에서 뜻을 추측하지 않으므로 항상 정답이 보장된다(EXECUTOR-NOTE #3).
-    READING_TERMS_BY_BAND = {
-      g12: [ [ "제목", "책의 이름" ], [ "지은이", "책을 쓴 사람" ], [ "주인공", "이야기에서 가장 중요한 인물" ],
-             [ "느낌", "책을 읽고 든 마음" ], [ "장면", "이야기 속 한 모습" ] ],
-      g34: [ [ "제목", "책의 이름" ], [ "지은이", "책을 지은 사람" ], [ "주인공", "이야기를 이끄는 중심 인물" ],
-             [ "감상", "책을 읽고 느낀 생각과 마음" ], [ "사건", "이야기 속에서 일어난 일" ] ],
-      g56: [ [ "제목", "글이나 책의 이름" ], [ "지은이", "글을 쓴 사람(저자)" ], [ "주인공", "사건을 이끌어 가는 중심 인물" ],
-             [ "감상", "작품을 읽고 얻은 생각과 느낌" ], [ "배경", "이야기가 펼쳐지는 때와 곳" ] ]
-    }.freeze
 
     def initialize(client: GeminiClient.new)
       @client = client
@@ -62,7 +52,7 @@ module Ai
     end
 
     # ── Phase 2a: content_axis 세트 생성(AI→오프라인 폴백). Phase 2b GenerateGameContentJob 진입점.
-    # 반환은 콘텐츠축별 문항 해시 배열(mcq=5, matching=1문항×5쌍, hint_reveal=3).
+    # 반환은 콘텐츠축별 문항 해시 배열(mcq=5, hint_reveal=3).
     def content_set(book, band, content_axis)
       axis = content_axis.to_sym
       return offline_set(book, band, axis) unless @client.configured?
@@ -81,7 +71,6 @@ module Ai
     def offline_set(book, band, content_axis)
       case content_axis.to_sym
       when :mcq          then offline_mcq(book, band, ReadingDomain::CONTENT_COUNTS[:mcq])
-      when :matching     then offline_matching(book, band)
       when :hint_reveal  then offline_hint_reveal(book, band)
       else raise ArgumentError, "지원하지 않는 content_axis: #{content_axis.inspect}"
       end
@@ -136,7 +125,6 @@ module Ai
 
       case content_axis
       when :mcq          then normalize_mcq(response, band)
-      when :matching     then normalize_matching(response, band)
       when :hint_reveal  then normalize_hint_reveal(response, band)
       else raise ArgumentError, "지원하지 않는 content_axis: #{content_axis.inspect}"
       end
@@ -164,27 +152,6 @@ module Ai
       return nil if index.nil? || !index.between?(0, 3)
 
       mcq_hash(prompt, choices, index, data[:explanation].to_s, clamp_difficulty(data[:difficulty]) || band_difficulty(band))
-    end
-
-    def normalize_matching(response, band)
-      count = ReadingDomain::CONTENT_COUNTS[:matching]
-      pairs = Array(response["pairs"]).filter_map { |raw| normalize_pair(raw) }
-                                      .uniq { |pair| pair[:left] }.uniq { |pair| pair[:right] }
-      raise InvalidResponse, "matching needs #{count} complete pairs" if pairs.size < count
-
-      [ build_matching_question(pairs.first(count), band, response["explanation"].to_s) ]
-    end
-
-    # 쌍 완전성: 어휘·뜻 둘 다 있어야 함(한쪽 결손 → 탈락).
-    def normalize_pair(raw)
-      return nil unless raw.is_a?(Hash)
-
-      data = raw.symbolize_keys
-      word = data[:word].to_s
-      meaning = data[:meaning].to_s
-      return nil if word.blank? || meaning.blank?
-
-      { left: word, right: meaning }
     end
 
     def normalize_hint_reveal(response, band)
@@ -280,25 +247,6 @@ module Ai
       ]
     end
 
-    # matching: **보장된 정답 쌍만**(책 메타 + 일반 독서 용어). 줄거리에서 뜻을 추측하지 않음(EXECUTOR-NOTE #3).
-    # 책 메타(제목↔책 제목, 지은이↔author)는 사실이라 항상 정답. 부족분은 band 별 일반 독서 용어로 채운다.
-    def offline_matching(book, band)
-      title = book.title.to_s
-      book_pairs = [ { left: "우리가 읽은 책의 제목", right: title } ]
-      book_pairs << { left: "「#{title}」을(를) 쓴 사람", right: book.author.to_s } if book.author.present?
-
-      # 책 메타 쌍과 초점이 겹치는 일반 용어(제목/지은이)는 제외해 혼동을 줄인다.
-      drop_lefts = [ "제목" ]
-      drop_lefts << "지은이" if book.author.present?
-      terms = READING_TERMS_BY_BAND.fetch(band, READING_TERMS_BY_BAND[:g56])
-                                   .reject { |left, _| drop_lefts.include?(left) }
-                                   .map { |left, right| { left: left, right: right } }
-
-      pairs = (book_pairs + terms).uniq { |pair| pair[:left] }.uniq { |pair| pair[:right] }
-      count = ReadingDomain::CONTENT_COUNTS[:matching]
-      [ build_matching_question(pairs.first(count), band, "각 낱말과 알맞은 뜻을 바르게 이으면 정답이에요.") ]
-    end
-
     # hint_reveal: 타깃 = 책 제목/지은이(명백히 옳은 개체) + 줄거리 토큰. 힌트는 어려움→쉬움, 안전하게 파생.
     def offline_hint_reveal(book, band)
       title = book.title.to_s
@@ -339,24 +287,6 @@ module Ai
     end
 
     # ── 공통 헬퍼 ────────────────────────────────────────────────────
-    # 좌 인덱스 → 정답 우 인덱스 맵. rights 는 결정적으로 회전해 identity 가 아닌 실제 짝짓기 문제로 만든다.
-    def build_matching_question(pairs, band, explanation)
-      lefts = pairs.map { |pair| pair[:left] }
-      meanings = pairs.map { |pair| pair[:right] }
-      rights = meanings.rotate(2)
-      answer = {}
-      pairs.each_with_index { |pair, index| answer[index.to_s] = rights.index(pair[:right]).to_s }
-
-      {
-        question_type: "matching",
-        prompt: "왼쪽 낱말과 알맞은 뜻을 짝지어 보세요.",
-        content: { lefts: lefts, rights: rights },
-        answer: answer,
-        explanation: explanation.presence || "각 낱말과 알맞은 뜻을 바르게 이으면 정답이에요.",
-        difficulty: band_difficulty(band)
-      }
-    end
-
     def mcq_hash(prompt, choices, answer_index, explanation, difficulty)
       {
         question_type: "mcq_single",

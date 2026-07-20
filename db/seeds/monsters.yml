@@ -207,7 +207,8 @@ monster_lines:
     rarity: rare
     unlock_candidate: true
     phase: 1
-    unlock_condition: { game_plays: 12, distinct_games: 4 }
+    # 게임 재구성 Phase 1: 활성 게임 3종(quiz·whoami·book) 정렬. Phase 2 sequel 추가 시 재검토.
+    unlock_condition: { game_plays: 12, distinct_games: 3 }
     forms:
       - { stage: 1, key: unicorn_1, name: "꼬마유니콘", evolve_condition: { points: 150, quizzes: 3 } }
       - { stage: 2, key: unicorn_2, name: "꿈별유니콘", evolve_condition: { points: 700, dex_count: 5, a_grades: 2 } }

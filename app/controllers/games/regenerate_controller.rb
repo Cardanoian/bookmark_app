@@ -25,10 +25,9 @@ module Games
     private
 
     # 표면 → 온디맨드 play 경로(허용 목록만). whoami 는 play 가 attempt 를 새로 선생성한다.
+    # 게임 재구성 Phase 1: 표면은 quiz·whoami 만(classic/vocab 제거).
     def regenerate_target(surface, book)
       case surface
-      when "classic" then games_classic_play_path(book_id: book.id)
-      when "vocab" then games_vocab_play_path(book_id: book.id)
       when "whoami" then games_whoami_play_path(book_id: book.id)
       else games_quiz_play_path(book_id: book.id)
       end

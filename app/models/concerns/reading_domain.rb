@@ -19,8 +19,11 @@ module ReadingDomain
   # content_axis(캐시축)별 고정 문항 수(Phase 1 §1.1, A6). 표면·버전이 달라도 같은 축이면
   # 문항 수가 같아야 콘텐츠축 상한(maximum(:points_awarded)) 비교의 스케일이 일관된다.
   # 생성(QuizDraftService#normalize, Phase 2a)과 검증이 이 상수를 강제한다.
-  #   mcq=객관식 문항 수 / matching=어휘↔뜻 쌍 수 / hint_reveal=힌트공개 타깃 수.
-  CONTENT_COUNTS = { mcq: 5, matching: 5, hint_reveal: 3 }.freeze
+  #   mcq=객관식 문항 수 / hint_reveal=힌트공개 타깃 수.
+  # 게임 재구성 Phase 1: matching(vocab) 생성 경로 제거 — 이 상수에서 matching 을 빼면 warm!·
+  # CONTENT_PROMPTS·QuizDraft0 가 matching 을 더는 생성/사전빌드하지 않는다. Quiz#content_axis enum
+  # 의 matching 값은 과거 기록·스코어러 보존차 유지(휴면)하되 생성은 안 한다.
+  CONTENT_COUNTS = { mcq: 5, hint_reveal: 3 }.freeze
 
   # 5축 루브릭 키 (순서 고정 — 방사형 차트·가중치 계산에 사용). 학년군 무관.
   RUBRIC_AXES = %i[content emotion life structure spelling].freeze
@@ -364,7 +367,7 @@ module ReadingDomain
   end
 
   # content_axis(캐시축)별 게임 콘텐츠 생성 프롬프트 빌더(Phase 2a). build_quizgen_prompt(mcq 4지선다)의
-  # 일반화 — 3개 content_axis(mcq/matching/hint_reveal)를 모두 덮는다. 주입 요소:
+  # 일반화 — content_axis(mcq/hint_reveal)를 덮는다(게임 재구성 Phase 1: matching 생성 경로 제거). 주입 요소:
   # (a) band 성취기준·눈높이(ACHIEVEMENT_STANDARDS_BY_BAND·PROMPT_META), (b) 난이도 티어,
   # (c) 오답 품질(그럴듯하나 분명히 틀림·상호배타·비슷한 길이), (d) 해설 강제, (e) 중복 방지(항목별 다른 초점),
   # (f) count 강제(CONTENT_COUNTS 참조), (g) 근거 한정·환각 억제(줄거리에 없는 사실 금지, 빈약하면 일반 독해),
@@ -404,17 +407,6 @@ module ReadingDomain
           ]
         }
       MCQ
-    when :matching
-      <<~MATCH
-        [짝짓기(matching)] 어휘와 그 뜻을 잇는 #{count}개의 쌍(word↔meaning)을 만드세요.
-        각 뜻(meaning)은 서로 명확히 구분되어 오답 혼동 없이 정답 쌍이 하나로 정해지게 하세요.
-        반드시 아래 JSON 스키마만 반환하고 다른 설명은 붙이지 마세요.
-        {
-          "pairs": [ { "word": "어휘", "meaning": "그 어휘의 뜻" } ],
-          "explanation": "짝을 이루는 기준 해설",
-          "difficulty": 1
-        }
-      MATCH
     when :hint_reveal
       <<~HINT
         [힌트 공개(hint_reveal)] #{count}개의 타깃(정답, answer)을 정하고, 각 타깃마다 힌트를 여러 개 만드세요.
@@ -436,7 +428,7 @@ module ReadingDomain
   RUBRIC_PROMPTS = BANDS.index_with { |band| build_rubric_prompt(band).freeze }.freeze
   QUIZGEN_PROMPTS = BANDS.index_with { |band| build_quizgen_prompt(band).freeze }.freeze
 
-  # (band × content_axis) 콘텐츠 프롬프트를 사전빌드·동결(Phase 2a). content_axis 는 CONTENT_COUNTS 의 3값.
+  # (band × content_axis) 콘텐츠 프롬프트를 사전빌드·동결(Phase 2a). content_axis 는 CONTENT_COUNTS 의 값(mcq·hint_reveal).
   CONTENT_PROMPTS = BANDS.index_with do |band|
     CONTENT_COUNTS.keys.index_with { |axis| build_content_prompt(band, axis).freeze }.freeze
   end.freeze

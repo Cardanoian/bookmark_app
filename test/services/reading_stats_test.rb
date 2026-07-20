@@ -157,12 +157,29 @@ class ReadingStatsTest < ActiveSupport::TestCase
     b2 = Book.create!(title: "게임책2", category: :recommended)
     today = Time.current.in_time_zone("Asia/Seoul").to_date
     @user.game_plays.create!(game_type: :quiz, book: b1, played_on: today)
-    @user.game_plays.create!(game_type: :vocab, book: b2, played_on: today)
+    @user.game_plays.create!(game_type: :book, book: b2, played_on: today)
     @user.game_plays.create!(game_type: :whoami, book_id: nil, played_on: today) # 책 없는 교사 퀴즈
     stats = ReadingStats.new(@user)
     assert_equal 3, stats.game_plays
     assert_equal 3, stats.distinct_games
     assert_equal 2, stats.game_books # 책 연결 2건만
+  end
+
+  # 게임 재구성 Phase 1 회귀(계획서 §2·§7, 코드리뷰 반영): classic 은 표면 제거로 정상 플레이로는
+  # 더는 기록되지 않는다(과거 기록 보존차 enum 값만 남음) — 그러니 DB 에 classic 을 직접 심어
+  # "4종 도달"을 흉내내면 회귀를 가린다. **정상 플레이로 기록 가능한 종류는 quiz·whoami·book 3종뿐**
+  # 이라는 사실을 정직하게 반영해, 그 3종으로 distinct_games==3 을 만들고 dex 21(이제
+  # distinct_games:3, db/seeds/monsters.yml)을 충족하는지 검증한다.
+  test "normal play with the 3 active game types reaches distinct_games:3 (dex 21) after vocab removal" do
+    today = Time.current.in_time_zone("Asia/Seoul").to_date
+    %i[quiz whoami book].each do |game_type|
+      @user.game_plays.create!(game_type: game_type,
+                               book: Book.create!(title: "도달책#{game_type}", category: :recommended),
+                               played_on: today)
+    end
+    stats = ReadingStats.new(@user)
+    assert_equal 3, stats.distinct_games, "정상 플레이로 기록 가능한 game_type 은 quiz·whoami·book 3종뿐이다"
+    assert stats.meets?("distinct_games" => 3), "dex 21 의 distinct_games:3 요구가 정상 플레이만으로 충족 가능해야 한다"
   end
 
   test "revisions counts reviewed reports with positive improvement" do

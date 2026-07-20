@@ -5,7 +5,7 @@ module Games
   # generation_status 는 플레이어에게 노출되지 않는 내부 캐시 상태일 뿐, 게이트가 아니다.
   #
   # 흐름(resolve):
-  #   ① surface → content_axis (SURFACE_MAP; quiz·classic 이 mcq 를 공유 → 콘텐츠축당 1생성).
+  #   ① surface → content_axis (SURFACE_MAP; quiz→mcq·whoami→hint_reveal, 콘텐츠축당 1생성).
   #   ② band = ReadingDomain.game_band_for(user.classroom&.grade) — **서버 결정**(사용자 입력 불신).
   #      게임 전용 밴드(학년 미상 → 최저 g12; 5~6학년 기본 매칭 금지). 정책(QuizPolicy#within_band?)과 동일.
   #   ③ 캐시 HIT: origin=system·해당 축·최신 content_version·ready·미신고 → 즉시 반환(Gemini 0).
@@ -22,10 +22,9 @@ module Games
   #    content_set 은 키가 있으면 동기 Gemini 호출로 아동을 대기시키므로 "미스=오프라인 즉시"
   #    불변식(A.1 P1)에 위배된다. AI 는 오직 워밍 잡에서만 붙는다.
   class ContentProvider
-    # 표면 → 콘텐츠축. quiz·classic 두 표면이 mcq 를 공유(N1 콘텐츠축 캐시 = 비용 봉인).
+    # 표면 → 콘텐츠축(게임 재구성 Phase 1). classic(→quiz 통합)·vocab(matching, hard-delete) 표면 제거.
     SURFACE_MAP = {
-      "quiz" => :mcq, "classic" => :mcq,
-      "vocab" => :matching,
+      "quiz" => :mcq,
       "whoami" => :hint_reveal
     }.freeze
 
@@ -167,13 +166,14 @@ module Games
     end
 
     # warm 사전생성(§3.5, A5): 카탈로그/과제 지정 도서를 첫 플레이 **전에** 워밍해 콜드-첫-오프라인
-    # 노출(특히 matching/hint_reveal)을 최소화한다. band×content_axis 조합마다 워밍 잡을 1건씩
-    # 적재하되, 스코프 플래그·rate limit/예산을 준수한다(무키면 아무 것도 적재하지 않음).
+    # 노출(특히 hint_reveal)을 최소화한다(게임 재구성 Phase 1: matching 생성 경로 제거로 mcq·hint_reveal
+    # 만 대상). band×content_axis 조합마다 워밍 잡을 1건씩 적재하되, 스코프 플래그·rate limit/예산을
+    # 준수한다(무키면 아무 것도 적재하지 않음).
     # dedup(이미 워밍 중/AI 게시됨)은 GenerateGameContentJob 이 자체 가드한다. 적재한 잡 수를 반환.
     def warm!(book, scope: nil, bands: ReadingDomain::BANDS, axes: nil)
       return 0 unless @client.configured?
 
-      axes ||= ReadingDomain::CONTENT_COUNTS.keys # mcq/matching/hint_reveal
+      axes ||= ReadingDomain::CONTENT_COUNTS.keys # mcq/hint_reveal
       enqueued = 0
       bands.each do |band|
         axes.each do |axis|

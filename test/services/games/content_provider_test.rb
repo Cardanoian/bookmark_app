@@ -84,35 +84,33 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     first = provider.resolve(book: @book, surface: "quiz", user: @student) # 미스로 오프라인 생성
 
     assert_no_enqueued_jobs do
-      second = provider.resolve(book: @book, surface: "classic", user: @student) # 같은 mcq 축 히트
+      second = provider.resolve(book: @book, surface: "quiz", user: @student) # 같은 mcq 축 히트
       assert_equal first.id, second.id, "같은 콘텐츠축은 캐시 히트로 같은 행 반환"
     end
   end
 
-  # ── N1: quiz·classic 이 mcq 를 공유 → 콘텐츠 단 1생성 ────────────────────────────
-  test "N1 — sequential resolve across mcq surfaces generates the mcq content only once" do
+  # ── N1: 같은 mcq 축 재resolve 는 콘텐츠 단 1생성(게임 재구성 Phase 1: classic 표면 제거 → quiz 만) ──
+  test "N1 — repeated resolve on the mcq surface generates the mcq content only once" do
     counting = CountingGeminiClient.new
     GenerateGameContentJob.draft_service_factory = -> { Ai::QuizDraftService.new(client: counting) }
 
     assert_enqueued_jobs 1, only: GenerateGameContentJob do
-      %w[quiz classic].each do |surface|
-        provider.resolve(book: @book, surface: surface, user: @student)
-      end
+      2.times { provider.resolve(book: @book, surface: "quiz", user: @student) }
     end
     perform_enqueued_jobs
 
-    assert_equal 1, counting.calls, "quiz/classic 2표면에 걸쳐 mcq 콘텐츠는 1회만 생성"
+    assert_equal 1, counting.calls, "같은 mcq 축을 여러 번 resolve 해도 콘텐츠는 1회만 생성"
     assert_equal 1, Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).where("content_version >= 2").count,
                  "워밍은 콘텐츠축당 1개의 새 버전만 만든다"
   end
 
-  # 다른 콘텐츠축(vocab→matching)은 별도 생성.
+  # 다른 표면(whoami→hint_reveal)은 별도 콘텐츠축이라 별도 생성.
   test "a different surface family maps to a different content_axis and warms separately" do
-    provider.resolve(book: @book, surface: "quiz", user: @student)   # mcq
-    provider.resolve(book: @book, surface: "vocab", user: @student)  # matching
+    provider.resolve(book: @book, surface: "quiz", user: @student)    # mcq
+    provider.resolve(book: @book, surface: "whoami", user: @student)  # hint_reveal
 
     axes = Quiz.where(origin: :system, book_id: @book.id).pluck(:content_axis).uniq.sort
-    assert_equal %w[matching mcq], axes.sort
+    assert_equal %w[hint_reveal mcq], axes.sort
   end
 
   # ── 스코프 플래그(C3) ───────────────────────────────────────────────────

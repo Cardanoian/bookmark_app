@@ -57,16 +57,17 @@ Rails.application.routes.draw do
     collection { post :advance }
   end
 
-  # 독서게임 5종 (P5.6 → Phase 3 온디맨드). 카탈로그에서 도서를 골라 `play?book_id=` 로 온디맨드
-  # 진입한다(미스=오프라인 즉시). 4종은 퀴즈 파이프라인 실동작(quiz·classic=mcq·vocab=matching·
-  # whoami=hint_reveal), 1종은 소셜 도메인(book=책 소개 대결, Gemini 미호출). 결과는 games/attempts 로
-  # 기록(book 제외). quiz 는 교사 published 퀴즈(id) show 도 병행 지원(mcq 퀴즈 단일 재생 경로).
+  # 독서게임 3종 (P5.6 → Phase 3 온디맨드 → 게임 재구성 Phase 1). 카탈로그에서 도서를 골라
+  # `play?book_id=` 로 온디맨드 진입한다(미스=오프라인 즉시). 2종은 퀴즈 파이프라인 실동작
+  # (quiz=mcq[고전 통합]·whoami=hint_reveal), 1종은 소셜 도메인(book=책 소개 대결, Gemini 미호출).
+  # 결과는 games/attempts 로 기록(book 제외). quiz 는 교사 published 퀴즈(id) show 도 병행 지원
+  # (mcq 퀴즈 단일 재생 경로). classic(→quiz 통합)·vocab(hard-delete) 표면은 제거됐다.
   namespace :games do
     get "catalog", to: "catalog#index", as: :catalog
 
-    # 온디맨드 진입(book_id) — 퀴즈 파이프라인 4종 표면의 play. `:id` show 보다 먼저 선언해 "play" 가
+    # 온디맨드 진입(book_id) — 퀴즈 파이프라인 표면의 play. `:id` show 보다 먼저 선언해 "play" 가
     # id 로 오인되지 않게 한다(games_<표면>_play_path).
-    %w[quiz classic vocab whoami].each do |surface|
+    %w[quiz whoami].each do |surface|
       get "#{surface}/play", to: "#{surface}#play", as: "#{surface}_play"
     end
 

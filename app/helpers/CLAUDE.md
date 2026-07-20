@@ -5,7 +5,7 @@
 ## 파일
 - `books_helper.rb` — 도서 표시 공통 헬퍼. `book_meta_badges(book, size:, wrapper_class:)`(고전 여부[category enum `classic?`] + 장르[`genre`] 메타 배지를 한 번에 렌더 — 둘 다 없으면 빈 문자열이라 어느 카드에 삽입해도 안전, `size: :sm`=`badge-sm` 컴팩트[홈 그리드·목록]·`:md`=기본[상세])·`book_genre_label(book)`(공란·`미분류`는 숨김, genre 는 이미 한국어 라벨이라 그대로 표시). 대시보드 그리드·독서활동·내 서재·도서 카드/상세·독후감 파셜 등 책이 노출되는 화면이 공용한다.
 - `application_helper.rb` — 전역 뷰 헬퍼 모듈. 현재 비어 있음(학생 헤더 뒤로가기 경로 헬퍼는 밴드 통합·뒤로가기 제거로 삭제 — 상단 메뉴/브라우저 뒤로로 대체). 전역 뷰 헬퍼가 필요하면 여기에 추가한다.
-- `games_helper.rb` — 게임 종류별 액센트 색 매핑. `game_accent`/`GAME_ACCENTS`(quiz·classic·vocab·whoami·book → 배경·글자색 클래스, 미지정 key 는 quiz 로 폴백).
+- `games_helper.rb` — 게임 종류별 액센트 색 매핑. `game_accent`/`GAME_ACCENTS`(quiz·whoami·book → 배경·글자색 클래스, 미지정 key 는 quiz 로 폴백; 게임 재구성 Phase 1 에서 classic·vocab 키 제거).
 - `monsters_helper.rb` — 몬스터 도감 표시. `monster_sprite`(`image_key` WebP 렌더·누락 시 이모지 폴백)·`monster_emoji`(종→대표 이모지)·`element_label`/`element_badge_classes`(속성 라벨·색)·`condition_label`·`condition_progress`(진화 조건 라벨·`ReadingStats` 대비 진행값)·**`unlock_condition_label`/`unlock_progress_items`**(잠긴 카드용 해금 조건 문장형 라벨 + `[{label:, current:, target:, met:}]` 진행도 배열, 현재값은 목표치를 넘지 않게 클램프).
 - `reports_helper.rb` — 독후감/첨삭 뱃지. `ai_status_badge`(첨삭 상태 pill)·`level_badge`(A/B/C 등급 배지)·`axis_label`(5축 라벨).
 - `schools_helper.rb` — `school_region_label`: "서울특별시교육청" → "서울특별시" 처럼 교육청 접미를 떼어 표시(학교 선택 하이브리드 피커의 시도 라벨).

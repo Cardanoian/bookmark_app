@@ -18,23 +18,23 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     get games_catalog_path
     assert_response :success
     assert_includes response.body, "독서 퀴즈"
-    assert_includes response.body, "어휘 낚시"
+    assert_includes response.body, "책 소개 대결"
     # WS-C 재구성: 책 전량 나열 대신 도서 검색(book-search) → 선택 시 JS 가 book_id 를 붙여 진입.
     # 서버는 게임 칩에 book_id 없는 play 경로만 싣는다(data-play-path).
     assert_select "[data-book-search-target=?]", "input"
     assert_select "a[data-games-catalog-target='chip'][data-play-path=?]", games_whoami_play_path
   end
 
-  # ── 퀴즈 파이프라인 4종 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────
-  %w[quiz classic vocab].each do |surface|
-    test "#{surface} on-demand play renders an offline system quiz immediately" do
-      get public_send("games_#{surface}_play_path", book_id: @book.id)
-      assert_response :success
+  # ── 퀴즈 파이프라인 mcq 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────
+  # 게임 재구성 Phase 1: classic·vocab 표면 제거 → quiz(mcq)만. whoami(hint_reveal)는 play 가
+  # 리다이렉트하므로 아래 별도 테스트에서 검증한다.
+  test "quiz on-demand play renders an offline system quiz immediately" do
+    get games_quiz_play_path(book_id: @book.id)
+    assert_response :success
 
-      quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
-      assert_equal "ready", quiz.generation_status
-      assert_equal "offline", quiz.quiz_questions.first.source, "미스는 결정적 오프라인 즉시 제공"
-    end
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+    assert_equal "ready", quiz.generation_status
+    assert_equal "offline", quiz.quiz_questions.first.source, "미스는 결정적 오프라인 즉시 제공"
   end
 
   test "whoami on-demand play pre-creates an attempt and redirects to the attempt-keyed show" do
@@ -64,23 +64,8 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     refute_match "얻었어요", flash[:notice]
   end
 
-  # ── matching 온디맨드 채점(쌍맵 무유출·선택 인덱스만 전송) ──────────────────
-  test "vocab matching does not leak the pair-map and scores chosen indices server-side" do
-    get games_vocab_play_path(book_id: @book.id)
-    assert_response :success
-    quiz = Quiz.where(origin: :system, book_id: @book.id, content_axis: :matching).last
-    question = quiz.quiz_questions.first
-
-    # 정답 쌍맵(answer)이 마크업에 직렬화되면 안 된다(무유출).
-    assert_not_includes response.body, "answers[#{question.id}][0]\" value", "정답 인덱스가 프리필되면 안 된다"
-
-    # 정답 쌍맵대로 제출 → 전부 매칭.
-    post games_attempts_path, params: { quiz_id: quiz.id, game: "vocab", answers: { question.id.to_s => question.answer } }
-    attempt = QuizAttempt.where(quiz: quiz).last
-    assert_equal question.answer.size * Games::QuestionScorer::POINTS_PER_CORRECT, attempt.points_awarded
-  end
-
   # ── C1 whoami 힌트 서버 권위 — 위조/stale-cookie replay 로도 점수 불변 ───────
+  # (게임 재구성 Phase 1: matching[vocab] 온디맨드 채점 테스트는 표면·생성 경로 제거로 삭제)
   test "whoami hint count is server-authoritative — revealing hints lowers the server-scored points" do
     quiz, attempt = start_whoami
     q1 = quiz.quiz_questions.first

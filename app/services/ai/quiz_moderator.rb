@@ -89,16 +89,19 @@ module Ai
       errors
     end
 
+    # 게임 재구성 Phase 1: matching(vocab) **생성** 경로는 제거됐고 `ReadingDomain::CONTENT_COUNTS`
+    # 에도 :matching 키가 없다(nil). 이 채점기 자체는 과거 기록·재배열 방지차 휴면 보존되므로,
+    # 상수에 기대는 "쌍 수 == 기대치" 비교 대신 **자체 정합성**(좌/우 비어있지 않음·개수 일치·
+    # 우측 상호배타·정답키 범위)만으로 nil-안전하게 검증한다(휴면 경로가 호출돼도 크래시·오작동 없음).
     def matching_errors(item, index)
       errors = []
       content = symbolized(item[:content])
       lefts = Array(content[:lefts]).map(&:to_s)
       rights = Array(content[:rights]).map(&:to_s)
       answer = item[:answer]
-      expected_pairs = ReadingDomain::CONTENT_COUNTS[:matching]
 
-      errors << "문항#{index} matching 쌍 수 불일치(#{lefts.size}≠#{expected_pairs})" unless lefts.size == expected_pairs
       errors << "문항#{index} matching 좌/우 결손" if lefts.empty? || rights.empty?
+      errors << "문항#{index} matching 좌/우 개수 불일치(#{lefts.size}≠#{rights.size})" unless lefts.size == rights.size
       errors << "문항#{index} matching 우측 중복(상호 배타 위반)" unless rights.uniq.size == rights.size
 
       unless answer.is_a?(Hash) && answer.size == lefts.size

@@ -142,20 +142,7 @@ class Ai::QuizDraftServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "offline_set matching uses only guaranteed-correct pairs with enforced count" do
-    set = Ai::QuizDraftService.new(client: StubClient.new(configured: false)).offline_set(@book, :g56, :matching)
-
-    assert_equal 1, set.size
-    question = set.first
-    assert_equal "matching", question[:question_type]
-    assert_equal ReadingDomain::CONTENT_COUNTS[:matching], question[:content][:lefts].size
-    assert_equal ReadingDomain::CONTENT_COUNTS[:matching], question[:content][:rights].size
-    # answer 맵의 각 우 인덱스가 rights 배열 안에서 정답 뜻을 실제로 가리키는지(보장된 정답).
-    question[:answer].each do |left_index, right_index|
-      pair_meaning = question[:content][:rights][right_index.to_i]
-      assert pair_meaning.present?, "left #{left_index} 정답 우 인덱스 무효"
-    end
-  end
+  # (게임 재구성 Phase 1: matching[vocab] 생성 경로 제거로 offline_set/content_set matching 테스트 삭제)
 
   test "offline_set hint_reveal has target and ordered hints" do
     set = Ai::QuizDraftService.new(client: StubClient.new(configured: false)).offline_set(@book, :g34, :hint_reveal)
@@ -210,27 +197,6 @@ class Ai::QuizDraftServiceTest < ActiveSupport::TestCase
     client = StubClient.new(configured: true, response: { "questions" => bad })
     set = Ai::QuizDraftService.new(client: client).content_set(@book, :g56, :mcq)
     assert_equal ReadingDomain::CONTENT_COUNTS[:mcq], set.size
-  end
-
-  test "content_set matching rejects incomplete pairs, falling back to offline 5 pairs" do
-    pairs = [ { "word" => "제목", "meaning" => "책의 이름" }, { "word" => "지은이" } ]
-    client = StubClient.new(configured: true, response: { "pairs" => pairs })
-    set = Ai::QuizDraftService.new(client: client).content_set(@book, :g56, :matching)
-
-    assert_equal 1, set.size
-    assert_equal ReadingDomain::CONTENT_COUNTS[:matching], set.first[:content][:lefts].size
-  end
-
-  test "content_set matching normalizes a complete AI response into a paired question" do
-    pairs = %w[하나 둘 셋 넷 다섯].each_with_index.map { |word, i| { "word" => word, "meaning" => "뜻#{i}" } }
-    client = StubClient.new(configured: true, response: { "pairs" => pairs })
-    set = Ai::QuizDraftService.new(client: client).content_set(@book, :g56, :matching)
-
-    assert_equal 1, set.size
-    question = set.first
-    assert_equal "matching", question[:question_type]
-    assert_equal 5, question[:content][:lefts].size
-    assert question[:answer].is_a?(Hash)
   end
 
   test "content_set hint_reveal rejects targets without enough hints, falling back to offline" do

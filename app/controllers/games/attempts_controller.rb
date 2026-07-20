@@ -1,5 +1,5 @@
 module Games
-  # 독서게임 결과 기록(P5.6 → Phase 3). 퀴즈 파이프라인 4종(quiz·classic·vocab·whoami) 공통
+  # 독서게임 결과 기록(P5.6 → Phase 3 → 게임 재구성 Phase 1). 퀴즈 파이프라인 표면(quiz·whoami) 공통
   # 제출 엔드포인트. 채점 → QuizAttempt 생성/finalize → award_points(레벨·진화·뱃지 연쇄) 후 복귀.
   class AttemptsController < BaseController
     def create
@@ -65,8 +65,6 @@ module Games
 
     def on_demand_play_path(game, book_id)
       case game
-      when "classic" then games_classic_play_path(book_id: book_id)
-      when "vocab" then games_vocab_play_path(book_id: book_id)
       when "whoami" then games_whoami_play_path(book_id: book_id)
       else games_quiz_play_path(book_id: book_id)
       end

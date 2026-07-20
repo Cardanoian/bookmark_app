@@ -62,11 +62,9 @@
 
       <section class="card space-y-2">
         <h3 class="font-semibold text-ink">🎮 독서 게임</h3>
-        <p class="text-sm text-steel">이 책으로 5가지 게임을 즐겨요.</p>
+        <p class="text-sm text-steel">이 책으로 게임을 즐겨요.</p>
         <div class="flex flex-wrap gap-2">
           <% [ [ "퀴즈", games_quiz_play_path(book_id: @book.id) ],
-                [ "고전 여행", games_classic_play_path(book_id: @book.id) ],
-                [ "어휘 낚시", games_vocab_play_path(book_id: @book.id) ],
                 [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ],
                 [ "책 소개 대결", games_book_play_path(book_id: @book.id) ] ].each do |label, path| %>
             <%= link_to label, path, class: "rounded-full border border-hairline px-3 py-1.5 text-sm text-ink hover:border-primary/40 hover:bg-surface" %>

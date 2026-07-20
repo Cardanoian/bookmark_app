@@ -49,7 +49,7 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
     assert_equal Time.current.in_time_zone("Asia/Seoul").to_date, play.played_on
   end
 
-  # 신뢰 경계: allowlist(quiz/classic/vocab/whoami/book) 밖 game 값은 원장에 기록하지 않는다(채점은 정상).
+  # 신뢰 경계: allowlist(quiz/classic/whoami/book) 밖 game 값은 원장에 기록하지 않는다(채점은 정상).
   test "a game surface outside the allowlist is not recorded in the ledger" do
     quiz = build_published_quiz
     login_as @student
@@ -74,7 +74,7 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
     quiz = build_published_quiz
     today = Time.current.in_time_zone("Asia/Seoul").to_date
     # 앞선 2개 게임(다른 종류)을 원장에 미리 둔다. 세 번째(quiz) 완료가 game_plays:3(dex 06) 을 채운다.
-    @student.game_plays.create!(game_type: :vocab, book: Book.create!(title: "어휘책", category: :recommended), played_on: today)
+    @student.game_plays.create!(game_type: :book, book: Book.create!(title: "소개책", category: :recommended), played_on: today)
     @student.game_plays.create!(game_type: :whoami, book_id: nil, played_on: today)
     login_as @student
 

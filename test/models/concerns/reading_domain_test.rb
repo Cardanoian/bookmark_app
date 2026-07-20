@@ -95,9 +95,9 @@ class ReadingDomainTest < ActiveSupport::TestCase
 
   # Phase 2a: content_axis별 콘텐츠 프롬프트 — band 성취기준·눈높이 + 축별 JSON 스키마 키 +
   # count/해설/오답 지시가 3 content_axis × 3 band 모두에 주입되는지(스냅샷) 검증한다.
+  # 게임 재구성 Phase 1: matching(vocab) 생성 경로 제거 → CONTENT_PROMPTS 에서 matching 빠짐.
   AXIS_SCHEMA_KEYS = {
     mcq: %w[questions choices answer_index explanation],
-    matching: %w[pairs word meaning],
     hint_reveal: %w[targets hints answer]
   }.freeze
 
