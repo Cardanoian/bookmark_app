@@ -1,11 +1,39 @@
-<%# 전역 브랜드 헤더 밴드(워드마크-only). 옐로 밴드 vs 흰 바디로 헤더/본문 구분.
-    로그아웃/계정 컨트롤은 두지 않는다(기존 partial 유지 — 중복 방지). %>
+<%# 전역 브랜드 헤더 밴드(옵션 A: 상단 앱 바로 통합).
+    좌: [뒤로가기(학생·자식 화면만)] + 로고(/icon.png)+워드마크
+    우: 학생 계정 컨트롤(이름·마이페이지·로그아웃)
+    계정 컨트롤·뒤로가기 모두 학생 한정으로 밴드에 통합(구 _student_header 대체). 밴드 자체는 전 역할 공통.
+    옐로 밴드 위 버튼은 흰(canvas) 필/원형 + 헤어라인으로 대비 확보. %>
 <header class="app-header app-header--sticky">
   <div class="app-header__inner px-4 sm:px-6 lg:px-8">
-    <%= link_to root_path, class: "app-wordmark", aria: { label: "책갈피 홈" } do %>
-      <span aria-hidden="true">📖</span>
-      <span>책갈피</span>
+    <div class="flex min-w-0 items-center gap-2">
+      <% if current_user&.student? && !current_page?(student_back_path) %>
+        <%= link_to student_back_path, class: "btn btn-icon shrink-0", aria: { label: "뒤로 가기" } do %>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        <% end %>
+      <% end %>
+      <%= link_to root_path, class: "app-wordmark", aria: { label: "책갈피 홈" } do %>
+        <%= image_tag "/icon.png", alt: "", aria: { hidden: "true" }, class: "h-8 w-8 rounded-lg" %>
+        <span>책갈피</span>
+      <% end %>
+    </div>
+
+    <% if current_user&.student? %>
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="hidden min-w-0 max-w-[8rem] truncate text-sm font-semibold text-ink sm:block"><%= current_user.name %></span>
+        <%= link_to profile_path,
+              class: "btn btn-sm shrink-0 border-hairline bg-canvas px-3 text-ink",
+              aria: { current: (current_page?(profile_path) ? "page" : nil), label: "마이페이지" } do %>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21a8 8 0 0 0-16 0" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span class="hidden sm:inline">마이페이지</span>
+        <% end %>
+        <%= button_to "로그아웃", session_path, method: :delete,
+              class: "btn btn-sm shrink-0 border-hairline bg-canvas text-ink" %>
+      </div>
     <% end %>
-    <%# 우측 슬롯: v1 비움(후속 계정 메뉴 예약) %>
   </div>
 </header>

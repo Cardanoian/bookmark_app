@@ -36,9 +36,9 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: /헤더학생님의 독서 기록/
     assert_select "[aria-labelledby='profile-growth-title']", text: /120XP/
     assert_select "[aria-labelledby='profile-activity-title']", text: /작성한 독후감/
-    # 계정 섹션은 비밀번호 변경 진입, 로그아웃은 공통 헤더로 이동했다(WS-G).
+    # 계정 섹션은 비밀번호 변경 진입, 로그아웃은 전역 밴드(app-header)로 이동했다.
     assert_select "[aria-labelledby='profile-account-title'] a[href='#{edit_password_path}']", text: /비밀번호 변경/
-    assert_select "header[aria-label='학생 공통 헤더'] form[action='#{session_path}']", text: /로그아웃/
+    assert_select "header.app-header form[action='#{session_path}']", text: /로그아웃/
     assert_select "a[aria-current='page'][href='#{profile_path}']", text: /마이페이지/
   end
 
@@ -54,7 +54,8 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
-    assert_select "header[aria-label='학생 공통 헤더']", count: 0
+    # 교직원은 밴드에 학생 계정 컨트롤(마이페이지)이 노출되지 않는다.
+    assert_select "header.app-header a[href='#{profile_path}']", count: 0
 
     get profile_path
     assert_response :forbidden
@@ -62,18 +63,15 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
 
   private
 
-  # back_path: 경로면 그 href 로 향하는 뒤로가기 링크를, nil 이면 링크 부재 +
-  # 레이아웃 유지용 스페이서(span.invisible) 존재를 단언한다.
+  # 이름·마이페이지·뒤로가기는 전역 밴드(app-header)로 이동했다.
+  # back_path: 경로면 밴드의 뒤로가기 링크(그 href)를, nil 이면 밴드에 뒤로가기 링크 부재를 단언한다.
   def assert_student_header(back_path:)
-    assert_select "header[aria-label='학생 공통 헤더']", count: 1 do
-      assert_select "p", text: "헤더학생", count: 1
-      if back_path
-        assert_select "a[aria-label='뒤로 가기'][href='#{back_path}']", count: 1
-      else
-        assert_select "a[aria-label='뒤로 가기']", count: 0
-        assert_select "span.invisible", count: 1
-      end
-      assert_select "a[href='#{profile_path}']", text: /마이페이지/, count: 1
+    assert_select "header.app-header", text: /헤더학생/
+    assert_select "header.app-header a[href='#{profile_path}']", text: /마이페이지/, count: 1
+    if back_path
+      assert_select "header.app-header a[aria-label='뒤로 가기'][href='#{back_path}']", count: 1
+    else
+      assert_select "header.app-header a[aria-label='뒤로 가기']", count: 0
     end
   end
 end

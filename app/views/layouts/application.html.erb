@@ -32,7 +32,6 @@
         리듬은 여기서 소유한다. 각 뷰는 page-shell* 로 그 안에서 max-width 를 제어.
         flex 컨텍스트는 기존 다자식 뷰 회귀 방지를 위해 유지. %>
     <main class="mx-auto flex w-full max-w-[96rem] flex-col px-4 py-6 sm:px-6 lg:px-8">
-      <%= render "shared/student_header" if current_user&.student? %>
       <%= yield %>
     </main>
 

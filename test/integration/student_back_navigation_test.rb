@@ -25,7 +25,7 @@ class StudentBackNavigationTest < ActionDispatch::IntegrationTest
     test "back link from #{from} points to #{expected_back}" do
       get from, headers: { "HTTP_REFERER" => "https://evil.example.com/x" }
       assert_response :success
-      assert_select "header[aria-label='학생 공통 헤더'] a[aria-label='뒤로 가기'][href='#{expected_back}']", 1
+      assert_select "header.app-header a[aria-label='뒤로 가기'][href='#{expected_back}']", 1
     end
   end
 
@@ -33,22 +33,19 @@ class StudentBackNavigationTest < ActionDispatch::IntegrationTest
   test "back link from reports index points to home" do
     get reports_path, headers: { "HTTP_REFERER" => "https://evil.example.com/x" }
     assert_response :success
-    assert_select "header[aria-label='학생 공통 헤더'] a[aria-label='뒤로 가기'][href='#{root_path}']", 1
+    assert_select "header.app-header a[aria-label='뒤로 가기'][href='#{root_path}']", 1
   end
 
   test "back link from games catalog points to home" do
     get games_catalog_path
     assert_response :success
-    assert_select "header[aria-label='학생 공통 헤더'] a[aria-label='뒤로 가기'][href='#{root_path}']", 1
+    assert_select "header.app-header a[aria-label='뒤로 가기'][href='#{root_path}']", 1
   end
 
-  # 상위가 자기 자신인 화면(내 서재=홈)은 뒤로가기 버튼을 숨기고 스페이서만 둔다.
+  # 상위가 자기 자신인 화면(내 서재=홈)은 밴드에서 뒤로가기 버튼을 숨긴다.
   test "back link is hidden on dashboard home (/)" do
     get root_path
     assert_response :success
-    assert_select "header[aria-label='학생 공통 헤더']" do
-      assert_select "a[aria-label='뒤로 가기']", count: 0
-      assert_select "span.invisible", count: 1
-    end
+    assert_select "header.app-header a[aria-label='뒤로 가기']", count: 0
   end
 end
