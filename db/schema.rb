@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_20_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_000003) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -341,6 +341,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_000002) do
     t.index ["user_id"], name: "index_quiz_attempts_on_user_id"
   end
 
+  create_table "quiz_contributions", force: :cascade do |t|
+    t.integer "band", default: 0, null: false
+    t.integer "book_id", null: false
+    t.integer "classroom_id", null: false
+    t.integer "content_axis", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.json "payload"
+    t.integer "reviewed_by_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["book_id"], name: "index_quiz_contributions_on_book_id"
+    t.index ["classroom_id", "status"], name: "index_quiz_contributions_on_classroom_id_and_status"
+    t.index ["classroom_id"], name: "index_quiz_contributions_on_classroom_id"
+    t.index ["reviewed_by_id"], name: "index_quiz_contributions_on_reviewed_by_id"
+    t.index ["user_id"], name: "index_quiz_contributions_on_user_id"
+  end
+
   create_table "quiz_questions", force: :cascade do |t|
     t.json "answer"
     t.integer "answer_index"
@@ -590,6 +608,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_000002) do
   add_foreign_key "monster_species", "monster_species", column: "evolves_from_id", on_delete: :nullify
   add_foreign_key "quiz_attempts", "quizzes"
   add_foreign_key "quiz_attempts", "users"
+  add_foreign_key "quiz_contributions", "books", on_delete: :cascade
+  add_foreign_key "quiz_contributions", "classrooms", on_delete: :cascade
+  add_foreign_key "quiz_contributions", "users", column: "reviewed_by_id", on_delete: :nullify
+  add_foreign_key "quiz_contributions", "users", on_delete: :cascade
   add_foreign_key "quiz_questions", "quizzes"
   add_foreign_key "quiz_reports", "quizzes"
   add_foreign_key "quiz_reports", "users"

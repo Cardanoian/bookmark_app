@@ -17,6 +17,7 @@ class User < ApplicationRecord
   has_many :forum_posts, dependent: :destroy
   has_many :cheers, dependent: :destroy
   has_many :quiz_attempts, dependent: :destroy
+  has_many :quiz_contributions, dependent: :destroy
   has_many :game_plays, dependent: :destroy
   has_many :mission_participations, dependent: :destroy
   has_many :recommendation_imports, foreign_key: :imported_by_id, dependent: :nullify,

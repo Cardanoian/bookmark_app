@@ -34,6 +34,10 @@ class Teacher::DashboardsController < Teacher::BaseController
                                      .where("forum_posts.reports_count > 0")
                                      .includes(:user, :topic)
                                      .order(reports_count: :desc, created_at: :desc).limit(10).to_a
+
+    # 학생 기여 문제 검토 큐(전국 공유 문제은행 §4.3): 담임 학급 학생들의 pending 기여 건수.
+    # 승인하면 전국 공유 풀로 물질화되므로 정확성·연령 적합성을 함께 검토한다.
+    @pending_contributions_count = QuizContribution.pending.where(user_id: @students.select(:id)).count
   end
 
   private

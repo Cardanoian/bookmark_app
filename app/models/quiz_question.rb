@@ -10,7 +10,9 @@ class QuizQuestion < ApplicationRecord
   # mcq content_axis 안에서도 mcq_single/mcq_multi 두 채점타입이 존재한다.
   enum :question_type, { mcq_single: 0, mcq_multi: 1, matching: 2, hint_reveal: 3 },
        default: :mcq_single
-  enum :source, { manual: 0, ai: 1, offline: 2 }, default: :manual
+  # source: manual(교사 수기)·ai(워밍 게시)·offline(결정적 폴백)·contributed(학생 기여 승인, Phase 3 §4 additive).
+  # 정수 매핑 고정 — 재배열 금지(과거 기록·집계 안정성).
+  enum :source, { manual: 0, ai: 1, offline: 2, contributed: 3 }, default: :manual
 
   # 첫 AR 검증(Phase 1 §1.2). question_type presence + 타입별 정답 유효성.
   validates :question_type, presence: true

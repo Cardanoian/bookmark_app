@@ -10,6 +10,7 @@
 - `badges_controller.rb` — 전역 뱃지 카탈로그 CRUD.
 - `books_controller.rb` — 전역 도서 카탈로그 CRUD(제목 검색). index 페이지네이션(PER_PAGE=50).
 - `recommendation_imports_controller.rb` — 공식 추천도서 XLSX 관리(index/create). 업로드 파일에서 어린이 분과만 트랜잭션으로 교체하고, 현재 목록·최근 업로드 이력을 표시한다. 실패 시 기존 활성 목록을 보존한다.
+- `game_contents_controller.rb` — **게임 콘텐츠 에스컬레이션(게임 재구성 Phase 3 §4.5)**. 전국 노출되는 **system 풀 퀴즈**의 신고 콘텐츠(reported 또는 reports_count>0)를 총괄이 `index`(전국 관점 검토 큐, 페이지네이션 PER_PAGE=25)·`hide`(영구 숨김 reported=true→fetch_ready 제외)·`restore`(복원 reported=false)·`destroy`(영구 삭제, dependent 자식 정리)한다. 담임 대시보드(자기 학급 신호)와 별개의 전국 중앙 처리 계층. 기존 2인 자동숨김(`record_report!`)은 유지.
 - `moderation_controller.rb` — 게시판·토론·토픽 신고/숨김 관리(`index`/`hide`/`unhide`). `kind` 파라미터로 대상 모델 분기. **index 는 3섹션(board/forum/topic)을 통짜 로드하지 않고 각각 독립 page 파라미터(`board_page`/`forum_page`/`topic_page`)로 페이지네이션**(`paginate_section`, PER_PAGE=25, #4).
 - `monster_species_controller.rb` — 몬스터 종·진화 규칙 CRUD(element/rarity, evolves_from, evolve_condition JSON).
 - `quizzes_controller.rb` — 전역(global) 퀴즈 CRUD. 문항 중첩 폼, 보기(choices)는 줄바꿈 텍스트 → 배열 정규화. index 페이지네이션(PER_PAGE=50).

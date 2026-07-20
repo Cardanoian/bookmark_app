@@ -33,6 +33,22 @@
         </div>
       </div>
 
+      <%# 학생 기여 문제 검토 큐(전국 공유 문제은행 §4.3). 승인하면 전국 풀로 편입되므로 정확성·연령
+          적합성을 함께 검토한다. pending 이 있을 때만 노출하고 검토 큐로 링크한다. %>
+      <% if @pending_contributions_count.positive? %>
+        <div class="card border-brand-blue bg-surface-featured">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-lg font-semibold text-brand-blue">
+              <span aria-hidden="true">✍️</span> 학생 기여 문제 검토 (<%= @pending_contributions_count %>)
+            </h2>
+            <%= link_to "검토하러 가기", teacher_quiz_contributions_path, class: "btn btn-primary btn-sm" %>
+          </div>
+          <p class="mt-1 text-xs text-slate">
+            학생이 낸 문제예요. 내용을 확인·수정하고 승인하면 전국 친구들의 문제은행에 들어가요.
+          </p>
+        </div>
+      <% end %>
+
       <%# 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠. %>
       <% if @reported_content.any? %>
         <div class="card border-brand-red-dark bg-brand-red">

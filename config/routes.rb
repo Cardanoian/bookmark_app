@@ -57,6 +57,10 @@ Rails.application.routes.draw do
     collection { post :advance }
   end
 
+  # 학생 출제 기여(전국 공유 문제은행 UGC, 게임 재구성 Phase 3 §4.1). 독서활동 화면에서 그 책의
+  # 문제(객관식·나는 누구게? 힌트)를 낸다 → pending 저장 → 담임 검토 큐. new/create 최소.
+  resources :quiz_contributions, only: [ :new, :create ]
+
   # 독서게임 3종 (P5.6 → Phase 3 온디맨드 → 게임 재구성 Phase 1). 카탈로그에서 도서를 골라
   # `play?book_id=` 로 온디맨드 진입한다(미스=오프라인 즉시). 2종은 퀴즈 파이프라인 실동작
   # (quiz=mcq[고전 통합]·whoami=hint_reveal), 1종은 소셜 도메인(book=책 소개 대결, Gemini 미호출).
@@ -159,7 +163,15 @@ Rails.application.routes.draw do
       member { post :publish }
     end
     resources :quizzes
-    resource  :rubric_config, only: [ :edit, :update ]
+    # 학생 기여 문제 검토·수정 큐(게임 재구성 Phase 3 §4.3). 담임만 자기 학급 학생 pending 열람/수정/
+    # 승인/반려. 승인 시 전국 공유 풀로 물질화(ContributionPublisher).
+    resources :quiz_contributions, only: [ :index, :update ] do
+      member do
+        post :approve
+        post :reject
+      end
+    end
+    resource :rubric_config, only: [ :edit, :update ]
 
     # 토론 글 모더레이션(reading_discussion) — 담임이 자기 학급 학생 글만 숨김/해제(저자 학급 경계).
     post "forum_posts/:id/hide",   to: "forum_moderations#hide",   as: :forum_post_hide
@@ -218,6 +230,14 @@ Rails.application.routes.draw do
       member do
         post :hide
         post :unhide
+      end
+    end
+    # 게임 콘텐츠 에스컬레이션(게임 재구성 Phase 3 §4.5) — 전국 노출 system 풀 퀴즈의 신고 콘텐츠를
+    # 총괄이 영구 숨김/복원/삭제. 담임 대시보드(자기 학급 신호)와 별개의 전국 관점 중앙 큐.
+    resources :game_contents, only: [ :index, :destroy ] do
+      member do
+        post :hide
+        post :restore
       end
     end
     resource :settings, only: [ :show, :update ]

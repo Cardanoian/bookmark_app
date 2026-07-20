@@ -118,10 +118,15 @@ module Games
       end
     end
 
-    def initialize(draft_service: Ai::QuizDraftService.new, rate_limiter: RateLimiter.new, client: Ai::GeminiClient.new)
+    # sampler: 준비된 후보 세트들(배열) 중 하나를 고르는 seam(Phase 3 문제은행 §3.5). 기본은 균등 랜덤
+    # (`.sample`)이라 (책·밴드·축)에 여러 세트(오프라인·AI·기여)가 쌓이면 **매 플레이마다 다른 세트가
+    # 출제**된다(세트 단위 랜덤 출제). 테스트는 결정적 sampler(예: `->(c){ c.first }`)를 주입해 검증한다.
+    def initialize(draft_service: Ai::QuizDraftService.new, rate_limiter: RateLimiter.new, client: Ai::GeminiClient.new,
+                   sampler: ->(candidates) { candidates.sample })
       @draft_service = draft_service
       @rate_limiter = rate_limiter
       @client = client
+      @sampler = sampler
     end
 
     def resolve(book:, surface:, user:)
@@ -221,12 +226,30 @@ module Games
 
     private
 
-    # 최신 준비완료 캐시 행(미신고). 오프라인 v1 도 ready 라 두 번째 resolve 부터는 여기서 HIT.
+    # 준비완료 캐시 세트(미신고) 중 하나를 서빙한다(문제은행식 세트 단위 랜덤 출제, Phase 3 §3.5).
+    # 오프라인 v1 도 ready 라 두 번째 resolve 부터는 여기서 HIT. (책·밴드·축)에 오프라인·AI 워밍·학생
+    # 승인 기여 세트가 여러 개 쌓이면 sampler(기본 균등 랜덤)가 **매 플레이마다 다른 세트를 고른다** —
+    # 아동 대면 채점 파이프라인(_quiz_form·attempts·QuizPlay)은 여전히 quiz_id 로 그 한 세트를 통째
+    # 제출·채점하므로 무변경이다(세트 단위 랜덤일 뿐 문항 단위 샘플링이 아님). content_version desc 정렬은
+    # 결정적 sampler(테스트)가 "최신"을 고를 수 있게 유지한다.
+    #
+    # ⚠️ maybe_retry_warming 은 이 랜덤 선택 결과(cached)를 그대로 판정 대상으로 받는다 — offline-only·
+    #   ai-backed 세트가 풀에 공존할 때 드물게 offline-only 를 뽑으면 이미 AI 콘텐츠가 있는 축에도
+    #   재워밍이 걸릴 수 있다(correctness 회귀 아님, RETRY_COOLDOWN·예산으로 상한된 소량 비효율 — 상세는
+    #   maybe_retry_warming 주석).
+    #
+    # ⚠️ 가용성 게이트 유예(Phase 3): "콘텐츠 없으면 게임 비활성"의 완전한 disable-gate 는 신뢰 가능한
+    #   Gemini 소스가 붙는 **Phase 4** 로 미룬다. Phase 3 에서 비활성화하면 기여가 쌓이기 전 대다수 책이
+    #   게임 없음이 되어 콜드스타트가 나빠지므로, MISS 시 오프라인 결정적 세트 생성(오프라인 플로어)을
+    #   그대로 유지한다(아동 무대기·항상 가용 불변식).
     def fetch_ready(book_id, band, content_axis)
-      Quiz.where(origin: :system, generation_status: :ready, reported: false,
-                 book_id: book_id, band: band, content_axis: content_axis)
-          .order(content_version: :desc, id: :desc)
-          .first
+      candidates = Quiz.where(origin: :system, generation_status: :ready, reported: false,
+                              book_id: book_id, band: band, content_axis: content_axis)
+                       .order(content_version: :desc, id: :desc)
+                       .to_a
+      return nil if candidates.empty?
+
+      @sampler.call(candidates)
     end
 
     # 오프라인 결정적 system Quiz find-or-create. 최초 미스는 content_version=1 이며,
@@ -297,6 +320,13 @@ module Games
     # 최초 미스 시 무키였던 경우가 영구 오프라인으로 굳지 않게 함). 막 만든 오프라인(정상 워밍이
     # 아직 진행 중일 수 있는 짧은 창)은 재시도하지 않아 N1(콘텐츠축당 1생성)을 어기지 않는다.
     # 축 단위 쿨다운(RETRY_COOLDOWN)으로 매 HIT 마다 재시도가 발동하는 낭비도 막는다.
+    #
+    # ⚠️ Phase 3 세트 단위 랜덤(§3.5)과의 상호작용: 판정 대상 `cached` 는 **이번에 sampler 가 고른
+    #   그 세트**다. 풀에 offline-only 세트와 ai-backed 세트가 **공존**할 때 sampler 가 우연히 오래된
+    #   offline-only 세트를 고르면, 그 축에 이미 AI 콘텐츠가 있음에도 재워밍이 걸릴 수 있다(다음
+    #   HIT 에서 ai-backed 세트를 고르면 안 걸림 — 순전히 이번 판이 어떤 세트를 뽑았는지에 달림).
+    #   이는 **정확성 회귀가 아니다**(잘못된 콘텐츠가 나가지 않음) — 축 단위 쿨다운(RETRY_COOLDOWN,
+    #   1시간 1회)·예산/rate limit 이 상한을 걸어 **드물게 소량의 불필요한 워밍 잡**만 발생할 수 있다.
     def maybe_retry_warming(book, band, content_axis, user, cached)
       return if cached.created_at > RETRY_GRACE.ago
       return if ai_backed?(cached)

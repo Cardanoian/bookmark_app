@@ -42,8 +42,12 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
     AppSetting.set("feature_flags", { "on_demand_games" => global }.merge(overrides))
   end
 
-  def provider(client: ConfiguredClient.new, rate_limiter: RateLimiter.new(store: ActiveSupport::Cache::MemoryStore.new))
-    Games::ContentProvider.new(client: client, rate_limiter: rate_limiter)
+  # 기본 sampler 는 결정적(최신=content_version desc 첫 행)으로 주입해 기존 회귀 단정(HIT·재생성·
+  # ai-backed)이 세트 단위 랜덤(Phase 3 §3.5) 도입 후에도 안정적으로 성립하게 한다. 랜덤 선택 자체는
+  # 별도 테스트에서 sampler seam 으로 검증한다.
+  def provider(client: ConfiguredClient.new, rate_limiter: RateLimiter.new(store: ActiveSupport::Cache::MemoryStore.new),
+               sampler: ->(candidates) { candidates.first })
+    Games::ContentProvider.new(client: client, rate_limiter: rate_limiter, sampler: sampler)
   end
 
   # ── 미스: 오프라인 즉시 + 워밍 1적재 ─────────────────────────────────────
@@ -249,6 +253,56 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
 
     served = provider.resolve(book: @book, surface: "quiz", user: @student)
     assert_equal regenerateed.id, served.id, "다음 resolve 는 재생성한 최신 버전을 서빙(content_version desc)"
+  end
+
+  # ── Phase 3 §3.5 문제은행식 세트 단위 랜덤 출제 ────────────────────────────
+  # 세트가 여러 개면 resolve 는 준비된 후보들 중 하나를 sampler 로 고른다(기본 균등 랜덤).
+  test "resolve passes the whole ready pool to the sampler when multiple sets exist" do
+    provider.resolve(book: @book, surface: "quiz", user: @student)     # offline v1
+    provider.regenerate(book: @book, surface: "quiz", user: @student)  # offline v2 → 풀 2세트
+
+    seen = nil
+    capturing = ->(candidates) { seen = candidates; candidates.first }
+    prov = Games::ContentProvider.new(client: ConfiguredClient.new, sampler: capturing)
+    prov.resolve(book: @book, surface: "quiz", user: @student)
+
+    assert_equal 2, seen.size, "준비된 세트 전부(풀)를 sampler 에 넘긴다 — 세트 단위 랜덤 출제"
+    assert_equal [ "system" ], seen.map(&:origin).uniq
+  end
+
+  # sampler seam 이 실제로 풀에서 서로 다른 세트를 고를 수 있다(랜덤 출제의 결정적 검증).
+  test "the sampler seam can select different sets from the pool" do
+    provider.resolve(book: @book, surface: "quiz", user: @student)     # v1
+    provider.regenerate(book: @book, surface: "quiz", user: @student)  # v2
+
+    latest = Games::ContentProvider.new(client: ConfiguredClient.new, sampler: ->(c) { c.first }).resolve(book: @book, surface: "quiz", user: @student)
+    oldest = Games::ContentProvider.new(client: ConfiguredClient.new, sampler: ->(c) { c.last }).resolve(book: @book, surface: "quiz", user: @student)
+
+    assert_not_equal latest.id, oldest.id, "sampler 에 따라 풀의 다른 세트가 출제된다"
+    assert_operator latest.content_version, :>, oldest.content_version
+  end
+
+  # 세트가 하나뿐이면 그 세트를, 없으면 MISS→오프라인(오프라인 플로어 불변식).
+  test "resolve serves the only set when one exists, and falls back to offline on MISS" do
+    only = provider.resolve(book: @book, surface: "quiz", user: @student) # MISS → offline v1
+    assert_equal only.id, provider.resolve(book: @book, surface: "quiz", user: @student).id, "세트 1개면 그 세트"
+    assert_equal [ "offline" ], only.quiz_questions.pluck(:source).uniq, "MISS 는 오프라인 플로어(비활성 게이트는 Phase 4 유예)"
+  end
+
+  # 학생 승인 기여 세트도 같은 전국 풀의 후보가 된다(물질화 → resolve 풀 등장).
+  test "an approved contribution set joins the same ready pool and can be served" do
+    provider.resolve(book: @book, surface: "quiz", user: @student) # offline v1
+    contribution = QuizContribution.create!(user: @student, book: @book, classroom: @room_a,
+      content_axis: :mcq, band: :g56,
+      payload: { "prompt" => "기여 질문?", "choices" => %w[가 나 다 라], "answer_index" => 2, "explanation" => "해설" })
+    contributed_quiz = Games::ContributionPublisher.publish!(contribution)
+
+    seen = nil
+    prov = Games::ContentProvider.new(client: ConfiguredClient.new, sampler: ->(c) { seen = c; c.detect { |q| q.id == contributed_quiz.id } })
+    served = prov.resolve(book: @book, surface: "quiz", user: @student)
+
+    assert_includes seen.map(&:id), contributed_quiz.id, "기여 세트가 풀 후보에 포함된다"
+    assert_equal [ "contributed" ], served.quiz_questions.pluck(:source).uniq
   end
 
   # M1: 다시 뽑기(오프라인 재생성)는 rate limit 밖이라 무제한 DB 증식이 가능했다 → per-user 시간당 한도.
