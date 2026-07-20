@@ -66,7 +66,8 @@
         <div class="flex flex-wrap gap-2">
           <% [ [ "퀴즈", games_quiz_play_path(book_id: @book.id) ],
                 [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ],
-                [ "책 소개 대결", games_book_play_path(book_id: @book.id) ] ].each do |label, path| %>
+                [ "책 소개 대결", games_book_play_path(book_id: @book.id) ],
+                [ "뒷이야기 이어쓰기", games_sequel_play_path(book_id: @book.id) ] ].each do |label, path| %>
             <%= link_to label, path, class: "rounded-full border border-hairline px-3 py-1.5 text-sm text-ink hover:border-primary/40 hover:bg-surface" %>
           <% end %>
         </div>

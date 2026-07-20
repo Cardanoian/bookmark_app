@@ -15,11 +15,12 @@ class GamePlayTest < ActiveSupport::TestCase
   end
 
   # 게임 재구성 Phase 1: vocab(2) hard-delete(키 제거·정수 2 gap), classic(1) soft-deprecate(값 보존),
-  # quiz(0)/whoami(3)/book(4) 정수는 재배열하지 않고 그대로 유지한다.
-  test "game_type enum drops vocab but preserves the other integer mappings (no renumbering)" do
-    assert_equal({ "quiz" => 0, "classic" => 1, "whoami" => 3, "book" => 4 }, GamePlay.game_types)
+  # quiz(0)/whoami(3)/book(4) 정수는 재배열하지 않고 그대로 유지한다. Phase 2: sequel(5) additive 추가.
+  test "game_type enum adds sequel and preserves the other integer mappings (no renumbering, vocab gap)" do
+    assert_equal({ "quiz" => 0, "classic" => 1, "whoami" => 3, "book" => 4, "sequel" => 5 }, GamePlay.game_types)
     assert_not GamePlay.game_types.key?("vocab"), "vocab 은 enum 에서 제거됐다(hard-delete)"
     assert_equal 1, GamePlay.game_types["classic"], "classic(1)은 과거 기록 보존차 유지(soft-deprecate)"
+    assert_equal 5, GamePlay.game_types["sequel"], "sequel(5)은 Phase 2 additive 추가(정수 2 gap 유지)"
   end
 
   # 책 있는 플레이: (user, game_type, book, 일자) 당 1회.

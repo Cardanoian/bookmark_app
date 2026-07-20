@@ -84,6 +84,13 @@ Rails.application.routes.draw do
     post   "book/intros/:id/vote", to: "book#vote",   as: :book_vote
     delete "book/intros/:id/vote", to: "book#unvote"
 
+    # 뒷이야기 이어쓰기(sequel) — 창작 소셜 도메인(book 미러). 책 이후 이야기 작성·또래 공감(경계=학급) +
+    # 제출 시 학생 글을 평가한 격려형 AI 코멘트 비동기(SequelFeedbackJob). 모든 책에서 항상 가능(학생 상상).
+    get    "sequel/play",             to: "sequel#play",   as: :sequel_play
+    post   "sequel/entries",          to: "sequel#create", as: :sequel_entries
+    post   "sequel/entries/:id/vote", to: "sequel#vote",   as: :sequel_vote
+    delete "sequel/entries/:id/vote", to: "sequel#unvote"
+
     # 다시 뽑기(§3.4) — 새 content_version 재생성 후 해당 표면 play 로 복귀. 콘텐츠 재생성이지
     # 가챠·랜덤 획득이 아니므로(포인트 상한 봉인) 경로명은 무가챠 가드 준수차 regenerate 로 둔다.
     post "regenerate", to: "regenerate#create", as: :regenerate

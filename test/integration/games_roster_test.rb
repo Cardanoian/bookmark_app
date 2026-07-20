@@ -21,16 +21,16 @@ class GamesRosterTest < ActionDispatch::IntegrationTest
                  Rails.application.routes.recognize_path("/games/whoami/play", method: :get))
   end
 
-  # ── ② 카탈로그(CATALOG)에 classic·vocab 이 없고 3종만 남는다 ──────────────────
-  test "the game catalog contains only quiz, whoami and book" do
+  # ── ② 카탈로그(CATALOG)에 classic·vocab 이 없고 4종(Phase 2 sequel 추가)만 남는다 ──
+  test "the game catalog contains only quiz, whoami, book and sequel" do
     catalog = Games::BaseController::CATALOG
-    assert_equal %w[quiz whoami book].sort, catalog.keys.sort
+    assert_equal %w[quiz whoami book sequel].sort, catalog.keys.sort
     assert_not catalog.key?("classic"), "classic 은 카탈로그에서 제거됐다(→quiz 통합)"
     assert_not catalog.key?("vocab"), "vocab 은 카탈로그에서 제거됐다(hard-delete)"
   end
 
-  # ── ③ game_type enum 은 vocab 을 빼되 나머지 정수를 재배열하지 않는다 ─────────
-  test "GamePlay game_type enum drops vocab and preserves quiz(0)/classic(1)/whoami(3)/book(4)" do
-    assert_equal({ "quiz" => 0, "classic" => 1, "whoami" => 3, "book" => 4 }, GamePlay.game_types)
+  # ── ③ game_type enum 은 vocab 을 빼되 나머지 정수를 재배열하지 않고 sequel(5)만 additive 추가 ──
+  test "GamePlay game_type enum drops vocab, adds sequel(5), and preserves quiz(0)/classic(1)/whoami(3)/book(4)" do
+    assert_equal({ "quiz" => 0, "classic" => 1, "whoami" => 3, "book" => 4, "sequel" => 5 }, GamePlay.game_types)
   end
 end

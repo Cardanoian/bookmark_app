@@ -9,9 +9,11 @@
 # 게임 재구성 Phase 1: 표면(라우트/카탈로그/뷰)은 quiz·whoami·book 3종만 남았다. **enum 정수는 재배열하지
 # 않는다** — vocab(2)은 hard-delete(데이터·enum 키 제거, 정수 2 gap), classic(1)은 soft-deprecate(값·과거
 # 기록 보존, 새 표면 없음 — 옛 기록이 정상 퀴즈 플레이라 유지). 정수 2 gap 은 의도된 것이다.
+# 게임 재구성 Phase 2: sequel(5) additive 추가 → **활성 4종=quiz·whoami·book·sequel**(classic soft-deprecate).
+# sequel(뒷이야기 이어쓰기)은 book 처럼 book_id 있는 플레이라 기존 부분 유니크 인덱스로 일일 dedup 된다.
 class GamePlay < ApplicationRecord
-  # 학생 게임 원장 game_type. 정수 매핑 고정(vocab:2 hard-delete, gap 유지; classic:1 soft-deprecate).
-  enum :game_type, { quiz: 0, classic: 1, whoami: 3, book: 4 }
+  # 학생 게임 원장 game_type. 정수 매핑 고정(vocab:2 hard-delete, gap 유지; classic:1 soft-deprecate; sequel:5 추가).
+  enum :game_type, { quiz: 0, classic: 1, whoami: 3, book: 4, sequel: 5 }
 
   belongs_to :user
   belongs_to :book, optional: true

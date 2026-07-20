@@ -121,9 +121,9 @@ class ReadingStats
     @game_plays ||= @user.game_plays.count
   end
 
-  # 플레이한 서로 다른 게임 종류 수(distinct game_type). game_type enum 은 4종(quiz·classic·whoami·book)
-  # 이지만, 게임 재구성 Phase 1 이후 **정상 플레이로 신규 기록 가능한 것은 quiz·whoami·book 3종뿐**
-  # 이다(classic 은 표면 제거로 과거 기록 보존차 값만 남음, vocab 은 hard-delete). 3B.
+  # 플레이한 서로 다른 게임 종류 수(distinct game_type). game_type enum 은 5값(quiz·classic·whoami·book·
+  # sequel)이지만, 게임 재구성 이후 **정상 플레이로 신규 기록 가능한 것은 quiz·whoami·book·sequel 4종**
+  # 이다(Phase 2 에서 sequel 추가; classic 은 표면 제거로 과거 기록 보존차 값만 남음, vocab 은 hard-delete). 3B.
   def distinct_games
     @distinct_games ||= @user.game_plays.distinct.count(:game_type)
   end

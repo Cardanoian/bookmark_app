@@ -47,7 +47,7 @@
 - `quiz_attempt.rb` — 퀴즈 플레이 1회 기록. `awarded_delta`는 멱등 지급 델타(비영속 임시 속성). 콘텐츠축 상한(origin=system)·per-quiz 상한(origin=teacher) 조회의 근거 행(`Games::PointAward`). **Phase 3 §3.2b**: `hint_reveals`(JSON `{question_id => 공개 힌트 수}`) 컬럼 + `revealed_count(question)` — whoami 힌트 공개수를 **세션쿠키 아니라 서버(DB)**에 두어 위조·stale-cookie replay 를 차단하는 hint_reveal 채점의 단일 진실(C1).
 
 ### 게임 — 완료 원장(몬스터 해금 지표)
-- `game_play.rb` — 게임 완료 활동 원장 1행(Phase 3B). `game_type` enum(quiz:0·classic:1·whoami:3·book:4, **정수 매핑 고정**) + `belongs_to :user`·`:book`(optional). **게임 재구성 Phase 1**: vocab(2) hard-delete(키 제거, **정수 2 gap 유지·재넘버링 없음**), classic(1) soft-deprecate(값·과거 기록 보존, 새 표면 없음). **부분 유니크 인덱스 2개**로 일일 dedup(book 있는 플레이는 `(user, game_type, book, 일자)`, 없는 플레이는 `(user, game_type, 일자)` — SQLite 유니크 인덱스가 NULL 을 서로 구별해 단일 인덱스로는 book-less 재제출을 막지 못하기 때문). **`game_type` 신뢰 경계**: 퀴즈 표면(quiz/whoami)은 서버가 Quiz 행만으론 표면을 구분할 수 없어 **검증된 클라이언트 선언(`params[:game]`, `game_types` allowlist)**을 신뢰한다(book 은 라우트가 서버에서 확정, vocab 은 enum 에서 빠져 자동 거부). `reading_stats.rb`의 `game_plays`/`distinct_games`/`game_books` 지표 소스.
+- `game_play.rb` — 게임 완료 활동 원장 1행(Phase 3B). `game_type` enum(quiz:0·classic:1·whoami:3·book:4·**sequel:5**, **정수 매핑 고정**) + `belongs_to :user`·`:book`(optional). **게임 재구성 Phase 1**: vocab(2) hard-delete(키 제거, **정수 2 gap 유지·재넘버링 없음**), classic(1) soft-deprecate(값·과거 기록 보존, 새 표면 없음). **Phase 2**: sequel(5) additive 추가 → **활성 4종=quiz·whoami·book·sequel**(sequel 은 book 처럼 book_id 있는 플레이라 기존 부분 유니크 인덱스로 dedup). **부분 유니크 인덱스 2개**로 일일 dedup(book 있는 플레이는 `(user, game_type, book, 일자)`, 없는 플레이는 `(user, game_type, 일자)` — SQLite 유니크 인덱스가 NULL 을 서로 구별해 단일 인덱스로는 book-less 재제출을 막지 못하기 때문). **`game_type` 신뢰 경계**: 퀴즈 표면(quiz/whoami)은 서버가 Quiz 행만으론 표면을 구분할 수 없어 **검증된 클라이언트 선언(`params[:game]`, `game_types` allowlist)**을 신뢰한다(book 은 라우트가 서버에서 확정, vocab 은 enum 에서 빠져 자동 거부). `reading_stats.rb`의 `game_plays`/`distinct_games`/`game_books` 지표 소스.
 
 ### 게임 — 콘텐츠 신고(무게이트 롤아웃)
 - `quiz_report.rb` — 온디맨드 게임 콘텐츠 신고(무게이트 롤아웃 안전장치). `(quiz, user)` 유일성=**1인 1신고**(cheer 패턴), `quiz.reports_count` counter_cache. 서로 다른 신고자가 `Games::ContentProvider::REPORT_HIDE_THRESHOLD`(2)명에 도달하면 자동 숨김+재생성, 접수는 신고자 학급 담임 대시보드 "신고된 게임 콘텐츠" 섹션으로 사후 검토(교사 알림).
@@ -55,9 +55,11 @@
 ### 게임 — 콘텐츠 신고(무게이트 롤아웃 안전장치)
 - `quiz_report.rb` — 온디맨드 게임 콘텐츠 신고. 콘텐츠축 캐시 quiz 당 **1인 1신고**(`(quiz, user)` unique, cheer/vote 패턴) + `quizzes.reports_count`(counter_cache). 서로 다른 `Games::ContentProvider::REPORT_HIDE_THRESHOLD`(2)명 신고 시 자동 숨김+재생성, 접수는 신고자 학급 담임 대시보드 "신고된 콘텐츠" 섹션으로 사후 검토된다.
 
-### 게임 — 책 소개 대결(소셜)
+### 게임 — 책 소개 대결·뒷이야기 이어쓰기(소셜)
 - `book_intro.rb` — 책 소개 대결 글(교육 다양성 5종의 소셜 도메인). `belongs_to :user·:book·:classroom`, `has_many :book_intro_votes, dependent: :destroy`. body presence + 길이(10..1000) 검증. scope `for_classroom(book, classroom)`·`ranked`(votes_count desc→created desc), `voted_by?(user)`. **경계 격리는 `BookIntroPolicy`가 학급 단위로 강제**(퀴즈 파이프라인 밖, Gemini/Quiz 미생성).
 - `book_intro_vote.rb` — 책 소개 투표(👍). `belongs_to :book_intro, counter_cache: :votes_count` + `:user`. `(book_intro, user)` 유일성으로 **소개당 1인 1표**(cheer 패턴, RecordNotUnique rescue).
+- `book_sequel.rb` — 뒷이야기 이어쓰기 글(게임 재구성 Phase 2의 창작 소셜 도메인, BookIntro 미러). `belongs_to :user·:book·:classroom`, `has_many :book_sequel_votes, dependent: :destroy`. body presence + 길이(**10..2000** — 이야기라 intro보다 김) 검증. scope `for_classroom`·`ranked`, `voted_by?`. **`ai_status` enum(pending·processing·done·failed, Report 미러)** + `ai_comment` — 제출 시 `SequelFeedbackJob`이 학생 글을 평가한 격려형 AI 코멘트를 비동기로 단다(정직한 AI: 책 아닌 학생 글 평가라 환각 없음). **경계 격리는 `BookSequelPolicy`가 학급 단위로 강제**. 콘텐츠 소스가 학생 상상이라 모든 책에서 항상 가능.
+- `book_sequel_vote.rb` — 뒷이야기 공감(👍). `belongs_to :book_sequel, counter_cache: :votes_count` + `:user`. `(book_sequel, user)` 유일성으로 **뒷이야기당 1인 1표**(cheer 패턴, RecordNotUnique rescue).
 
 ### 도서관
 - `library_loan.rb` — 인기대출 레코드. source(csv·data4library) enum, school_id NULL이면 전국 집계.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_20_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -105,6 +105,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_000000) do
     t.index ["recommendation_import_id", "book_id"], name: "index_book_recommendations_import_book", unique: true
     t.index ["recommendation_import_id", "position"], name: "index_book_recommendations_import_position"
     t.index ["recommendation_import_id"], name: "index_book_recommendations_on_recommendation_import_id"
+  end
+
+  create_table "book_sequel_votes", force: :cascade do |t|
+    t.integer "book_sequel_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["book_sequel_id", "user_id"], name: "index_book_sequel_votes_on_book_sequel_id_and_user_id", unique: true
+    t.index ["book_sequel_id"], name: "index_book_sequel_votes_on_book_sequel_id"
+    t.index ["user_id"], name: "index_book_sequel_votes_on_user_id"
+  end
+
+  create_table "book_sequels", force: :cascade do |t|
+    t.text "ai_comment"
+    t.integer "ai_status", default: 0, null: false
+    t.text "body", null: false
+    t.integer "book_id", null: false
+    t.integer "classroom_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.integer "votes_count", default: 0, null: false
+    t.index ["book_id", "classroom_id"], name: "index_book_sequels_on_book_id_and_classroom_id"
+    t.index ["book_id"], name: "index_book_sequels_on_book_id"
+    t.index ["classroom_id"], name: "index_book_sequels_on_classroom_id"
+    t.index ["user_id"], name: "index_book_sequels_on_user_id"
+    t.index ["votes_count"], name: "index_book_sequels_on_votes_count"
   end
 
   create_table "books", force: :cascade do |t|
@@ -532,6 +559,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_000000) do
   add_foreign_key "book_intros", "users"
   add_foreign_key "book_recommendations", "books", on_delete: :cascade
   add_foreign_key "book_recommendations", "recommendation_imports", on_delete: :cascade
+  add_foreign_key "book_sequel_votes", "book_sequels"
+  add_foreign_key "book_sequel_votes", "users"
+  add_foreign_key "book_sequels", "books"
+  add_foreign_key "book_sequels", "classrooms"
+  add_foreign_key "book_sequels", "users"
   add_foreign_key "challenges", "books", on_delete: :nullify
   add_foreign_key "challenges", "schools", on_delete: :nullify
   add_foreign_key "cheers", "board_posts"

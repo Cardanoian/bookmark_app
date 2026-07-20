@@ -4,7 +4,7 @@
 
 ## 파일
 
-- `schema.rb` — primary DB 현재 스키마(auto-generated, 36개 테이블, version `2026_07_19_230000`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
+- `schema.rb` — primary DB 현재 스키마(auto-generated, 38개 테이블, version `2026_07_20_000002`). **직접 편집 금지** — 반드시 마이그레이션을 추가/실행해 재생성할 것. `bin/rails db:schema:load` 의 기준.
 - `seeds.rb` — 시드 오케스트레이션. `db/seeds/accounts.yml`·`app_settings.yml`을 안전하게 읽고, 아래 rake 태스크들을 순서대로 `invoke` 하며 superadmin(총괄관리자)·**system 유저(온디맨드 캐시 소유자, origin=system Quiz 의 created_by)**·**역할별 개발 샘플 계정**·`app_settings` 기본값을 멱등 생성. (rake 상세는 `lib/tasks/CLAUDE.md`) 샘플 퀴즈는 `quizzes:seed` 가 Phase 1 콘텐츠축 컬럼(origin=teacher/content_axis=mcq/band 유도/content_version=1, 문항 mcq_single·manual)까지 채워 재현되므로 시드가 Phase 1 스키마와 함께 깨끗이 재적재된다(#9-seed).
   - 순서: `schools:seed_full`(CSV 없으면 `schools:seed`) → superadmin → **system 유저** → **비production 역할 샘플 계정** → `monsters:seed`·`badges:seed` → `books:seed_full`(TSV 없으면 no-op, 축소 폴백 없음) → **업로드 이력이 없을 때만 docs 번들 추천도서 XLSX 초기 적재** → `quizzes:seed` → `app_settings`.
   - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
@@ -52,6 +52,8 @@ primary DB 스키마를 시간순으로 쌓아 올립니다. 대략 다음 도�
 29. **도서 표지 URL https 승격 백필** (`20260719210000`): HTTPS 배포(force_ssl)에서 `http://` 표지 URL 은 브라우저 혼합 콘텐츠(Mixed Content) 차단으로 표지가 안 뜬다. 시드·검색으로 유입된 기존 `http://` 표지(주로 알라딘, https 지원) 673건을 `UPDATE ... SET cover_url = 'https://' || substr(cover_url, 8) WHERE cover_url LIKE 'http://%'` 로 일괄 승격한다. **데이터 전용·멱등**(선행 `http://` 만 치환, 재실행 무해)·`down` 은 비가역(차단 상태 복원 실익 없음). 이후 신규 저장은 `Book` 모델 `before_validation :upgrade_cover_url_to_https` 콜백이, 재시드는 `elementary_books.tsv`(http→https 정리 완료)가 같은 정규형을 유지한다. 컬럼·테이블 구조 변경 없음(테이블 수 36 유지). `schema.rb` version 은 `2026_07_19_210000`.
 30. **사용자 누적 경험치 분리** (`20260719220000`): `users.experience`를 추가하고 현재 포인트 잔액과 확인 가능한 몬스터 진화 지출을 합산해 백필한다. 포인트는 소비 가능한 잔액, 경험치는 감소하지 않는 성장·레벨·랭킹 표시 기준으로 분리한다. 컬럼 추가만이라 테이블 수 불변(36 유지).
 31. **구 합성 학교 정리** (`20260719230000`): 전국 NEIS 전량 시드 이전의 합성 코드 17건을 제거한다. 공식 대표 학교가 명확한 15건은 사용자·학급·독후감 등 연결을 공식 NEIS 행으로 이관한 뒤 삭제하고, 연결이 없는 합성 행은 즉시 삭제한다. 대응 학교를 단정할 수 없는 청주·순천 합성 행에 연결 데이터가 있으면 손실 방지를 위해 비활성 보존한다. 전국 랭킹은 활성 학교 학생만 집계하며, `schools:seed_full` 재실행도 연결 없는 합성 행을 제거한다. 데이터 전용이라 테이블 수 불변(36 유지).
+32. **어휘 낚시(vocab) hard-delete(게임 재구성 Phase 1)** (`20260720000000`): game_type=2(vocab) game_plays[raw SQL]와 content_axis=matching(1) 퀴즈+자식(question/attempt/report)을 삭제하고 mcq 퀴즈·quiz game_play 는 보존한다(정수 리터럴이라 enum 비의존). 코드에서 `vocab:2` enum 키·surface·라우트가 함께 제거됐다(정수 2 gap 유지). **데이터 전용·`down`=IrreversibleMigration**이라 테이블 수 불변(36 유지). `schema.rb` version 은 `2026_07_20_000000`.
+33. **뒷이야기 이어쓰기(sequel, 게임 재구성 Phase 2)** (`20260720000001`–`000002`): 책 이후 이야기를 창작하는 소셜 게임(book 미러) + 학생 글 격려 AI 코멘트. `book_sequels`(user·book·classroom FK + body[NOT NULL] + votes_count + **`ai_comment` text nullable·`ai_status` integer default 0**[Report ai_status enum 미러], 인덱스 `[book_id, classroom_id]`·`votes_count`) → `book_sequel_votes`(book_sequel·user FK, **`(book_sequel_id, user_id)` UNIQUE**=뒷이야기당 1인 1공감, votes_count counter_cache). game_type enum 은 sequel(5) additive 추가라 마이그레이션 불요(정수 컬럼 그대로). **+2 테이블(36→38)**. `schema.rb` version 은 `2026_07_20_000002`.
 
 ### seeds/ — 시드 데이터
 
