@@ -177,6 +177,10 @@ end
 # 무키 배포도 시드만으로 접지 요약을 확보한다(AI 퀴즈 워밍 폴백·게임 가용성 게이트의 summary 소스).
 Rake::Task["books:seed_summaries"].invoke
 
+# 큐레이션 게임 문항(db/seeds/book_quizzes.yml)을 도서·요약 적재 뒤 CuratedQuiz 로 물질화한다(Stage 2).
+# 큐레이션 있는 책은 학생에게 그 검수 문항이 출제되고 제네릭 오프라인/미검증 AI로 덮이지 않는다.
+Rake::Task["books:seed_quizzes"].invoke
+
 # Sample published quiz so 독서게임(quiz) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke
 

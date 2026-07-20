@@ -75,4 +75,53 @@ class DashboardAccessTest < ActionDispatch::IntegrationTest
     assert_match "소량책1", response.body
     assert_no_match(/다른 책 보기/, response.body)
   end
+
+  # 우리 반 인기 도서도 후보가 한 화면(6권)보다 많으면 "다른 책 보기"로 다음 6권을 순환한다.
+  # 다른 섹션(추천·발견)도 같은 라벨을 쓰므로 단언은 `#popular-books` 안으로 한정한다.
+  test "student home shows a cycle button and rotates the popular books" do
+    school = School.create!(name: "인기초등학교")
+    classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
+    student = User.create!(school: school, classroom: classroom, name: "인기학생", password: "password")
+    peer = User.create!(school: school, classroom: classroom, name: "인기친구", password: "password")
+    books = Array.new(8) { |i| Book.create!(title: "인기책#{format('%02d', i + 1)}", category: :recommended) }
+    books.each do |book|
+      Report.create!(user: peer, classroom: classroom, book: book, book_title: book.title, reviewed: true)
+    end
+    # 첫 책만 독후감 2편 — 동점 타이브레이커와 무관하게 명확한 1위를 만든다.
+    Report.create!(user: student, classroom: classroom, book: books.first, book_title: books.first.title, reviewed: true)
+
+    login_as student
+    get root_path
+    assert_response :success
+    assert_select "#popular-books a", text: /다른 책 보기/
+
+    first_page = css_select("#popular-books a[href*='book_id=']").map { |node| node["href"] }
+    assert_equal 6, first_page.length # 8권 중 6권만 노출
+    # 인기 도서는 날짜 시드를 쓰지 않는다 — cycle 0 은 언제나 실제 1위부터 시작해야 한다.
+    assert_match "book_id=#{books.first.id}", first_page.first
+
+    get root_path(popular: 1)
+    assert_response :success
+    next_page = css_select("#popular-books a[href*='book_id=']").map { |node| node["href"] }
+    assert_equal 6, next_page.length
+    assert_not_equal first_page, next_page # 순환 시 묶음이 달라짐
+  end
+
+  # 인기 도서가 6권 이하면 순환할 것이 없어 "다른 책 보기"를 숨긴다.
+  test "student home hides the popular cycle button when popular books fit one screen" do
+    school = School.create!(name: "소량인기초등학교")
+    classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
+    student = User.create!(school: school, classroom: classroom, name: "소량인기학생", password: "password")
+    peer = User.create!(school: school, classroom: classroom, name: "소량인기친구", password: "password")
+    3.times do |i|
+      book = Book.create!(title: "소량인기책#{i + 1}", category: :recommended)
+      Report.create!(user: peer, classroom: classroom, book: book, book_title: book.title, reviewed: true)
+    end
+
+    login_as student
+    get root_path
+    assert_response :success
+    assert_select "#popular-books a[href*='book_id=']", count: 3
+    assert_select "#popular-books a", text: /다른 책 보기/, count: 0
+  end
 end

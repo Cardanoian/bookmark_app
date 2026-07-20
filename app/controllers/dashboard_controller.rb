@@ -14,7 +14,8 @@ class DashboardController < ApplicationController
       redirect_to admin_root_path
     else
       # 학생 홈(menu_refactor 심화 §2.D.3): 발견·진행 중 미션 요약. 전체 기록은 내 서재로 이동.
-      @home = StudentHomeQuery.new(Current.user, discovery_cycle: params[:discovery], recommend_cycle: params[:recommend])
+      @home = StudentHomeQuery.new(Current.user, discovery_cycle: params[:discovery], recommend_cycle: params[:recommend],
+                                                popular_cycle: params[:popular])
       render "dashboard/student"
     end
   end

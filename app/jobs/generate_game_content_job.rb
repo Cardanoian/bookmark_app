@@ -49,6 +49,7 @@ class GenerateGameContentJob < ApplicationJob
 
     band = band.to_sym
     axis = content_axis.to_sym
+    return if Games::CuratedContent.available?(book, axis) # 큐레이션 책은 스테일 워밍이 검수 문항을 ai 로 덮지 않게 조기 반환
     return if redundant?(book_id, band, axis) # dedup 가드
 
     quiz = claim_warming(book, band, axis)

@@ -62,6 +62,25 @@ namespace :books do
     data
   end
 
+  # ── 큐레이션 게임 문항 YAML 시드(db/seeds/book_quizzes.yml) 공용 유틸(Stage 2) ─────────────
+  # 이 YAML 은 Sonnet 팀이 도서 줄거리 기반으로 생성한 검수 문항(ISBN-13 → {title, mcq[5],
+  # hint_reveal[3]})을 담는다. books:seed_quizzes 가 CuratedQuiz 로 물질화한다(무네트워크·멱등).
+  # 테스트는 ENV["BOOK_QUIZZES_YML"] 로 경로를 주입한다.
+  def book_quizzes_yml_path
+    ENV["BOOK_QUIZZES_YML"].presence || Rails.root.join("db/seeds/book_quizzes.yml").to_s
+  end
+
+  # 파일이 없거나 비었거나 깨졌으면 {} 반환(크래시 0). 반환은 문자열 키 Hash(isbn => {title, mcq, hint_reveal}).
+  def read_book_quizzes
+    path = book_quizzes_yml_path
+    return {} unless File.exist?(path)
+
+    data = YAML.safe_load_file(path, aliases: false)
+    data.is_a?(Hash) ? data : {}
+  rescue Psych::Exception
+    {}
+  end
+
   desc "Seed the ISBN-bearing catalog from the full TSV (compatibility alias)"
   task seed: :environment do
     # ISBN 필수화 이후 제목-only 축소 카탈로그는 더 이상 Book으로 등록하지 않는다.
@@ -225,6 +244,57 @@ namespace :books do
     end
     puts "books:seed_summaries — applied=#{applied} skipped_present=#{skipped_present} " \
          "skipped_no_match=#{skipped_no_match} (of #{data.size} entries)."
+  end
+
+  # db/seeds/book_quizzes.yml(Sonnet 팀 검수 문항)을 CuratedQuiz 로 물질화한다(Stage 2). 축별
+  # (mcq/hint_reveal) payload 를 find_or_initialize_by 로 멱등 upsert 하고, 그 책에 큐레이션이
+  # **이번에 처음** 도입되면(had=false) 기존 origin=system Quiz(제네릭 offline·미검증 ai 캐시)를
+  # 은퇴시켜 다음 플레이가 큐레이션으로 물질화되게 한다(prod 최초 seed 는 플레이 전이라 no-op).
+  # **이미 큐레이션 도입된 책(had=true)은 재실행 시 은퇴 스킵**(멱등·attempt 보존). 무네트워크·멱등.
+  # YAML 없음/빈 경우 0건 처리(크래시 0), ISBN 미매칭 skip(카운트). `ENV["BOOK_QUIZZES_YML"]` 주입.
+  desc "Load curated book quizzes from db/seeds/book_quizzes.yml into curated_quizzes (offline, idempotent, no network)"
+  task seed_quizzes: :environment do
+    data = read_book_quizzes
+    if data.empty?
+      puts "books:seed_quizzes — nothing to load (#{book_quizzes_yml_path} missing or empty)."
+      next
+    end
+
+    applied = 0
+    skipped_no_match = 0
+    retired_books = 0
+    data.each do |raw_isbn, entry|
+      next unless entry.is_a?(Hash)
+
+      isbn = Books::Isbn.normalize(raw_isbn) || raw_isbn.to_s
+      book = Book.find_by(isbn: isbn)
+      if book.nil?
+        skipped_no_match += 1
+        next
+      end
+
+      had = CuratedQuiz.exists?(book_id: book.id) # 최초 도입 판정(축 upsert 전에 스냅샷)
+
+      %w[mcq hint_reveal].each do |axis|
+        payload = entry[axis]
+        next if payload.blank?
+
+        curated = CuratedQuiz.find_or_initialize_by(book_id: book.id, content_axis: axis)
+        curated.payload = payload
+        curated.save!
+        applied += 1
+      end
+
+      # 최초 도입이고 그 책에 origin=system Quiz 가 있으면 은퇴(제네릭 offline/미검증 ai 캐시 제거 →
+      # 다음 플레이가 큐레이션으로 물질화). 이미 큐레이션 도입된 책은 재실행 시 은퇴 스킵(멱등·attempt 보존).
+      if !had && Quiz.where(origin: :system, book_id: book.id).exists?
+        Quiz.where(origin: :system, book_id: book.id).destroy_all
+        retired_books += 1
+      end
+    end
+
+    puts "books:seed_quizzes — applied=#{applied} skipped_no_match=#{skipped_no_match} " \
+         "retired_books=#{retired_books} (of #{data.size} entries)."
   end
 
   # 카탈로그 도서(classic/recommended) 중 ① summary blank ② summary_checked_at nil ③ YAML 미포함 ISBN

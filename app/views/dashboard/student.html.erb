@@ -90,8 +90,15 @@
   <%# 4) 우리 반 인기 도서 %>
   <% popular = @home.popular_books.to_a %>
   <% if popular.any? %>
-    <section class="space-y-3">
-      <h2 class="text-lg font-bold text-ink">🔥 우리 반 인기 도서</h2>
+    <section id="popular-books" class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-bold text-ink">🔥 우리 반 인기 도서</h2>
+        <% if @home.more_popular_books? %>
+          <%= link_to "↻ 다른 책 보기",
+                root_path(popular: @home.next_popular_cycle, anchor: "popular-books"),
+                class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
+        <% end %>
+      </div>
       <%= render "dashboard/home_book_grid", books: popular %>
     </section>
   <% end %>

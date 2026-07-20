@@ -1,6 +1,6 @@
 # 「책갈피」 TODO
 
-> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-17
+> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-20
 > 참고 문서: [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) · [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) · [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md) · [`DESIGN.md`](DESIGN.md) · [`DESIGN_CHANGE_PLAN.md`](DESIGN_CHANGE_PLAN.md)
 
 ## 현재 상태 (baseline)

@@ -11,8 +11,9 @@ class QuizQuestion < ApplicationRecord
   enum :question_type, { mcq_single: 0, mcq_multi: 1, matching: 2, hint_reveal: 3 },
        default: :mcq_single
   # source: manual(교사 수기)·ai(워밍 게시)·offline(결정적 폴백)·contributed(학생 기여 승인, Phase 3 §4 additive).
+  # curated(시드 큐레이션 문항, Stage 2 additive — db/seeds/book_quizzes.yml 검수 문항의 물질화).
   # 정수 매핑 고정 — 재배열 금지(과거 기록·집계 안정성).
-  enum :source, { manual: 0, ai: 1, offline: 2, contributed: 3 }, default: :manual
+  enum :source, { manual: 0, ai: 1, offline: 2, contributed: 3, curated: 4 }, default: :manual
 
   # 첫 AR 검증(Phase 1 §1.2). question_type presence + 타입별 정답 유효성.
   validates :question_type, presence: true

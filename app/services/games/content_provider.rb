@@ -183,6 +183,7 @@ module Games
     #      비활성 대상이라 여기서 제외한다.
     # band 는 현재 학생 기준(game_band_for)으로 판정한다(QuizPolicy#within_band? 와 동일 함수).
     def game_content_available?(book:, content_axis:, user:)
+      return true if Games::CuratedContent.available?(book, content_axis) # 큐레이션 검수 문항이 있으면 항상 가용
       return true if ai_eligible?(book)
 
       band = ReadingDomain.game_band_for(user.classroom&.grade)
@@ -263,10 +264,12 @@ module Games
     #   유지하며(AI-적격·콘텐츠 있는 책은 즉시 서빙), 게이트는 컨트롤러/뷰 층에서 "아무 콘텐츠도 만들 수
     #   없는 책"만 막는다(§2b·§2c). 즉 여기 MISS 오프라인 생성은 게이트를 통과한 책에만 도달한다.
     def fetch_ready(book_id, band, content_axis)
-      candidates = Quiz.where(origin: :system, generation_status: :ready, reported: false,
-                              book_id: book_id, band: band, content_axis: content_axis)
-                       .order(content_version: :desc, id: :desc)
-                       .to_a
+      base = Quiz.where(origin: :system, generation_status: :ready, reported: false,
+                        book_id: book_id, band: band, content_axis: content_axis)
+      # 큐레이션(검수) 세트가 있으면 그 풀만 서빙해 제네릭 오프라인/미검증 ai 세트로 덮이지 않게 한다.
+      curated = base.joins(:quiz_questions).where(quiz_questions: { source: :curated })
+                    .distinct.order(content_version: :desc, id: :desc).to_a
+      candidates = curated.presence || base.order(content_version: :desc, id: :desc).to_a
       return nil if candidates.empty?
 
       @sampler.call(candidates)
@@ -323,11 +326,18 @@ module Games
         scope: :global, published: true, origin: :system, content_axis: content_axis,
         band: band, content_version: version, generation_status: :ready
       )
-      # MISS 즉시 반환 = 네트워크 0 결정적 오프라인(content_set 아님 — 아동 무대기 불변식).
-      self.class.build_questions(quiz, @draft_service.offline_set(book, band, content_axis), source: :offline)
+      # 큐레이션 우선: 검수 문항이 있는 책은 밴드별로 이 경로에서 지연 물질화된다(밴드 팬아웃 자동 처리).
+      # 없으면 MISS 즉시 반환 = 네트워크 0 결정적 오프라인(content_set 아님 — 아동 무대기 불변식).
+      curated = Games::CuratedContent.set_for(book, content_axis)
+      if curated
+        self.class.build_questions(quiz, curated, source: :curated)
+      else
+        self.class.build_questions(quiz, @draft_service.offline_set(book, band, content_axis), source: :offline)
+      end
     end
 
     def maybe_enqueue_warming(book, band, content_axis, user)
+      return if Games::CuratedContent.available?(book, content_axis) # 큐레이션 책은 AI 워밍 억제(미검증 ai 재유입 차단)
       return unless @client.configured? # 무키 → 오프라인만, 잡 없음
       return unless warming_permitted?(user.classroom, book.id, rate_limit_key: user.id)
 
@@ -358,13 +368,13 @@ module Games
       book.classic? || book.summary.present?
     end
 
-    # 그 (book, band, content_axis)에 offline 이 아닌 실질 콘텐츠(ai·contributed)로 물질화된
+    # 그 (book, band, content_axis)에 offline 이 아닌 실질 콘텐츠(ai·contributed·curated)로 물질화된
     # ready·미신고 system 세트가 하나라도 있는지. GenerateGameContentJob#ai_ready_exists? 미러.
     def substantive_content_exists?(book_id, band, content_axis)
       Quiz.where(origin: :system, generation_status: :ready, reported: false,
                  book_id: book_id, band: band, content_axis: content_axis)
           .joins(:quiz_questions)
-          .where(quiz_questions: { source: [ :ai, :contributed ] })
+          .where(quiz_questions: { source: [ :ai, :contributed, :curated ] })
           .exists?
     end
 
@@ -382,6 +392,7 @@ module Games
     #   이는 **정확성 회귀가 아니다**(잘못된 콘텐츠가 나가지 않음) — 축 단위 쿨다운(RETRY_COOLDOWN,
     #   1시간 1회)·예산/rate limit 이 상한을 걸어 **드물게 소량의 불필요한 워밍 잡**만 발생할 수 있다.
     def maybe_retry_warming(book, band, content_axis, user, cached)
+      return if Games::CuratedContent.available?(book, content_axis) # 큐레이션 책은 AI 워밍 억제(미검증 ai 재유입 차단)
       return if cached.created_at > RETRY_GRACE.ago
       return if ai_backed?(cached)
       return unless @client.configured?
