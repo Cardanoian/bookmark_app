@@ -124,6 +124,23 @@ class MonsterSeedIntegrityTest < ActiveSupport::TestCase
     assert_equal 3, MonsterAcquisition::STARTERS.size, "스타터는 설계상 3종(pup_1/cat_1/hedgehog_1)"
   end
 
+  # 게임 재구성 골든 불변식(Phase 5 §7·§8): 게이트 도입 후 정상 플레이로 신규 기록 가능한 게임은
+  # 4종(quiz·whoami·book·sequel)뿐이다. 어떤 라인의 distinct_games 조건도 4 를 넘으면 정상 플레이로
+  # 영구 도달 불가(dead line)이므로, unlock_condition·evolve_condition 양쪽을 전수 검사해 상한 4 를
+  # 강제한다. 활성 게임 종류 수가 바뀌면 이 상수와 로스터를 함께 재검토한다.
+  test "no distinct_games condition exceeds the active game-type count (4)" do
+    active_game_types = 4 # quiz·whoami·book·sequel (GamePlay#game_type 중 정상 플레이 기록 대상)
+    MonsterSpecies.find_each do |species|
+      [ species.unlock_condition, species.evolve_condition ].each do |condition|
+        target = condition&.dig("distinct_games")
+        next if target.nil?
+
+        assert_operator target, :<=, active_game_types,
+                        "#{species.key} distinct_games:#{target} 는 활성 게임 종류(#{active_game_types})를 넘어 도달 불가"
+      end
+    end
+  end
+
   # 각 스타터는 실제로 존재하고 서로 다른 속성이어야 한다(선택지 다양성).
   test "every STARTER key seeds a distinct-element stage 1 species" do
     elements = MonsterAcquisition::STARTERS.map do |key|

@@ -12,6 +12,11 @@ class ReadingStatsTest < ActiveSupport::TestCase
     Report.create!({ user: @user, classroom: @classroom, book_title: "책" }.merge(attrs))
   end
 
+  # 시드된 라인의 unlock_condition(라인 단위 자동 해금 규칙, stage 1 폼에만 있음)을 읽는다.
+  def unlock_condition_for(key)
+    MonsterSpecies.find_by!(key: key).unlock_condition
+  end
+
   test "points reads user.points" do
     assert_equal 320, @stats.points
   end
@@ -180,6 +185,47 @@ class ReadingStatsTest < ActiveSupport::TestCase
     stats = ReadingStats.new(@user)
     assert_equal 3, stats.distinct_games, "정상 플레이 3종(quiz·whoami·book)으로 distinct_games 는 3 이다"
     assert stats.meets?("distinct_games" => 3), "dex 21 의 distinct_games:3 요구가 3종 플레이만으로 충족 가능해야 한다"
+  end
+
+  # 게임 재구성 Phase 5 도달성 확정(§7·§8): 게이트 도입 후 로스터는 quiz·whoami(콘텐츠 게이트)·
+  # book·sequel(항상 가능) 4종이다. 활성 4종을 모두 플레이하면 distinct_games==4 이고, game_plays·
+  # distinct_games 게임 게이트 몬스터(dex7·dex21·dex23)가 정상 플레이로 전부 도달한다.
+  test "playing all four active game types reaches distinct_games==4 and satisfies dex7/dex21/dex23 game gates" do
+    seed_monster_species!
+    today = Time.current.in_time_zone("Asia/Seoul").to_date
+    3.times do |i|
+      book = Book.create!(title: "가용책#{i}", category: :recommended)
+      %i[quiz whoami book sequel].each do |game_type|
+        @user.game_plays.create!(game_type: game_type, book: book, played_on: today)
+      end
+    end
+    stats = ReadingStats.new(@user)
+    assert_equal 4, stats.distinct_games
+    assert_operator stats.game_plays, :>=, 12
+    assert stats.meets?(unlock_condition_for("dokkaebi_1")), "dex23(distinct_games:2) 도달"
+    assert stats.meets?(unlock_condition_for("robot_1")),    "dex7(game_plays:8·distinct_games:3) 도달"
+    assert stats.meets?(unlock_condition_for("unicorn_1")),  "dex21(game_plays:12·distinct_games:3) 도달"
+  end
+
+  # 무명 책만 읽는 학생 바닥(§7): quiz·whoami 는 콘텐츠 게이트로 막히고 항상 가능한 book·sequel 2종만
+  # 남는다. 이 바닥에서 dex23(distinct_games:2)은 항상 도달하지만, dex7·dex21(distinct_games:3)은
+  # 미도달이어야 한다. game_plays 를 12로 충분히 채워 **미도달의 원인이 오직 distinct_games 게이트**임을
+  # 고정한다(도달의 관문이 game_plays 총량이 아니라 서로 다른 게임 종류 수임을 확정).
+  test "unknown-book floor (book+sequel only) reaches dex23 but not dex7/dex21 (distinct_games is the gate)" do
+    seed_monster_species!
+    today = Time.current.in_time_zone("Asia/Seoul").to_date
+    6.times do |i|
+      book = Book.create!(title: "무명책#{i}", category: :recommended)
+      %i[book sequel].each do |game_type|
+        @user.game_plays.create!(game_type: game_type, book: book, played_on: today)
+      end
+    end
+    stats = ReadingStats.new(@user)
+    assert_equal 2, stats.distinct_games
+    assert_operator stats.game_plays, :>=, 12 # game_plays 는 충분 — 미도달은 오직 distinct_games 때문
+    assert stats.meets?(unlock_condition_for("dokkaebi_1")),    "dex23(distinct_games:2)은 바닥에서 항상 도달"
+    assert_not stats.meets?(unlock_condition_for("robot_1")),    "dex7 은 distinct_games:3 미충족으로 미도달"
+    assert_not stats.meets?(unlock_condition_for("unicorn_1")),  "dex21 은 distinct_games:3 미충족으로 미도달"
   end
 
   test "revisions counts reviewed reports with positive improvement" do
