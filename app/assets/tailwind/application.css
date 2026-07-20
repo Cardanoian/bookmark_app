@@ -85,6 +85,9 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    /* 세로 스크롤바 유무로 페이지가 좌우로 흔들리는 것 방지 — 스크롤바 거터를 항상 예약해
+       콘텐츠 중앙정렬(mx-auto)이 모든 화면에서 동일 위치를 유지한다. */
+    scrollbar-gutter: stable;
   }
 
   body {
