@@ -40,19 +40,34 @@ class BooksController < ApplicationController
 
   # 로컬 카탈로그 자동완성(외부 호출 0). 검색 캐시(searched)는 제외해 카탈로그 도서만
   # 제안한다 — 독후감·게임 폼의 도서 연결용 공용 자동완성 계약(id 포함).
+  #
+  # 시리즈 접기(book_search_series.md): 같은 제목·저자의 별권을 대표 1행으로 접고 series_count 를
+  # 실어, 학습만화 시리즈물(설민석의 삼국지 26권 등)이 드롭다운을 통째로 점유하지 않게 한다.
+  # series_count > 1 이면 프런트가 배지·권 선택 2단계(#volumes)로 분기하고, 단권(=1)은 즉시 선택된다.
   def autocomplete
     authorize :book, :search?
     term = params[:q].to_s.strip
     return render(json: []) if term.blank?
 
-    pattern = "%#{Book.sanitize_sql_like(term)}%"
-    books = Book.where.not(category: :searched)
-                .where("title LIKE :q OR author LIKE :q", q: pattern)
-                .order(:title)
-                .limit(20)
-    render json: books.map { |book|
-      { id: book.id, title: book.title.to_s, author: book.author.to_s, cover_url: book.cover_url.to_s,
-        genre: book.genre.to_s, classic: book.classic? }
+    render json: Book.autocomplete_grouped(term).map { |book|
+      { id: book.id, title: book.title.to_s, author: book.author.to_s, publisher: book.publisher.to_s,
+        cover_url: book.cover_url.to_s, genre: book.genre.to_s, classic: book.classic?,
+        volume: book.volume, series_count: book["series_count"].to_i }
+    }
+  end
+
+  # 시리즈 권 목록(로컬 카탈로그 전용, 외부 호출 0). 자동완성 드릴다운(시리즈→권 선택 2단계) 전용
+  # 엔드포인트 — 첫 자동완성 응답의 title·author 를 그대로 받아 그 시리즈의 전 권을 권차 순으로
+  # 반환한다. 26권 페이로드를 첫 응답에 싣지 않고 시리즈를 고른 순간에만 온디맨드로 조회한다.
+  def volumes
+    authorize :book, :search?
+    title = params[:title].to_s.strip
+    return render(json: []) if title.blank?
+
+    render json: Book.series_volumes(title, params[:author]).map { |book|
+      { id: book.id, title: book.title.to_s, author: book.author.to_s, publisher: book.publisher.to_s,
+        cover_url: book.cover_url.to_s, genre: book.genre.to_s, classic: book.classic?,
+        volume: book.volume }
     }
   end
 

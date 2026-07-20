@@ -44,10 +44,12 @@ Rails.application.routes.draw do
   # 도서 검색·카탈로그 (P5.1/P5.2)
   #   search    = 네이버+로컬 폴백 검색(무키 로컬 LIKE), 결과를 searched 로 캐시. 독후감 자동완성용(id 포함).
   #   autocomplete = 로컬 카탈로그(비-searched) 전용 자동완성(외부호출 0). 퀴즈·게임 도서 선택용.
+  #   volumes      = 시리즈 접기 드릴다운(시리즈→권 선택 2단계) 전용 권 목록(로컬, 외부호출 0).
   resources :books, only: [ :index, :show ] do
     collection do
       get :search
       get :autocomplete
+      get :volumes
       get :remote_search
     end
   end

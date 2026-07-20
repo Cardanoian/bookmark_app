@@ -14,6 +14,16 @@ class BooksAutocompleteTest < ActionDispatch::IntegrationTest
                                 cover_url: "http://img/prince", category: :recommended, genre: "문학")
     @by_author = Book.create!(title: "무제", author: "홍길동", category: :classic)
     @searched = Book.create!(title: "검색캐시 어린왕자", author: "익명", category: :searched)
+
+    # 시리즈 별권 3권(같은 제목·저자, ISBN 은 자동 부여, volume 만 다름) — 접기·드릴다운 검증용.
+    # 일부러 권차 순서를 뒤섞어 생성해 대표행·권 목록 정렬(권차 오름차순)을 검증한다.
+    @series_title = "삼국지 대모험"
+    @series_author = "스튜디오 담"
+    @vol2 = Book.create!(title: @series_title, author: @series_author, category: :recommended, volume: 2)
+    @vol1 = Book.create!(title: @series_title, author: @series_author, category: :recommended, volume: 1)
+    @vol3 = Book.create!(title: @series_title, author: @series_author, category: :recommended, volume: 3)
+    # 같은 제목·저자의 검색 캐시(searched) 그림자 — 접기·권 목록 모두에서 제외돼야 한다.
+    @series_searched = Book.create!(title: @series_title, author: @series_author, category: :searched)
   end
 
   test "autocomplete requires login" do
@@ -38,7 +48,10 @@ class BooksAutocompleteTest < ActionDispatch::IntegrationTest
     # 자동완성 드롭다운 배지(고전 여부·장르)용 필드도 계약에 포함한다.
     assert_equal "문학", item["genre"]
     assert_equal false, item["classic"]
-    assert_equal %w[id title author cover_url genre classic].sort, item.keys.sort
+    # 시리즈 접기 계약: 단권은 series_count 1·volume nil, publisher/volume/series_count 가 추가됐다.
+    assert_equal 1, item["series_count"]
+    assert_nil item["volume"]
+    assert_equal %w[id title author publisher cover_url genre classic volume series_count].sort, item.keys.sort
   end
 
   test "autocomplete marks classic books so the dropdown can badge them" do
@@ -76,5 +89,46 @@ class BooksAutocompleteTest < ActionDispatch::IntegrationTest
     match = response.parsed_body.find { |row| row["title"] == "권장 어린왕자" }
     assert match, "로컬 폴백이 제목 일치 도서를 반환해야 한다"
     assert_equal @recommended.id, match["id"], "search 응답도 로컬 Book PK(id)를 포함해야 한다"
+  end
+
+  # ── 시리즈 접기(book_search_series.md) ──────────────────────────────────────
+  test "autocomplete folds a series into one representative row with series_count" do
+    login_as(@student)
+    get autocomplete_books_path, params: { q: "삼국지" }, as: :json
+
+    assert_response :success
+    series_rows = response.parsed_body.select { |row| row["title"] == @series_title }
+    assert_equal 1, series_rows.size, "같은 제목·저자의 별권 3권은 대표 1행으로 접혀야 한다"
+
+    row = series_rows.first
+    assert_equal 3, row["series_count"], "series_count 는 검색 캐시를 뺀 실제 권수(3)여야 한다"
+    assert_equal 1, row["volume"], "대표행은 권차가 가장 낮은 권(1권)이어야 한다"
+    assert_equal @vol1.id, row["id"], "대표행 id 는 1권의 id 여야 한다"
+    assert_equal @series_author, row["author"]
+  end
+
+  test "volumes endpoint returns every volume of a series in volume order, excluding searched" do
+    login_as(@student)
+    get volumes_books_path, params: { title: @series_title, author: @series_author }, as: :json
+
+    assert_response :success
+    assert_equal [ 1, 2, 3 ], response.parsed_body.map { |row| row["volume"] },
+                 "권 목록은 권차 오름차순이어야 한다(생성 순서와 무관)"
+    assert_equal [ @vol1.id, @vol2.id, @vol3.id ], response.parsed_body.map { |row| row["id"] }
+    assert_not_includes response.parsed_body.map { |row| row["id"] }, @series_searched.id,
+                        "검색 캐시(searched) 그림자는 권 목록에서 제외돼야 한다"
+  end
+
+  test "volumes endpoint returns empty for a blank title" do
+    login_as(@student)
+    get volumes_books_path, params: { title: "  " }, as: :json
+
+    assert_response :success
+    assert_equal [], response.parsed_body
+  end
+
+  test "volumes endpoint requires login" do
+    get volumes_books_path, params: { title: @series_title, author: @series_author }
+    assert_response :redirect
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_20_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_000005) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -147,6 +147,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_20_000004) do
     t.datetime "summary_checked_at"
     t.string "title"
     t.datetime "updated_at", null: false
+    t.integer "volume"
     t.index ["isbn"], name: "index_books_on_isbn", unique: true
     t.index ["title"], name: "index_books_on_title"
     t.check_constraint "length(isbn) = 13 AND isbn NOT GLOB '*[^0-9]*'", name: "chk_books_isbn13_format"

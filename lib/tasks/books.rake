@@ -111,6 +111,10 @@ namespace :books do
         genre = nil if genre == "미분류" # 미분류는 무장르로 남겨 BookEnrichmentJob 이 나중에 채우게 둔다
         category = row["project_category"].to_s.strip
         category = %w[recommended classic].include?(category) ? category : "recommended"
+        # 시리즈 별권 구분용 권차(book_search_series.md). TSV 값은 순수 숫자거나 공란이다.
+        # 숫자면 정수로, 공란·비숫자면 nil(단권·권차 없음)로 둔다.
+        raw_volume = row["volume"].to_s.strip
+        volume = raw_volume.match?(/\A\d+\z/) ? raw_volume.to_i : nil
 
         # 같은 isbn 의 선존 행(학생 검색이 만든 :searched 캐시 포함)을 제자리에서 큐레이션으로
         # 승격한다. reports.book_id 링크를 보존하며 ISBN 없는 원본 행은 위에서 등록 제외한다.
@@ -128,6 +132,9 @@ namespace :books do
         book.grade_band = grade_band if grade_band
         book.genre = genre if genre
         book.category = category
+        # volume 은 TSV 가 권차의 단일 진실이라 값 유무와 무관하게 대입한다(공란=nil=단권).
+        # 재실행 시 같은 값으로 수렴해 멱등하고, 시리즈 별권을 화면에서 구분할 근거가 된다.
+        book.volume = volume
         book.save!
 
         processed += 1
@@ -138,7 +145,7 @@ namespace :books do
     puts "Loaded #{processed} rows from #{path}. recommended=#{Book.recommended.count} classic=#{Book.classic.count} total=#{Book.count}"
     puts "Skipped #{skipped_missing_isbn} rows without ISBN."
     puts "Skipped #{skipped_invalid_isbn} rows with invalid ISBN."
-    puts "Dropped columns (no matching books schema field: rank/loans/kdc/monster_element/topic_tags 등) were not saved."
+    puts "Dropped columns (no matching books schema field: rank/loans/kdc/monster_element/topic_tags 등) were not saved (volume 은 이제 적재됨)."
   end
 
   desc "Enrich catalog book covers/publishers by ISBN via Naver, falling back to data4library covers (manual, networked; no-op without keys)"

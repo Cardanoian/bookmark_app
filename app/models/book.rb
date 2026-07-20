@@ -19,6 +19,42 @@ class Book < ApplicationRecord
   validates :isbn, presence: true, uniqueness: true
   validate :isbn_must_be_valid
 
+  # 자동완성 그룹핑(book_search_series.md). 같은 제목·저자의 시리즈 별권(설민석의 삼국지 26권 등)을
+  # 대표 1행으로 접고 권수(series_count)를 함께 낸다. 대표행은 권차 오름차순(권차 없는 행은 후순위)
+  # 후 id 순의 첫 행. 검색 캐시(searched)는 제외. 윈도우 함수(SQLite 3.25+)로 그룹 대표·권수를
+  # 한 번에 얻는다(8,650행 LIKE 풀스캔이라 인덱스 없이도 수용 가능). find_by_sql 이 반환하는 Book
+  # 에 series_count 가 가상 속성으로 실려 온다(book["series_count"]).
+  def self.autocomplete_grouped(term, limit: 20)
+    pattern = "%#{sanitize_sql_like(term)}%"
+    sql = <<~SQL
+      SELECT id, title, author, publisher, cover_url, genre, category, volume, series_count
+      FROM (
+        SELECT books.*,
+               COUNT(*) OVER (PARTITION BY title, author) AS series_count,
+               ROW_NUMBER() OVER (
+                 PARTITION BY title, author
+                 ORDER BY (volume IS NULL), volume, id
+               ) AS series_rank
+        FROM books
+        WHERE category != ?
+          AND (title LIKE ? OR author LIKE ?)
+      ) grouped
+      WHERE series_rank = 1
+      ORDER BY title, id
+      LIMIT ?
+    SQL
+    find_by_sql([ sql, categories[:searched], pattern, pattern, limit ])
+  end
+
+  # 한 시리즈(제목+저자)의 전 권을 권차 순으로 반환한다(자동완성 드릴다운 = 시리즈→권 선택 2단계용).
+  # 첫 자동완성 응답의 title·author 를 그대로 받아 정확 일치로 조회한다(author 공란=NULL 매칭).
+  # 검색 캐시(searched)는 제외해 카탈로그 도서만 노출한다.
+  def self.series_volumes(title, author)
+    where.not(category: :searched)
+         .where(title: title, author: author.presence)
+         .order(Arel.sql("(volume IS NULL), volume, id"))
+  end
+
   private
 
   def normalize_isbn

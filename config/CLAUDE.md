@@ -8,7 +8,7 @@
 
 - **학생 영역(최상위)**
   - `reports` — 독후감 CRUD + `revise`(고쳐쓰기)·`share`(공유) member 액션, `ocr`(사진 손글씨 인식) singular 리소스.
-  - `books`(index/show + `search`·`autocomplete`·`remote_search` collection) — 도서 검색·카탈로그. `search`는 네이버+로컬폴백(응답에 로컬 `id` 포함), `autocomplete`는 로컬 카탈로그(비-searched)만 조회하는 도서 자동완성(외부호출 0, 퀴즈·게임 도서 선택용), **`remote_search`(`remote_search_books_path`)는 독후감 새 글 "🔍 검색" 버튼 전용 네이버 도서검색**(서버가 `book_meta:<isbn>` 캐시 적재→제출 시 `SearchService#register` 재사용, 무키/실패 시 [](로컬 폴백 없음 — 타이핑 autocomplete 와 분리)).
+  - `books`(index/show + `search`·`autocomplete`·`volumes`·`remote_search` collection) — 도서 검색·카탈로그. `search`는 네이버+로컬폴백(응답에 로컬 `id` 포함), `autocomplete`는 로컬 카탈로그(비-searched)만 조회하는 도서 자동완성(시리즈 별권을 대표 1행으로 접어 `series_count` 포함, 외부호출 0, 퀴즈·게임 도서 선택용), **`volumes`(`volumes_books_path`)는 시리즈 접기 드릴다운 2단계 전용**(자동완성 대표행의 title·author로 그 시리즈 전 권을 권차 순 조회, 로컬 전용·외부호출 0, 인가는 `search?` 재사용), **`remote_search`(`remote_search_books_path`)는 독후감 새 글 "🔍 검색" 버튼 전용 네이버 도서검색**(서버가 `book_meta:<isbn>` 캐시 적재→제출 시 `SearchService#register` 재사용, 무키/실패 시 [](로컬 폴백 없음 — 타이핑 autocomplete 와 분리)).
   - `learn`(index + `advance`) — 5단계 단계학습 위저드.
   - `quiz_contributions`(new/create) — **학생 출제 기여(전국 공유 문제은행 UGC, Phase 3 §4.1)**. 독서활동 화면에서 그 책의 문제(객관식·나는 누구게?)를 낸다 → pending 저장 → 담임 검토 큐.
   - **`library`**(singular, `libraries#show`) — 내 서재(책별 활동 포트폴리오) · **`reading_activity`**(singular, `reading_activities#show` + 중첩 `get :nearby_libraries`) — 독서활동 허브(책 선택→독후감/게임). **`nearby_libraries`(`nearby_libraries_reading_activity_path(book_id:)`, 단수 헬퍼라 positional 인자 금지)**는 활동 화면 아래 인근 도서관 대출 가능 섹션의 Turbo Frame lazy-load 전용 액션(정보나루 `libSrchByBook`+`bookExist`, 동일출처 프레임이라 CSP 변경 불필요). menu_refactor 심화 PR5 학생 상위 메뉴(홈·내 서재·독서활동·도감·랭킹) 정보구조.

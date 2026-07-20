@@ -171,4 +171,27 @@ class BooksSeedFullTest < ActiveSupport::TestCase
   ensure
     file&.close!
   end
+
+  test "volume 열을 정수로 적재하고(공란→nil) 재실행해도 멱등하다(시리즈 별권 구분)" do
+    headers = HEADERS + %w[volume]
+    isbn_v1 = TestBookIsbn.next
+    isbn_single = TestBookIsbn.next
+    file = Tempfile.new([ "books_volume", ".tsv" ])
+    CSV.open(file.path, "w", col_sep: "\t") do |csv|
+      csv << headers
+      csv << [ "시리즈책", "작가", "", isbn_v1, "recommended", "", "", "3" ]
+      csv << [ "단권책", "작가", "", isbn_single, "recommended", "", "", "" ]
+    end
+
+    seed_full!(file.path)
+    assert_equal 3, Book.find_by(isbn: isbn_v1).volume, "숫자 volume 은 정수로 적재된다"
+    assert_nil Book.find_by(isbn: isbn_single).volume, "공란 volume 은 nil(단권)로 남는다"
+
+    # 재실행(멱등): 값이 그대로 수렴하고 행 수도 늘지 않는다.
+    seed_full!(file.path)
+    assert_equal 3, Book.find_by(isbn: isbn_v1).volume
+    assert_equal 1, Book.where(isbn: isbn_v1).count
+  ensure
+    file&.close!
+  end
 end

@@ -41,7 +41,8 @@ class Books::CatalogEnricherTest < ActiveSupport::TestCase
     assert_equal 1, updated
     book.reload
     assert_equal "9791234567896", book.isbn
-    assert_equal "http://img/cover", book.cover_url
+    # 네이버 원본은 http:// 지만 Book#upgrade_cover_url_to_https 콜백이 저장 시 https:// 로 승격한다.
+    assert_equal "https://img/cover", book.cover_url
     assert_equal "테스트출판", book.publisher
     assert_equal 0, Book.searched.count, "enrich 는 별도 searched 행을 만들지 않는다"
   end
@@ -88,7 +89,8 @@ class Books::CatalogEnricherTest < ActiveSupport::TestCase
     updated = Books::CatalogEnricher.new(service: service, throttle: 0).enrich_all
 
     assert_equal 1, updated
-    assert_equal "http://img/exact", book.reload.cover_url
+    # 네이버 원본 http:// → 콜백이 https:// 로 승격(혼합 콘텐츠 가드).
+    assert_equal "https://img/exact", book.reload.cover_url
     assert_equal "9791234567896", book.isbn, "저장 시 하이픈 없는 ISBN-13으로 정규화한다"
   end
 
@@ -126,7 +128,7 @@ class Books::CatalogEnricherTest < ActiveSupport::TestCase
     updated = Books::CatalogEnricher.new(service: service, library: library, throttle: 0).enrich_all
 
     assert_equal 1, updated
-    assert_equal "http://img/cover", book.reload.cover_url, "네이버 표지가 우선 적용된다"
+    assert_equal "https://img/cover", book.reload.cover_url, "네이버 표지가 우선 적용된다(콜백 https 승격)"
   end
 
   test "enriches via data4library even when Naver is unavailable (relaxed gate)" do
