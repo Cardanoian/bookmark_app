@@ -188,7 +188,8 @@ class RankingBoardTest < ActiveSupport::TestCase
     scaled = count_queries { RankingBoard.new(@s1).nation_ranking }
 
     assert_equal baseline, scaled, "학교 수가 늘어도 쿼리 수가 증가하면 안 된다(N+1 회귀)"
-    assert_operator scaled, :<=, 2, "nation_ranking 은 상수 쿼리(로드 + 그룹 SUM)여야 한다"
+    # 상수 쿼리: 시즌 플래그 조회(AppSetting, 인스턴스당 1회 메모이즈) + 그룹 SUM + 필요한 학교 로드.
+    assert_operator scaled, :<=, 3, "nation_ranking 은 상수 쿼리(플래그 + 그룹 SUM + 로드)여야 한다"
   end
 
   test "school_ranking query count does not grow with the number of classrooms" do
@@ -223,7 +224,87 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_operator scaled, :<=, 4, "hall_of_fame 은 상수 쿼리(학생 로드 + 그룹집계 2회)여야 한다"
   end
 
+  # --- 랭킹 시즌제(account_linking_seasons_plan §Phase 1) ---
+
+  # 플래그 on 이면 정렬 기준이 평생 experience 가 아니라 현재 학년도 시즌 경험치가 된다.
+  # 평생 경험치가 최고인 최고참이 시즌 0 이면 상위를 독점하지 못하고, 신규는 0 에서 출발한다.
+  test "class ranking sorts by current-season experience when the flag is on" do
+    enable_seasons!
+    # @s3 는 평생 경험치 최저(100)지만 이번 시즌에 가장 많이 적립한다.
+    @s3.award_points(500)
+    @s1.award_points(10)
+    # @s2 는 시즌 미적립(0) — LEFT JOIN 으로 0 에서 출발.
+
+    ranking = RankingBoard.new(@s1).class_ranking
+
+    assert_equal [ @s3, @s1, @s2 ], ranking, "시즌 경험치 순(@s3 500 > @s1 10 > @s2 0)"
+    assert_equal 500, ranking.first[:season_experience].to_i
+    assert_equal 0, ranking.last[:season_experience].to_i, "신규(시즌 미적립) 학생은 0 출발"
+  end
+
+  # 시즌 행이 있어도 플래그 off(기본)면 평생 experience 폴백을 유지한다(전환 스위치).
+  test "class ranking falls back to lifetime experience when the flag is off" do
+    SeasonScore.create!(user: @s3, academic_year: Classroom.current_academic_year, experience_earned: 9_999)
+
+    assert_equal [ @s1, @s2, @s3 ], RankingBoard.new(@s1).class_ranking,
+                 "플래그 off 면 시즌 행을 무시하고 평생 경험치 순(300>200>100)"
+  end
+
+  test "grade ranking ranks same-grade students across the school by season experience" do
+    enable_seasons!
+    @s4.award_points(300) # @class2, 같은 학교·같은 학년(5)
+    @s2.award_points(100) # @class1
+    @sb.award_points(999) # 타 학교 — 제외 대상
+
+    ranking = RankingBoard.new(@s1).grade_ranking
+
+    assert_includes ranking, @s4
+    assert_includes ranking, @s2
+    assert_not_includes ranking, @sb, "타 학교 학생은 학년 순위에서 제외"
+    assert_equal @s4, ranking.first, "시즌 경험치 최고(@s4 300)"
+    assert_equal 300, ranking.first[:season_experience].to_i
+  end
+
+  test "grade ranking falls back to lifetime experience when the flag is off" do
+    # 플래그 미설정(기본 off) — 평생 experience 순(같은 학교 학년5 전원).
+    ranking = RankingBoard.new(@s1).grade_ranking
+
+    assert_equal [ @s4, @s1, @s2, @s3 ], ranking, "평생 경험치 순(@s4 500 > @s1 300 > @s2 200 > @s3 100)"
+  end
+
+  test "school ranking aggregates season experience when the flag is on" do
+    enable_seasons!
+    @s1.award_points(40) # @class1
+    @s2.award_points(20) # @class1
+    @s4.award_points(70) # @class2
+
+    ranking = RankingBoard.new(@s1).school_ranking
+
+    class2_entry = ranking.find { |entry| entry.subject == @class2 }
+    class1_entry = ranking.find { |entry| entry.subject == @class1 }
+    assert_equal 70, class2_entry.score, "@class2 시즌 합(@s4 70)"
+    assert_equal 60, class1_entry.score, "@class1 시즌 합(@s1 40 + @s2 20)"
+    assert_equal @class2, ranking.first.subject, "시즌 합 최고 학급이 1위"
+  end
+
+  test "nation ranking aggregates season experience when the flag is on" do
+    enable_seasons!
+    @s1.award_points(40) # @school
+    @sb.award_points(90) # @school_b
+
+    ranking = RankingBoard.new(@s1).nation_ranking
+    totals = ranking.to_h { |entry| [ entry.subject, entry.score ] }
+
+    assert_equal 40, totals[@school]
+    assert_equal 90, totals[@school_b]
+    assert_equal @school_b, ranking.first.subject, "시즌 합 최고 학교가 1위"
+  end
+
   private
+
+  def enable_seasons!
+    AppSetting.set("feature_flags", { "ranking_seasons" => true })
+  end
 
   # 순수 SQL 쿼리 수를 센다(스키마·트랜잭션·캐시 쿼리 제외). N+1 회귀 감지용.
   def count_queries

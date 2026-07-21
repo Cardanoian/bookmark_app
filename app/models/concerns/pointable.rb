@@ -15,6 +15,7 @@ module Pointable
     return points if amount <= 0
 
     self.class.update_counters(id, points: amount, experience: amount)
+    increment_season_score!(experience: amount, points: amount)
     reload
     Rails.logger.debug { "award_points(#{amount}) user=#{id} reason=#{reason.inspect}" } if reason
     refresh_badges!
@@ -42,9 +43,11 @@ module Pointable
     amount = amount.to_i
     return false if amount <= 0
 
-    self.class.where(id: id).update_all(
+    affected = self.class.where(id: id).update_all(
       "points = MAX(points - #{amount}, 0), experience = MAX(experience - #{amount}, 0)"
     ).positive?
+    decrement_season_score!(amount) if affected
+    affected
   end
 
   # 조건 없는 포인트+경험치 원자 적립 프리미티브(트랜잭션 안전). spend_points! 의 대칭.
@@ -57,6 +60,7 @@ module Pointable
     return false if amount <= 0
 
     self.class.update_counters(id, points: amount, experience: amount)
+    increment_season_score!(experience: amount, points: amount)
     true
   end
 
@@ -74,11 +78,15 @@ module Pointable
   def broadcast_ranking_change
     return unless respond_to?(:classroom_id) && classroom_id && respond_to?(:student?) && student?
 
+    season_experience = SeasonScore
+      .where(user_id: id, academic_year: Classroom.current_academic_year)
+      .pick(:experience_earned) || 0
+
     broadcast_replace_to(
       [ classroom, :ranking ],
       target: ActionView::RecordIdentifier.dom_id(self, :ranking),
       partial: "rankings/ranking_row",
-      locals: { user: self, rank: nil }
+      locals: { user: self, rank: nil, season_experience: season_experience }
     )
   end
 
@@ -86,7 +94,48 @@ module Pointable
 
   # 가져오기·시드처럼 생성 시점부터 포인트를 가진 계정도 같은 양의 경험치로 시작한다.
   # 이후 모든 증감은 위의 원자 프리미티브를 거치므로 생성 시에만 보정하면 된다.
+  # 시즌 점수는 여기서 시딩하지 않는다 — 임포트 초기 experience 는 랭킹상 시즌 0 에서 출발한다.
   def initialize_experience_from_points
     self.experience = points.to_i if experience.to_i.zero? && points.to_i.positive?
+  end
+
+  # 현재 학년도 시즌 점수를 원자 증가한다(랭킹 분리 축적, account_linking_seasons_plan §Phase 0).
+  # 학생·학급 소속일 때만 축적하며(비학생·학급없음은 시즌 무의미), raw SQLite upsert
+  # (ON CONFLICT(academic_year, user_id) DO UPDATE) 로 lost update 없이 원자 증가한다.
+  # update_counters 직후 트랜잭션 안에서 불려도 안전하도록 raw SQL 만 쓰고 reload·방송은 하지 않는다.
+  # 스냅샷 3컬럼(school_id/classroom_id/grade)은 최초 INSERT 시에만 채운다(ON CONFLICT 은 미갱신).
+  def increment_season_score!(experience:, points:)
+    return unless respond_to?(:student?) && student? && classroom_id
+
+    conn = SeasonScore.connection
+    now = conn.quoted_date(Time.current)
+    snapshot_grade = classroom&.grade
+    sql = <<~SQL.squish
+      INSERT INTO season_scores
+        (academic_year, user_id, experience_earned, points_earned, school_id, classroom_id, grade, created_at, updated_at)
+      VALUES
+        (#{Classroom.current_academic_year.to_i}, #{id.to_i}, #{experience.to_i}, #{points.to_i},
+         #{conn.quote(school_id)}, #{conn.quote(classroom_id)}, #{conn.quote(snapshot_grade)},
+         #{conn.quote(now)}, #{conn.quote(now)})
+      ON CONFLICT(academic_year, user_id) DO UPDATE SET
+        experience_earned = experience_earned + excluded.experience_earned,
+        points_earned = points_earned + excluded.points_earned,
+        updated_at = excluded.updated_at
+    SQL
+    conn.exec_insert(sql, "SeasonScore Upsert")
+  end
+
+  # 지급 정정(revoke_points!)에서 현재 학년도 시즌 점수를 0 밑으로 내려가지 않게 하향한다.
+  # 현재 학년도 행이 있을 때만 갱신(update_all no-op 로 자연히 처리). spend_points! 는 호출하지 않는다.
+  def decrement_season_score!(amount)
+    return unless respond_to?(:student?) && student? && classroom_id
+
+    amount = amount.to_i
+    SeasonScore
+      .where(user_id: id, academic_year: Classroom.current_academic_year)
+      .update_all([
+        "experience_earned = MAX(experience_earned - ?, 0), points_earned = MAX(points_earned - ?, 0)",
+        amount, amount
+      ])
   end
 end

@@ -1,6 +1,6 @@
 <% content_for :title, "랭킹 · 책갈피" %>
 
-<% tabs = { "class" => "우리 반", "school" => "우리 학교", "nation" => "전국", "challenge" => "챌린지", "hall" => "명예의 전당" } %>
+<% tabs = { "class" => "우리 반", "grade" => "학년", "school" => "우리 학교", "nation" => "전국", "challenge" => "챌린지", "hall" => "명예의 전당" } %>
 
 <div class="page-shell page-shell-wide">
   <%= render "shared/student_nav", active: :rankings %>
@@ -27,6 +27,18 @@
       </div>
     <% else %>
       <%= render "shared/empty_state", message: "아직 학급 랭킹이 없어요.", icon: "🏫" %>
+    <% end %>
+
+  <% when "grade" %>
+    <%# 학년 개인 순위(뷰어 학교 + 같은 학년, 현재 소속). 포디움·실시간 방송 없이 행만 렌더. %>
+    <% if @ranking.any? %>
+      <div class="space-y-2">
+        <% @ranking.each_with_index do |student, index| %>
+          <%= render "rankings/ranking_row", user: student, rank: index + 1 %>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "아직 학년 랭킹이 없어요.", icon: "🎓" %>
     <% end %>
 
   <% when "school", "nation" %>

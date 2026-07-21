@@ -115,7 +115,81 @@ class PointableTest < ActiveSupport::TestCase
     assert_equal 10, @user.experience
   end
 
+  # --- 랭킹 시즌제 훅(account_linking_seasons_plan §Phase 0) ---
+
+  test "award_points accumulates the current-year season score" do
+    @user.award_points(30)
+
+    season = current_season(@user)
+    assert_equal 30, season.experience_earned
+    assert_equal 30, season.points_earned
+
+    @user.award_points(20)
+    assert_equal 50, season.reload.experience_earned, "같은 학년도 행에 원자 누적"
+    assert_equal 50, season.points_earned
+  end
+
+  test "award_points snapshots school/classroom/grade on the first accrual" do
+    @user.award_points(10)
+
+    season = current_season(@user)
+    assert_equal @school.id, season.school_id
+    assert_equal @classroom.id, season.classroom_id
+    assert_equal @classroom.grade, season.grade
+  end
+
+  test "credit_points! accumulates the current-year season score" do
+    @user.credit_points!(40)
+
+    season = current_season(@user)
+    assert_equal 40, season.experience_earned
+    assert_equal 40, season.points_earned
+  end
+
+  test "spend_points! leaves the season score unchanged" do
+    @user.award_points(50)
+    season = current_season(@user)
+
+    assert @user.spend_points!(30)
+    assert_equal 50, season.reload.experience_earned, "포인트 소비는 시즌 경험치를 줄이지 않는다"
+    assert_equal 50, season.points_earned
+  end
+
+  test "revoke_points! lowers the season score with a floor of zero" do
+    @user.award_points(20)
+    season = current_season(@user)
+
+    @user.revoke_points!(50)
+    assert_equal 0, season.reload.experience_earned, "정정 회수는 0 밑으로 내려가지 않는다"
+    assert_equal 0, season.points_earned
+  end
+
+  test "a non-student does not accumulate a season score" do
+    teacher = User.create!(school: @school, classroom: @classroom, name: "시즌교사", role: :teacher, password: "password")
+    teacher.award_points(30)
+
+    assert_nil current_season(teacher)
+  end
+
+  test "a student without a classroom does not accumulate a season score" do
+    loner = User.create!(school: @school, name: "무학급학생", password: "password")
+    loner.award_points(30)
+
+    assert_nil current_season(loner)
+  end
+
+  test "an initial point balance is not seeded into the season score" do
+    user = User.create!(school: @school, classroom: @classroom, name: "초기시즌학생", password: "password", points: 120)
+
+    assert_equal 120, user.experience, "평생 경험치는 포인트로 시딩된다"
+    assert_nil current_season(user), "임포트 초기 경험치는 시즌 미시딩(0 출발)"
+  end
+
   private
+
+  def current_season(user)
+    SeasonScore.find_by(user_id: user.id, academic_year: Classroom.current_academic_year)
+  end
 
   # SQLite 는 동시 쓰기 경합 시 "database is locked" 를 던질 수 있다 — busy_timeout 이후에도 실패하면 잠깐 뒤 재시도.
   def with_retry_on_lock(attempts: 5)

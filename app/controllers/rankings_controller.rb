@@ -1,6 +1,7 @@
-# 랭킹·포디움·명예의 전당(P4.10). tab = class/school/nation/challenge/hall(기본 class).
+# 랭킹·포디움·명예의 전당(P4.10). tab = class/grade/school/nation/challenge/hall(기본 class).
+# grade = 시즌제(§Phase 1) 학년 개인 순위 탭.
 class RankingsController < ApplicationController
-  TABS = %w[class school nation challenge hall].freeze
+  TABS = %w[class grade school nation challenge hall].freeze
 
   def index
     authorize :ranking, :index?
@@ -16,6 +17,8 @@ class RankingsController < ApplicationController
     when "class"
       @ranking = @board.class_ranking
       @podium = @board.podium
+    when "grade"
+      @ranking = @board.grade_ranking
     when "school"
       @ranking = @board.school_ranking
     when "nation"

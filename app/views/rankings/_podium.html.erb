@@ -3,13 +3,16 @@
 <% medals = [ "🥇", "🥈", "🥉" ] %>
 <div class="mb-6 flex items-end justify-center gap-3">
   <% podium.each_with_index do |student, index| %>
+    <%# 시즌 플래그 on 이면 현재 학년도 시즌 경험치(SELECT 별칭)를, off 면 평생 경험치를 표시. %>
+    <% season_on = AppSetting.feature_enabled?("ranking_seasons", scope: student.classroom, default: false) %>
+    <% xp = season_on ? student[:season_experience].to_i : student.experience %>
     <div class="<%= index.zero? ? "card-feature scale-105" : "card" %> text-center">
       <div class="text-2xl" aria-hidden="true"><%= medals[index] %></div>
       <div class="mx-auto flex h-12 w-12 items-center justify-center text-3xl" aria-hidden="true">
         <%= student.active_monster ? monster_sprite(student.active_monster.species, img_class: "h-12 w-12 object-contain") : "🥚" %>
       </div>
       <p class="text-sm font-semibold text-ink"><%= student.name %></p>
-      <p class="text-xs font-bold text-yellow-dark"><%= student.experience %>XP</p>
+      <p class="text-xs font-bold text-yellow-dark"><%= xp %>XP</p>
       <p class="text-xs text-steel">Lv.<%= student.trainer_level %> · <%= student.points %>P</p>
     </div>
   <% end %>

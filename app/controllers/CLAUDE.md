@@ -16,7 +16,7 @@
 - `quiz_contributions_controller.rb` — **학생 출제 기여(전국 공유 문제은행 UGC, 게임 재구성 Phase 3 §4.1)**. `new`(book_id + 선택 content_axis; 축 미지정이면 유형 선택[객관식/나는 누구게?] 화면)·`create`(축별 폼 입력을 payload JSON 으로 조립해 `QuizContribution`[status: pending] 생성). **작성자·학급은 서버가 확정**(위조 불가), 밴드는 작성자 학년에서 기본 파생(`game_band_for`), 등록(비-searched) 도서만 대상. per-action `authorize @contribution`(QuizContributionPolicy). 승인 전까지 아무에게도 안 보임. 성공 시 독서활동 화면으로 복귀.
 - `learn_controller.rb` — 단계 학습 위저드 5단계(`index`/`advance`). 세션 진행 저장, 완료 시 독후감 초안으로 프리필한다(`new_report_path`에 **`input_mode: :keyboard` 명시** + `report[book_title|body]` — 새 글 input_mode 우선 분기와 결합 해제해 위저드 완료가 곧장 keyboard 폼으로 진입).
 - `monsters_controller.rb` — 반려 몬스터 도감·상세(잠긴 카드에 해금 조건·진행도 표시) + `choose_starter`(선택 직후 나머지 라인 해금도 재평가)·`evolve`(조건의 필요 포인트를 원자 차감한 뒤 진화)·`set_active`. **먹이주기(feed)·상점은 menu_refactor 심화 PR7/8 에서 제거**(spend_points! 진화 비용은 유지). **`index`/`show` 조회 시에도 `evaluate_monster_unlocks`로 해금을 재평가(self-heal)** — 조건을 충족했으나 쓰기 트리거(승인·게임·토론·스타터)를 거치지 않아 고착된 라인을 도감을 여는 순간 해금해 트리거 커버리지 갭을 보정한다(신규 발견은 레이아웃 `pending_celebration` 드레인이 같은 렌더에서 축하 모달로 표면화).
-- `rankings_controller.rb` — 랭킹·포디움·명예의 전당(`index`). tab = class/school/nation/challenge/hall.
+- `rankings_controller.rb` — 랭킹·포디움·명예의 전당(`index`). tab = class/**grade**/school/nation/challenge/hall. **grade 탭(랭킹 시즌제 §Phase 1)**은 `RankingBoard#grade_ranking`(뷰어 학교 + 같은 학년 개인 순위)을 로드한다(라우트는 기존 rankings 리소스 재사용, 신규 라우트 없음). 시즌 정렬 여부는 RankingBoard 가 읽기 플래그 `ranking_seasons`로 게이트한다.
 - `challenges_controller.rb` — 전역/학교 챌린지 조회·참여(`join` → 세션 플래그로 다음 독후감에 연결).
 - `board_posts_controller.rb` — 우수작 게시판(`index`/`show`). 학생 화면에서 숨김 글 제외(정책 스코프).
 - `cheers_controller.rb` — 응원 👏(`create`/`destroy`). 1인 1회(unique) + Turbo Stream 버튼 갱신.

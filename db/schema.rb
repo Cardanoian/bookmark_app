@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000001) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -491,6 +491,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
     t.index ["neis_code"], name: "index_schools_on_neis_code", unique: true
   end
 
+  create_table "season_scores", force: :cascade do |t|
+    t.integer "academic_year", null: false
+    t.integer "classroom_id"
+    t.datetime "created_at", null: false
+    t.integer "experience_earned", default: 0, null: false
+    t.integer "grade"
+    t.integer "points_earned", default: 0, null: false
+    t.integer "school_id"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["academic_year", "user_id"], name: "index_season_scores_identity", unique: true
+  end
+
   create_table "seasons", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "ends_on"
@@ -638,6 +651,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
   add_foreign_key "reports", "classrooms"
   add_foreign_key "reports", "reports", column: "revision_of_id"
   add_foreign_key "reports", "users"
+  add_foreign_key "season_scores", "users", on_delete: :cascade
   add_foreign_key "seasons", "schools", on_delete: :nullify
   add_foreign_key "stickers", "reports"
   add_foreign_key "stickers", "users", column: "by_user_id"

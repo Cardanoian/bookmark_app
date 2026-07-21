@@ -1,5 +1,9 @@
-<%# locals: (user:, rank: nil) %>
-<%# 학급 랭킹 한 줄. Pointable 브로드캐스트에서도 재사용. %>
+<%# locals: (user:, rank: nil, season_experience: nil) %>
+<%# 학급/학년 랭킹 한 줄. Pointable 브로드캐스트에서도 재사용. %>
+<%# 시즌 플래그 on 이면 현재 학년도 시즌 경험치(브로드캐스트 로컬 우선, 그다음 SELECT 별칭)를,
+    off 면 평생 누적 경험치를 표시한다. 플래그 스코프는 이 행 학생의 학급. %>
+<% season_on = AppSetting.feature_enabled?("ranking_seasons", scope: user.classroom, default: false) %>
+<% xp = season_on ? (local_assigns[:season_experience] || user[:season_experience]).to_i : user.experience %>
 <div id="<%= dom_id(user, :ranking) %>" class="flex items-center justify-between rounded-lg border border-hairline-soft px-4 py-3">
   <div class="flex items-center gap-3">
     <% if rank %>
@@ -13,5 +17,5 @@
       <span class="block text-xs text-steel">Lv.<%= user.trainer_level %> · <%= user.points %>P</span>
     </span>
   </div>
-  <span class="badge badge-yellow"><%= user.experience %>XP</span>
+  <span class="badge badge-yellow"><%= xp %>XP</span>
 </div>

@@ -13,10 +13,36 @@ class RankingsTest < ActionDispatch::IntegrationTest
   test "each ranking tab renders successfully" do
     login_as @s1
 
-    %w[class school nation challenge hall].each do |tab|
+    %w[class grade school nation challenge hall].each do |tab|
       get rankings_path(tab: tab)
       assert_response :success, "tab=#{tab} 렌더링 실패"
     end
+  end
+
+  test "grade tab renders the same-grade individual ranking" do
+    login_as @s1
+
+    get rankings_path(tab: "grade")
+
+    assert_response :success
+    assert_select "nav a[aria-current='page']", text: "학년"
+    assert_match "랭킹일등", response.body
+    assert_match "랭킹이등", response.body
+  end
+
+  # 시즌 플래그 on 이면 랭킹 행(_ranking_row — Pointable 브로드캐스트와 공유하는 파셜)이
+  # 평생 경험치가 아니라 현재 학년도 시즌 경험치를 표시한다.
+  test "with seasons on the ranking row shows season experience not lifetime" do
+    AppSetting.set("feature_flags", { "ranking_seasons" => true })
+    @s1.update!(experience: 7_777) # 평생 경험치(표시되면 안 됨)
+    SeasonScore.create!(user: @s1, academic_year: Classroom.current_academic_year, experience_earned: 42)
+    login_as @s1
+
+    get rankings_path(tab: "class")
+
+    assert_response :success
+    assert_select "##{ActionView::RecordIdentifier.dom_id(@s1, :ranking)} .badge-yellow", text: "42XP"
+    assert_no_match "7777XP", response.body
   end
 
   test "class tab shows the podium and classroom members" do
