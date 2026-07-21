@@ -24,6 +24,12 @@ Rails.application.routes.draw do
   # 본인 비밀번호 변경(역할 무관, current_user 대상). 현재 비번 확인 후 변경.
   get   "profile/password", to: "passwords#edit",   as: :edit_password
   patch "profile/password", to: "passwords#update", as: :password
+  # 계정 연동(MERGE) 학생 셀프서브(account_linking_seasons_plan §Phase 3). 학년이 바뀐 학생이 작년
+  # 계정 자격증명을 증명해 병합한다: new(폼) → preview(인증·미리보기·서명토큰) → confirm(병합·세션 스왑).
+  resource :account_link, only: [ :new ], controller: "account_links" do
+    post :preview
+    post :confirm
+  end
   # 몬스터 발견 연출 확인(acknowledge) — 학생이 축하 모달을 본 뒤 celebrated_at 을 마킹(재노출 방지).
   post "discoveries/acknowledge", to: "discoveries#acknowledge", as: :acknowledge_discoveries
   # 학교 선택 하이브리드 피커(가입/로그인 공개). 이름검색(search) + 시군구 캐스케이딩(gus)
@@ -179,6 +185,12 @@ Rails.application.routes.draw do
     post "forum_posts/:id/hide",   to: "forum_moderations#hide",   as: :forum_post_hide
     post "forum_posts/:id/unhide", to: "forum_moderations#unhide", as: :forum_post_unhide
 
+    # 계정 연동(MERGE) 교사 보조(account_linking_seasons_plan §Phase 4 — 라우트 선점, 컨트롤러는 Phase 4).
+    # 담임이 자기 학급 현재 학생을 작년 계정과 병합(owned_student! 강제)·되돌리기(reverse).
+    resources :account_links, only: [ :index, :new, :create ] do
+      member { post :reverse }
+    end
+
     # 문서 출력(대회요건 연구06 원자료 CSV + 인쇄용 HTML)
     get "exports/reports_csv", to: "exports#reports_csv", as: :exports_reports_csv
     resources :prints, only: [] do
@@ -242,6 +254,12 @@ Rails.application.routes.draw do
         post :restore
       end
     end
+    # 계정 연동(MERGE) 총괄 보조(account_linking_seasons_plan §Phase 4 — 라우트 선점, 컨트롤러는 Phase 4).
+    # 전 학교 검색·감사·병합·되돌리기(총괄은 되돌리기 시간창 무제한).
+    resources :account_links, only: [ :index, :create ] do
+      member { post :reverse }
+    end
+
     resource :settings, only: [ :show, :update ]
     resource :analytics, only: [ :show ]
     get "analytics/export", to: "analytics#export", as: :analytics_export

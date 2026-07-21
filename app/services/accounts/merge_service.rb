@@ -361,7 +361,7 @@ module Accounts
       AccountMerge.create!(
         surviving_user_id: @old.id,
         consumed_user_id: @new.id,
-        performed_by_id: @performed_by&.id,
+        performed_by_id: audit_performer_id,
         performed_by_role: @performed_by && User.roles[@performed_by.role],
         from_classroom_id: pre["classroom_id"],
         to_classroom_id: @new.classroom_id,
@@ -370,6 +370,15 @@ module Accounts
         moved_counts: @moved_counts,
         snapshot: @snapshot
       )
+    end
+
+    # 감사 원장의 수행자 id. 셀프서브 병합은 performed_by 가 **소비될 placeholder(new)** 일 수 있는데,
+    # 그 user 행은 step7 에서 이미 삭제됐으므로 performed_by_id 로 넣으면 FK 위반이 된다. 이 경우
+    # 수행 주체는 병합 후에도 생존자(old)로 이어지므로 감사에는 생존자로 귀속한다(무결성 + 의미 보존).
+    # 교사·총괄 보조 병합은 수행자가 소비 대상이 아니므로 그대로 기록한다.
+    def audit_performer_id
+      id = @performed_by&.id
+      id == @new.id ? @old.id : id
     end
 
     # 이동 요약(감사·통계). 매니페스트 크기에서 유도.

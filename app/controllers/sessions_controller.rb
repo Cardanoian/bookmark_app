@@ -10,19 +10,14 @@ class SessionsController < ApplicationController
   # 계정 키는 조회된 **user.id** 로 정규화한다(존재 시). 원문 문자열 id 는 "5"/"05"/" 5" 가 서로
   # 다른 버킷을 만들어 계정 축을 우회할 수 있으므로 쓰지 않는다. 미존재(오타/추측) 계정만 정규화 튜플.
   #
-  # 카운팅은 Phase 2b 의 RateLimiter(Solid Cache 원자 increment)로 하며 read-modify-write 경쟁이
-  # 없다. rate_limit_store 는 테스트 주입 시임(프로덕션 nil → Rails.cache; test 는 :null_store 라
-  # 무카운팅이므로 스로틀 테스트에서만 인메모리 스토어를 주입한다).
+  # fail2ban 코어(IP_THROTTLE/ACCOUNT_THROTTLE·락아웃·실패기록·리셋·rate_limit_store 시임)는
+  # LoginThrottling concern 으로 추출해 AccountLinksController(계정 연동 인증)와 공유한다. 이 컨트롤러는
+  # **로그인 IP 축(login:ip:...) + 계정 축(login:account:...)** 키를 만들어 넘긴다(축 키만 컨트롤러 소유).
   #
   # 로그인 표면은 둘로 나뉜다(신원 방식만 다르고 위 방어 로직은 공유):
   #   - 학생(student_create): (학교·학급·이름) 튜플 + 비밀번호. 조회는 학생 역할로 한정한다.
   #   - 교직원(staff_create): 이메일 + 비밀번호. 조회는 학생 이외 역할로 한정한다.
-  IP_THROTTLE = { limit: 10, period: 3.minutes }.freeze
-  ACCOUNT_THROTTLE = { limit: 8, period: 10.minutes }.freeze
-
-  class << self
-    attr_accessor :rate_limit_store
-  end
+  include LoginThrottling
 
   skip_before_action :require_login,
     only: [ :new, :student_new, :student_create, :staff_new, :staff_create ]
@@ -69,16 +64,23 @@ class SessionsController < ApplicationController
 
   # 학생·교직원 공용 인증 흐름. 신원 조회(user)와 스로틀 계정 키(account_key)만 표면별로 다르다.
   def attempt_login(user:, account_key:, failure_message:, form:)
+    keys = throttle_keys(account_key)
     if user&.authenticate(params[:password])
-      reset_login_failures(account_key) # 정답 = 브루트포스 아님 → IP·계정 실패 카운터 해제(피해자 DoS·NAT 방지)
+      reset_login_failures(**keys) # 정답 = 브루트포스 아님 → IP·계정 실패 카운터 해제(피해자 DoS·NAT 방지)
       handle_authenticated(user, form)
-    elsif locked_out?(account_key)
+    elsif locked_out?(**keys)
       # 오답인데 이미 실패 한도 초과 → 추가 추측 차단(정답은 위에서 이미 통과했으므로 여기 안 온다).
       rerender_form(form, "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요.", :too_many_requests)
     else
-      register_login_failure(account_key) # 오답 → IP·계정 실패 카운트 증가
+      register_login_failure(**keys) # 오답 → IP·계정 실패 카운트 증가
       rerender_form(form, failure_message, :unprocessable_entity)
     end
+  end
+
+  # 로그인 스로틀 두 축 키. IP 축은 login:ip:*(연동은 linkauth:ip:* 로 분리), 계정 축은
+  # login:account:*(연동과 공유 네임스페이스 — 한 계정 자격증명 브루트포스 표면을 합산).
+  def throttle_keys(account_key)
+    { ip_key: "login:ip:#{request.remote_ip}", account_key: "login:account:#{account_key}" }
   end
 
   # 정답 인증 후 계정 상태 게이트(정지 → 로그인 차단하되 실패로 세지 않음).
@@ -97,31 +99,6 @@ class SessionsController < ApplicationController
     load_form_collections if form == :student_new
     flash.now[:alert] = message
     render form, status: status
-  end
-
-  # IP·계정 두 축 중 하나라도 **실패 누적**이 한도 이상이면 true. peek 는 증가 없이 조회만 한다.
-  def locked_out?(account_key)
-    limiter = login_limiter
-    limiter.peek("login:ip:#{request.remote_ip}") >= IP_THROTTLE[:limit] ||
-      limiter.peek("login:account:#{account_key}") >= ACCOUNT_THROTTLE[:limit]
-  end
-
-  # 로그인 실패 1회 기록(IP·계정 두 축 원자 increment).
-  def register_login_failure(account_key)
-    limiter = login_limiter
-    limiter.record_failure("login:ip:#{request.remote_ip}", IP_THROTTLE[:period])
-    limiter.record_failure("login:account:#{account_key}", ACCOUNT_THROTTLE[:period])
-  end
-
-  # 인증 성공 시 IP·계정 실패 카운터를 모두 리셋한다(정답 로그인은 누적 실패를 해제).
-  def reset_login_failures(account_key)
-    limiter = login_limiter
-    limiter.reset("login:ip:#{request.remote_ip}")
-    limiter.reset("login:account:#{account_key}")
-  end
-
-  def login_limiter
-    @login_limiter ||= RateLimiter.new(store: self.class.rate_limit_store || Rails.cache)
   end
 
   # 학생 스로틀 계정 키. 존재하는 계정은 안정적인 user.id 로 키잉(id 문자열 변형 우회 차단).

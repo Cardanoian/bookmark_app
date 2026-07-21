@@ -1,0 +1,56 @@
+<%# 계정 연동 확인화면(account_linking_seasons_plan §Phase 3). 인증에 성공한 작년 계정에서 가져올
+    자산을 보여 주고, 서명 토큰(비번 미저장)으로 confirm 을 실행한다. 되돌리기 안내를 함께 둔다. %>
+<div class="page-shell page-shell-form space-y-6">
+  <header>
+    <p class="text-sm font-medium text-steel">마이페이지 · 계정 연동</p>
+    <h1 class="page-title mt-1"><span aria-hidden="true">✅</span> 이 계정이 맞나요?</h1>
+  </header>
+
+  <section class="card space-y-4">
+    <p class="text-base text-ink">
+      <span class="font-semibold">
+        <%= @old.school&.name %> ·
+        <%= @old.classroom ? "#{@old.classroom.academic_year}학년도 #{@old.classroom.label}" : "지난 학년도" %>
+        · <%= @old.name %>
+      </span>
+      계정의 기록을 지금 계정으로 가져와요.
+    </p>
+
+    <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <li class="stat-card">
+        <span class="stat-card__label">독후감</span>
+        <span class="stat-card__value"><%= @preview[:reports] %>편</span>
+      </li>
+      <li class="stat-card">
+        <span class="stat-card__label">모은 몬스터</span>
+        <span class="stat-card__value"><%= @preview[:monsters] %>마리</span>
+      </li>
+      <li class="stat-card">
+        <span class="stat-card__label">모은 배지</span>
+        <span class="stat-card__value"><%= @preview[:badges] %>개</span>
+      </li>
+      <li class="stat-card">
+        <span class="stat-card__label">보유 포인트</span>
+        <span class="stat-card__value"><%= number_with_delimiter(@preview[:points]) %>P</span>
+      </li>
+      <li class="stat-card">
+        <span class="stat-card__label">경험치</span>
+        <span class="stat-card__value"><%= number_with_delimiter(@preview[:experience]) %>XP</span>
+      </li>
+      <li class="stat-card">
+        <span class="stat-card__label">독서가 레벨</span>
+        <span class="stat-card__value">Lv.<%= @preview[:trainer_level] %></span>
+      </li>
+    </ul>
+
+    <p class="state-banner state-banner--info text-sm">
+      가져오면 지금 학급·이름·비밀번호는 그대로 유지돼요. 잘못 연동했다면 선생님이 되돌릴 수 있어요.
+    </p>
+
+    <div class="flex flex-wrap gap-3">
+      <%= button_to "네, 가져올게요", confirm_account_link_path,
+            params: { token: @token }, class: "btn btn-primary" %>
+      <%= link_to "아니요, 다시 입력할게요", new_account_link_path, class: "btn btn-secondary" %>
+    </div>
+  </section>
+</div>
