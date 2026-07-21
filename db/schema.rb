@@ -10,7 +10,28 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000002) do
+  create_table "account_merges", force: :cascade do |t|
+    t.integer "consumed_user_id"
+    t.datetime "created_at", null: false
+    t.integer "from_classroom_id"
+    t.integer "from_school_id"
+    t.json "moved_counts"
+    t.integer "performed_by_id"
+    t.integer "performed_by_role"
+    t.datetime "reversed_at"
+    t.integer "reversed_by_id"
+    t.json "snapshot"
+    t.integer "surviving_user_id", null: false
+    t.integer "to_classroom_id"
+    t.integer "to_school_id"
+    t.datetime "updated_at", null: false
+    t.index ["consumed_user_id"], name: "index_account_merges_active_consumed", unique: true, where: "reversed_at IS NULL"
+    t.index ["consumed_user_id"], name: "index_account_merges_on_consumed_user_id"
+    t.index ["reversed_at"], name: "index_account_merges_on_reversed_at"
+    t.index ["surviving_user_id"], name: "index_account_merges_on_surviving_user_id"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -592,6 +613,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000001) do
     t.index ["school_id"], name: "index_users_on_school_id"
   end
 
+  add_foreign_key "account_merges", "users", column: "performed_by_id", on_delete: :nullify
+  add_foreign_key "account_merges", "users", column: "reversed_by_id", on_delete: :nullify
+  add_foreign_key "account_merges", "users", column: "surviving_user_id", on_delete: :nullify
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "board_posts", "reports"
