@@ -8,12 +8,13 @@ class RankingBoard
     @user = user
   end
 
-  # 학급 학생 포인트 순위(내림차순). 학생만 대상.
+  # 학급 학생 경험치 순위(내림차순). 학생만 대상.
+  # 정렬 기준은 소비 시 차감되는 보유 포인트가 아니라 감소하지 않는 누적 경험치다.
   def class_ranking
     classroom = @user.classroom
     return [] unless classroom
 
-    classroom.users.where(role: :student).order(points: :desc, name: :asc).to_a
+    classroom.users.where(role: :student).order(experience: :desc, name: :asc).to_a
   end
 
   # 포디움 Top3(학급 순위 상위 3명).
@@ -21,9 +22,9 @@ class RankingBoard
     class_ranking.first(3)
   end
 
-  # 학교 내 학급 집계(학생 포인트 합) 순위.
-  # 학급별 포인트·경험치 합과 인원수를 한 번의 그룹 집계로 읽는다(P3.1).
-  # 정렬 기준은 기존 포인트 합을 유지하고, 경험치 합은 함께 표시할 메타데이터로 제공한다.
+  # 학교 내 학급 집계(학생 경험치 합) 순위.
+  # 학급별 경험치·포인트 합과 인원수를 한 번의 그룹 집계로 읽는다(P3.1).
+  # 정렬 기준은 감소하지 않는 경험치 합이고, 보유 포인트 합은 함께 표시할 메타데이터로 제공한다.
   # 학생 없는 학급도 합계 0·평균 0 으로 포함한다.
   def school_ranking
     school = @user.school
@@ -33,17 +34,17 @@ class RankingBoard
     classroom_ids = classrooms.map(&:id)
     students = User.where(role: :student, classroom_id: classroom_ids)
     aggregates = students.group(:classroom_id)
-                         .pluck(:classroom_id, Arel.sql("SUM(points)"), Arel.sql("SUM(experience)"), Arel.sql("COUNT(*)"))
-                         .to_h { |classroom_id, points, experience, count| [ classroom_id, [ points, experience, count ] ] }
+                         .pluck(:classroom_id, Arel.sql("SUM(experience)"), Arel.sql("SUM(points)"), Arel.sql("COUNT(*)"))
+                         .to_h { |classroom_id, experience, points, count| [ classroom_id, [ experience, points, count ] ] }
 
     classrooms.map do |classroom|
-      total, experience, count = aggregates.fetch(classroom.id, [ 0, 0, 0 ])
+      total, points, count = aggregates.fetch(classroom.id, [ 0, 0, 0 ])
       avg = count.zero? ? 0 : (total.to_f / count).round(1)
-      Entry.new(subject: classroom, score: total, meta: { avg: avg, experience: experience })
+      Entry.new(subject: classroom, score: total, meta: { avg: avg, points: points })
     end.sort_by { |entry| -entry.score }
   end
 
-  # 전국 학교 집계(소속 학생 포인트 합) 순위. Top N(기본 100) 상한 + 학생 0명 학교 제외(계획 §2.3).
+  # 전국 학교 집계(소속 학생 경험치 합) 순위. Top N(기본 100) 상한 + 학생 0명 학교 제외(계획 §2.3).
   # 6,300교 전량 struct 생성·정렬·렌더를 막는다. 상수 쿼리 2개(그룹 SUM + 필요한 학교만 로드)로
   # 규모에 무관하다. Top N 밖이면 뷰어 본인 학교 순위를 별도 행(meta[:self])으로 덧붙여 소형·신규
   # 학교의 동기부여를 보존한다. 학교 미소속(school_id nil) 학생 집계는 순위에서 제외한다.
@@ -51,11 +52,11 @@ class RankingBoard
     aggregates = User.joins(:school)
                      .where(role: :student, schools: { active: true })
                      .group(:school_id)
-                     .pluck(:school_id, Arel.sql("SUM(points)"), Arel.sql("SUM(experience)"))
-    totals = aggregates.to_h { |school_id, points, _experience| [ school_id, points ] }
-    experiences = aggregates.to_h { |school_id, _points, experience| [ school_id, experience ] }
+                     .pluck(:school_id, Arel.sql("SUM(experience)"), Arel.sql("SUM(points)"))
+    totals = aggregates.to_h { |school_id, experience, _points| [ school_id, experience ] }
+    point_totals = aggregates.to_h { |school_id, _experience, points| [ school_id, points ] }
     totals.delete(nil)
-    experiences.delete(nil)
+    point_totals.delete(nil)
     return [] if totals.empty?
 
     ranked_ids = totals.sort_by { |school_id, score| [ -score, school_id ] }.map(&:first)
@@ -72,7 +73,7 @@ class RankingBoard
       Entry.new(
         subject: school,
         score: totals[school_id],
-        meta: { rank: index + 1, experience: experiences[school_id] }
+        meta: { rank: index + 1, points: point_totals[school_id] }
       ) if school
     end
 
@@ -80,7 +81,7 @@ class RankingBoard
       entries << Entry.new(
         subject: own,
         score: totals[own_id],
-        meta: { rank: own_index + 1, self: true, experience: experiences[own_id] }
+        meta: { rank: own_index + 1, self: true, points: point_totals[own_id] }
       )
     end
 

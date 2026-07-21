@@ -9,8 +9,8 @@
         <%= student.active_monster ? monster_sprite(student.active_monster.species, img_class: "h-12 w-12 object-contain") : "🥚" %>
       </div>
       <p class="text-sm font-semibold text-ink"><%= student.name %></p>
-      <p class="text-xs font-bold text-yellow-dark"><%= student.points %>P</p>
-      <p class="text-xs text-steel"><%= student.experience %>XP · Lv.<%= student.trainer_level %></p>
+      <p class="text-xs font-bold text-yellow-dark"><%= student.experience %>XP</p>
+      <p class="text-xs text-steel">Lv.<%= student.trainer_level %> · <%= student.points %>P</p>
     </div>
   <% end %>
 </div>

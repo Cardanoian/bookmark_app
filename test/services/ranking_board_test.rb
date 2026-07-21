@@ -17,7 +17,7 @@ class RankingBoardTest < ActiveSupport::TestCase
     @sb = User.create!(school: @school_b, classroom: @class_b, name: "타교", points: 1000, password: "password")
   end
 
-  test "class ranking orders classroom students by points descending" do
+  test "class ranking orders classroom students by experience descending" do
     assert_equal [ @s1, @s2, @s3 ], RankingBoard.new(@s1).class_ranking
   end
 
@@ -25,24 +25,35 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal [ @s1, @s2, @s3 ], RankingBoard.new(@s1).podium
   end
 
-  test "school ranking aggregates classroom point totals" do
+  # 랭킹 기준이 소비 가능한 보유 포인트가 아니라 감소하지 않는 누적 경험치임을 보장한다.
+  # 1등(경험치 300)이 포인트를 250 소비해 잔액이 꼴찌 이하로 내려가도 순위는 유지되어야 한다.
+  test "class ranking keeps ordering by experience even after points are spent" do
+    assert @s1.spend_points!(250), "포인트 차감 성공(잔액 300→50)"
+    @s1.reload
+
+    assert_operator @s1.points, :<, @s3.points, "이제 1등의 보유 포인트가 3등보다 적다"
+    assert_equal [ @s1, @s2, @s3 ], RankingBoard.new(@s1).class_ranking,
+                 "포인트 소비와 무관하게 경험치 순위(300>200>100)를 유지해야 한다"
+  end
+
+  test "school ranking aggregates classroom experience totals" do
     ranking = RankingBoard.new(@s1).school_ranking
 
     assert_equal @class1, ranking.first.subject
     assert_equal 600, ranking.first.score
-    assert_equal 600, ranking.first.meta[:experience]
+    assert_equal 600, ranking.first.meta[:points]
     assert_equal @class2, ranking.second.subject
     assert_equal 500, ranking.second.score
   end
 
-  test "nation ranking aggregates school point totals" do
+  test "nation ranking aggregates school experience totals" do
     ranking = RankingBoard.new(@s1).nation_ranking
     totals = ranking.to_h { |entry| [ entry.subject, entry.score ] }
 
     assert_equal 1100, totals[@school]
     assert_equal 1000, totals[@school_b]
     assert_equal @school, ranking.first.subject
-    assert_equal 1100, ranking.first.meta[:experience]
+    assert_equal 1100, ranking.first.meta[:points]
   end
 
   test "hall of fame reflects dex completion and 완전형(stage 3) count" do
