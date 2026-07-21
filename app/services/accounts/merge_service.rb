@@ -6,6 +6,12 @@
 # 스냅샷을 account_merges 원장에 남겨 실질 가역(reverse!, Phase 4)이고, dedup 으로 삭제된 중복행만
 # **불가역**(snapshot 에 표시)이다. 커밋 후 사이드이펙트(reload·뱃지·진화·시즌 방송·세션 스왑)는
 # 서비스가 아니라 **호출자(컨트롤러, Phase 3/4)** 책임이다 — call 은 Result 구조체만 돌려준다.
+#
+# ⚠️ **인가 계약(무가드 프리미티브)**: 이 서비스는 소유권·인증을 검증하지 **않는다**. 학년도 경계·
+# 정지·학생여부만 확인할 뿐, "누가 이 병합을 할 자격이 있는가"는 **호출자가 반드시 강제**해야 한다:
+#   (a) NEW = 인증된 현재 세션 계정(placeholder 를 임의 지정 불가), (b) OLD = **소유 증명된 계정** —
+#   셀프서브(AccountLinksController)는 작년 비번 증명 + 브루트포스 스로틀로, 교사는 `owned_student!`
+#   (NEW 가 자기 학급 소속)로, 총괄은 역할 게이트로. 이 전제가 깨지면 계정 탈취가 된다.
 module Accounts
   class MergeService
     # 병합 결과. ok=성공 여부, error_code=실패 사유(가드/동시성). 호출자는 ok? 로 분기해 커밋 후
@@ -91,6 +97,12 @@ module Accounts
       end
     rescue MergeError => error
       Result.new(ok: false, surviving_user: nil, account_merge: nil, error_code: error.code)
+    rescue ActiveRecord::RecordNotUnique
+      # write_audit! 의 활성 consumed 부분유니크(index_account_merges_active_consumed) 또는 claim 의
+      # tuple 유니크 위반 — 같은 placeholder(NEW)를 두 번 소비하려는 경합/재시도. 지배적 same-OLD 경합은
+      # 조건부 claim 이 :claim_conflict 로 먼저 잡지만, 서로 다른 OLD → 같은 NEW 는 write_audit 에서만
+      # 차단된다. 원시 예외를 전파하지 않고 트랜잭션 전체 롤백 + fail-closed Result 로 우아하게 처리한다.
+      Result.new(ok: false, surviving_user: nil, account_merge: nil, error_code: :consumed_conflict)
     end
 
     # 커밋 후 사이드이펙트 헬퍼(선택). **call 밖에서** 호출자가 실행한다 — 트랜잭션 안에서

@@ -1,0 +1,45 @@
+<% content_for :title, "계정 연동 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :students %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header flex flex-wrap items-center justify-between gap-3">
+        <h1 class="page-title">계정 연동</h1>
+        <%= link_to "＋ 새 연동", new_teacher_account_link_path, class: "btn btn-primary" %>
+      </header>
+
+      <p class="text-sm text-steel">
+        학년이 바뀐 학생의 <strong>작년 계정</strong>을 <strong>현재 계정</strong>과 이어 줘요.
+        잘못 연동했으면 <strong>14일 안에</strong> 되돌릴 수 있어요(기간이 지나면 총괄관리자에게 문의).
+      </p>
+
+      <% if @merges.any? %>
+        <ul class="space-y-3">
+          <% @merges.each do |merge| %>
+            <li class="card flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="font-semibold text-ink"><%= merge.surviving_user&.name || "(삭제된 계정)" %></p>
+                <p class="text-sm text-steel">
+                  독후감 <%= merge.moved_counts&.dig("reports") || 0 %>편 · 몬스터 <%= merge.moved_counts&.dig("monsters") || 0 %>마리 이어받음 ·
+                  <%= merge.created_at.strftime("%Y-%m-%d") %>
+                </p>
+              </div>
+              <div>
+                <% if merge.reversed_at %>
+                  <span class="badge badge-neutral">되돌림</span>
+                <% else %>
+                  <%= button_to "되돌리기", reverse_teacher_account_link_path(merge), class: "btn btn-secondary",
+                        data: { turbo_confirm: "이 연동을 되돌릴까요? 작년 계정과 현재 계정이 다시 분리돼요." } %>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <%= render "shared/empty_state", message: "아직 연동한 계정이 없어요.", icon: "🔗" %>
+      <% end %>
+    </section>
+  </div>
+</div>

@@ -268,6 +268,42 @@ class Accounts::MergeServiceTest < ActiveSupport::TestCase
     assert_equal 0, AccountMerge.count, "감사 원장 미기록"
   end
 
+  # --- 리뷰 fix: RecordNotUnique 우아한 처리 + 커밋 후 멱등 ---
+
+  test "이미 소비된 placeholder 재소비 시도는 :consumed_conflict 로 우아하게 롤백된다" do
+    populate!
+    # 같은 placeholder(@new)를 소비한 활성 병합이 이미 있는 상태(경합/재시도) — write_audit! 의
+    # 활성 consumed 부분유니크가 두 번째 소비를 차단한다. (지배적 same-OLD 경합은 claim 이 먼저 잡음.)
+    AccountMerge.create!(surviving_user_id: @teacher.id, consumed_user_id: @new.id)
+    old_classroom_before = @old.classroom_id
+    new_reports_before = count_for("reports", "user_id", @new.id)
+
+    result = run_merge
+
+    assert_not result.ok?
+    assert_equal :consumed_conflict, result.error_code
+    assert User.exists?(@new.id), "placeholder 미삭제(완전 롤백)"
+    assert_equal old_classroom_before, @old.reload.classroom_id, "생존자 미claim"
+    assert_equal new_reports_before, count_for("reports", "user_id", @new.id), "자식행 미이동"
+    assert_equal 1, AccountMerge.count, "새 감사 원장 미기록(사전 시드 1건만)"
+  end
+
+  test "커밋 후 사이드이펙트는 survivor reload + 후크만, 포인트 재적립 없음(멱등)" do
+    populate!
+    service = Accounts::MergeService.new(old_account: @old, new_account: @new, performed_by: @teacher)
+    result = service.call
+    assert result.ok?
+
+    survivor = result.surviving_user
+    service.run_post_commit_side_effects!(survivor)
+    assert_equal 230, survivor.points, "합산 포인트 유지(재적립 없음)"
+    assert_equal 530, survivor.experience
+
+    service.run_post_commit_side_effects!(survivor) # 재호출 멱등
+    assert_equal 230, survivor.reload.points
+    assert_equal 530, survivor.experience
+  end
+
   private
 
   def run_merge
