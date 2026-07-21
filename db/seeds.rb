@@ -195,3 +195,15 @@ app_settings_data.fetch("app_settings").each do |setting_data|
   end
   puts "Ensured default app_setting: #{setting.key}"
 end
+
+# 데모(가상 사용) 데이터. "이 앱을 많이 사용한 것처럼" 보이는 5개 학교·7개 학급의 학생·독후감·
+# 게임·몬스터·커뮤니티·미션을 db/seeds/demo/*.yml 에서 읽어 멱등 생성한다.
+# **SEED_DEMO=1 + 비production** 게이트에서만 실행한다(운영에 가짜 아동 데이터 유입 차단).
+# 예) SEED_DEMO=1 bin/rails db:seed
+if ENV["SEED_DEMO"] == "1" && !Rails.env.production?
+  require_relative "seeds/demo_seeder"
+  puts "Seeding demo usage data (SEED_DEMO=1)…"
+  DemoSeeder.new.call
+elsif ENV["SEED_DEMO"] == "1"
+  puts "SEED_DEMO ignored in production."
+end
