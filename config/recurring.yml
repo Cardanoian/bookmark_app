@@ -18,3 +18,10 @@ production:
   reevaluate_active_missions:
     class: Missions::ReevaluateJob
     schedule: every hour at minute 27
+  # 계정 연동 자격증명 purge(account_linking_seasons_plan §Phase 5). 교사 되돌리기 창(14일) 경과·
+  # 미되돌림 병합 snapshot 의 password_digest 를 야간 nullify(PII 보존기간 제한, 멱등). 잡 클래스로
+  # 스케줄해 rake 의존을 피한다(읽기 전용 리포트 account_links:audit·seasons:reconcile 은 로그 스팸을
+  # 피하려 recurring 미등록 — 운영자가 온디맨드/외부 스케줄러로 실행).
+  purge_account_link_credentials:
+    class: Accounts::PurgeCredentialsJob
+    schedule: at 4am every day

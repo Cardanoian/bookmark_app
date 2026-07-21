@@ -13,4 +13,9 @@ app_settings:
       # 기본 off. false=전역 하드 kill. 파일럿은 이 전역을 지우고 "account_linking:classroom:<id>"=true
       # 스코프 오버라이드로, 확대는 전역 true 로 전환한다(app_setting.rb feature_enabled? 규약).
       account_linking: false
+      # 랭킹 시즌제 읽기 플래그(account_linking_seasons_plan §Phase 1/5). RankingBoard·랭킹 뷰의 읽기
+      # 경로만 게이트해 정렬 기준을 평생 experience ↔ 현재 학년도 season_scores.experience_earned 사이에서
+      # 전환한다(시즌 데이터 축적은 플래그와 무관하게 항상 동작 — 켜면 즉시 활성). **2027-03 학년도
+      # 경계에 전역 on 예정**이라 기본 off(전환 스위치, 2026 시즌은 부분·비권위).
+      ranking_seasons: false
     description: 전역 기능 플래그(JSON 객체)

@@ -10,7 +10,7 @@
   - **superadmin(총괄관리자)은 credentials(`:superadmin` → `name`·`email`·`password`)를 단일 진실로 읽어 매 시드마다 이름·이메일·비번을 동기화**(리포에 비번 하드코딩 금지). credentials 미설정 시 폴백(`총괄관리자`/`admin@example.com`/`changeme1234`). **총괄관리자도 교직원이라 이메일로 로그인**(sessions#staff_create)하므로 이메일을 부여한다. 이름을 바꾸면 이전 이름 계정은 별도로 남는다.
   - **역할 샘플 계정**: production에서는 생성하지 않는다. 학생·담임교사·교무관리자·사서 4종은 전국 CSV의 실학교 **포항원동초등학교(neis_code `8761159`)** 소속(김담임=`teacher@example.com`, 이학생, 박교무=`schooladmin@example.com`, 최사서=`librarian@example.com`). 교직원은 이메일로, 이메일 없는 학생은 **비활성 동명 학교 + 동일 학년/반 후보가 정확히 1건일 때만** 기존 합성학교 샘플을 찾아 실학교로 동기화하며 비밀번호는 변경하지 않는다.
   - system 유저는 superadmin 과 같은 신원 규약(name + school_id:nil + classroom_id:nil)으로 `find_or_initialize_by` 멱등 생성(로그인 불가한 시스템 액터). `ContentProvider.system_user`도 같은 신원으로 멱등 확보한다.
-  - 기본 `feature_flags` 에 `on_demand_games => true`(온디맨드 게임 워밍 전역 kill switch, Phase 2b C3)·`reading_discussion => true`(독서 토론 전역 kill switch, 안전 스택 동반 출하로 확대 기본) 포함. 스코프 오버라이드 규약은 `config/CLAUDE.md`·`app_setting.rb` 참조.
+  - 기본 `feature_flags` 에 `on_demand_games => true`(온디맨드 게임 워밍 전역 kill switch, Phase 2b C3)·`reading_discussion => true`(독서 토론 전역 kill switch, 안전 스택 동반 출하로 확대 기본)·**`account_linking => false`**(계정 연동, 아동 자격증명 표면이라 파일럿 기본 off, account_linking_seasons_plan §Phase 3)·**`ranking_seasons => false`**(랭킹 시즌제 읽기 전환 스위치, 2027-03 학년도 경계에 전역 on 예정, §Phase 1/5) 포함. 스코프 오버라이드 규약은 `config/CLAUDE.md`·`app_setting.rb` 참조.
 - `cable_schema.rb` — Solid Cable 보조 DB(`solid_cable_messages`). production `cable` DB.
 - `cache_schema.rb` — Solid Cache 보조 DB(`solid_cache_entries`). production `cache` DB.
 - `queue_schema.rb` — Solid Queue 보조 DB(잡·실행·세마포어 등 다수 테이블). production `queue` DB.
