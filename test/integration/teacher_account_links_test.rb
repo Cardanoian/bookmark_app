@@ -85,6 +85,18 @@ class TeacherAccountLinksTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "되돌리기 중 유니크 충돌은 500 이 아니라 alert 리다이렉트로 처리한다(ReversalError rescue)" do
+    merge = perform_merge!(@student_old, @student_new, @teacher_a)
+    # 생존자의 pre-merge tuple(old_classroom, "김이어")을 제3자가 점유 → 신원 복원 시 tuple 충돌.
+    User.create!(school: @school, classroom: @old_classroom, name: "김이어", password: "sq1234")
+    login_as(@teacher_a)
+
+    post reverse_teacher_account_link_path(merge)
+
+    assert_redirected_to teacher_account_links_path
+    assert_nil merge.reload.reversed_at, "충돌로 트랜잭션 롤백 — 원자 클레임까지 원복(되돌림 미완료)"
+  end
+
   private
 
   def perform_merge!(old, new, performer)

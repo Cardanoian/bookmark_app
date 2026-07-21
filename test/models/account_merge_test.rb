@@ -131,6 +131,41 @@ class AccountMergeTest < ActiveSupport::TestCase
     assert_raises(AccountMerge::ReversalError) { ctx[:merge].reverse!(performed_by: @performer) }
   end
 
+  test "reverse! 시즌 역연산: OLD 가 원래 보유한 현재 학년도 행은 삭제 않고 이관분만 차감한다" do
+    ctx = merged_scenario(old_current_experience: 15) # OLD 원보유 15 + NEW 이관 30 = 병합 후 45
+    old = ctx[:old]
+
+    ctx[:merge].reverse!(performed_by: @performer)
+
+    row = SeasonScore.find_by(user_id: old.id, academic_year: ctx[:current])
+    assert row, "원보유 현재 학년도 행은 병합-생성 행이 아니므로 삭제되지 않는다"
+    assert_equal 15, row.experience_earned, "이관분(30)만 차감, 원 15 잔류(병합-후 누적 귀속 규칙)"
+    assert_equal 15, row.points_earned
+
+    restored_new = User.find_by(id: ctx[:new_id])
+    assert_equal 30, SeasonScore.find_by(user_id: restored_new.id, academic_year: ctx[:current]).experience_earned, "NEW 시즌 재생성"
+    assert_equal 100, SeasonScore.find_by(user_id: old.id, academic_year: ctx[:current] - 1).experience_earned, "과거 시즌 불변"
+
+    violations = ActiveRecord::Base.connection.select_all("PRAGMA foreign_key_check").to_a
+    assert_empty violations
+  end
+
+  test "동시 이중 되돌리기: 후행은 파괴적 복원 이전에 원자 클레임 0행 → clean ReversalError(500 아님)" do
+    ctx = merged_scenario
+    stale = AccountMerge.find(ctx[:merge].id) # 선행 커밋 전에 로드 → in-memory reversed_at nil
+
+    ctx[:merge].reverse!(performed_by: @performer) # 선행 성공(DB reversed_at 스탬프)
+
+    # 후행은 in-memory 가드는 통과하지만 원자 클레임(reversed_at IS NULL)이 0행 → ReversalError.
+    error = assert_raises(AccountMerge::ReversalError) { stale.reverse!(performed_by: @performer) }
+    assert_match "되돌", error.message
+
+    # 후행이 파괴적 복원을 하지 않았으니(클레임이 선두) 무결성 보존.
+    violations = ActiveRecord::Base.connection.select_all("PRAGMA foreign_key_check").to_a
+    assert_empty violations
+    assert_equal 1, User.where(id: ctx[:new_id]).count, "placeholder 이중 재삽입 없음"
+  end
+
   private
 
   def species(dex_no, stage)
@@ -138,7 +173,7 @@ class AccountMergeTest < ActiveSupport::TestCase
   end
 
   # 실제 MergeService 병합을 수행하고 되돌리기 검증에 필요한 앵커를 반환한다.
-  def merged_scenario
+  def merged_scenario(old_current_experience: nil)
     seed_monster_species!
     seed_badges!
     current = Classroom.current_academic_year
@@ -165,6 +200,11 @@ class AccountMergeTest < ActiveSupport::TestCase
 
     SeasonScore.create!(user: old, academic_year: current - 1, experience_earned: 100, points_earned: 50)
     SeasonScore.create!(user: new, academic_year: current, experience_earned: 30, points_earned: 30)
+    # OLD 가 원래 현재 학년도 시즌 행을 보유한 분기(연중 연동 등). 병합이 NEW 분을 이 행에 더한다.
+    if old_current_experience
+      SeasonScore.create!(user: old, academic_year: current,
+                          experience_earned: old_current_experience, points_earned: old_current_experience)
+    end
 
     old.reload
     new.reload

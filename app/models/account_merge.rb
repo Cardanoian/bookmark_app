@@ -10,8 +10,13 @@
 #     export 에 절대 덤프하지 않는다.
 #   - **되돌리기 창 경과 후 password_digest purge**(Phase 5 야간 잡)로 보존기간을 제한한다.
 class AccountMerge < ApplicationRecord
-  # 이미 되돌린 병합을 다시 되돌리려 할 때(멱등 가드).
+  # 이미 되돌린 병합을 다시 되돌리려 할 때(멱등 가드) 또는 되돌리기 중 유니크 충돌(제3자 tuple 점유).
   ReversalError = Class.new(StandardError)
+
+  # 교사 되돌리기 시간창(총괄은 무제한). 이 창이 지나면 자격증명 purge 대상이 되므로, 교사 컨트롤러
+  # (Teacher::AccountLinksController)와 purge 잡(Accounts::PurgeCredentialsJob)이 **이 상수 하나를 참조**해
+  # 값 드리프트를 막는다(값 변경은 여기 한 곳만).
+  TEACHER_REVERSE_WINDOW = 14.days
 
   # surviving_user_id 는 NOT NULL 이지만 optional: true 로 presence 검증만 끈다(항상 서비스가
   # 세팅하고 DB 가 NOT NULL 을 강제). performed_by 는 셀프서브/총괄 경로에서 nil 일 수 있다.
@@ -27,7 +32,10 @@ class AccountMerge < ApplicationRecord
   #   3. 매니페스트 자식행 원복 — 스탬프된 이동행만 NEW(또는 새 id)로, 병합-후 활동은 생존자 잔류.
   #   4. counter 재계산(표준5 reset_counters + cheers 커스텀).
   #   5. 시즌 역연산 — 생존자 현재 시즌 차감 + NEW 시즌 행 재생성.
-  #   6. reversed_at/reversed_by_id 스탬프.
+  # **동시성 fail-closed**: 스탬프를 맨 끝이 아니라 **트랜잭션 선두에서 원자 클레임(CAS)** 으로 찍는다
+  # (머지코어 조건부 claim 과 대칭). 동시 되돌리기(더블클릭)는 파괴적 복원 **이전에** 0행 클레임 →
+  # 깨끗이 롤백·ReversalError. 되돌리기 중 유니크 충돌(제3자 tuple 점유 등)도 ReversalError 로 감싼다
+  # (raw 500 방지 — 컨트롤러가 flash alert 로 처리).
   # **불가역**: dedup 삭제된 중복행(user_monsters 열등 개체·중복 vote/like/report/cheer·중복 game_play)은
   # 복원 불가. 새 id 발급(id_reused: false) 시 되돌린 계정 보유자는 신규 로그인 필요(requires_new_login).
   # 시간창(교사 14일)·역할 제한은 **호출 컨트롤러**가 강제한다 — 이 메서드는 되돌림 자체만 수행한다.
@@ -39,13 +47,20 @@ class AccountMerge < ApplicationRecord
     new_attrs = data["new_attributes"] || {}
     manifest = data["manifest"] || {}
     old_id = surviving_user_id.to_i
+    reversed_at_time = Time.current
 
     id_reused = false
     restored_new_id = nil
 
     transaction do
+      # 원자 클레임(CAS) — 파괴적 복원 **이전에** 선점. reversed_at IS NULL 인 행만 스탬프하며, 동시
+      # 되돌리기의 후행은 0행 → fail-closed 롤백(TOCTOU·raw 500 차단, 머지코어 claim 과 대칭).
+      claimed = self.class.where(id: id, reversed_at: nil)
+                    .update_all(reversed_at: reversed_at_time, reversed_by_id: performed_by&.id)
+      raise ReversalError, "이미 되돌려진 병합입니다." unless claimed == 1
+
       conn = self.class.connection
-      now = conn.quote(conn.quoted_date(Time.current))
+      now = conn.quote(conn.quoted_date(reversed_at_time))
 
       restore_survivor_identity!(conn, pre, old_id, new_attrs, now)
       restored_new_id, id_reused = reinsert_placeholder!(conn, new_attrs, now)
@@ -53,11 +68,12 @@ class AccountMerge < ApplicationRecord
       recompute_counters_for_reverse!(conn, manifest)
       reverse_seasons!(conn, data, old_id, restored_new_id, now)
       fixup_new_active_monster!(conn, new_attrs, restored_new_id)
-
-      update_columns(reversed_at: Time.current, reversed_by_id: performed_by&.id)
     end
 
     { restored_new_id: restored_new_id, id_reused: id_reused, requires_new_login: !id_reused }
+  rescue ActiveRecord::RecordNotUnique
+    # 복원 자리(tuple)를 제3자가 점유하는 등 유니크 충돌 — 파괴적 쓰기는 트랜잭션 롤백으로 원복.
+    raise ReversalError, "되돌리기 대상 자리를 다른 계정이 차지하고 있어요. 잠시 후 다시 시도해 주세요."
   end
 
   private
@@ -130,7 +146,9 @@ class AccountMerge < ApplicationRecord
   end
 
   def move_rows_back(conn, table, column, ids, new_id)
-    ids = Array(ids)
+    # 매니페스트 id 를 정수로 재캐스팅(방어심층 — 머지코어와 일관). 스탬프된 이동행만 이동하며, 14일
+    # 창으로 바운드된 rowid 재사용 오귀속은 정보성 잔여라 별도 처리 불요(§5 계약).
+    ids = Array(ids).map(&:to_i)
     return if ids.empty?
 
     conn.execute("UPDATE #{table} SET #{column} = #{new_id} WHERE id IN (#{ids.join(',')})")
@@ -164,7 +182,7 @@ class AccountMerge < ApplicationRecord
     Accounts::MergeService::DEDUP_TABLES.each do |table, parent, counter|
       next unless counter
 
-      ids = Array(manifest[table])
+      ids = Array(manifest[table]).map(&:to_i)
       next if ids.empty?
 
       parent_ids = conn.select_values("SELECT DISTINCT #{parent} FROM #{table} WHERE id IN (#{ids.join(',')})").map(&:to_i)

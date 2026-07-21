@@ -12,9 +12,9 @@ module Accounts
   class PurgeCredentialsJob < ApplicationJob
     queue_as :default
 
-    # 교사 되돌리기 창(Teacher::AccountLinksController::REVERSE_WINDOW = 14일)과 정합. 이 창이 지나면
-    # 교사는 되돌릴 수 없고(총괄만) digest 를 보존할 이유가 사라진다.
-    PURGE_WINDOW = 14.days
+    # 교사 되돌리기 창(AccountMerge::TEACHER_REVERSE_WINDOW = 14일)과 **단일 상수 공유**. 이 창이
+    # 지나면 교사는 되돌릴 수 없고(총괄만) digest 를 보존할 이유가 사라진다.
+    PURGE_WINDOW = AccountMerge::TEACHER_REVERSE_WINDOW
 
     SECTIONS = %w[old_pre_merge new_attributes].freeze
 

@@ -3,8 +3,8 @@
 # 세션 유지). 경계는 `owned_student!`(NEW 가 자기 학급 소속) + 서버 검증(OLD 가 자기 학교 과거 학년도)
 # 으로 강제하며, 실제 병합·되돌리기 무결성은 `Accounts::MergeService`·`AccountMerge#reverse!` 가 맡는다.
 class Teacher::AccountLinksController < Teacher::BaseController
-  # 교사 되돌리기 시간창(총괄은 무제한). 창 밖은 총괄에게 위임.
-  REVERSE_WINDOW = 14.days
+  # 교사 되돌리기 시간창(총괄은 무제한). 창 밖은 총괄에게 위임. purge 잡과 단일 상수를 공유해 드리프트 차단.
+  REVERSE_WINDOW = AccountMerge::TEACHER_REVERSE_WINDOW
 
   def index
     @merges = AccountMerge.where(to_classroom_id: teacher_classrooms.select(:id))
@@ -38,7 +38,8 @@ class Teacher::AccountLinksController < Teacher::BaseController
     end
   end
 
-  # 되돌리기(14일 창 안, 자기 학급 병합만).
+  # 되돌리기(14일 창 안, 자기 학급 병합만). 동시 되돌리기·유니크 충돌은 reverse! 가 ReversalError 로
+  # 감싸므로 raw 500 없이 alert 리다이렉트로 처리한다.
   def reverse
     merge = AccountMerge.find(params[:id])
     owned_merge!(merge)
@@ -49,11 +50,23 @@ class Teacher::AccountLinksController < Teacher::BaseController
       redirect_to teacher_account_links_path, alert: "되돌리기 기간(14일)이 지났어요. 총괄관리자에게 문의해 주세요."
     else
       result = merge.reverse!(performed_by: Current.user)
+      run_reverse_side_effects(merge) # 커밋 후 랭킹/시즌 방송 갱신(차감 반영)
       redirect_to teacher_account_links_path, notice: reverse_notice(result)
     end
+  rescue AccountMerge::ReversalError => error
+    redirect_to teacher_account_links_path, alert: error.message
   end
 
   private
+
+  # 되돌리기 커밋 후 생존자 랭킹/시즌 방송·재평가(experience/시즌 차감을 라이브 랭킹에 반영). 뱃지는
+  # 단조라 회수하지 않는다(귀속 규칙=points/exp/season 만). 방송 실패는 되돌리기를 되돌리지 않는다.
+  def run_reverse_side_effects(merge)
+    survivor = User.find_by(id: merge.surviving_user_id)
+    survivor&.run_point_side_effects!
+  rescue StandardError => error
+    Rails.logger.warn("[account_link reverse] 생존자 사이드이펙트 실패: #{error.class}: #{error.message}")
+  end
 
   def current_classroom_students
     User.where(classroom_id: teacher_classrooms.select(:id), role: :student).order(:name)

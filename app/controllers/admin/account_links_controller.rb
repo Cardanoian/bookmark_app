@@ -25,7 +25,8 @@ class Admin::AccountLinksController < Admin::BaseController
     end
   end
 
-  # 되돌리기(총괄은 시간창 무제한).
+  # 되돌리기(총괄은 시간창 무제한). 동시 되돌리기·유니크 충돌은 reverse! 가 ReversalError 로 감싸므로
+  # raw 500 없이 alert 리다이렉트로 처리한다.
   def reverse
     merge = AccountMerge.find(params[:id])
 
@@ -33,10 +34,11 @@ class Admin::AccountLinksController < Admin::BaseController
       redirect_to admin_account_links_path, alert: "이미 되돌린 연동이에요."
     else
       result = merge.reverse!(performed_by: Current.user)
-      notice = "연동을 되돌렸어요."
-      notice += " 되돌린 계정은 새로 로그인해야 해요." if result[:requires_new_login]
-      redirect_to admin_account_links_path, notice: notice
+      run_reverse_side_effects(merge) # 커밋 후 랭킹/시즌 방송 갱신(차감 반영)
+      redirect_to admin_account_links_path, notice: reverse_notice(result)
     end
+  rescue AccountMerge::ReversalError => error
+    redirect_to admin_account_links_path, alert: error.message
   end
 
   private
@@ -47,5 +49,19 @@ class Admin::AccountLinksController < Admin::BaseController
 
     survivor_ids = User.where("name LIKE ?", "%#{query.strip}%").select(:id)
     scope.where(surviving_user_id: survivor_ids)
+  end
+
+  # 되돌리기 커밋 후 생존자 랭킹/시즌 방송·재평가(experience/시즌 차감 반영). 뱃지는 단조라 회수 안 함.
+  def run_reverse_side_effects(merge)
+    survivor = User.find_by(id: merge.surviving_user_id)
+    survivor&.run_point_side_effects!
+  rescue StandardError => error
+    Rails.logger.warn("[account_link reverse] 생존자 사이드이펙트 실패: #{error.class}: #{error.message}")
+  end
+
+  def reverse_notice(result)
+    notice = "연동을 되돌렸어요."
+    notice += " 되돌린 계정은 새로 로그인해야 해요." if result[:requires_new_login]
+    notice
   end
 end
