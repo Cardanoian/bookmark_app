@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -176,6 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000001) do
   end
 
   create_table "classrooms", force: :cascade do |t|
+    t.integer "academic_year", null: false
     t.integer "class_no"
     t.datetime "created_at", null: false
     t.integer "grade"
@@ -183,7 +184,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000001) do
     t.integer "school_id", null: false
     t.integer "teacher_id"
     t.datetime "updated_at", null: false
-    t.index ["school_id", "grade", "class_no"], name: "index_classrooms_on_school_id_and_grade_and_class_no", unique: true
+    t.index ["school_id", "academic_year", "grade", "class_no"], name: "index_classrooms_on_school_year_grade_class", unique: true
     t.index ["school_id"], name: "index_classrooms_on_school_id"
     t.index ["teacher_id"], name: "index_classrooms_on_teacher_id"
   end

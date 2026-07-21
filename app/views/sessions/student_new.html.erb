@@ -5,7 +5,7 @@
   <div class="card">
     <%# flash 오류는 공통 상단 토스트(shared/_flash)가 담당 — 여기서 중복 렌더하지 않음. %>
     <%= form_with url: student_login_path, method: :post, local: true, class: "space-y-4" do |f| %>
-      <%= render "schools/picker", regions: @regions, with_classroom: true %>
+      <%= render "schools/picker", regions: @regions, with_classroom: true, current_academic_year: @current_academic_year %>
 
       <div>
         <%= label_tag :name, "이름", class: "form-label" %>

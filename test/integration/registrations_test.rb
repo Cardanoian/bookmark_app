@@ -37,6 +37,54 @@ class RegistrationsTest < ActionDispatch::IntegrationTest
     assert_equal user, classroom.teacher
   end
 
+  test "teacher signup creates the classroom in the chosen academic year" do
+    post registrations_path, params: {
+      role: "teacher", school_id: @school.id, name: "학년도교사",
+      email: "year@example.com", password: "password", academic_year: 2027, grade: 4, class_no: 2
+    }
+
+    classroom = Classroom.find_by(school: @school, academic_year: 2027, grade: 4, class_no: 2)
+    assert_not_nil classroom, "지정한 학년도로 학급이 개설돼야 한다"
+    assert_equal User.find_by(name: "학년도교사"), classroom.teacher
+  end
+
+  test "the same grade and class_no can be created for different academic years" do
+    # @classroom(setup) 은 현재 학년도의 3-1. 다른 학년도의 3-1 은 별개 학급으로 공존해야 한다.
+    other_year = @classroom.academic_year + 1
+    post registrations_path, params: {
+      role: "teacher", school_id: @school.id, name: "다음학년도교사",
+      email: "nextyear@example.com", password: "password",
+      academic_year: other_year, grade: @classroom.grade, class_no: @classroom.class_no
+    }
+
+    created = Classroom.find_by(school: @school, academic_year: other_year,
+      grade: @classroom.grade, class_no: @classroom.class_no)
+    assert_not_nil created, "다른 학년도의 같은 학년·반은 별개 학급으로 생성(유니크 충돌 없음)"
+    assert_not_equal @classroom.id, created.id
+    assert_equal User.find_by(name: "다음학년도교사"), created.teacher
+  end
+
+  test "an out-of-range academic_year re-renders the form instead of a 422 error page" do
+    assert_no_difference "User.count" do
+      post registrations_path, params: {
+        role: "teacher", school_id: @school.id, name: "잘못된학년도교사",
+        email: "badyear@example.com", password: "password", academic_year: "26", grade: 4, class_no: 9
+      }
+    end
+    assert_response :unprocessable_entity
+    assert_includes response.body, "학년도", "학년도 오류를 friendly 하게 재렌더해야 한다"
+  end
+
+  test "signup without an academic_year falls back to the current school year" do
+    post registrations_path, params: {
+      role: "teacher", school_id: @school.id, name: "학년도생략교사",
+      email: "noyear@example.com", password: "password", grade: 6, class_no: 3
+    }
+
+    classroom = Classroom.find_by(school: @school, grade: 6, class_no: 3)
+    assert_equal Classroom.current_academic_year, classroom.academic_year
+  end
+
   test "signup without an email is rejected" do
     assert_no_difference "User.count" do
       post registrations_path, params: {

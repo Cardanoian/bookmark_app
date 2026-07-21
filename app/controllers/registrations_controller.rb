@@ -24,6 +24,7 @@ class RegistrationsController < ApplicationController
     # presence 오류를 추가한다(valid? 가 뒤에 오면 수동 추가 오류가 지워지므로 순서가 중요).
     user.valid?
     user.errors.add(:email, "을(를) 입력해 주세요.") if user.email.blank?
+    add_academic_year_error(user)
 
     unless user.errors.empty?
       render_new_with_errors(user)
@@ -50,6 +51,7 @@ class RegistrationsController < ApplicationController
 
     classroom = Classroom.find_or_create_by!(
       school_id: user.school_id,
+      academic_year: params[:academic_year].presence || Classroom.current_academic_year,
       grade: params[:grade],
       class_no: params[:class_no]
     )
@@ -59,6 +61,18 @@ class RegistrationsController < ApplicationController
 
     classroom.update!(teacher: user)
     user.update!(classroom: classroom)
+  end
+
+  # 학년도는 학급이 만들어질 때만(grade·class_no 존재) 의미가 있다. 범위 밖·비정수 입력을
+  # find_or_create_by! 가 RecordInvalid(422 정적 페이지·폼 유실)로 던지기 전에 여기서 잡아
+  # 이메일 오류와 동일하게 friendly 재렌더한다. 빈 값은 assign_classroom 이 현재 학년도로 폴백한다.
+  def add_academic_year_error(user)
+    return if params[:grade].blank? || params[:class_no].blank? || params[:academic_year].blank?
+
+    year = params[:academic_year].to_s.strip
+    return if year.match?(/\A\d+\z/) && year.to_i.between?(2001, 2999)
+
+    user.errors.add(:base, "학년도는 2001~2999 사이로 입력해 주세요.")
   end
 
   def render_new_with_errors(user)
@@ -71,5 +85,6 @@ class RegistrationsController < ApplicationController
   # 시도(교육청) 목록만 서버 렌더한다. 학급은 number_field(grade/class_no)라 학급 로드 불요.
   def load_form_collections
     @regions = School.form_regions
+    @current_academic_year = Classroom.current_academic_year
   end
 end

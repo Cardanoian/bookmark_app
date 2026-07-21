@@ -80,4 +80,27 @@ class SchoolsSearchTest < ActionDispatch::IntegrationTest
     assert_equal 2, body.size, "선택 학교 학급만(전국 전량 로드 아님)"
     assert_equal [ "1학년 2반", "3학년 1반" ], body.map { |classroom| classroom["label"] }
   end
+
+  test "classrooms filters by academic_year when the parameter is present" do
+    school = School.create!(name: "학년도초")
+    Classroom.create!(school: school, academic_year: 2026, grade: 3, class_no: 1)
+    Classroom.create!(school: school, academic_year: 2027, grade: 3, class_no: 1)
+
+    get school_classrooms_path(id: school.id), params: { academic_year: 2027 }
+
+    body = response.parsed_body
+    assert_equal 1, body.size, "선택 학년도 학급만 반환"
+    assert_equal 2027, body.first["academic_year"]
+    assert_equal "3학년 1반", body.first["label"]
+  end
+
+  test "classrooms returns every year when no academic_year is given (graceful fallback)" do
+    school = School.create!(name: "폴백초")
+    Classroom.create!(school: school, academic_year: 2026, grade: 3, class_no: 1)
+    Classroom.create!(school: school, academic_year: 2027, grade: 3, class_no: 1)
+
+    get school_classrooms_path(id: school.id)
+
+    assert_equal 2, response.parsed_body.size, "학년도 파라미터 없으면 전 학년도(폴백)"
+  end
 end

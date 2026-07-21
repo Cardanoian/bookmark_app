@@ -172,5 +172,6 @@ class SessionsController < ApplicationController
   # 학급은 학교 선택 시 /schools/:id/classrooms 로 스코프 조회한다(전국 전량 로드 제거, §2.2).
   def load_form_collections
     @regions = School.form_regions
+    @current_academic_year = Classroom.current_academic_year
   end
 end

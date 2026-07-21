@@ -7,7 +7,7 @@ import { Controller } from "@hotwired/stimulus"
 // 타깃에 담기고, gu 가 비거나 부정확한 학교도 이름검색으로 항상 도달 가능(graceful degrade).
 // 로그인 폼(classroom 타깃 존재)이면 선택 학교의 학급만 스코프 조회해 종속 드롭다운을 채운다.
 export default class extends Controller {
-  static targets = ["region", "gu", "query", "school", "classroom", "results", "selected"]
+  static targets = ["region", "gu", "query", "school", "classroom", "results", "selected", "academicYear"]
 
   regionChanged() {
     const region = this.regionTarget.value
@@ -64,10 +64,22 @@ export default class extends Controller {
     const id = this.schoolTarget.value
     if (!id || !this.hasClassroomTarget) return
 
-    this.fetchJson(`/schools/${encodeURIComponent(id)}/classrooms`).then((rooms) => {
+    this.fetchJson(`/schools/${encodeURIComponent(id)}/classrooms${this.academicYearQuery()}`).then((rooms) => {
       this.setOptions(this.classroomTarget, (rooms || []).map((room) => ({ value: room.id, label: room.label })), "학급 없음")
       this.classroomTarget.disabled = false
     })
+  }
+
+  // 학년도 선택이 바뀌면 이미 학교를 골랐을 때만 학급을 재조회(같은 반 번호의 다른 학년도 구분).
+  academicYearChanged() {
+    if (this.schoolTarget.value) this.schoolChanged()
+  }
+
+  // 학급 조회 URL 의 학년도 쿼리(타깃·값이 있을 때만). 없으면 서버가 전 학년도를 반환(그레이스풀).
+  academicYearQuery() {
+    if (!this.hasAcademicYearTarget) return ""
+    const year = this.academicYearTarget.value
+    return year ? `?academic_year=${encodeURIComponent(year)}` : ""
   }
 
   // 검색·캐스케이딩 결과를 클릭 가능한 목록으로 렌더한다. 결과가 없으면 안내 항목만 보여 준다.

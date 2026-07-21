@@ -29,9 +29,14 @@ class SchoolsController < ApplicationController
   end
 
   # 로그인 폼 종속 드롭다운 — 선택 학교의 학급만 조회(전국 전량 로드 제거, 계획 §2.2).
+  # academic_year 파라미터가 오면 그 학년도 학급만 반환한다(같은 반 번호의 학년도 중복 구분).
+  # 파라미터가 없으면(JS 미로딩 등 폴백) 전 학년도를 반환하되 label 은 항상 단일 의미(회귀 방지).
   def classrooms
     school = School.find_by(id: params[:id])
-    rooms = school ? school.classrooms.order(:grade, :class_no) : []
-    render json: rooms.map { |classroom| { id: classroom.id, label: classroom.label } }
+    rooms = school ? school.classrooms.order(:academic_year, :grade, :class_no) : Classroom.none
+    rooms = rooms.where(academic_year: params[:academic_year]) if params[:academic_year].present?
+    render json: rooms.map { |classroom|
+      { id: classroom.id, label: classroom.label, academic_year: classroom.academic_year }
+    }
   end
 end

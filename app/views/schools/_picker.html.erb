@@ -47,6 +47,18 @@
   </div>
 
   <% if with_classroom %>
+    <%# 학년도 선택(기본=현재 학년도, 서버 계산값). 학년도를 바꾸면 school-picker 가 학급을 재조회해
+        같은 반 번호의 다른 학년도 학급을 구분한다. 기본값이 현재 학년도라 대개 그대로 진행한다. %>
+    <% current_year = local_assigns.fetch(:current_academic_year, Classroom.current_academic_year) %>
+    <div>
+      <%= label_tag :academic_year, "학년도", class: "form-label" %>
+      <select name="academic_year" id="academic_year" data-school-picker-target="academicYear"
+              data-action="change->school-picker#academicYearChanged" class="form-select">
+        <% ((current_year - 1)..(current_year + 1)).each do |year| %>
+          <option value="<%= year %>" <%= "selected" if year == current_year %>><%= "#{year}학년도" %></option>
+        <% end %>
+      </select>
+    </div>
     <div>
       <%= label_tag :classroom_id, "학급 (선택)", class: "form-label" %>
       <select name="classroom_id" id="classroom_id" data-school-picker-target="classroom"

@@ -3,7 +3,7 @@ class Teacher::StudentsController < Teacher::BaseController
   before_action :set_student, only: [ :destroy, :reset_password, :give_points ]
 
   def index
-    @classrooms = teacher_classrooms.order(:grade, :class_no).to_a
+    @classrooms = teacher_classrooms.order(:academic_year, :grade, :class_no).to_a
     @students = User.where(classroom_id: @classrooms.map(&:id), role: :student).order(:name)
   end
 

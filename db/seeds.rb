@@ -129,6 +129,9 @@ unless sample_data.fetch("excluded_environments", []).include?(Rails.env)
       end
       classroom = Classroom.find_or_initialize_by(
         school_id: sample_school.id,
+        # 샘플 학급은 현재 학년도로 생성해 로그인 폼 기본 학년도(현재)에서 바로 조회된다.
+        # accounts.yml 에 academic_year 를 명시하면 그 값이 우선한다(과거 학년도 샘플 고정 등).
+        academic_year: classroom_data["academic_year"] || Classroom.current_academic_year,
         grade: classroom_data.fetch("grade"),
         class_no: classroom_data.fetch("class_no")
       )
