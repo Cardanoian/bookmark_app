@@ -103,6 +103,18 @@ class Games::QuestionScorerTest < ActiveSupport::TestCase
     assert_equal 2, honest[:score]
   end
 
+  test "hint_reveal ignores whitespace differences in both the answer and the response" do
+    q = question(question_type: :hint_reveal,
+                 content: { "hints" => [ "힌트1" ] },
+                 answer: "쌍둥이 자매")
+
+    no_space = Games::QuestionScorer.for(q).score("쌍둥이자매", hints_used: 0)
+    extra_space = Games::QuestionScorer.for(q).score(" 쌍둥이   자매 ", hints_used: 0)
+
+    assert no_space[:correct]
+    assert extra_space[:correct]
+  end
+
   test "for raises on an unknown question_type" do
     q = question(question_type: :mcq_single, choices: %w[가 나], answer_index: 0)
     q.define_singleton_method(:question_type) { "unknown" }

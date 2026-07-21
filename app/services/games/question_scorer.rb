@@ -95,7 +95,7 @@ module Games
       private
 
       def normalize(value)
-        value.to_s.strip.downcase
+        value.to_s.gsub(/\s+/, "").downcase
       end
     end
 
