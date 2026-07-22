@@ -7,7 +7,7 @@
       ].join(" "),
       data: { dex_target: "card", element: line.element } do %>
   <% if evolvable %>
-    <span class="badge badge-yellow absolute left-2 top-2 px-1.5 py-0.5 text-[10px] font-bold opacity-80">진화 가능</span>
+    <span class="badge badge-yellow absolute left-2 top-2 px-1.5 py-0.5 text-[10px] font-bold opacity-70">진화 가능</span>
   <% end %>
   <%# 좌측 열: 소유=큰 몬스터 이미지(모바일 64 / 태블릿·PC 96px) / 미소유=자물쇠(48px) + 그 아래 해금 조건. %>
   <div class="flex w-16 shrink-0 flex-col items-center gap-2 sm:w-24">
@@ -31,8 +31,8 @@
       <% end %>
     <% end %>
   </div>
-  <%# 우측 열: 번호·이름·속성. %>
-  <div class="flex min-w-0 flex-col gap-1 pt-1">
+  <%# 우측 열: 번호·이름·속성. 카드(이미지) 높이 대비 세로 중앙 정렬 + 상하 마진. %>
+  <div class="flex min-w-0 flex-col gap-1 self-center my-2">
     <p class="text-xs text-muted">No.<%= format("%02d", line.dex_no) %></p>
     <p class="text-sm font-semibold text-ink">
       <%= owned ? species.name : "???" %>
