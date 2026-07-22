@@ -10,11 +10,11 @@
     <span class="badge badge-yellow absolute right-2 top-2 px-1.5 py-0.5 text-[10px] font-bold">진화 가능</span>
   <% end %>
 
-  <%# 좌측 열: 소유=큰 몬스터 이미지(96px) / 미소유=자물쇠(48px) + 그 아래 해금 조건. %>
-  <div class="flex w-24 shrink-0 flex-col items-center gap-2">
+  <%# 좌측 열: 소유=큰 몬스터 이미지(모바일 64 / 태블릿·PC 96px) / 미소유=자물쇠(48px) + 그 아래 해금 조건. %>
+  <div class="flex w-16 shrink-0 flex-col items-center gap-2 sm:w-24">
     <% if owned %>
-      <div class="flex h-24 w-24 items-center justify-center text-7xl" aria-hidden="true">
-        <%= monster_sprite(species, img_class: "h-24 w-24 object-contain") %>
+      <div class="flex h-16 w-16 items-center justify-center text-4xl sm:h-24 sm:w-24 sm:text-7xl" aria-hidden="true">
+        <%= monster_sprite(species, img_class: "h-16 w-16 object-contain sm:h-24 sm:w-24") %>
       </div>
     <% else %>
       <div class="flex h-12 w-12 items-center justify-center text-4xl" aria-hidden="true">🔒</div>
