@@ -37,7 +37,7 @@
               </span>
               <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
             </div>
-            <div class="progress-bar mt-1"><span style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></span></div>
+            <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
           </div>
         <% end %>
         <% if @participation&.rewarded_at? %>
