@@ -7,7 +7,10 @@
       <h1 class="page-title"><span aria-hidden="true">🔥</span> 챌린지</h1>
     </div>
     <div class="page-actions">
-      <%= link_to "← 내 서재", root_path, class: "text-sm text-steel hover:text-ink" %>
+      <% if policy(Challenge).new? %>
+        <%= link_to "+ 새 챌린지 만들기", new_challenge_path, class: "btn btn-primary btn-sm" %>
+      <% end %>
+      <%= link_to "← 홈으로", root_path, class: "text-sm text-steel hover:text-ink" %>
     </div>
   </header>
 
@@ -19,10 +22,30 @@
             <p class="text-sm font-semibold text-ink"><%= challenge.title %></p>
             <span class="badge badge-info"><%= challenge.global? ? "전국" : "우리 학교" %> 챌린지</span>
           </div>
-          <div class="mt-4 flex gap-2">
+          <% if challenge.starts_on || challenge.ends_on %>
+            <p class="mt-1 text-xs text-muted"><%= challenge.starts_on %> ~ <%= challenge.ends_on %></p>
+          <% end %>
+          <% if challenge.challenge_goals.any? %>
+            <div class="mt-2 flex flex-wrap gap-1">
+              <% challenge.challenge_goals.each do |goal| %>
+                <span class="badge badge-neutral"><%= goal.approved_reports? ? "✏️ 독후감" : "🎮 게임" %> <%= goal.target_count %></span>
+              <% end %>
+              <% if challenge.reward_points.to_i.positive? %>
+                <span class="badge badge-yellow">🎁 <%= challenge.reward_points %>P</span>
+              <% end %>
+            </div>
+          <% end %>
+          <div class="mt-4 flex flex-wrap gap-2">
             <%= link_to "상세", challenge_path(challenge), class: "btn btn-secondary btn-sm" %>
             <% if current_user.student? %>
               <%= button_to "참여하기", join_challenge_path(challenge), method: :post, class: "btn btn-yellow btn-sm" %>
+            <% end %>
+            <% if policy(challenge).edit? %>
+              <%= link_to "수정", edit_challenge_path(challenge), class: "btn btn-secondary btn-sm" %>
+            <% end %>
+            <% if policy(challenge).destroy? %>
+              <%= button_to "삭제", challenge_path(challenge), method: :delete,
+                    form: { data: { turbo_confirm: "이 챌린지를 삭제할까요?" } }, class: "btn btn-danger btn-sm" %>
             <% end %>
           </div>
         </div>

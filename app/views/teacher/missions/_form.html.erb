@@ -5,8 +5,6 @@
 <% game_goal = mission.mission_goals.detect { |g| g.goal_type == "game_plays" } %>
 <% report_target = report_goal&.target_count %>
 <% game_target = game_goal&.target_count %>
-<%# 목표별 도서 hidden 은 미션 컬럼이 아니라 mission[goal_books][<type>] 로 보내므로 전용 빌더로 그린다. %>
-<% goal_books_form = ActionView::Helpers::FormBuilder.new("mission[goal_books]", nil, self, {}) %>
 <%= form_with model: mission, url: (mission.persisted? ? teacher_mission_path(mission) : teacher_missions_path),
       class: "card space-y-4" do |f| %>
   <% if mission.errors.any? %>
@@ -53,10 +51,12 @@
         <%= number_field_tag "mission[goals][approved_reports]", report_target, min: 0, max: 20, class: "form-input", placeholder: "예: 3" %>
       </label>
       <div>
-        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 비우면 아무 책이나 인정)</span></span>
-        <%= render "books/autocomplete_field", form: goal_books_form, book_id_field: :approved_reports,
-              title_field: nil, url: autocomplete_books_path, mode: "strict",
-              show_cover: true, selected_book: report_goal&.book %>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "mission[goal_books][approved_reports][ids][]",
+              isbns_name: "mission[goal_books][approved_reports][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (report_goal&.books || []) %>
       </div>
     </div>
 
@@ -66,10 +66,12 @@
         <%= number_field_tag "mission[goals][game_plays]", game_target, min: 0, max: 50, class: "form-input", placeholder: "예: 2" %>
       </label>
       <div>
-        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 비우면 아무 책이나 인정)</span></span>
-        <%= render "books/autocomplete_field", form: goal_books_form, book_id_field: :game_plays,
-              title_field: nil, url: autocomplete_books_path, mode: "strict",
-              show_cover: true, selected_book: game_goal&.book %>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "mission[goal_books][game_plays][ids][]",
+              isbns_name: "mission[goal_books][game_plays][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (game_goal&.books || []) %>
       </div>
     </div>
   </fieldset>

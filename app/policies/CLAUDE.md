@@ -10,7 +10,7 @@
 - `book_intro_policy.rb` — 책 소개 대결. **경계=학급**: 소개 작성은 학급 소속 학생(`create?`), 투표는 같은 학급 또래의 소개만(`vote?`, 자기 소개 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 소개만 노출(크로스-학급 열람·투표 차단).
 - `book_sequel_policy.rb` — 뒷이야기 이어쓰기(BookIntroPolicy 미러). **경계=학급**: 작성은 학급 소속 학생(`create?`), 공감은 같은 학급 또래의 글만(`vote?`, 자기 글 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 뒷이야기만 노출(크로스-학급 열람·공감 차단).
 - `account_link_policy.rb` — 계정 연동(MERGE) 학생 셀프서브(account_linking_seasons_plan §Phase 3, BookIntroPolicy 미러). `new?/preview?/confirm? = user.student? && user.classroom_id.present?`(교사·비학급·비로그인 차단). Scope 불필요(심볼 정책 `authorize :account_link, ...`). 실제 병합 가드(작년 계정 소유증명·학년도 경계·정지·동시성)는 정책이 아니라 `Accounts::MergeService`가 트랜잭션에서 강제한다.
-- `challenge_policy.rb` — 챌린지. 열람은 로그인 사용자, 참여(join)는 학생.
+- `challenge_policy.rb` — 챌린지. 열람은 로그인 사용자, 참여(join)는 학생 + **manage?(교직원=staff)**, `new?`/`create?` = manage?, `edit?`/`update?`/`destroy?` = **manage_record?**(총괄=전권, 교사·사서·교무는 **우리 학교의 학교스코프 챌린지만** — global·타교 챌린지는 총괄만) + **Scope**(총괄=전체, 그 외 로그인=전국+소속학교, 비로그인=none).
 - `cheer_policy.rb` — 응원. 학생만 생성하되 대상 게시물이 보이는(BoardPostPolicy#show?) 경우만. 취소는 본인 응원만.
 - `classroom_policy.rb` — 학급. show/Scope를 role별 분기(총괄=전체, 교사=담임 학급, 학생=소속 학급, 교무·사서=같은 학교).
 - `forum_post_policy.rb` — 토론 글. 대상 토픽을 열람 가능(TopicPolicy#show?)한 사용자만 작성.

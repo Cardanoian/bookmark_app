@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000014) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -174,10 +174,47 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000003) do
     t.check_constraint "length(isbn) = 13 AND isbn NOT GLOB '*[^0-9]*'", name: "chk_books_isbn13_format"
   end
 
+  create_table "challenge_goal_books", force: :cascade do |t|
+    t.integer "book_id", null: false
+    t.integer "challenge_goal_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_challenge_goal_books_on_book_id"
+    t.index ["challenge_goal_id", "book_id"], name: "index_challenge_goal_books_on_challenge_goal_id_and_book_id", unique: true
+    t.index ["challenge_goal_id"], name: "index_challenge_goal_books_on_challenge_goal_id"
+  end
+
+  create_table "challenge_goals", force: :cascade do |t|
+    t.integer "challenge_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "goal_type", null: false
+    t.integer "position"
+    t.integer "target_count", null: false
+    t.datetime "updated_at", null: false
+    t.index ["challenge_id", "goal_type"], name: "index_challenge_goals_on_challenge_id_and_goal_type", unique: true
+    t.index ["challenge_id"], name: "index_challenge_goals_on_challenge_id"
+    t.check_constraint "target_count > 0", name: "chk_challenge_goals_target_count_positive"
+  end
+
+  create_table "challenge_participations", force: :cascade do |t|
+    t.integer "challenge_id", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "reward_points_awarded", default: 0, null: false
+    t.datetime "rewarded_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["challenge_id", "user_id"], name: "index_challenge_participations_on_challenge_id_and_user_id", unique: true
+    t.index ["challenge_id"], name: "index_challenge_participations_on_challenge_id"
+    t.index ["user_id"], name: "index_challenge_participations_on_user_id"
+    t.check_constraint "reward_points_awarded >= 0", name: "chk_challenge_participations_reward_nonneg"
+  end
+
   create_table "challenges", force: :cascade do |t|
     t.integer "book_id"
     t.datetime "created_at", null: false
     t.date "ends_on"
+    t.integer "reward_points", default: 0, null: false
     t.integer "school_id"
     t.integer "scope", default: 0
     t.date "starts_on"
@@ -293,15 +330,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000003) do
     t.index ["school_id"], name: "index_library_loans_on_school_id"
   end
 
+  create_table "mission_goal_books", force: :cascade do |t|
+    t.integer "book_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "mission_goal_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_mission_goal_books_on_book_id"
+    t.index ["mission_goal_id", "book_id"], name: "index_mission_goal_books_on_mission_goal_id_and_book_id", unique: true
+    t.index ["mission_goal_id"], name: "index_mission_goal_books_on_mission_goal_id"
+  end
+
   create_table "mission_goals", force: :cascade do |t|
-    t.integer "book_id"
     t.datetime "created_at", null: false
     t.integer "goal_type", null: false
     t.integer "mission_id", null: false
     t.integer "position"
     t.integer "target_count", null: false
     t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_mission_goals_on_book_id"
     t.index ["mission_id", "goal_type"], name: "index_mission_goals_on_mission_id_and_goal_type", unique: true
     t.index ["mission_id"], name: "index_mission_goals_on_mission_id"
     t.check_constraint "target_count > 0", name: "chk_mission_goals_target_count_positive"
@@ -632,6 +677,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000003) do
   add_foreign_key "book_sequels", "books"
   add_foreign_key "book_sequels", "classrooms"
   add_foreign_key "book_sequels", "users"
+  add_foreign_key "challenge_goal_books", "books", on_delete: :cascade
+  add_foreign_key "challenge_goal_books", "challenge_goals", on_delete: :cascade
+  add_foreign_key "challenge_goals", "challenges"
+  add_foreign_key "challenge_participations", "challenges"
+  add_foreign_key "challenge_participations", "users"
   add_foreign_key "challenges", "books", on_delete: :nullify
   add_foreign_key "challenges", "schools", on_delete: :nullify
   add_foreign_key "cheers", "board_posts"
@@ -650,7 +700,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000003) do
   add_foreign_key "library_events", "books", on_delete: :nullify
   add_foreign_key "library_events", "schools", on_delete: :nullify
   add_foreign_key "library_loans", "schools", on_delete: :nullify
-  add_foreign_key "mission_goals", "books", on_delete: :nullify
+  add_foreign_key "mission_goal_books", "books", on_delete: :cascade
+  add_foreign_key "mission_goal_books", "mission_goals", on_delete: :cascade
   add_foreign_key "mission_goals", "missions"
   add_foreign_key "mission_participations", "missions"
   add_foreign_key "mission_participations", "users"

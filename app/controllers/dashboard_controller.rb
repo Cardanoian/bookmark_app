@@ -16,6 +16,9 @@ class DashboardController < ApplicationController
       # 학생 홈(menu_refactor 심화 §2.D.3): 발견·진행 중 미션 요약. 전체 기록은 내 서재로 이동.
       @home = StudentHomeQuery.new(Current.user, discovery_cycle: params[:discovery], recommend_cycle: params[:recommend],
                                                 popular_cycle: params[:popular])
+      # 챌린지 홈 진입점(ChallengePolicy::Scope 와 동일한 학생 경계 = 전국 + 우리 학교). 카드에 개수만 노출.
+      @joinable_challenge_count = Challenge.where(scope: :global)
+                                           .or(Challenge.where(scope: :school, school_id: Current.user.school_id)).count
       render "dashboard/student"
     end
   end

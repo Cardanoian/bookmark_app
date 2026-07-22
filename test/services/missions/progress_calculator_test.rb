@@ -10,9 +10,15 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
     @participation = MissionParticipation.create!(mission: @mission, user: @student, assigned_at: @mission.start_date.to_time)
   end
 
+  # goals 원소 해시의 book:(단일) / books:(배열) 키는 mission_goal_books 조인으로 빌드한다(멀티북 전환).
   def build_mission(goals:, start_date: Date.current - 2, end_date: Date.current + 2)
     mission = Mission.new(classroom: @classroom, title: "미션", start_date: start_date, end_date: end_date)
-    goals.each { |g| mission.mission_goals.build(g) }
+    goals.each do |g|
+      attrs = g.dup
+      books = (Array(attrs.delete(:book)) + Array(attrs.delete(:books))).compact
+      goal = mission.mission_goals.build(attrs)
+      books.each { |b| goal.mission_goal_books.build(book: b) }
+    end
     mission.status = :published
     mission.save!
     mission
@@ -114,6 +120,22 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
 
     GamePlay.create!(user: @student, game_type: :quiz, book: target_book, played_on: Date.current)
     assert_equal 1, calc(part).call[:goals].first[:current]
+    assert calc(part).completed?
+  end
+
+  test "여러 책 지정 목표는 그 목록 중 아무 책 독후감이나 센다(any-of 허용목록)" do
+    a = Book.create!(title: "허용A")
+    b = Book.create!(title: "허용B")
+    c = Book.create!(title: "목록밖C")
+    mission = build_mission(goals: [ { goal_type: :approved_reports, target_count: 2, books: [ a, b ] } ])
+    part = MissionParticipation.create!(mission: mission, user: @student, assigned_at: mission.start_date.to_time)
+
+    report(created_at: Time.current, book: a)
+    report(created_at: Time.current, book: c)          # 목록 밖 — 미인정
+    assert_equal 1, calc(part).call[:goals].first[:current]
+
+    report(created_at: Time.current, book: b)          # 목록 안 다른 책 — 인정
+    assert_equal 2, calc(part).call[:goals].first[:current]
     assert calc(part).completed?
   end
 

@@ -22,6 +22,7 @@ module Games
       play = record_game_play!(game_type: params[:game], book_id: quiz.book_id)
       # 신규 GamePlay(중복 재제출 아님)일 때만 미션 진행 평가(menu_refactor 심화 §2.A.3, 몬스터 해금 앞).
       Missions::EvaluateProgress.new(current_user).on_game_play(play) if play
+      Challenges::EvaluateProgress.new(current_user).on_game_play(play) if play
       discovered = play ? evaluate_monster_unlocks(current_user) : []
       redirect_to redirect_target(params[:game], quiz), notice: with_discovery(result_notice(attempt), discovered)
     end

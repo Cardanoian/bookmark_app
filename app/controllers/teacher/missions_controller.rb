@@ -1,6 +1,9 @@
 # 교사 미션 관리(menu_refactor 심화 PR4). 기간·정량목표·보상 draft 를 만들고 발행(자동 배정)한다.
-# 발행 후에는 제목·설명만 수정 가능(목표·기간·보상·학급 잠금). 삭제는 draft 만.
+# 발행 후에도 소유 교사는 목표·기간·보상을 수정하고 삭제할 수 있다(학급은 생성 시 고정). 목표는
+# 종류별로 '여러 책'을 허용목록으로 지정할 수 있고(any-of), 검색으로 원격 책을 추가할 수도 있다.
 class Teacher::MissionsController < Teacher::BaseController
+  include GoalBooks
+
   before_action :set_mission, only: [ :show, :edit, :update, :destroy, :publish ]
   before_action :set_classrooms, only: [ :new, :create, :edit, :update ]
 
@@ -35,20 +38,12 @@ class Teacher::MissionsController < Teacher::BaseController
   end
 
   def edit
-    return if @mission.draft?
-
-    # 발행 후에는 제목·설명만 수정(잠금 정책). 목표·기간은 읽기 전용으로 표시.
-    flash.now[:notice] = "발행된 미션은 제목·설명만 수정할 수 있어요."
   end
 
   def update
-    if @mission.draft?
-      @mission.assign_attributes(mission_params.except(:classroom_id))
-      apply_goals(@mission)
-    else
-      # 발행 후: 제목·설명 오탈자만 허용(목표·기간·보상·학급 잠금).
-      @mission.assign_attributes(mission_params.slice(:title, :description))
-    end
+    # 소유 교사는 발행 후에도 목표·기간·보상을 수정할 수 있다(학급은 생성 시 고정이라 재배정 안 함).
+    @mission.assign_attributes(mission_params.except(:classroom_id))
+    apply_goals(@mission)
 
     if @mission.save
       redirect_to teacher_mission_path(@mission), notice: "미션을 수정했어요."
@@ -67,10 +62,8 @@ class Teacher::MissionsController < Teacher::BaseController
   end
 
   def destroy
-    return redirect_to teacher_mission_path(@mission), alert: "발행된 미션은 삭제할 수 없어요(취소만 가능)." unless @mission.draft?
-
     @mission.destroy
-    redirect_to teacher_missions_path, notice: "미션 초안을 삭제했어요."
+    redirect_to teacher_missions_path, notice: "미션을 삭제했어요."
   end
 
   private
@@ -93,8 +86,8 @@ class Teacher::MissionsController < Teacher::BaseController
   end
 
   # 고정 2목표(승인 독후감·게임) 폼 입력 → mission_goals 재구성. target 이 양수인 종류만 목표로 만든다.
-  # 종류별로 특정 도서(mission[goal_books][<type>])를 지정하면 그 책의 활동만 인정, 없으면 아무 책이나
-  # 인정한다(book_id nil). draft 만 목표를 바꾼다(발행 후 update 는 이 경로를 타지 않음).
+  # 종류별로 '여러 책'을 허용목록으로 지정할 수 있고(GoalBooks 가 로컬 id + 원격 검색 isbn 을 해석),
+  # 지정하면 그 목록 중 어느 책 활동이든 인정, 비우면 아무 책이나 인정한다(any-of).
   def apply_goals(mission)
     mission.mission_goals.destroy_all if mission.persisted?
     mission.mission_goals.reset
@@ -102,17 +95,9 @@ class Teacher::MissionsController < Teacher::BaseController
       target = params.dig(:mission, :goals, goal_type).to_i
       next unless target.positive?
 
-      book_id = sanitized_book_id(params.dig(:mission, :goal_books, goal_type))
-      mission.mission_goals.build(goal_type: goal_type, target_count: target, book_id: book_id)
+      goal = mission.mission_goals.build(goal_type: goal_type, target_count: target)
+      resolve_goal_book_ids(:mission, goal_type).each { |book_id| goal.mission_goal_books.build(book_id: book_id) }
     end
-  end
-
-  # 폼 자동완성이 넘긴 book_id 를 서버에서 검증한다 — 카탈로그 도서(비-searched)만 연결하고
-  # 위조·searched 캐시 주입은 무시(nil)한다(quizzes 와 동일 관용구).
-  def sanitized_book_id(raw)
-    return nil if raw.blank?
-
-    Book.where.not(category: :searched).where(id: raw).pick(:id)
   end
 
   def publish_error(mission)

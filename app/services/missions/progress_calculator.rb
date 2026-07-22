@@ -34,22 +34,24 @@ module Missions
     end
 
     # 교사 현황용 batch. participations(같은 mission) → { user_id => { completed:, goals: [...] } }.
-    # 특정 도서 목표(goal.book_id)면 그 책의 활동만 집계한다(goal_type 당 1개라 종류별 단건 필터).
+    # 특정 도서 목표(goal.books)면 그 허용목록의 책 활동만 집계한다(any-of, goal_type 당 1개라 종류별 단건 필터).
     def self.batch(mission, participations:)
       user_ids = participations.map(&:user_id).uniq
-      goals = mission.mission_goals.includes(:book).order(:position, :id).to_a
+      goals = mission.mission_goals.includes(:books).order(:position, :id).to_a
       return user_ids.index_with { { completed: false, goals: [] } } if goals.empty? || user_ids.empty?
 
       report_goal = goals.find(&:approved_reports?)
       game_goal = goals.find(&:game_plays?)
+      report_book_ids = report_goal ? report_goal.books.map(&:id) : []
+      game_book_ids   = game_goal ? game_goal.books.map(&:id) : []
 
       report_scope = Report.where(classroom_id: mission.classroom_id, reviewed: true, revision_of_id: nil,
                                   user_id: user_ids, created_at: window_range(mission))
-      report_scope = report_scope.where(book_id: report_goal.book_id) if report_goal&.book_id
+      report_scope = report_scope.where(book_id: report_book_ids) if report_book_ids.any?
       report_counts = report_scope.group(:user_id).count
 
       game_scope = GamePlay.where(user_id: user_ids, played_on: mission.start_date..mission.end_date)
-      game_scope = game_scope.where(book_id: game_goal.book_id) if game_goal&.book_id
+      game_scope = game_scope.where(book_id: game_book_ids) if game_book_ids.any?
       game_counts = game_scope.group(:user_id).count # (표시용 근사 — 전학 clamp 미적용)
 
       participations.each_with_object({}) do |participation, acc|
@@ -60,7 +62,7 @@ module Missions
           else 0
           end
           { type: goal.goal_type, current: current, target: goal.target_count,
-            met: current >= goal.target_count, book_title: goal.book&.title }
+            met: current >= goal.target_count, book_title: goal.books.map(&:title).join(" · ").presence }
         end
         acc[participation.user_id] = { completed: rows.all? { |row| row[:met] }, goals: rows }
       end
@@ -76,13 +78,13 @@ module Missions
     private
 
     def ordered_goals
-      @ordered_goals ||= @mission.mission_goals.includes(:book).order(:position, :id).to_a
+      @ordered_goals ||= @mission.mission_goals.includes(:books).order(:position, :id).to_a
     end
 
     def goal_row(goal)
       current = current_for(goal)
       { type: goal.goal_type, current: current, target: goal.target_count,
-        met: current >= goal.target_count, book_title: goal.book&.title }
+        met: current >= goal.target_count, book_title: goal.books.map(&:title).join(" · ").presence }
     end
 
     def current_for(goal)
@@ -93,26 +95,28 @@ module Missions
       end
     end
 
-    # goal.book_id 별 메모(goal_type 당 1개라 종류별 단건 — 특정 도서면 그 책 독후감만 센다).
+    # goal.id 별 메모 — 특정 도서(들) 지정이면 그 허용목록의 책 독후감만 센다(any-of, 비면 아무 책이나).
     def approved_reports_count(goal)
-      (@approved_reports_count ||= {})[goal.book_id] ||= begin
+      (@approved_reports_count ||= {})[goal.id] ||= begin
+        book_ids = goal.books.map(&:id)
         scope = @user.reports
           .where(classroom_id: @mission.classroom_id, reviewed: true, revision_of_id: nil)
           .where(created_at: self.class.window_range(@mission))
-        scope = scope.where(book_id: goal.book_id) if goal.book_id
+        scope = scope.where(book_id: book_ids) if book_ids.any?
         scope.count
       end
     end
 
     def game_plays_count(goal)
-      (@game_plays_count ||= {})[goal.book_id] ||= begin
+      (@game_plays_count ||= {})[goal.id] ||= begin
+        book_ids = goal.books.map(&:id)
         start_d = [ @mission.start_date, assigned_on ].compact.max
         end_d   = [ @mission.end_date, unassigned_on ].compact.min
         if start_d.nil? || end_d.nil? || end_d < start_d
           0
         else
           scope = @user.game_plays.where(played_on: start_d..end_d)
-          scope = scope.where(book_id: goal.book_id) if goal.book_id
+          scope = scope.where(book_id: book_ids) if book_ids.any?
           scope.count
         end
       end

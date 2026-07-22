@@ -95,51 +95,60 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
     assert_match "같은 양의 포인트와 경험치", response.body
   end
 
-  test "edit form prefills the pinned book" do
+  test "edit form prefills the pinned books" do
     book = Book.create!(title: "지정된 책", category: :recommended)
     mission = Mission.create!(classroom: @classroom, title: "수정용", start_date: Date.current, end_date: Date.current + 7)
-    mission.mission_goals.create!(goal_type: :approved_reports, target_count: 1, book: book)
+    goal = mission.mission_goals.create!(goal_type: :approved_reports, target_count: 1)
+    goal.books << book
     login_as @teacher
     get edit_teacher_mission_path(mission)
     assert_response :success
-    assert_match "지정된 책", response.body # 자동완성 input 프리필 값
+    assert_match "지정된 책", response.body # 프리필 칩
   end
 
-  test "create can pin goals to specific books" do
+  test "create can pin goals to multiple specific books (any-of allowlist)" do
     report_book = Book.create!(title: "독후감 지정책", category: :recommended)
+    report_book2 = Book.create!(title: "독후감 지정책2", category: :recommended)
     game_book = Book.create!(title: "게임 지정책", category: :classic)
     login_as @teacher
     post teacher_missions_path, params: { mission: {
       title: "도서 지정 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
       goals: { approved_reports: 1, game_plays: 1 },
-      goal_books: { approved_reports: report_book.id, game_plays: game_book.id }
+      goal_books: {
+        approved_reports: { ids: [ report_book.id, report_book2.id ] },
+        game_plays: { ids: [ game_book.id ] }
+      }
     } }
     mission = Mission.order(:created_at).last
-    assert_equal report_book.id, mission.mission_goals.find_by(goal_type: :approved_reports).book_id
-    assert_equal game_book.id, mission.mission_goals.find_by(goal_type: :game_plays).book_id
+    assert_equal [ report_book.id, report_book2.id ].sort,
+      mission.mission_goals.find_by(goal_type: :approved_reports).books.map(&:id).sort
+    assert_equal [ game_book.id ], mission.mission_goals.find_by(goal_type: :game_plays).books.map(&:id)
   end
 
-  test "blank goal book means any book (nil book_id)" do
+  test "blank goal books means any book (no pinned books)" do
     login_as @teacher
     post teacher_missions_path, params: { mission: {
       title: "아무책 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
-      goals: { approved_reports: 1 }, goal_books: { approved_reports: "" }
+      goals: { approved_reports: 1 }
     } }
     mission = Mission.order(:created_at).last
-    assert_nil mission.mission_goals.find_by(goal_type: :approved_reports).book_id
+    assert_empty mission.mission_goals.find_by(goal_type: :approved_reports).books
   end
 
-  test "goal book is server-validated: searched-cache or forged id is dropped to nil" do
+  test "goal books are server-validated: searched-cache or forged ids are dropped" do
     searched = Book.create!(title: "검색캐시책", category: :searched)
     login_as @teacher
     post teacher_missions_path, params: { mission: {
       title: "위조 미션", start_date: Date.current.to_s, end_date: (Date.current + 7).to_s,
       goals: { approved_reports: 1, game_plays: 1 },
-      goal_books: { approved_reports: searched.id, game_plays: 999_999 }
+      goal_books: {
+        approved_reports: { ids: [ searched.id ] },
+        game_plays: { ids: [ 999_999 ] }
+      }
     } }
     mission = Mission.order(:created_at).last
-    assert_nil mission.mission_goals.find_by(goal_type: :approved_reports).book_id # searched 제외
-    assert_nil mission.mission_goals.find_by(goal_type: :game_plays).book_id       # 존재하지 않는 id 제외
+    assert_empty mission.mission_goals.find_by(goal_type: :approved_reports).books # searched 제외
+    assert_empty mission.mission_goals.find_by(goal_type: :game_plays).books        # 미존재 id 제외
   end
 
   test "publish transitions to published and auto-assigns classroom students" do
@@ -161,28 +170,29 @@ class TeacherMissionsTest < ActionDispatch::IntegrationTest
     assert_not MissionParticipation.exists?(mission: mission)
   end
 
-  test "published mission locks goals and dates on update but allows title" do
-    mission = Mission.new(classroom: @classroom, title: "잠금미션", start_date: Date.current, end_date: Date.current + 7)
+  test "published mission can be fully edited by the owning teacher" do
+    mission = Mission.new(classroom: @classroom, title: "잠금해제미션", start_date: Date.current, end_date: Date.current + 7)
     mission.mission_goals.build(goal_type: :approved_reports, target_count: 2)
     mission.save!
     mission.publish!
     login_as @teacher
     patch teacher_mission_path(mission), params: { mission: {
-      title: "새 제목", start_date: (Date.current + 30).to_s, goals: { approved_reports: 9 }
+      title: "새 제목", start_date: (Date.current + 10).to_s, end_date: (Date.current + 40).to_s,
+      goals: { approved_reports: 9 }
     } }
     mission.reload
-    assert_equal "새 제목", mission.title           # 제목은 수정됨
-    assert_equal Date.current, mission.start_date    # 기간은 잠김
-    assert_equal 2, mission.mission_goals.first.target_count  # 목표는 잠김
+    assert_equal "새 제목", mission.title                          # 제목 수정됨
+    assert_equal Date.current + 10, mission.start_date            # 기간도 수정됨(잠금 해제)
+    assert_equal 9, mission.mission_goals.first.target_count       # 목표도 수정됨
   end
 
-  test "published mission cannot be destroyed" do
-    mission = Mission.new(classroom: @classroom, title: "발행삭제금지", start_date: Date.current, end_date: Date.current + 7)
+  test "published mission can be destroyed by the owning teacher" do
+    mission = Mission.new(classroom: @classroom, title: "발행삭제", start_date: Date.current, end_date: Date.current + 7)
     mission.mission_goals.build(goal_type: :approved_reports, target_count: 1)
     mission.save!
     mission.publish!
     login_as @teacher
-    assert_no_difference -> { Mission.count } do
+    assert_difference -> { Mission.count }, -1 do
       delete teacher_mission_path(mission)
     end
   end

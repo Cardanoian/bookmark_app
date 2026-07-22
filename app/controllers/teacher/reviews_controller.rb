@@ -72,6 +72,8 @@ class Teacher::ReviewsController < ApplicationController
     # 미션완료→몬스터해금이 즉시 반영되게 하고, 반환값은 그대로 evaluate_monster_unlocks(discovered
     # 배열)로 유지한다(batch_approve 의 discovered.concat 의존 — 반환값 바뀌면 크래시).
     Missions::EvaluateProgress.new(report.user).on_report_approved(report)
+    # 챌린지 진행 평가(챌린지 목표화). 미션과 동형으로 몬스터 해금 앞에 둔다(같은 요청 반영).
+    Challenges::EvaluateProgress.new(report.user).on_report_approved(report)
     evaluate_monster_unlocks(report.user)
   end
 

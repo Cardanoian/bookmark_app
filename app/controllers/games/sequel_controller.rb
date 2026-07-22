@@ -33,6 +33,7 @@ module Games
         play = record_game_play!(game_type: :sequel, book_id: @book.id)
         # 신규 GamePlay 일 때만 미션 진행 평가(몬스터 해금 앞).
         Missions::EvaluateProgress.new(current_user).on_game_play(play) if play
+        Challenges::EvaluateProgress.new(current_user).on_game_play(play) if play
         discovered = play ? evaluate_monster_unlocks(current_user) : []
         # AI 격려 코멘트는 비동기(무대기). 무API 폴백이라 항상 코멘트가 달린다.
         SequelFeedbackJob.perform_later(@sequel.id)

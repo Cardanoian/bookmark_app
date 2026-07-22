@@ -1,0 +1,15 @@
+<% content_for :title, "챌린지 수정 · 책갈피" %>
+
+<div class="page-shell page-shell-form space-y-4">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">챌린지</p>
+      <h1 class="page-title"><span aria-hidden="true">✏️</span> 챌린지 수정</h1>
+    </div>
+    <div class="page-actions">
+      <%= link_to "← 챌린지 목록", challenges_path, class: "text-sm text-steel hover:text-ink" %>
+    </div>
+  </header>
+
+  <%= render "form", challenge: @challenge %>
+</div>

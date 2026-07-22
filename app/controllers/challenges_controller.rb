@@ -1,14 +1,65 @@
-# 전역/학교 챌린지 참여(P4.11). join → 세션 플래그로 다음 작성 독후감에 challenge_id 연결.
+# 전역/학교 챌린지. 조회·참여(학생)에 더해 관리(교직원)와 목표·보상까지 담는 최상위 컨트롤러.
+# 미션처럼 정량 목표(독후감 수·게임 수, 목표별 선택 도서)와 정확히-1회 포인트 보상을 설정할 수 있다.
+# 관리(new/create/edit/update/destroy)는 per-action Pundit(ChallengePolicy)로 게이트하고,
+# scope·school_id 는 폼 입력이 아니라 역할에서 파생한다(apply_scope_from_role, 위조 차단).
 class ChallengesController < ApplicationController
-  before_action :set_challenge, only: [ :show, :join ]
+  include GoalBooks
+
+  before_action :set_challenge, only: [ :show, :join, :edit, :update, :destroy ]
+
+  GOAL_TYPES = %w[approved_reports game_plays].freeze
 
   def index
     authorize :challenge, :index?
-    @challenges = joinable_challenges.order(created_at: :desc)
+    @challenges = policy_scope(Challenge).includes(:challenge_goals).order(created_at: :desc)
   end
 
   def show
     authorize :challenge, :show?
+    # 뷰어 학생의 진행을 평가(멱등 지연 참여·완료 시 보상)한 뒤 표시용 진행률을 계산한다.
+    Challenges::EvaluateProgress.new(current_user).evaluate(@challenge) if current_user.student?
+    @progress = Challenges::ProgressCalculator.new(@challenge, current_user).call if current_user.student? && @challenge.has_goals?
+    @participation = @challenge.challenge_participations.find_by(user: current_user) if current_user.student?
+  end
+
+  def new
+    @challenge = Challenge.new(reward_points: 50)
+    authorize @challenge
+  end
+
+  def create
+    @challenge = Challenge.new(challenge_params)
+    apply_scope_from_role(@challenge)
+    authorize @challenge
+    apply_goals(@challenge)
+
+    if @challenge.save
+      redirect_to challenge_path(@challenge), notice: "챌린지를 만들었어요."
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def edit
+    authorize @challenge
+  end
+
+  def update
+    authorize @challenge
+    @challenge.assign_attributes(challenge_params)
+    apply_goals(@challenge)
+
+    if @challenge.save
+      redirect_to challenge_path(@challenge), notice: "챌린지를 수정했어요."
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    authorize @challenge
+    @challenge.destroy
+    redirect_to challenges_path, notice: "챌린지를 삭제했어요."
   end
 
   def join
@@ -25,9 +76,35 @@ class ChallengesController < ApplicationController
     @challenge = Challenge.find(params[:id])
   end
 
-  # 전역 챌린지 + 소속 학교 챌린지.
-  def joinable_challenges
-    Challenge.where(scope: :global).or(Challenge.where(scope: :school, school_id: current_user.school_id))
+  # 제목·기간·보상만 폼에서 받는다. scope·school_id 는 역할에서 파생(apply_scope_from_role)해 위조를 차단한다.
+  def challenge_params
+    params.require(:challenge).permit(:title, :starts_on, :ends_on, :reward_points)
+  end
+
+  # 관리자 역할에서 scope·school_id 를 확정한다: 총괄=전국(global), 그 외 교직원=우리 학교(school, 본인 소속).
+  def apply_scope_from_role(challenge)
+    if current_user.superadmin?
+      challenge.scope = :global
+      challenge.school_id = nil
+    else
+      challenge.scope = :school
+      challenge.school_id = current_user.school_id
+    end
+  end
+
+  # 고정 2목표(승인 독후감·게임) 폼 입력 → challenge_goals 재구성(미션 apply_goals 미러). target 이 양수인
+  # 종류만 목표로 만든다. 종류별로 '여러 책'을 허용목록으로 지정할 수 있고(GoalBooks 가 로컬 id + 원격
+  # 검색 isbn 을 해석), 지정하면 그 목록 중 어느 책 활동이든 인정, 비우면 아무 책이나 인정(any-of).
+  def apply_goals(challenge)
+    challenge.challenge_goals.destroy_all if challenge.persisted?
+    challenge.challenge_goals.reset
+    GOAL_TYPES.each do |goal_type|
+      target = params.dig(:challenge, :goals, goal_type).to_i
+      next unless target.positive?
+
+      goal = challenge.challenge_goals.build(goal_type: goal_type, target_count: target)
+      resolve_goal_book_ids(:challenge, goal_type).each { |book_id| goal.challenge_goal_books.build(book_id: book_id) }
+    end
   end
 
   def joinable?(challenge)

@@ -96,7 +96,7 @@ class StudentHomeQuery
     participations = @user.mission_participations
                           .joins(:mission).merge(Mission.published)
                           .where("missions.start_date <= :d AND missions.end_date >= :d", d: Date.current)
-                          .includes(mission: { mission_goals: :book })
+                          .includes(mission: { mission_goals: :books })
     participations.map do |participation|
       mission = participation.mission
       {

@@ -20,7 +20,7 @@
           <% @mission.mission_goals.each do |goal| %>
             <li>
               <%= goal_label[goal.goal_type] %> <%= goal.target_count %><%= goal.goal_type == "approved_reports" ? "편" : "회" %>
-              <% if goal.book %><span class="text-steel">· 『<%= goal.book.title %>』</span><% else %><span class="text-steel">· 아무 책이나</span><% end %>
+              <% if goal.books.any? %><span class="text-steel">· 『<%= goal.books.map(&:title).join("』 『") %>』</span><% else %><span class="text-steel">· 아무 책이나</span><% end %>
             </li>
           <% end %>
         </ul>
@@ -34,14 +34,12 @@
   <div class="page-actions">
     <% if @mission.draft? %>
       <%= button_to "발행하기", publish_teacher_mission_path(@mission), method: :post,
-            form: { data: { turbo_confirm: "발행하면 목표·기간·보상을 바꿀 수 없어요. 발행할까요?" } },
+            form: { data: { turbo_confirm: "학급 학생에게 배정하고 발행할까요?" } },
             class: "btn btn-primary", disabled: @mission.mission_goals.empty? %>
-      <%= link_to "수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
-      <%= button_to "삭제", teacher_mission_path(@mission), method: :delete,
-            form: { data: { turbo_confirm: "초안을 삭제할까요?" } }, class: "btn btn-danger btn-sm" %>
-    <% else %>
-      <%= link_to "제목·설명 수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
     <% end %>
+    <%= link_to "수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
+    <%= button_to "삭제", teacher_mission_path(@mission), method: :delete,
+          form: { data: { turbo_confirm: "이 미션을 삭제할까요? 학생 진행·보상 기록도 함께 사라져요." } }, class: "btn btn-danger btn-sm" %>
     <%= link_to "목록", teacher_missions_path, class: "text-sm text-steel" %>
   </div>
 
@@ -60,7 +58,7 @@
                 <% @mission.mission_goals.each do |goal| %>
                   <th class="py-2 pr-3 font-medium">
                     <%= goal_label[goal.goal_type] %>
-                    <% if goal.book %><span class="block text-xs font-normal text-steel">『<%= goal.book.title %>』</span><% end %>
+                    <% if goal.books.any? %><span class="block text-xs font-normal text-steel">『<%= goal.books.map(&:title).join("』 『") %>』</span><% end %>
                   </th>
                 <% end %>
                 <th class="py-2 font-medium">상태</th>

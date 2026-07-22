@@ -72,7 +72,8 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     other  = Book.create!(title: "다른 도서")
     book_mission = Mission.new(classroom: @classroom, title: "지정도서 독후감", reward_points: 20,
                                start_date: Date.current, end_date: Date.current + 7)
-    book_mission.mission_goals.build(goal_type: :approved_reports, target_count: 1, book: target)
+    book_goal = book_mission.mission_goals.build(goal_type: :approved_reports, target_count: 1)
+    book_goal.mission_goal_books.build(book: target)
     book_mission.save!
     book_mission.publish!
     part = MissionParticipation.find_by(mission: book_mission, user: @student)

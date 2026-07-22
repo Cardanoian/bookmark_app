@@ -241,7 +241,9 @@ export default class extends Controller {
       this.coverTarget.classList.remove("hidden")
     }
 
-    this.dispatch("selected", { prefix: "book", detail: { id, title, cover } })
+    // isbn 은 원격(네이버) 선택에만 실려 온다(로컬은 null). 멀티북 바스켓이 원격 책을 구분해 등록 큐에
+    // 담을 수 있도록 detail 에 함께 전달한다(기존 단일 선택 리스너는 추가 키를 무시 — 하위호환).
+    this.dispatch("selected", { prefix: "book", detail: { id, title, cover, isbn } })
     this.clear()
   }
 

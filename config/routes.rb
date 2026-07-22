@@ -141,8 +141,9 @@ Rails.application.routes.draw do
   end
   resources :rankings, only: [ :index ]
   # 미션은 상위 메뉴/독립 화면 없이 홈·독서활동 문맥에 노출한다(menu_refactor 심화 PR6 — 세션 참여방식 제거).
-  # 자동 배정·자동 진행이라 학생 join 액션이 없다. challenge 는 이번 범위에서 세션 참여 유지.
-  resources :challenges, only: [ :index, :show ] do
+  # 챌린지: 조회·참여(학생 join → 세션 플래그) + 관리 CRUD(교직원 — 총괄=전국, 교사·사서·교무=우리 학교).
+  # scope·school_id 는 폼이 아니라 역할에서 파생(ChallengesController#apply_scope_from_role), 접근은 ChallengePolicy.
+  resources :challenges do
     member { post :join }
   end
 
