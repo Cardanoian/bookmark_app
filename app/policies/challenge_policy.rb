@@ -1,4 +1,4 @@
-# 챌린지 정책(P4.11). 열람은 로그인 사용자, 참여(join)는 학생, 관리(생성·수정·삭제)는 교직원.
+# 챌린지 정책(P4.11). 열람(show)은 Scope 와 대칭인 전국+소속학교 경계, 참여(join)는 학생, 관리(생성·수정·삭제)는 교직원.
 # 관리 학교 경계: 총괄관리자=전권(전국·모든 학교), 교사·사서·교무=우리 학교의 '학교 스코프' 챌린지만.
 # (scope·school_id 자체는 컨트롤러가 역할에서 파생해 위조를 차단하고, 정책은 레코드 단위 접근을 판정한다.)
 class ChallengePolicy < ApplicationPolicy
@@ -6,8 +6,13 @@ class ChallengePolicy < ApplicationPolicy
     user.present?
   end
 
+  # 상세 열람 경계 = Scope 와 대칭(전국 + 소속 학교). show 진입 자체를 막아 타 학교 school 스코프
+  # 챌린지 상세 조회 시 EvaluateProgress 가 크로스-스쿨 지연 참여·보상을 만드는 경로까지 함께 닫는다.
   def show?
-    user.present?
+    return false unless user
+    return true if user.superadmin?
+
+    record.global? || (user.school_id.present? && record.school_id == user.school_id)
   end
 
   def join?

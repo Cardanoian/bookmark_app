@@ -44,17 +44,19 @@
       <h2 class="text-lg font-bold text-ink">🎯 진행 중인 우리 반 미션</h2>
       <% missions.each do |item| %>
         <% mission = item[:mission] %>
-        <div class="card space-y-2">
+        <%# 카드 전체를 미션 상세로 링크(카드 안엔 인터랙티브 요소 없어 중첩 안전). %>
+        <%= link_to mission_path(mission), class: "card block space-y-2 hover:border-primary/40" do %>
           <div class="flex items-center justify-between gap-2">
             <span class="font-semibold text-ink"><%= mission.title %></span>
             <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP</span>
           </div>
+          <% if mission.description.present? %>
+            <p class="text-xs text-steel"><%= mission.description %></p>
+          <% end %>
           <% item[:progress][:goals].each do |g| %>
             <div>
               <div class="flex justify-between text-xs">
-                <span class="text-steel">
-                  <%= goal_label[g[:type]] %><% if g[:book_title] %> <span class="text-ink">『<%= g[:book_title] %>』</span><% end %>
-                </span>
+                <span class="text-steel"><%= goal_label[g[:type]] %></span>
                 <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
               </div>
               <div class="progress-bar mt-1"><span style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></span></div>
@@ -63,7 +65,7 @@
           <% if item[:participation].rewarded_at? %>
             <p class="text-sm font-semibold text-green-700">🎉 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
           <% end %>
-        </div>
+        <% end %>
       <% end %>
     </section>
   <% end %>

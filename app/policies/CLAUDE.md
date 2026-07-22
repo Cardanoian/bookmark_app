@@ -10,14 +10,14 @@
 - `book_intro_policy.rb` — 책 소개 대결. **경계=학급**: 소개 작성은 학급 소속 학생(`create?`), 투표는 같은 학급 또래의 소개만(`vote?`, 자기 소개 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 소개만 노출(크로스-학급 열람·투표 차단).
 - `book_sequel_policy.rb` — 뒷이야기 이어쓰기(BookIntroPolicy 미러). **경계=학급**: 작성은 학급 소속 학생(`create?`), 공감은 같은 학급 또래의 글만(`vote?`, 자기 글 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 뒷이야기만 노출(크로스-학급 열람·공감 차단).
 - `account_link_policy.rb` — 계정 연동(MERGE) 학생 셀프서브(account_linking_seasons_plan §Phase 3, BookIntroPolicy 미러). `new?/preview?/confirm? = user.student? && user.classroom_id.present?`(교사·비학급·비로그인 차단). Scope 불필요(심볼 정책 `authorize :account_link, ...`). 실제 병합 가드(작년 계정 소유증명·학년도 경계·정지·동시성)는 정책이 아니라 `Accounts::MergeService`가 트랜잭션에서 강제한다.
-- `challenge_policy.rb` — 챌린지. 열람은 로그인 사용자, 참여(join)는 학생 + **manage?(교직원=staff)**, `new?`/`create?` = manage?, `edit?`/`update?`/`destroy?` = **manage_record?**(총괄=전권, 교사·사서·교무는 **우리 학교의 학교스코프 챌린지만** — global·타교 챌린지는 총괄만) + **Scope**(총괄=전체, 그 외 로그인=전국+소속학교, 비로그인=none).
+- `challenge_policy.rb` — 챌린지. **열람(`show?`)은 Scope 와 대칭인 전국+소속학교 경계**(총괄=전체, 그 외=global 챌린지 또는 소속 학교 school 챌린지만 — 컨트롤러 show 가 `authorize @challenge` 레코드 기반이라 타 학교 school 챌린지 상세 조회 시 `EvaluateProgress` 크로스-스쿨 지연 참여·보상 생성 차단), 참여(join)는 학생 + **manage?(교직원=staff)**, `new?`/`create?` = manage?, `edit?`/`update?`/`destroy?` = **manage_record?**(총괄=전권, 교사·사서·교무는 **우리 학교의 학교스코프 챌린지만** — global·타교 챌린지는 총괄만) + **Scope**(총괄=전체, 그 외 로그인=전국+소속학교, 비로그인=none).
 - `cheer_policy.rb` — 응원. 학생만 생성하되 대상 게시물이 보이는(BoardPostPolicy#show?) 경우만. 취소는 본인 응원만.
 - `classroom_policy.rb` — 학급. show/Scope를 role별 분기(총괄=전체, 교사=담임 학급, 학생=소속 학급, 교무·사서=같은 학교).
 - `forum_post_policy.rb` — 토론 글. 대상 토픽을 열람 가능(TopicPolicy#show?)한 사용자만 작성.
 - `forum_post_like_policy.rb` — 토론 글 좋아요. 생성은 대상 토픽 열람 가능(TopicPolicy#show?)한 사용자만, 취소는 본인 좋아요만.
 - `forum_post_report_policy.rb` — 토론 글 신고(reading_discussion). 대상 토픽 열람 가능(TopicPolicy#show?) + **자기 글이 아닐 때만** 신고(`record.forum_post.user_id != user.id`). (교사 수동 숨김은 정책이 아니라 `Teacher::ForumModerations`가 `owned_student!`로 저자 학급 경계를 강제.)
 - `learn_policy.rb` — 단계 학습 위저드. 로그인 사용자면 진행(index·advance).
-- `mission_policy.rb` — 미션. 열람은 로그인 사용자, 참여(join)는 학생.
+- `mission_policy.rb` — 미션. **`show?`는 역할별 학급 경계**(총괄=전체, 교사=담당 학급[`record.classroom.teacher_id == user.id`], 학생=자기 학급+발행[`record.classroom_id == user.classroom_id && record.published?`], 교무·사서=같은 학교) — 최상위 `MissionsController#show`(학생 미션 상세 열람)의 크로스-학급·크로스-학교 열람을 차단(report_policy role-case 미러; 교사는 `classroom_id` nil 이라 학생 규칙 재사용 금지). 참여(join)는 학생.
 - `monster_policy.rb` — 몬스터. 도감 열람은 로그인 사용자, 진화·대표지정·먹이주기는 보유자 본인만(owns_record?).
 - `purchase_policy.rb` — 구매. 학생 본인만 생성.
 - `quiz_contribution_policy.rb` — 학생 출제 기여(전국 공유 문제은행 Phase 3 §4). **작성(출제)은 학급 소속 학생 본인만**(`create?`/`new?` = `user.student? && classroom_id`, BookIntroPolicy 미러). 교사·비학급·비로그인 불가. 교사 검토·수정·승인/반려 경계는 정책이 아니라 `Teacher::QuizContributionsController`가 `owned_student!`로 강제한다(담임이 자기 학급 학생 기여만 — 크로스-학급 403).

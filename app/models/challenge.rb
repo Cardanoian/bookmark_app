@@ -4,6 +4,8 @@
 #
 # scope·school_id 는 사용자 폼 입력이 아니라 관리자 역할에서 파생한다(ChallengesController#apply_scope_from_role):
 # 총괄관리자=전국(global), 교사·사서·교무=우리 학교(school, 본인 school_id).
+#
+# description(소개글)은 미션과 대칭인 선택 입력이라 별도 검증을 두지 않는다(빈 값 허용).
 class Challenge < ApplicationRecord
   # 보상 상한 폴백(AppSetting "challenge_reward_max_points" 미설정/무효 시). 미션(200)보다 큰
   # 전국/학교 스코프라 상한을 조금 높게 둔다.

@@ -185,4 +185,76 @@ class ChallengesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", challenges_path
   end
+
+  # ---- 소개글(description) 저장·재표시 ----
+
+  test "challenge create and update persist the description and redisplay it in the edit form" do
+    login_as @teacher_a
+    post challenges_path, params: { challenge: { title: "설명 있는 챌린지", description: "매주 한 권씩 읽어요" } }
+    created = Challenge.order(:created_at).last
+    assert_equal "매주 한 권씩 읽어요", created.description
+
+    # 수정 폼에 소개글 textarea 가 값과 함께 다시 채워진다.
+    get edit_challenge_path(created)
+    assert_response :success
+    assert_select "textarea[name=?]", "challenge[description]"
+    assert_match "매주 한 권씩 읽어요", response.body
+
+    # 수정으로 소개글이 갱신된다.
+    patch challenge_path(created), params: { challenge: { title: created.title, description: "규칙이 바뀌었어요" } }
+    assert_equal "규칙이 바뀌었어요", created.reload.description
+  end
+
+  # ---- 목록 카드: 학생 진행상황 + stretched-link + 버튼 동작 ----
+
+  test "student challenge index shows own progress on active goaled challenges" do
+    goaled = Challenge.create!(title: "진행 챌린지", scope: :global)
+    goaled.challenge_goals.create!(goal_type: :approved_reports, target_count: 2)
+    @student.reports.create!(classroom: @room_a, book_title: "읽은 책", reviewed: true)
+
+    login_as @student
+    get challenges_path
+    assert_response :success
+    assert_select ".progress-bar"
+    assert_match "1/2", response.body
+  end
+
+  test "challenge index cards use a stretched title link while the join button stays operable" do
+    login_as @student
+    get challenges_path
+    assert_response :success
+    # 카드 제목이 상세로 가는 링크(중복 '상세' 버튼은 제거)
+    assert_select "a[href=?]", challenge_path(@global), text: "전국 챌린지"
+    assert_select "a[href=?]", challenge_path(@global), count: 1
+    assert_match "after:absolute after:inset-0", response.body
+    # 참여 버튼(button_to → form)은 stretched 링크 위에서 독립 동작
+    assert_select "form[action=?]", join_challenge_path(@global)
+  end
+
+  test "manager challenge cards keep working edit and delete controls beside the stretched link" do
+    login_as @teacher_a
+    get challenges_path
+    assert_response :success
+    # A학교 챌린지는 교사A가 관리 가능 — 수정 링크·삭제 폼 유지
+    assert_select "a[href=?]", edit_challenge_path(@school_a_challenge)
+    assert_select "form[action=?]", challenge_path(@school_a_challenge)
+    # 카드 전체 클릭용 stretched 제목 링크도 함께 존재
+    assert_select "a[href=?]", challenge_path(@school_a_challenge), text: "A학교 챌린지"
+  end
+
+  # ---- 상세 하단 책 목록 → reading_activity 링크 ----
+  # 하단 책 목록은 shared/_activity_book_list 파셜(worker-2 담당)에 의존한다.
+
+  test "challenge detail bottom lists goal books linking to reading activity" do
+    book = Book.create!(title: "챌린지 지정도서", category: :recommended)
+    goaled = Challenge.create!(title: "지정도서 챌린지", scope: :global)
+    goal = goaled.challenge_goals.create!(goal_type: :approved_reports, target_count: 1)
+    goal.books << book
+
+    login_as @student
+    get challenge_path(goaled)
+    assert_response :success
+    assert_match "챌린지 지정도서", response.body
+    assert_select "a[href=?]", reading_activity_path(book_id: book.id)
+  end
 end

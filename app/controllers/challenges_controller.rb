@@ -11,11 +11,19 @@ class ChallengesController < ApplicationController
 
   def index
     authorize :challenge, :index?
-    @challenges = policy_scope(Challenge).includes(:challenge_goals).order(created_at: :desc)
+    @challenges = policy_scope(Challenge).includes(challenge_goals: :books).order(created_at: :desc)
+    # 학생 카드에 본인 진행상황을 표시하기 위해 목표 있는 활성 챌린지만 순수 진행률을 계산한다.
+    # EvaluateProgress(참여·보상 쓰기 부작용)는 목록 렌더에서 절대 호출하지 않는다.
+    if current_user.student?
+      @progress_by_challenge = @challenges.index_with do |c|
+        (c.has_goals? && c.active?) ? Challenges::ProgressCalculator.new(c, current_user).call : nil
+      end
+    end
   end
 
   def show
-    authorize :challenge, :show?
+    # 레코드 기반 authorize — 정책 show? 가 전국+소속학교 경계(Scope 대칭)를 레코드로 판정한다.
+    authorize @challenge
     # 뷰어 학생의 진행을 평가(멱등 지연 참여·완료 시 보상)한 뒤 표시용 진행률을 계산한다.
     Challenges::EvaluateProgress.new(current_user).evaluate(@challenge) if current_user.student?
     @progress = Challenges::ProgressCalculator.new(@challenge, current_user).call if current_user.student? && @challenge.has_goals?
@@ -73,12 +81,12 @@ class ChallengesController < ApplicationController
   private
 
   def set_challenge
-    @challenge = Challenge.find(params[:id])
+    @challenge = Challenge.includes(challenge_goals: :books).find(params[:id])
   end
 
-  # 제목·기간·보상만 폼에서 받는다. scope·school_id 는 역할에서 파생(apply_scope_from_role)해 위조를 차단한다.
+  # 제목·소개글·기간·보상만 폼에서 받는다. scope·school_id 는 역할에서 파생(apply_scope_from_role)해 위조를 차단한다.
   def challenge_params
-    params.require(:challenge).permit(:title, :starts_on, :ends_on, :reward_points)
+    params.require(:challenge).permit(:title, :description, :starts_on, :ends_on, :reward_points)
   end
 
   # 관리자 역할에서 scope·school_id 를 확정한다: 총괄=전국(global), 그 외 교직원=우리 학교(school, 본인 소속).

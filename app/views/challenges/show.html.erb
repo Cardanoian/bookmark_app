@@ -11,6 +11,9 @@
       <h1 class="text-2xl font-bold text-ink"><%= @challenge.title %></h1>
       <span class="badge badge-info"><%= @challenge.global? ? "전국" : "우리 학교" %> 챌린지</span>
     </div>
+    <% if @challenge.description.present? %>
+      <p class="whitespace-pre-line text-sm text-steel"><%= @challenge.description %></p>
+    <% end %>
     <% if @challenge.starts_on || @challenge.ends_on %>
       <p class="text-xs text-muted"><%= @challenge.starts_on %> ~ <%= @challenge.ends_on %></p>
     <% end %>
@@ -74,4 +77,8 @@
       <% end %>
     </div>
   <% end %>
+
+  <%# 하단: 목표에 지정된 책 목록(여러 목표에 중복 지정되면 uniq). 파셜이 카드·제목을 자체 렌더하며,
+      지정 도서가 없으면 '자유 독서' 안내 + 독서활동 링크를 렌더한다. 책을 누르면 reading_activity 로 이동. %>
+  <%= render "shared/activity_book_list", books: @challenge.challenge_goals.flat_map(&:books).uniq %>
 </div>

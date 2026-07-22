@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000014) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000015) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -213,6 +213,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000014) do
   create_table "challenges", force: :cascade do |t|
     t.integer "book_id"
     t.datetime "created_at", null: false
+    t.text "description"
     t.date "ends_on"
     t.integer "reward_points", default: 0, null: false
     t.integer "school_id"

@@ -20,6 +20,11 @@
     <%= f.text_field :title, class: "form-input", maxlength: 100, placeholder: "예: 여름방학 3권 읽기" %>
   </div>
 
+  <div>
+    <%= f.label :description, "설명(선택)", class: "form-label" %>
+    <%= f.text_area :description, rows: 2, class: "form-input", placeholder: "학생에게 보여줄 안내 문구" %>
+  </div>
+
   <div class="rounded-card bg-surface-soft p-3 text-xs text-steel">
     <% if challenge.persisted? %>
       <% if challenge.global? %>
