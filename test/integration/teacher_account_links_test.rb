@@ -36,6 +36,16 @@ class TeacherAccountLinksTest < ActionDispatch::IntegrationTest
     assert_equal 1, @student_old.reports.count
   end
 
+  test "교사 메뉴에서 계정 연동 화면으로 들어갈 수 있다" do
+    login_as(@teacher_a)
+
+    get teacher_students_path
+
+    assert_response :success
+    assert_includes response.body, "계정 연동"
+    assert_includes response.body, teacher_account_links_path
+  end
+
   test "다른 학급 학생을 NEW 로 지정하면 owned_student! 403" do
     other_new = User.create!(school: @school, classroom: @classroom_b, name: "남의반학생", password: "xpw123")
     login_as(@teacher_a)

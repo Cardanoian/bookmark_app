@@ -64,7 +64,7 @@ class AccountLinksController < ApplicationController
 
   private
 
-  # 기능 플래그 게이트(파일럿 격리·롤아웃). off 면 안내 후 홈으로(before_action 리다이렉트는 이후
+  # 기능 플래그 게이트(비상 차단·범위별 격리). off 면 안내 후 홈으로(before_action 리다이렉트는 이후
   # 콜백·verify_authorized 를 건너뛴다 — require_reading_discussion! 선례).
   def require_account_linking!
     return if account_linking_enabled?
@@ -73,7 +73,7 @@ class AccountLinksController < ApplicationController
   end
 
   def account_linking_enabled?
-    AppSetting.feature_enabled?("account_linking", scope: current_user&.classroom, default: false)
+    AppSetting.feature_enabled?("account_linking", scope: current_user&.classroom, default: true)
   end
 
   # 작년 계정 인증 성공 후: 유효한 이월 원천이면 미리보기, 아니면(자기 계정·현재 학년도) 거부.

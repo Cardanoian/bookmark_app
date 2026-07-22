@@ -15,6 +15,16 @@ class AdminAccountLinksTest < ActionDispatch::IntegrationTest
     Report.create!(user: @old, classroom: @old_classroom, book_title: "작년책", reviewed: true)
   end
 
+  test "총괄관리자 메뉴에서 계정 연동 감사 화면으로 들어갈 수 있다" do
+    login_as(@admin)
+
+    get admin_root_path
+
+    assert_response :success
+    assert_includes response.body, "계정 연동"
+    assert_includes response.body, admin_account_links_path
+  end
+
   test "총괄은 감사 목록을 보되 snapshot PII(비밀번호 다이제스트)는 노출하지 않는다" do
     digest = @old.password_digest
     perform_merge!(@old, @new, @admin)

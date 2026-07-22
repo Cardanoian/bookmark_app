@@ -49,6 +49,17 @@ class AccountLinksTest < ActionDispatch::IntegrationTest
     assert_includes response.body, new_account_link_path
   end
 
+  test "플래그가 아직 저장되지 않은 기존 설치에서도 진입점이 뜬다" do
+    AppSetting.set("feature_flags", { "on_demand_games" => true })
+    login_as(@new, password: "newpass1")
+
+    get profile_path
+
+    assert_response :success
+    assert_includes response.body, "계정 연동하기"
+    assert_includes response.body, new_account_link_path
+  end
+
   # ── preview → confirm 세션 스왑 ──────────────────────────────────────
   test "유효한 작년 자격증명으로 미리보기하면 생존자 자산을 보여 준다" do
     login_as(@new, password: "newpass1")

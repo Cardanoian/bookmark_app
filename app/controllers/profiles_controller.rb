@@ -15,7 +15,7 @@ class ProfilesController < ApplicationController
   # 아직 이 계정이 연동 생존자가 아닐 때만(이미 연동했으면 숨김). AccountLinkPolicy 와 같은 조건 + 플래그.
   def account_link_available?
     return false unless current_user.student? && current_user.classroom_id.present?
-    return false unless AppSetting.feature_enabled?("account_linking", scope: current_user.classroom, default: false)
+    return false unless AppSetting.feature_enabled?("account_linking", scope: current_user.classroom, default: true)
 
     !AccountMerge.active.exists?(surviving_user_id: current_user.id)
   end
