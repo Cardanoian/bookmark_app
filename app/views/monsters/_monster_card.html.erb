@@ -2,7 +2,7 @@
 <% species = owned&.monster_species || line %>
 <%= link_to monster_path(line.dex_no),
       class: [
-        "card relative flex items-start gap-3 p-3 transition",
+        "card relative flex items-start justify-center gap-3 p-3 transition",
         owned ? "hover:border-brand-yellow" : "border-2 border-dashed border-hairline-strong bg-surface-soft"
       ].join(" "),
       data: { dex_target: "card", element: line.element } do %>
@@ -34,7 +34,7 @@
   </div>
 
   <%# 우측 열: 번호·이름·속성. %>
-  <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+  <div class="flex min-w-0 flex-col gap-1 pt-1">
     <p class="text-xs text-muted">No.<%= format("%02d", line.dex_no) %></p>
     <p class="text-sm font-semibold text-ink">
       <%= owned ? species.name : "???" %>
