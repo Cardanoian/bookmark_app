@@ -21,6 +21,7 @@
 - `content_reports_controller.rb` — **콘텐츠 신고(`create`, 무게이트 롤아웃 안전장치)**. system(온디맨드) 판만 신고 대상(`quiz_id`), `authorize quiz, :show?`(플레이 경계 안 콘텐츠만) 후 `ContentProvider.record_report!` 로 1인 1신고 기록. 서로 다른 2명(`REPORT_HIDE_THRESHOLD`) 신고 시 자동 숨김+재생성. 접수는 신고자 학급 담임 대시보드로 사후 검토(교사 알림). 결과(중복/접수/숨김)에 맞춘 정직한 안내.
 
 ## 패턴·규칙
+- **현재 가용성 기준**: quiz·whoami는 검수 시드(`curated`) 또는 승인 기여(`contributed`)가 있는 콘텐츠축만 표시·플레이한다. 줄거리·고전 여부와 자동 생성(`ai`·`offline`) 캐시는 가용 근거가 아니므로, 제목·지은이를 묻는 샘플 문제가 새로 만들어지거나 노출되지 않는다.
 - **온디맨드 진입(퀴즈 2종=quiz·whoami)**: 카탈로그 → 도서 선택 → `games_<표면>_play_path(book_id:)`. `resolve_on_demand` 가 표면→콘텐츠축 리졸브 + 이중 인가(BookPolicy·QuizPolicy)를 담당. 미스=오프라인 즉시(무대기).
 - **book(소셜) 경계**: `BookIntroPolicy` 가 같은 학급 소개만 열람·투표하게 강제(크로스-학급 차단). 자기 소개 투표 불가, 1인 1표.
 - **경계 클램프(§3.3)**: `QuizPolicy#show?` 가 학생 플레이 시점에 origin 별 경계를 강제(system=band 서버계산 일치, teacher=학급 경계). raw quiz_id 직접 플레이도 여기서 걸러진다. `QuizAttemptPolicy#create?/update?` 가 그 경계를 재사용.

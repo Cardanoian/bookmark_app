@@ -10,6 +10,18 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1) # g56
     @student = User.create!(school: @school, classroom: @classroom, name: "온디학생", password: "password")
     @book = Book.create!(title: "온디책", author: "김저자", summary: "모험을 떠난 소년의 긴 여정 이야기.", category: :recommended)
+    CuratedQuiz.create!(book: @book, content_axis: :mcq, payload: [
+      { "prompt" => "이야기의 주인공은 누구인가요?", "choices" => %w[소년 소녀 선생님 마법사], "answer_index" => 0, "explanation" => "소년이 모험을 떠나요.", "difficulty" => 1 },
+      { "prompt" => "주인공은 무엇을 떠나나요?", "choices" => %w[모험 여행 학교 경기], "answer_index" => 0, "explanation" => "주인공은 모험을 떠나요.", "difficulty" => 1 },
+      { "prompt" => "이야기에서 이어지는 것은 무엇인가요?", "choices" => %w[긴여정 짧은수업 요리시간 운동회], "answer_index" => 0, "explanation" => "긴 여정이 이어져요.", "difficulty" => 1 },
+      { "prompt" => "주인공이 마주하는 것은 무엇인가요?", "choices" => %w[새로운경험 같은하루 빈교실 시험지], "answer_index" => 0, "explanation" => "모험 속에서 새로운 경험을 해요.", "difficulty" => 1 },
+      { "prompt" => "이야기를 따라가며 알 수 있는 것은 무엇인가요?", "choices" => %w[여정의변화 정답지색깔 점심메뉴 책값], "answer_index" => 0, "explanation" => "주인공의 여정과 변화를 따라가요.", "difficulty" => 1 }
+    ])
+    CuratedQuiz.create!(book: @book, content_axis: :hint_reveal, payload: [
+      { "answer" => "소년", "hints" => [ "긴 여정을 떠나요", "이야기의 주인공이에요" ], "explanation" => "소년이 모험을 떠나요.", "difficulty" => 1 },
+      { "answer" => "모험", "hints" => [ "주인공이 떠나는 일이에요", "새로운 일을 찾아 나서는 것이에요" ], "explanation" => "주인공은 모험을 떠나요.", "difficulty" => 1 },
+      { "answer" => "여정", "hints" => [ "주인공이 오래 이어 가는 길이에요", "모험을 하며 지나가는 과정이에요" ], "explanation" => "긴 여정이 이야기의 중심이에요.", "difficulty" => 1 }
+    ])
     login_as @student
   end
 
@@ -25,16 +37,16 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     assert_select "a[data-games-catalog-target='chip'][data-play-path=?]", games_whoami_play_path
   end
 
-  # ── 퀴즈 파이프라인 mcq 표면 오프라인 e2e(미스=오프라인 즉시, 아동 무대기) ────────────
+  # ── 퀴즈 파이프라인 mcq 표면 큐레이션 e2e ─────────────────────────────────
   # 게임 재구성 Phase 1: classic·vocab 표면 제거 → quiz(mcq)만. whoami(hint_reveal)는 play 가
   # 리다이렉트하므로 아래 별도 테스트에서 검증한다.
-  test "quiz on-demand play renders an offline system quiz immediately" do
+  test "quiz on-demand play renders a curated system quiz immediately" do
     get games_quiz_play_path(book_id: @book.id)
     assert_response :success
 
     quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
     assert_equal "ready", quiz.generation_status
-    assert_equal "offline", quiz.quiz_questions.first.source, "미스는 결정적 오프라인 즉시 제공"
+    assert_equal "curated", quiz.quiz_questions.first.source, "검수된 큐레이션 문항을 즉시 제공"
   end
 
   test "whoami on-demand play pre-creates an attempt and redirects to the attempt-keyed show" do

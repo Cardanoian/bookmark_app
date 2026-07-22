@@ -176,15 +176,12 @@ module Games
       @rate_limiter.allow?("regenerate:user:#{user.id}:#{hour_bucket}", **REGENERATE_PER_USER)
     end
 
-    # 가용성 판정(Phase 4 §2a). 다음 중 하나면 게임 가용(true):
-    #   ① 책이 **AI-적격**(classic 이거나 summary 존재) — Gemini/워밍이 접지된 콘텐츠를 만들 수 있다.
-    #   ② 그 (book, band, content_axis)에 **사람 기여/AI로 물질화된** ready·미신고 콘텐츠가 있다
-    #      (quiz_questions.source ∈ {ai, contributed}). offline 만 있는 축은 "일반 문제밖에 없는"
-    #      비활성 대상이라 여기서 제외한다.
+    # 가용성 판정. 검수된 시드 또는 실제 내용으로 게시된 콘텐츠가 있을 때만 게임을 연다.
+    # summary 만으로 만든 오프라인 폴백은 제목·지은이·낱말 맞히기 같은 샘플 문제가 될 수 있으므로,
+    # 콘텐츠가 없을 때 일반 문제로 대신 출제하지 않고 비활성으로 둔다.
     # band 는 현재 학생 기준(game_band_for)으로 판정한다(QuizPolicy#within_band? 와 동일 함수).
     def game_content_available?(book:, content_axis:, user:)
       return true if Games::CuratedContent.available?(book, content_axis) # 큐레이션 검수 문항이 있으면 항상 가용
-      return true if ai_eligible?(book)
 
       band = ReadingDomain.game_band_for(user.classroom&.grade)
       substantive_content_exists?(book.id, band, content_axis.to_sym)
@@ -258,11 +255,9 @@ module Games
     #   재워밍이 걸릴 수 있다(correctness 회귀 아님, RETRY_COOLDOWN·예산으로 상한된 소량 비효율 — 상세는
     #   maybe_retry_warming 주석).
     #
-    # ⚠️ 가용성 게이트(Phase 4 완성): "콘텐츠 없으면 게임 비활성"의 disable-gate 는 신뢰 가능한 Gemini
-    #   줄거리 소스(BookSummaryJob·AI-적격 판정)가 붙는 이 Phase 4 에서 **표시·플레이 게이트**로 완성했다
-    #   (`game_content_available?`). fetch_ready/resolve 자체는 아동 무대기·오프라인 플로어를 그대로
-    #   유지하며(AI-적격·콘텐츠 있는 책은 즉시 서빙), 게이트는 컨트롤러/뷰 층에서 "아무 콘텐츠도 만들 수
-    #   없는 책"만 막는다(§2b·§2c). 즉 여기 MISS 오프라인 생성은 게이트를 통과한 책에만 도달한다.
+    # ⚠️ 가용성 게이트: 컨트롤러/뷰는 검수 시드 또는 승인 기여가 없는 책을 resolve 전에 막는다.
+    #   따라서 여기의 자동 생성 폴백은 직접 서비스 호출의 호환성만 위한 것이며, 일반 게임 화면에는
+    #   노출되지 않는다.
     def fetch_ready(book_id, band, content_axis)
       base = Quiz.where(origin: :system, generation_status: :ready, reported: false,
                         book_id: book_id, band: band, content_axis: content_axis)
@@ -363,18 +358,13 @@ module Games
       BookSummaryJob.perform_later(book.id)
     end
 
-    # 책이 AI-적격이면(고전이거나 줄거리 존재) Gemini/워밍이 접지된 콘텐츠를 만들 수 있다.
-    def ai_eligible?(book)
-      book.classic? || book.summary.present?
-    end
-
-    # 그 (book, band, content_axis)에 offline 이 아닌 실질 콘텐츠(ai·contributed·curated)로 물질화된
-    # ready·미신고 system 세트가 하나라도 있는지. GenerateGameContentJob#ai_ready_exists? 미러.
+    # 그 (book, band, content_axis)에 검수 시드 또는 승인 기여로 물질화된 ready·미신고 system
+    # 세트가 하나라도 있는지. 자동 생성(ai·offline) 캐시는 검수 전이므로 가용 근거로 쓰지 않는다.
     def substantive_content_exists?(book_id, band, content_axis)
       Quiz.where(origin: :system, generation_status: :ready, reported: false,
                  book_id: book_id, band: band, content_axis: content_axis)
           .joins(:quiz_questions)
-          .where(quiz_questions: { source: [ :ai, :contributed, :curated ] })
+          .where(quiz_questions: { source: [ :contributed, :curated ] })
           .exists?
     end
 

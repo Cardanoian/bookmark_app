@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 게임 재구성 Phase 4 §2 — 가용성 게이트. 콘텐츠를 만들 수 없는 책(AI-적격 아님·기여/AI 콘텐츠 없음)은
+# 게임 재구성 Phase 4 §2 — 가용성 게이트. 검수 시드·승인 기여가 없는 책은
 # 퀴즈·나는 누구게?를 **일반 문제로 때우지 않고 비활성**한다: 독서활동에서 칩을 숨기고(§2b),
 # 직접 URL 진입은 오프라인 세트를 만들지 않고 리다이렉트(§2c). 창작 소셜(책 소개·뒷이야기)은 항상 가능.
 class GamesContentGateTest < ActionDispatch::IntegrationTest
@@ -12,6 +12,18 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "게이트학생", password: "password")
     @bare = Book.create!(title: "무명게이트책", author: "무명", category: :recommended)          # AI-부적격
     @available = Book.create!(title: "가용게이트책", author: "저자", summary: "긴 줄거리.", category: :recommended)
+    CuratedQuiz.create!(book: @available, content_axis: :mcq, payload: [
+      { "prompt" => "주인공은 누구인가요?", "choices" => %w[소년 소녀 선생님 마법사], "answer_index" => 0, "explanation" => "소년이 주인공이에요.", "difficulty" => 1 },
+      { "prompt" => "이야기에서 떠나는 것은 무엇인가요?", "choices" => %w[모험 학교 운동회 수업], "answer_index" => 0, "explanation" => "모험을 떠나요.", "difficulty" => 1 },
+      { "prompt" => "여정은 어떤 모습인가요?", "choices" => %w[긴여정 짧은수업 점심시간 운동회], "answer_index" => 0, "explanation" => "긴 여정이에요.", "difficulty" => 1 },
+      { "prompt" => "주인공은 무엇을 겪나요?", "choices" => %w[새로운경험 같은하루 빈교실 시험지], "answer_index" => 0, "explanation" => "새로운 경험을 해요.", "difficulty" => 1 },
+      { "prompt" => "이야기를 따라가며 알 수 있는 것은 무엇인가요?", "choices" => %w[여정의변화 정답지색깔 점심메뉴 책값], "answer_index" => 0, "explanation" => "여정의 변화를 따라가요.", "difficulty" => 1 }
+    ])
+    CuratedQuiz.create!(book: @available, content_axis: :hint_reveal, payload: [
+      { "answer" => "소년", "hints" => [ "긴 여정을 떠나요", "이야기의 주인공이에요" ], "explanation" => "소년이 주인공이에요.", "difficulty" => 1 },
+      { "answer" => "모험", "hints" => [ "주인공이 떠나는 일이에요", "새로운 일을 찾아 나서는 것이에요" ], "explanation" => "주인공은 모험을 떠나요.", "difficulty" => 1 },
+      { "answer" => "여정", "hints" => [ "주인공이 오래 이어 가는 길이에요", "모험을 하며 지나가는 과정이에요" ], "explanation" => "긴 여정이에요.", "difficulty" => 1 }
+    ])
     login_as @student
   end
 
@@ -26,7 +38,7 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", games_sequel_play_path(book_id: @bare.id)            # 뒷이야기는 항상 표시
   end
 
-  test "reading activity shows quiz/whoami chips for an AI-eligible (summary) book" do
+  test "reading activity shows quiz/whoami chips for a book with curated content" do
     get reading_activity_path(book_id: @available.id)
     assert_response :success
 
@@ -57,14 +69,14 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
     assert_redirected_to reading_activity_path(book_id: @bare.id)
   end
 
-  # ── 회귀: AI-적격 책은 기존대로 오프라인 즉시 서빙(무대기·게이트 통과) ──
-  test "quiz play on an available book still serves an offline system quiz immediately (no regression)" do
+  # ── 회귀: 검수 문제는 즉시 서빙한다 ─────────────────────────────────────
+  test "quiz play on an available book serves a curated system quiz immediately" do
     get games_quiz_play_path(book_id: @available.id)
     assert_response :success
 
     quiz = Quiz.where(origin: :system, book_id: @available.id, content_axis: :mcq).last
     assert_equal "ready", quiz.generation_status
-    assert_equal "offline", quiz.quiz_questions.first.source
+    assert_equal "curated", quiz.quiz_questions.first.source
   end
 
   # ── §2c 다시 뽑기(regenerate) 게이트(code-review 후속 LOW): 조작된 POST 로도 비활성 책에
@@ -77,7 +89,7 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
   end
 
   test "regenerate on an available book still creates a new content_version (no regression)" do
-    get games_quiz_play_path(book_id: @available.id) # 최초 오프라인 v1
+    get games_quiz_play_path(book_id: @available.id) # 최초 큐레이션 세트 물질화
     original = Quiz.where(origin: :system, book_id: @available.id, content_axis: :mcq).last
 
     post games_regenerate_path, params: { book_id: @available.id, surface: "quiz" }

@@ -353,12 +353,12 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
   end
 
   # ── Phase 4 §2a 가용성 판정 ─────────────────────────────────────────────
-  test "game_content_available? is true for AI-eligible books (classic or has summary)" do
+  test "game_content_available? is false for AI-eligible books without reviewed content" do
     classic = Book.create!(title: "고전책", author: "저자", category: :classic)
-    assert Games::ContentProvider.game_content_available?(book: classic, content_axis: :mcq, user: @student),
-           "고전은 AI-적격이라 가용"
-    assert Games::ContentProvider.game_content_available?(book: @book, content_axis: :mcq, user: @student),
-           "summary 있는 책은 AI-적격이라 가용"
+    assert_not Games::ContentProvider.game_content_available?(book: classic, content_axis: :mcq, user: @student),
+               "검수·승인 기여가 없는 고전은 샘플 문제를 만들지 않는다"
+    assert_not Games::ContentProvider.game_content_available?(book: @book, content_axis: :mcq, user: @student),
+               "summary 만 있는 책은 샘플 문제를 만들지 않는다"
   end
 
   test "game_content_available? is false for a bare book with no summary and no substantive content" do
@@ -367,12 +367,16 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
                "AI-적격도 아니고 콘텐츠도 없는 책은 비활성"
   end
 
-  test "game_content_available? ignores offline-only content but honors contributed/ai content" do
+  test "game_content_available? ignores automatic content but honors contributed content" do
     bare = Book.create!(title: "무명책2", author: "무명", category: :recommended)
     # 오프라인만 있는 책은 여전히 비활성(일반 문제로 때우지 않는다).
     provider.resolve(book: bare, surface: "quiz", user: @student) # offline v1 생성
     assert_not Games::ContentProvider.game_content_available?(book: bare, content_axis: :mcq, user: @student),
                "offline 세트만 있는 책은 비활성"
+
+    QuizQuestion.where(quiz: Quiz.where(book: bare, origin: :system, content_axis: :mcq)).update_all(source: QuizQuestion.sources.fetch("ai"))
+    assert_not Games::ContentProvider.game_content_available?(book: bare, content_axis: :mcq, user: @student),
+               "자동 AI 세트도 검수 전에는 비활성"
 
     # 학생 승인 기여(contributed)가 물질화되면 가용.
     contribution = QuizContribution.create!(user: @student, book: bare, classroom: @room_a,

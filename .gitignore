@@ -40,6 +40,7 @@
 
 # oh-my-claudecode orchestration state (session PRDs, progress, logs)
 .omc
+.omx
 .venv
 __pycache__
 .env
