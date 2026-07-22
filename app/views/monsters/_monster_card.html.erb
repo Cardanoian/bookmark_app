@@ -2,34 +2,46 @@
 <% species = owned&.monster_species || line %>
 <%= link_to monster_path(line.dex_no),
       class: [
-        "card relative block p-4 text-center transition",
+        "card relative flex items-start gap-3 p-4 transition",
         owned ? "hover:border-brand-yellow" : "border-2 border-dashed border-hairline-strong bg-surface-soft"
       ].join(" "),
       data: { dex_target: "card", element: line.element } do %>
   <% if evolvable %>
     <span class="badge badge-yellow absolute right-2 top-2 px-1.5 py-0.5 text-[10px] font-bold">진화 가능</span>
   <% end %>
-  <div class="flex h-12 items-center justify-center text-4xl" aria-hidden="true">
-    <%= owned ? monster_sprite(species, img_class: "h-12 w-12 object-contain") : "🔒" %>
-  </div>
-  <p class="mt-2 text-xs text-muted">No.<%= format("%02d", line.dex_no) %></p>
-  <p class="text-sm font-semibold text-ink">
-    <%= owned ? species.name : "???" %>
-    <% unless owned %><span class="sr-only"> · 잠김</span><% end %>
-  </p>
-  <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium <%= element_badge_classes(line.element) %>">
-    <%= element_label(line.element) %>
-  </span>
-  <% if owned.nil? && stats && line.unlock_condition.present? %>
-    <ul class="mt-2 space-y-0.5 border-t border-hairline pt-2 text-left">
-      <% unlock_progress_items(stats, line.unlock_condition).each do |item| %>
-        <li class="flex items-center justify-between gap-1 text-[10px] leading-tight">
-          <span class="truncate text-muted"><%= item[:label] %></span>
-          <span class="shrink-0 <%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
-            <%= item[:current] %>/<%= item[:target] %><%= " ✓" if item[:met] %>
-          </span>
-        </li>
+
+  <%# 좌측 열: 소유=큰 몬스터 이미지(96px) / 미소유=자물쇠(48px) + 그 아래 해금 조건. %>
+  <div class="flex w-24 shrink-0 flex-col items-center gap-2">
+    <% if owned %>
+      <div class="flex h-24 w-24 items-center justify-center text-7xl" aria-hidden="true">
+        <%= monster_sprite(species, img_class: "h-24 w-24 object-contain") %>
+      </div>
+    <% else %>
+      <div class="flex h-12 w-12 items-center justify-center text-4xl" aria-hidden="true">🔒</div>
+      <% if stats && line.unlock_condition.present? %>
+        <ul class="w-full space-y-0.5 border-t border-hairline pt-2 text-left">
+          <% unlock_progress_items(stats, line.unlock_condition).each do |item| %>
+            <li class="flex items-center justify-between gap-1 text-[10px] leading-tight">
+              <span class="truncate text-muted"><%= item[:label] %></span>
+              <span class="shrink-0 <%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
+                <%= item[:current] %>/<%= item[:target] %><%= " ✓" if item[:met] %>
+              </span>
+            </li>
+          <% end %>
+        </ul>
       <% end %>
-    </ul>
-  <% end %>
+    <% end %>
+  </div>
+
+  <%# 우측 열: 번호·이름·속성. %>
+  <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+    <p class="text-xs text-muted">No.<%= format("%02d", line.dex_no) %></p>
+    <p class="text-sm font-semibold text-ink">
+      <%= owned ? species.name : "???" %>
+      <% unless owned %><span class="sr-only"> · 잠김</span><% end %>
+    </p>
+    <span class="inline-block w-fit rounded-full px-2 py-0.5 text-[10px] font-medium <%= element_badge_classes(line.element) %>">
+      <%= element_label(line.element) %>
+    </span>
+  </div>
 <% end %>
