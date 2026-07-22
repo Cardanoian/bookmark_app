@@ -57,6 +57,39 @@ class ReadingDomainTest < ActiveSupport::TestCase
     end
   end
 
+  # 성취기준 allowlist: 학년군별 전체 목록이 해당 학년군 코드만 담고, 5축 대표 코드를 모두 포함한다.
+  test "standards_allowlist contains only same-band codes and covers every representative axis code" do
+    { g12: "2국", g34: "4국", g56: "6국" }.each do |band, prefix|
+      allowlist = ReadingDomain.standards_allowlist(band)
+      codes = allowlist.scan(/\[\d국\d{2}-\d{2}\]/)
+      assert codes.any?, "#{band} allowlist 코드 없음"
+      codes.each { |code| assert_includes code, prefix, "#{band} allowlist 타학년군 코드 누출: #{code}" }
+
+      # 5축 대표 코드는 반드시 allowlist 의 부분집합이어야 첨삭이 목록 안에서만 인용 가능하다.
+      ReadingDomain.achievement_standards(band).each_value do |rep|
+        assert_includes codes, rep, "#{band} 대표 코드 #{rep} 가 allowlist 밖"
+      end
+    end
+  end
+
+  # 학년 눈높이 봉쇄(핵심 회귀 가드): 3학년에게 6학년 성취기준을 제시하는 문제 방지.
+  # 각 밴드 프롬프트는 자기 밴드 allowlist 만 담고, 다른 학년군의 브래킷 성취기준 코드는 절대 포함하지 않는다.
+  test "rubric_prompt embeds the band allowlist and never references another band's 성취기준 codes" do
+    { g12: "2국", g34: "4국", g56: "6국" }.each do |band, prefix|
+      prompt = ReadingDomain.rubric_prompt(band)
+
+      # allowlist 블록이 프롬프트에 통째로 주입된다.
+      assert_includes prompt, ReadingDomain.standards_allowlist(band), "#{band} allowlist 미주입"
+      # 목록 밖 코드 사용 금지 지시가 있다.
+      assert_includes prompt, "목록 안의 코드만 사용", "#{band} allowlist 제약 지시 누락"
+
+      # 다른 학년군의 성취기준 코드(브래킷 표기)는 단 하나도 없어야 한다.
+      %w[2국 4국 6국].reject { |p| p == prefix }.each do |other|
+        refute_match(/\[#{other}\d{2}-\d{2}\]/, prompt, "#{band} 프롬프트에 타학년군 코드(#{other}) 누출")
+      end
+    end
+  end
+
   test "quizgen_prompt reflects the band grade label" do
     assert_includes ReadingDomain.quizgen_prompt(:g12), "초등학교 1~2학년"
     assert_includes ReadingDomain.quizgen_prompt(:g34), "초등학교 3~4학년"

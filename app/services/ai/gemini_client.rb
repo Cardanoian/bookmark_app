@@ -12,7 +12,7 @@ module Ai
     class ApiError < StandardError; end
 
     BASE_URL = "https://generativelanguage.googleapis.com".freeze
-    MODEL = "gemini-2.5-flash".freeze
+    MODEL = "gemini-3.5-flash-lite".freeze
     ENDPOINT = "/v1beta/models/#{MODEL}:generateContent".freeze
 
     # 키 존재 여부만으로 사용 가능 판단(네트워크 호출 없음).
@@ -85,9 +85,10 @@ module Ai
     def connection
       @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 30 }) do |faraday|
         # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(진위검증/퀴즈 초안 생성)
-        # 양쪽에서 쓰인다. timeout 은 5축 첨삭(RUBRIC) 실측 지연(~16s, gemini-2.5-flash thinking 포함)을
-        # 여유 있게 덮도록 30s 로 잡는다 — 과거 8s 는 첨삭 매 시도를 타임아웃시켜 규칙기반으로만 폴백됐다.
-        # 동기 경로(진위/퀴즈 초안)는 실측 8s 미만이라 이 상한에 실질적으로 닿지 않는다.
+        # 양쪽에서 쓰인다. 현재 모델(gemini-3.5-flash-lite)은 5축 첨삭 실측 지연이 ~2s(thinking 없음)로 빠르지만,
+        # timeout 은 재시도(최대 2회)·간헐적 지연·타 경로까지 넉넉히 덮도록 30s 로 유지한다 — 과거 8s 는 (구 모델
+        # gemini-2.5-flash 의 thinking 지연 ~16s 시절) 첨삭 매 시도를 타임아웃시켜 규칙기반으로만 폴백시켰다.
+        # 동기 경로(진위/퀴즈 초안)도 이 상한에 실질적으로 닿지 않는다.
         # generateContent 호출은 POST 라서 methods 기본값(idempotent 메서드만)엔 없다 — 명시해야 실제로 재시도된다.
         faraday.request :retry, max: 2, interval: 0.3, backoff_factor: 2,
                                  methods: [ :post ],
