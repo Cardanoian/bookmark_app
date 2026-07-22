@@ -40,7 +40,7 @@
 - **turbo_stream**: `액션.turbo_stream.erb`는 Turbo Stream 응답 전용. 페이지 전체 리로드 없이 특정 DOM 조각만 갱신(응원·구매·스티커·OCR 등 상호작용).
 - **레이아웃**: 컨트롤러 네임스페이스에 맞춰 `admin`/`print`/`mailer` 레이아웃을 명시 지정, 그 외 화면은 `application` 사용.
 - **역할 뷰**: 같은 개념(대시보드·미션·퀴즈)도 역할별 폴더(`teacher/`·`librarian/`·`school_admin/`·`admin/`)에 분리해 권한·화면을 격리.
-- **디자인 시스템**: 전 역할 화면(학생·교사·사서·교무·총괄관리자) + 인쇄·메일·PWA·turbo_stream 이 `app/assets/tailwind/application.css`의 공통 토큰·컴포넌트(`.btn*`·`.card*`·`stat-card`·`.form-*`·`.badge*`·`.page-shell*`·`.state-banner*`·`.progress-bar`)를 사용한다(`DESIGN_CHANGE_PLAN.md` Phase 1~8 완료, 2026-07-17). 일반 뷰는 `.page-shell*`로 max-width 만 제어하되 **총괄관리자 콘솔 뷰는 `layouts/admin`이 `max-w-[96rem]` 폭·거터를 소유하므로 `page-shell`을 덧대지 않는다.** 파괴적 액션(삭제·정지·숨기기)은 `.btn-danger`, 복원적 액션(해제)은 `.btn-secondary`로 시각 분리한다. 인쇄물(`teacher/prints/*`, `layout "print"`)은 흑백 가독 우선, 메일러(`layouts/mailer`)는 이메일 클라이언트 호환을 위해 인라인 스타일만 사용한다.
+- **디자인 시스템**: 전 역할 화면(학생·교사·사서·교무·총괄관리자) + 인쇄·메일·PWA·turbo_stream 이 `app/assets/tailwind/application.css`의 공통 토큰·컴포넌트(`.btn*`·`.card*`·`stat-card`·`.form-*`·`.badge*`·`.page-shell*`·`.state-banner*`·`.progress-bar`)를 사용한다(디자인 시스템 개편 완료, 2026-07-17. 토큰 기준은 [`DESIGN.md`](../../DESIGN.md)). 일반 뷰는 `.page-shell*`로 max-width 만 제어하되 **총괄관리자 콘솔 뷰는 `layouts/admin`이 `max-w-[96rem]` 폭·거터를 소유하므로 `page-shell`을 덧대지 않는다.** 파괴적 액션(삭제·정지·숨기기)은 `.btn-danger`, 복원적 액션(해제)은 `.btn-secondary`로 시각 분리한다. 인쇄물(`teacher/prints/*`, `layout "print"`)은 흑백 가독 우선, 메일러(`layouts/mailer`)는 이메일 클라이언트 호환을 위해 인라인 스타일만 사용한다.
 
 ---
 > ⚠️ **유지보수 규칙**: 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 CLAUDE.md도 함께 갱신하세요. 하위 폴더 구조가 바뀌면 관련 상·하위 CLAUDE.md 링크도 확인하세요.

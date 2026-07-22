@@ -26,6 +26,10 @@ colors:
   brand-red: "#fbd4d4"
   brand-red-dark: "#e3c5c5"
   success-accent: "#00b473"
+  danger: "#e11d48"
+  error-text: "#be123c"
+  success-surface: "#ecfdf5"
+  success-ink: "#05603a"
   canvas: "#ffffff"
   surface: "#f7f8fa"
   surface-soft: "#fafbfc"
@@ -230,7 +234,7 @@ components:
     border: "1px solid {colors.hairline-soft}"
   card-feature:
     backgroundColor: "{colors.canvas}"
-    rounded: "{rounded.xxxl}"
+    rounded: "{rounded.feature}"
     padding: "{spacing.xxl}"
     border: "1px solid {colors.hairline-soft}"
   card-feature-yellow:
@@ -525,6 +529,10 @@ Pretendard가 80px 히어로 디스플레이부터 11px 마이크로 라벨까�
 ### Semantic
 - **Success Accent** ({colors.success-accent}): 성공/승인 그린(교사 승인·뱃지 획득 등)
 - **Brand Red / Brand Red Dark** ({colors.brand-red} · {colors.brand-red-dark}): 오류 배경·보더
+- **Danger** ({colors.danger}): 파괴적 행동 버튼 배경(삭제 등 되돌릴 수 없는 액션)
+- **Error Text** ({colors.error-text}): 폼 오류 텍스트
+- **Success Surface** ({colors.success-surface}): 성공 상태 배너 배경
+- **Success Ink** ({colors.success-ink}): 성공 상태 배너 텍스트(딥 그린)
 
 ## Typography
 
@@ -652,7 +660,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 
 **`card-base`** — 표준 콘텐츠 카드. 배경 `{colors.canvas}`, 라운드 `{rounded.xl}`, 패딩 `{spacing.xl}`, 보더 `1px solid {colors.hairline-soft}`.
 
-**`card-feature`** — 28px 코너의 화이트 피처 카드. 라운드 `{rounded.xxxl}`, 패딩 `{spacing.xxl}`.
+**`card-feature`** — 32px 코너의 화이트 피처 카드. 라운드 `{rounded.feature}`, 패딩 `{spacing.xxl}`.
 
 **`card-feature-yellow / -coral / -teal / -rose`** — 6속성 파스텔 피처 카드. 각 배경 `{colors.brand-yellow}` / `{colors.coral-light}` / `{colors.teal-light}` / `{colors.rose-light}`, 텍스트 `{colors.primary}`, 라운드 `{rounded.xxxl}`, 패딩 `{spacing.xxl}`.
 
@@ -811,10 +819,10 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ## Implementation (Rails · Tailwind v4 매핑)
 
-> 이 절은 위 토큰·컴포넌트 원칙이 실제 코드에 어떻게 연결됐는지 기록한다(DESIGN_CHANGE_PLAN.md 1차 묶음: Phase 1·2 + Phase 3 대표 화면).
+> 이 절은 위 토큰·컴포넌트 원칙이 실제 코드에 어떻게 연결됐는지 기록한다(2026-07 디자인 개편: Phase 1·2 + Phase 3 대표 화면).
 
 ### 토큰 & 폰트
-- **색·폰트·라운드 토큰** → `app/assets/tailwind/application.css`의 `@theme`에 DESIGN.md 값과 1:1 매핑(`--color-brand-yellow: #ffd02f`, `--color-ink`, `--color-surface`, `--color-hairline`, `--color-brand-blue`, 6속성 파스텔 등). 색만 신규 도입 없이 이식하고, Tailwind 기본 팔레트(gray/amber/rose…)는 유지(기존 뷰 회귀 방지). 생성 유틸 예: `bg-brand-yellow`·`text-ink`·`border-hairline`·`bg-surface-featured`.
+- **색·폰트 토큰** → `app/assets/tailwind/application.css`의 `@theme`에 DESIGN.md 값과 1:1 매핑(`--color-brand-yellow: #ffd02f`, `--color-ink`, `--color-surface`, `--color-hairline`, `--color-brand-blue`, 6속성 파스텔 등). 색만 신규 도입 없이 이식하고, Tailwind 기본 팔레트(gray/amber/rose…)는 유지(기존 뷰 회귀 방지). 생성 유틸 예: `bg-brand-yellow`·`text-ink`·`border-hairline`·`bg-surface-featured`. **rounded/spacing/typography 스케일은 Tailwind 기본 스케일에 의존**(`rounded-xxxl`·`text-hero-display` 같은 DESIGN.md 토큰명 그대로의 유틸은 생성되지 않으며, `.card-feature` 등 일부 컴포넌트 클래스에서만 `--radius-card`/`--radius-feature` 전용 토큰을 별도로 사용한다).
 - **Pretendard 자체호스팅**: `app/assets/fonts/pretendard/PretendardVariable.woff2`(가변, 전 웨이트) + `app/assets/stylesheets/application.css`의 `@font-face`. `--font-sans`를 Pretendard 스택으로 덮어 전역 기본 폰트 지정. CSP `font_src :self`(외부 CDN 미사용).
 - **전역 base**: 본문 배경(canvas), `:focus-visible` 브랜드 블루 링(제거 금지), `::selection`(yellow-light), `@media (prefers-reduced-motion: reduce)`.
 

@@ -12,7 +12,7 @@
 - 앱의 키 소스는 **ENV 우선, 없으면 credentials 폴백**이다: 각 서비스가 `ENV["…"].presence || Rails.application.credentials.dig(…)` 로 읽는다(§1.1). **credentials 가 기본·권장 저장소**이고 ENV 는 운영자 대안 경로다(§6).
 - 키 주입(권장) = **`bin/rails credentials:edit`** 로 `config/credentials.yml.enc` 를 편집. `config/master.key`(개발) / `RAILS_MASTER_KEY`(프로덕션)로 복호화된다.
 - **키가 하나도 없어도 앱은 완전히 동작한다.** 각 기능이 폴백 경로로 자동 전환된다(사진 OCR만 비활성). 대회 데모·오프라인 시연이 가능하도록 설계되었다.
-- 키는 **절대 코드·DB(app_settings)·git 에 커밋하지 않는다**(§5, RAILS_PLAN §15).
+- 키는 **절대 코드·DB(app_settings)·git 에 커밋하지 않는다**(§5).
 
 ---
 
@@ -122,7 +122,7 @@ kamal app exec 'bin/rails runner "puts Ai::GeminiClient.available?"'
 
 ---
 
-## 5. 보안 규칙 (RAILS_PLAN §15)
+## 5. 보안 규칙
 
 - **API 키는 서버에만.** credentials(암호화) 또는 ENV. 클라이언트(브라우저) 노출 금지 — 모든 외부 호출은 서버 서비스 객체 경유.
 - **DB(app_settings)에 키 저장 금지.** `AppSetting.set` 은 `*_api_key`/`*_key`/`*_secret`/`gemini`/`kakao`/`naver`/`data4library` 형태의 키를 **거부**한다(`app/models/app_setting.rb`).
@@ -144,5 +144,5 @@ kamal app exec 'bin/rails runner "puts Ai::GeminiClient.available?"'
 ---
 
 ## 참고 문서
-- 설계·보안 규정: [`RAILS_PLAN.md`](./RAILS_PLAN.md) §9(외부 서비스), §15(보안)
-- 배포 절차: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) Phase 8
+- 배포 가이드: [`CLOUD_DEPLOYMENT_COMPARISON.md`](./CLOUD_DEPLOYMENT_COMPARISON.md)
+- 키 로딩 코드: `app/services/ai/gemini_client.rb`·`books/search_service.rb`·`library/data4library_service.rb`·`schools/neis_fetcher.rb` (모두 ENV 우선·credentials 폴백)

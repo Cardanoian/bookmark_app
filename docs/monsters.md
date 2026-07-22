@@ -1,6 +1,6 @@
 # 「책갈피」 반려 몬스터 도감 시드 설계서
 
-> **목적**: `RAILS_PLAN.md` §13.5(반려 몬스터 도감·진화)의 **실제 콘텐츠 시드**. 아바타를 대체하는 수집형 반려 몬스터의 종·진화 라인·진화 조건·AI 이미지 생성 가이드를 착수 가능한 수준으로 정의한다.
+> **목적**: 반려 몬스터 도감·진화 설계의 **실제 콘텐츠 시드**. 아바타를 대체하는 수집형 반려 몬스터의 종·진화 라인·진화 조건·AI 이미지 생성 가이드를 착수 가능한 수준으로 정의한다.
 >
 > 대상: 초등학교 전학년. 포켓몬스터·디지몬처럼 아이들이 좋아할 크리처를 담되, **주변에서 흔히 보는 친숙한 동물·사물**(강아지·고양이·햄스터·펭귄, 연필·로봇 등)을 몬스터화한다. 판타지 종(용·유니콘·도깨비·나비)은 상상 속성에만 배치하고, 모든 종은 **완전 오리지널**(기존 IP 모방 금지 — 법적·대회 리스크)로 디자인한다.
 > 최종 수정: 2026-07-08 (종 이름·생김새 묘사를 아트 파이프라인 `script/monster.json` 기준으로 통일)
@@ -31,7 +31,7 @@
 | `nature` | 자연 | 초록 | 성실·성장 | 성실한 활동·고쳐쓰기·성장 | 고슴도치·개구리·다람쥐·버섯 |
 | `imagination` | 상상 | 무지개/금 | 창의·종합 | 도감 수집·창의 활동·종합 성취(최고난도) | 유니콘·나비·도깨비·용 |
 
-> **질 우선 정렬**: 완전형(3단계) 조건에 A등급·삶과 연결·고전·고쳐쓰기·도감 수집 등을 배치해, 게임화가 `RAILS_PLAN.md` §1.3 "발전적 첨삭" 가치와 정렬되도록 한다.
+> **질 우선 정렬**: 완전형(3단계) 조건에 A등급·삶과 연결·고전·고쳐쓰기·도감 수집 등을 배치해, 게임화가 AI 5축 "발전적 첨삭" 가치와 정렬되도록 한다.
 
 ---
 
@@ -289,7 +289,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 | nature | 고슴도치(17) · 개구리(18) | 다람쥐(19) · 버섯(20) |
 | imagination | 도깨비(23) · 유니콘(21) | 나비(22) · 용(24) |
 
-### 6.3 뱃지 연동(`RAILS_PLAN.md` §13.3)
+### 6.3 뱃지 연동(`app/models/badge.rb` KEYS)
 - `first_evolve` 첫 진화 · `final_form` 첫 완전진화 · `dex_half` 도감 절반(12/24) · `dex_complete` 도감 완성(24/24).
 
 ---
@@ -300,6 +300,7 @@ gore, extra limbs, Pokemon, Digimon, copyrighted character, brand mascot
 - 라인당 `forms` 3개(stage 1·2·3). `evolves_from_id`는 **stage 순서로 자동 연결**(시더가 이전 stage를 부모로 설정).
 - `evolve_condition`은 **해당 폼에서 다음 단계로 가는 조건**(§6.2 스키마와 동일). stage 3은 조건 없음.
 - `starter: true`인 라인의 stage 1이 스타터 선택지. `phase: 1`은 Phase 1 시드 대상.
+- 아래 §7 발췌는 **진화(`evolve_condition`) 중심**이라 라인 단위 자동 해금 규칙(`unlock_condition`)은 싣지 않았다. 실제 `db/seeds/monsters.yml`은 각 라인의 stage 1 폼에 `unlock_condition`을 함께 갖고 있으며, 해금 조건의 단일 진실원은 [`monster_unlocks.md`](./monster_unlocks.md)와 그 실제 YAML 파일이다.
 
 ```yaml
 monster_lines:
@@ -517,5 +518,5 @@ monster_lines:
 ---
 
 ### 참고
-- 스키마·진화 엔진: `RAILS_PLAN.md` §6.2(monster_species/user_monsters), §13.5(도감·진화 규칙).
+- 스키마·진화 엔진: `app/models/monster_species.rb`·`app/models/user_monster.rb`(도감·진화 규칙, [`app/models/CLAUDE.md`](../app/models/CLAUDE.md) 참고).
 - 이미지 제작: §3 아트 스타일 바이블(마스터 프롬프트 + 속성 팔레트 + 네거티브).

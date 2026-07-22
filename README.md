@@ -6,7 +6,7 @@
 **AI 5축 발전적 첨삭**으로 글쓰기의 질을 높이고, **72폼 반려 몬스터 도감·진화**로 꾸준함을 유도하며,
 학생·담임교사·교무관리자·사서·총괄관리자까지 **5개 역할**의 학교 현장 운영을 하나의 앱으로 지원합니다.
 
-- **상태**: 구현 Phase 0~8 완료 · 테스트 497 runs / 0 failures · RuboCop(omakase) 무경고 · Brakeman 0
+- **상태**: 구현 Phase 0~8 완료 · 테스트 1,441 runs / 0 failures · RuboCop(omakase) 무경고 · Brakeman 0
 - **외부 연동**: Gemini · 네이버 도서검색 · 정보나루 4종 실연동 검증 완료 (키 없이도 폴백으로 완전 동작)
 
 ---
@@ -119,13 +119,14 @@ bin/rails quizzes:seed     # 샘플 퀴즈
 
 ## 외부 API 키
 
-앱은 **오직 Rails 암호화 credentials** 에서만 키를 읽습니다. **키가 하나도 없어도 앱은 완전히 동작**하며(사진 OCR만 비활성), 각 기능이 폴백 경로로 자동 전환됩니다 — 오프라인 데모가 가능하도록 설계되었습니다.
+앱은 **ENV 환경변수를 우선하고, 없으면 Rails 암호화 credentials 로 폴백**해 키를 읽습니다. **키가 하나도 없어도 앱은 완전히 동작**하며(사진 OCR만 비활성), 각 기능이 폴백 경로로 자동 전환됩니다 — 오프라인 데모가 가능하도록 설계되었습니다.
 
 | credentials 키 | 발급처 | 켜지는 기능 | 폴백 |
 |---|---|---|---|
 | `gemini.api_key` | Google AI Studio | OCR · 5축 첨삭 · 진위 확인 · 퀴즈 생성 | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
 | `naver.client_id` · `naver.client_secret` | Naver Developers | 도서 검색(단독 제공자) | 로컬 카탈로그 LIKE 검색 |
 | `data4library.api_key` | 정보나루 | 인기대출 동기화 | CSV 업로드 |
+| `neis.api_key` | NEIS 교육정보 개방포털 | 학교 스냅샷 갱신(`schools:fetch`) | 커밋된 CSV 오프라인 시드 |
 
 ```bash
 # 키 편집 (EDITOR 설정 필요)
@@ -162,7 +163,7 @@ Pundit 정책으로 역할·학교 경계가 격리됩니다.
 ## 테스트 · 품질
 
 ```bash
-bin/rails test          # 모델 · 컨트롤러 · 통합 · 정책 테스트 (497 runs)
+bin/rails test          # 모델 · 컨트롤러 · 통합 · 정책 테스트 (1,441 runs)
 bin/rails test:system   # 시스템 테스트 (Chrome 필요)
 bin/rubocop             # 스타일 (rails-omakase)
 bin/brakeman            # 보안 정적 분석
@@ -182,7 +183,7 @@ kamal setup     # 최초 1회 (서버 프로비저닝 + 첫 배포)
 kamal deploy    # 이후 배포
 ```
 
-배포 전 확인 사항(자세한 내용은 [`TODO.md`](TODO.md) · [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) Phase 8):
+배포 전 확인 사항(자세한 내용은 [`TODO.md`](TODO.md) 참고):
 
 - `config/deploy.yml`의 `proxy.host` 를 실제 도메인으로 교체 (현재 플레이스홀더)
 - `config/environments/production.rb`의 메일러 `default_url_options` host 교체
@@ -223,8 +224,6 @@ docs/            설계·구현·운영 문서 (아래)
 | 문서 | 내용 |
 |------|------|
 | [`DESIGN.md`](DESIGN.md) | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형) |
-| [`docs/RAILS_PLAN.md`](docs/RAILS_PLAN.md) | 설계·제작 계획(스키마·역할·라우트 근거) |
-| [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) | Phase 0~8 단계별 구현 계획 |
 | [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
 | [`docs/monsters.md`](docs/monsters.md) | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드 |
 | [`docs/API_KEYS.md`](docs/API_KEYS.md) | 외부 API 키 주입·폴백 가이드 |
