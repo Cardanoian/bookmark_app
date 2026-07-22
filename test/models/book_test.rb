@@ -76,4 +76,22 @@ class BookTest < ActiveSupport::TestCase
     blank = Book.create!(title: "표지 없는 책", isbn: "9788986621136", cover_url: nil)
     assert_nil blank.cover_url
   end
+
+  # 검색 캐시(searched) 도서가 승인 독후감으로 실제 읽혔음이 확인되면 정식 카탈로그로 승격된다
+  # (독서활동 허브·자동완성·발견 정상화 — 막다른 길 해소).
+  test "promote_from_search! promotes a searched book to the recommended catalog" do
+    book = Book.create!(title: "검색으로 찾은 무명책", isbn: "9791112114198", category: :searched)
+    book.promote_from_search!
+    assert book.reload.recommended?
+  end
+
+  test "promote_from_search! is a no-op for non-searched books (idempotent)" do
+    classic = Book.create!(title: "고전", isbn: "9791112114198", category: :classic)
+    classic.promote_from_search!
+    assert classic.reload.classic?, "고전은 승격 대상이 아니다(불변)"
+
+    recommended = Book.create!(title: "이미 추천", isbn: "9788986621136", category: :recommended)
+    recommended.promote_from_search!
+    assert recommended.reload.recommended?
+  end
 end

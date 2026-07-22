@@ -18,7 +18,7 @@
               url: autocomplete_books_path, mode: "strict", show_cover: true %>
         <%= f.submit "다음", class: "btn btn-primary btn-sm" %>
       <% end %>
-      <p class="text-xs text-steel">찾는 책이 없으면 <%= link_to "독후감 새 글", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
+      <p class="text-xs text-steel">찾는 책이 없으면 <%= link_to "책 검색하기", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
     </section>
   <% else %>
     <%# 선택 도서 카드 + 책 바꾸기 %>

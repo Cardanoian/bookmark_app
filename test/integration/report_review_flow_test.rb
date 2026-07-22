@@ -42,5 +42,20 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
     assert_operator @student.reload.points, :>, points_before, "전체 플로우 후 학생 포인트가 증가해야 한다"
   end
 
+  # 검색 캐시(searched)로 유입된 도서에 승인 독후감이 붙으면 정식 카탈로그로 승격돼(Book#
+  # promote_from_search!) 독서활동 허브·자동완성에서 정상 도서로 취급된다(피그말리온 막다른 길 해소).
+  test "teacher approval promotes a searched (search-cache) book into the catalog" do
+    searched = Book.create!(title: "검색으로 찾은 무명책", author: "공자장",
+                            isbn: "9791112114198", category: :searched)
+    report = Report.create!(user: @student, classroom: @classroom, book: searched,
+                            book_title: searched.title, body: "본문", ai_status: :done)
+
+    login_as @teacher
+    post approve_teacher_review_path(report)
+
+    assert report.reload.reviewed?, "승인되어야 한다"
+    assert searched.reload.recommended?, "승인된 검색 캐시 도서는 정식 카탈로그로 승격돼야 한다"
+  end
+
   private
 end

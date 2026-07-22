@@ -18,7 +18,7 @@ class OcrController < ApplicationController
     # 가드에서 book_title 폴백으로 통과한다. remote_isbn 은 컬럼이 아니라 permit 하지 않고
     # params.dig 로만 소비한다.
     book_id = resolved_book_id(params.dig(:ocr, :book_id)) ||
-      Books::SearchService.new.register(params.dig(:ocr, :remote_isbn))&.id
+      register_and_promote(params.dig(:ocr, :remote_isbn))
 
     # 도서 참조 가드 — draft 생성 전에 배치. 유효 book_id(실존/등록 Book)·book_title 이 모두
     # 없으면 가짜 "사진 독후감" 없이 조기 거부한다(book_reference_present 실패로 인한 RecordInvalid 500 차단).
@@ -73,5 +73,17 @@ class OcrController < ApplicationController
     return nil if id.nil?
 
     Book.exists?(id) ? id : nil
+  end
+
+  # 검색 버튼으로 고른 원격 책을 제출 시 등록(캐시-우선·비차단)하고, 검색해서 독후감을 쓴 책은
+  # 정식 카탈로그(recommended)로 즉시 승격해 book_id 를 돌려준다(작성 즉시 등록 — 검색·게임·발견
+  # 노출). register 는 nil degrade 이므로 실패 시(무키·미일치) nil → 위 도서 참조 가드가
+  # book_title 폴백으로 처리한다. ReportsController#report_params_with_registered_book 미러.
+  def register_and_promote(isbn)
+    book = Books::SearchService.new.register(isbn)
+    return nil unless book
+
+    book.promote_from_search!
+    book.id
   end
 end

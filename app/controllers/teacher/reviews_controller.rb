@@ -62,6 +62,9 @@ class Teacher::ReviewsController < ApplicationController
   # 반환: 이번 승인으로 새로 발견한 몬스터(UserMonster) 목록(호출부가 flash 안내에 사용).
   def finalize_approval(report)
     report.update!(reviewed: true, reviewed_at: Time.current)
+    # 검색 캐시(searched)로 유입된 도서라도 승인 독후감이 붙으면 정식 카탈로그로 승격해
+    # 독서활동 허브·자동완성·발견에서 정상 도서로 취급되게 한다(Book#promote_from_search!, 멱등).
+    report.book&.promote_from_search!
     broadcast_to_student(report)
     report.user.refresh_badges!
     report.user.check_evolution!

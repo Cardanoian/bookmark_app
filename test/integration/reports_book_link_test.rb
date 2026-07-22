@@ -84,6 +84,29 @@ class ReportsBookLinkTest < ActionDispatch::IntegrationTest
     assert_redirected_to report_path(report)
   end
 
+  # 작성 즉시 정식 등록(사용자 결정) — 검색(remote_isbn)으로 고른 책에 독후감을 쓰면 그 책은
+  # searched 캐시가 아니라 정식 카탈로그(recommended)로 즉시 승격돼 검색·게임·발견에 바로 노출된다.
+  test "remote_isbn 으로 등록된 책은 작성 즉시 정식 도서(recommended)로 승격된다" do
+    login_as @student
+
+    isbn = "9791234567896"
+    with_memory_cache do
+      Rails.cache.write("book_meta:#{isbn}", {
+        id: nil, title: "검색으로 찾은 책", author: "저자", publisher: "출판",
+        thumbnail: "https://example.com/x.jpg", isbn: isbn, description: "설명"
+      })
+
+      post reports_path, params: { report: {
+        book_id: "", remote_isbn: isbn, book_title: "학생이 적은 제목",
+        body: "검색으로 찾은 책을 읽고.", input_mode: "keyboard"
+      } }
+    end
+
+    book = Book.find_by(isbn: isbn)
+    assert_not_nil book, "remote_isbn 으로 Book 이 등록돼야 한다"
+    assert book.recommended?, "검색해서 독후감을 쓴 책은 작성 즉시 정식 도서(recommended)로 등록돼야 한다"
+  end
+
   # 비차단 계약 — register 가 nil(무키·캐시 미스)이어도 save 를 막거나 롤백하지 않고
   # book_title 자유텍스트 폴백으로 저장된다. 테스트 환경은 무키 + null_store 라 register→nil.
   test "remote_isbn 등록 실패면 book_title 폴백으로 저장되고 save 는 롤백되지 않는다" do

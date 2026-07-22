@@ -55,6 +55,16 @@ class Book < ApplicationRecord
          .order(Arel.sql("(volume IS NULL), volume, id"))
   end
 
+  # 검색 캐시(category: searched)로 유입된 도서라도 승인 독후감이 붙으면 더 이상 일회성 캐시가
+  # 아니다 — 정식 카탈로그(recommended)로 승격해 독서활동 허브(resolve_book)·자동완성·"이 책은
+  # 어때요?" 발견에서 정상 도서로 취급되게 한다. 승인 시점(Teacher::ReviewsController#
+  # finalize_approval)에서만 호출해, 아무도 읽지 않은 검색 캐시가 카탈로그를 무한 증식시키지 않게
+  # 한다(searched 는 books#index·discovery·autocomplete·resolve_book 모두에서 의도적 배제). 멱등:
+  # 이미 비-searched 면 no-op. 승격은 category 만 바꾸며 유효한 ISBN·표지 등 나머지는 불변.
+  def promote_from_search!
+    update!(category: :recommended) if searched?
+  end
+
   private
 
   def normalize_isbn
