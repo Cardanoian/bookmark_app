@@ -2,12 +2,12 @@
 <% species = owned&.monster_species || line %>
 <%= link_to monster_path(line.dex_no),
       class: [
-        "card relative flex items-start gap-3 p-4 transition",
+        "card relative flex items-start gap-3 p-3 transition",
         owned ? "hover:border-brand-yellow" : "border-2 border-dashed border-hairline-strong bg-surface-soft"
       ].join(" "),
       data: { dex_target: "card", element: line.element } do %>
   <% if evolvable %>
-    <span class="badge badge-yellow absolute right-2 top-2 px-1.5 py-0.5 text-[10px] font-bold">진화 가능</span>
+    <span class="badge badge-yellow absolute left-2 top-2 px-1.5 py-0.5 text-[10px] font-bold">진화 가능</span>
   <% end %>
 
   <%# 좌측 열: 소유=큰 몬스터 이미지(모바일 64 / 태블릿·PC 96px) / 미소유=자물쇠(48px) + 그 아래 해금 조건. %>
