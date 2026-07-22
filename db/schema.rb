@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000015) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -526,6 +526,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000015) do
     t.boolean "shared", default: false, null: false
     t.float "similarity"
     t.text "teacher_comment"
+    t.json "teacher_feedback"
     t.json "teacher_rubric"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false

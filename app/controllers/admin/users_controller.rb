@@ -55,9 +55,16 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def reset_password
-    temporary_password = User.generate_temporary_password
-    @user.update!(password: temporary_password)
-    redirect_to admin_user_path(@user), notice: "비밀번호를 임시 비밀번호 ‘#{temporary_password}’ 로 초기화했어요."
+    password = params.permit(user: [ :password ]).dig(:user, :password)
+    if password.blank?
+      return redirect_to admin_user_path(@user), alert: "비밀번호를 6자 이상 입력해 주세요."
+    end
+
+    if @user.update(password: password)
+      redirect_to admin_user_path(@user), notice: "비밀번호를 초기화했어요."
+    else
+      redirect_to admin_user_path(@user), alert: "비밀번호를 6자 이상 입력해 주세요."
+    end
   end
 
   def role

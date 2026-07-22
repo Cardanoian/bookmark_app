@@ -65,6 +65,50 @@ class Report < ApplicationRecord
     ReadingDomain::RUBRIC_AXES.index_with { |axis| data[axis] }
   end
 
+  # 학생 대면 AI 첨삭 산출물 표시의 **유일한 판정**. 교사가 검토·승인(reviewed)한 뒤에만
+  # 첨삭 텍스트·등급을 학생에게 노출한다. 게이트는 레코드 상태만 본다(current_user/policy 금지)
+  # — `_report_detail` 은 HTTP 렌더뿐 아니라 뷰어 없는 백그라운드 잡 방송에서도 렌더되기 때문.
+  def feedback_visible?
+    reviewed? && rubric.present?
+  end
+
+  # 학생에게 보여 줄 첨삭 텍스트 정규화 해시. teacher_feedback(교사 편집본) 있으면 그것,
+  # 없으면 AI 원본(praise/fix/grow) 폴백. **grow 는 항상 `[{text:, standard_code:}]` 형태**를
+  # 보장해 뷰의 해시 접근(`g[:text]`)에서 문자열이 섞여 크래시(`"..."[:text]`)나지 않게 한다.
+  # teacher_feedback 은 JSON 왕복 후 문자열 키이므로 with_indifferent_access 로 래핑한다.
+  def student_feedback
+    source = teacher_feedback.presence&.with_indifferent_access
+    if source
+      {
+        praise: Array(source[:praise]).map(&:to_s),
+        fix: Array(source[:fix]).map(&:to_s),
+        grow: normalize_grow(source[:grow])
+      }
+    else
+      {
+        praise: praise_list,
+        fix: fix_list,
+        grow: normalize_grow(rubric_data[:grow])
+      }
+    end
+  end
+
+  # 학생 상세(show)의 상세 영역(`dom_id(self,:detail)`)을 실시간 교체한다. show 의
+  # `turbo_stream_from self` 구독과 대응. AiReviewJob(첨삭/재첨삭 완료·실패)과
+  # Teacher::ReviewsController(승인·승인 후 정정)이 공용한다. **방송 실패는 내부 rescue 로
+  # 흡수**한다 — 빼면 방송 실패가 호출부(잡 perform·컨트롤러)의 상위 rescue 로 전파돼 이미
+  # 커밋된 리포트가 ai_status:failed 로 뒤집히거나 500 이 난다. 다음 로드에서 레코드 상태로 복원.
+  def broadcast_detail_refresh
+    broadcast_replace_to(
+      self,
+      target: ActionView::RecordIdentifier.dom_id(self, :detail),
+      partial: "reports/report_detail",
+      locals: { report: self }
+    )
+  rescue StandardError => e
+    Rails.logger.warn("Report#broadcast_detail_refresh failed for report #{id}: #{e.class}: #{e.message}")
+  end
+
   # 중간 검사(맞춤법) 신호. spelling 축 점수와 한 줄 안내.
   def spelling_feedback
     score = rubric_data[:spelling]
@@ -99,6 +143,18 @@ class Report < ApplicationRecord
   end
 
   private
+
+  # grow 엔트리를 항상 `[{text:, standard_code:}]`(심볼 키·문자열 값) 형태로 정규화한다.
+  # teacher_feedback(문자열 키·JSON 왕복)·AI rubric(indifferent) 어느 쪽이 소스든 뷰가 동일하게
+  # `g[:text]`/`g[:standard_code]` 로 접근할 수 있게 하고, 문자열 엔트리가 섞여도 걸러 크래시를 막는다.
+  def normalize_grow(raw)
+    Array(raw).filter_map do |entry|
+      next unless entry.respond_to?(:to_h)
+
+      data = entry.to_h.with_indifferent_access
+      { text: data[:text].to_s, standard_code: data[:standard_code].to_s }
+    end
+  end
 
   def tokenize_body(text)
     text.to_s.scan(/\p{Word}+/)

@@ -46,7 +46,7 @@ class ReportsController < ApplicationController
 
     if @report.save
       submit_for_review(@report)
-      redirect_to @report, notice: "독후감을 제출했어요. AI 선생님이 첨삭 중이에요."
+      redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
     else
       render :new, status: :unprocessable_entity
     end
@@ -62,10 +62,10 @@ class ReportsController < ApplicationController
     if @report.update(report_params)
       if resubmit?
         submit_for_review(@report)
-        redirect_to @report, notice: "고쳐 썼어요! AI 선생님이 다시 첨삭하고 있어요."
+        redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
       elsif first_review? && @report.body.present?
         submit_for_review(@report)
-        redirect_to @report, notice: "독후감을 제출했어요. AI 선생님이 첨삭 중이에요."
+        redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
       else
         redirect_to @report, notice: "독후감을 저장했어요."
       end
@@ -187,9 +187,16 @@ class ReportsController < ApplicationController
     Book.exists?(id) ? id : nil
   end
 
-  # 제출/재제출: 재첨삭 대기 상태로 돌리고 AiReviewJob 을 예약한다.
+  # 제출/재제출: 검토 상태를 완전히 리셋(미검토로 되돌리고 교사 편집본 클리어)한 뒤 AiReviewJob 을 예약한다.
+  # 승인본(reviewed=true)을 학생이 직접 편집·재제출하면 reviewed 를 false 로 되돌려 첨삭 비공개 게이트
+  # (feedback_visible?)에 재진입시키고, 담임 재검토 큐(pending_scope, reviewed:false)로 복귀시킨다.
+  # 본문이 바뀌어 새 AI 첨삭이 생성되므로, 옛 본문을 대상으로 한 교사 편집본
+  # (teacher_feedback/teacher_rubric/teacher_comment)은 스테일이라 함께 클리어한다
+  # (클리어하지 않으면 재승인 후 student_feedback 이 스테일 teacher_feedback 을 우선 노출하는 2차 버그).
+  # create(신규)·OCR 초안·revise(새 레코드)는 이미 reviewed=false·교사필드 nil 이라 no-op(무해).
   def submit_for_review(report)
-    report.update!(ai_status: :pending)
+    report.update!(ai_status: :pending, reviewed: false, reviewed_at: nil,
+                   teacher_feedback: nil, teacher_rubric: nil, teacher_comment: nil)
     AiReviewJob.perform_later(report)
   end
 

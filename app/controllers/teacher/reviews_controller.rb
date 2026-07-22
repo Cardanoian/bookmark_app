@@ -18,6 +18,9 @@ class Teacher::ReviewsController < ApplicationController
     authorize @report, :review?
 
     if @report.update(review_params)
+      # 미승인(reviewed false) 편집은 방송하지 않는다(학생 비노출 유지). 승인 후 정정(reviewed true)
+      # 은 학생이 이미 볼 수 있는 첨삭이므로 즉시 라이브 반영해 스테일을 막는다.
+      @report.broadcast_detail_refresh if @report.reviewed?
       discovered = evaluate_monster_unlocks(@report.user)
       redirect_to teacher_review_path(@report), notice: with_discovery("검토 내용을 저장했어요.", discovered)
     else
@@ -66,6 +69,9 @@ class Teacher::ReviewsController < ApplicationController
     # 독서활동 허브·자동완성·발견에서 정상 도서로 취급되게 한다(Book#promote_from_search!, 멱등).
     report.book&.promote_from_search!
     broadcast_to_student(report)
+    # 승인 순간 학생의 열린 show 상세를 라이브로 갱신해 승인·편집된 첨삭·등급을 즉시 노출한다
+    # (reviewed 로 전이하는 지점이라 항상 방송; 내부 rescue 로 방송 실패가 승인을 뒤집지 않음).
+    report.broadcast_detail_refresh
     report.user.refresh_badges!
     report.user.check_evolution!
     # 미션 진행 평가(menu_refactor 심화 §2.A.3). M5: evaluate_monster_unlocks 앞에 두어 같은 요청에서
@@ -84,7 +90,45 @@ class Teacher::ReviewsController < ApplicationController
   def review_params
     permitted = params.require(:report).permit(:teacher_comment, teacher_rubric: ReadingDomain::RUBRIC_AXES)
     permitted[:teacher_rubric] = permitted[:teacher_rubric].to_h.transform_values(&:to_i) if permitted[:teacher_rubric].present?
+    if (feedback = build_teacher_feedback)
+      permitted[:teacher_feedback] = feedback
+    end
     permitted
+  end
+
+  # 교사 첨삭 텍스트 편집을 정규화 저장 형태 `{praise:[], fix:[], grow:[{text:,standard_code:}]}` 로
+  # 조립한다. 칭찬/보완은 줄단위 textarea → 문자열 배열. 성장은 항목별 고정 입력이며 **text 만** 취하고
+  # **standard_code 는 폼 입력을 신뢰하지 않고 `@report.rubric` 원본 grow[i] 의 코드로 서버에서 재설정**
+  # 한다(위조·오정렬 이중 방지). 중첩 grow 파라미터는 문자열 인덱스 해시(`{"0"=>{...}}`, 배열 아님)이므로
+  # 정수 인덱스로 정렬해 원본 grow 와 zip 한다.
+  def build_teacher_feedback
+    raw = params.dig(:report, :teacher_feedback)
+    return nil if raw.blank?
+
+    original_grow = @report.grow_list
+    grow_params = raw[:grow]
+    grow =
+      if grow_params.respond_to?(:keys)
+        grow_params.to_unsafe_h.sort_by { |index, _| index.to_i }.map.with_index do |(_, attrs), i|
+          {
+            text: attrs[:text].to_s,
+            standard_code: original_grow[i] ? original_grow[i][:standard_code].to_s : ""
+          }
+        end
+      else
+        []
+      end
+
+    {
+      praise: split_feedback_lines(raw[:praise]),
+      fix: split_feedback_lines(raw[:fix]),
+      grow: grow
+    }
+  end
+
+  # 줄단위 textarea 입력을 문자열 배열로. 빈 줄·앞뒤 공백은 제거한다.
+  def split_feedback_lines(text)
+    text.to_s.split("\n").map(&:strip).reject(&:blank?)
   end
 
   # 담임 학급의 미검토 독후감(첨삭 완료분).

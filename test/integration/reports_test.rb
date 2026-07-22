@@ -68,7 +68,9 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test "show renders the 5축 rubric after the offline review job runs" do
+  # report-review-gate: AI 첨삭(5축)은 완료 직후가 아니라 교사 승인 후에만 학생에게 보인다
+  # (구 동작은 ai_status done 만으로 노출했으나, 미검토 AI 산출물 비공개 게이트로 갱신됨).
+  test "show renders the 5축 rubric only after teacher approval, following the offline review job" do
     login_as @student
     perform_enqueued_jobs do
       post reports_path, params: { report: { book_title: "책", body: "나는 우리의 삶을 생각하며 감동을 느꼈다." } }
@@ -77,6 +79,17 @@ class ReportsTest < ActionDispatch::IntegrationTest
     report = @student.reports.order(:created_at).last
     assert report.reload.done?
 
+    get report_path(report)
+    assert_response :success
+    assert_no_match "5축", response.body, "교사 승인 전에는 AI 첨삭을 학생에게 보이면 안 된다"
+
+    delete session_path
+    login_as @teacher
+    post approve_teacher_review_path(report)
+    assert report.reload.reviewed?
+
+    delete session_path
+    login_as @student
     get report_path(report)
     assert_response :success
     assert_match "5축", response.body

@@ -17,6 +17,23 @@ module ReportsHelper
     content_tag :span, label, class: "badge #{variant}"
   end
 
+  # 학생 뷰(_report_detail·_report) 전용 상태 배지. "첨삭 완료"처럼 결과 준비를 암시하지 않게
+  # 교사 검토 단계를 드러낸다. reviewed 를 먼저 판정한다(승인된 리포트는 ai_status done 이므로).
+  # 교사 뷰는 계속 ai_status_badge 를 쓴다.
+  def student_status_badge(report)
+    label, variant =
+      if report.reviewed?
+        [ "확인 완료", "badge-success" ]
+      elsif report.ai_status == "failed"
+        [ "다시 시도", "badge-danger" ]
+      elsif report.ai_status == "done"
+        [ "선생님 확인 중", "badge-yellow" ]
+      else
+        [ "첨삭 준비 중", "badge-neutral" ]
+      end
+    content_tag :span, label, class: "badge #{variant}"
+  end
+
   def level_badge(level)
     return if level.blank?
 

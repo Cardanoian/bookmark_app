@@ -99,6 +99,87 @@ class ReportTest < ActiveSupport::TestCase
     assert_equal png_bytes.bytesize, report.photo.blob.byte_size, "재식별 시 IO 를 읽어도 업로드가 잘리지 않는다"
   end
 
+  # --- report-review-gate: feedback_visible?/student_feedback/broadcast_detail_refresh ---
+
+  test "feedback_visible? requires both reviewed and a present rubric" do
+    report = build_report(book_title: "게이트책")
+    assert_not report.feedback_visible?, "미첨삭·미검토 상태는 노출 대상이 아니다"
+
+    report.rubric = { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4 }
+    assert_not report.feedback_visible?, "reviewed 가 아니면 rubric 이 있어도 숨겨야 한다"
+
+    report.reviewed = true
+    assert report.feedback_visible?, "reviewed && rubric 이면 노출한다"
+  end
+
+  test "feedback_visible? is false when reviewed but rubric is blank" do
+    report = build_report(book_title: "루브릭없음", reviewed: true, rubric: nil)
+    assert_not report.feedback_visible?
+  end
+
+  test "student_feedback falls back to the AI rubric when no teacher_feedback is saved" do
+    report = build_report(
+      book_title: "AI폴백",
+      rubric: { content: 5, emotion: 5, life: 5, structure: 5, spelling: 5,
+                praise: [ "잘했어요" ], fix: [ "더 써 볼까요" ],
+                grow: [ { text: "표현을 다양하게", standard_code: "2국05-01" } ] }
+    )
+
+    feedback = report.student_feedback
+    assert_equal [ "잘했어요" ], feedback[:praise]
+    assert_equal [ "더 써 볼까요" ], feedback[:fix]
+    assert_equal [ { text: "표현을 다양하게", standard_code: "2국05-01" } ], feedback[:grow]
+  end
+
+  test "student_feedback prefers teacher_feedback over the AI rubric when present" do
+    report = build_report(
+      book_title: "교사우선",
+      rubric: { praise: [ "AI 칭찬" ], fix: [ "AI 보완" ], grow: [ { text: "AI 제안", standard_code: "2국05-01" } ] },
+      teacher_feedback: { praise: [ "교사 칭찬" ], fix: [ "교사 보완" ], grow: [ { text: "교사 제안", standard_code: "2국05-01" } ] }
+    )
+
+    feedback = report.student_feedback
+    assert_equal [ "교사 칭찬" ], feedback[:praise]
+    assert_equal [ "교사 보완" ], feedback[:fix]
+    assert_equal "교사 제안", feedback[:grow].first[:text]
+  end
+
+  # teacher_feedback 은 grow 항목별 고정 입력(text만 편집)이라 standard_code 없이 저장될 수 있다.
+  # student_feedback 은 이런 부분 데이터도 항상 {text:, standard_code:} 해시로 정규화해
+  # 뷰의 해시 접근(grow[:text])이 문자열 크래시("..."[:text]) 없이 동작하게 한다.
+  test "student_feedback normalizes teacher-edited grow entries into hashes even without a standard_code" do
+    report = build_report(
+      book_title: "정규화",
+      rubric: {},
+      teacher_feedback: { grow: [ { "text" => "문장만 있는 성장 제안" } ] }
+    )
+
+    assert_equal [ { text: "문장만 있는 성장 제안", standard_code: "" } ], report.student_feedback[:grow]
+  end
+
+  test "teacher_feedback round-trips through JSON and is readable via student_feedback after reload" do
+    report = build_report(book_title: "라운드트립", rubric: {}).tap(&:save!)
+    report.update!(teacher_feedback: { praise: [ "저장 확인" ], fix: [], grow: [ { text: "제안", standard_code: "2국05-01" } ] })
+
+    feedback = Report.find(report.id).student_feedback
+    assert_equal [ "저장 확인" ], feedback[:praise]
+    assert_equal [], feedback[:fix]
+    assert_equal [ { text: "제안", standard_code: "2국05-01" } ], feedback[:grow]
+  end
+
+  # 승인 시 상세 방송(broadcast_detail_refresh)이 실패해도 이미 커밋된 첨삭 결과를 뒤집지 않는다
+  # (AiReviewJob·Teacher::ReviewsController 양쪽이 이 내부 rescue 계약에 의존한다).
+  test "broadcast_detail_refresh swallows broadcast failures without raising or flipping ai_status" do
+    report = build_report(book_title: "방송실패", ai_status: :done, rubric: { content: 5 }, reviewed: true).tap(&:save!)
+
+    def report.broadcast_replace_to(*)
+      raise "boom"
+    end
+
+    assert_nothing_raised { report.broadcast_detail_refresh }
+    assert report.reload.done?
+  end
+
   private
 
   def build_report(attrs = {})

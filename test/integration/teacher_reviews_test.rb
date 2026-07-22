@@ -107,5 +107,64 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     assert other.reload.reviewed?
   end
 
+  # --- report-review-gate: 교사 첨삭 텍스트 편집 + 승인 전 방송 억제 ---
+
+  test "teacher review show exposes AI feedback text before approval (teacher-only view is not gated)" do
+    @report.update!(rubric: { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4,
+      praise: [ "잘한 점 예시" ], fix: [ "보완할 점 예시" ],
+      grow: [ { text: "성장 제안 예시", standard_code: "2국05-01" } ] })
+
+    login_as @teacher
+    get teacher_review_path(@report)
+    assert_response :success
+    assert_match "잘한 점 예시", response.body
+    assert_match "보완할 점 예시", response.body
+    assert_match "성장 제안 예시", response.body
+  end
+
+  # grow 는 항목별 고정 입력(text만 편집)이라 standard_code 는 위조 파라미터를 무시하고
+  # 서버가 원본 rubric 의 코드로 재설정해야 한다(오정렬·위조 이중 방지).
+  test "update saves teacher-edited feedback text and resets grow standard_code from the original rubric" do
+    @report.update!(rubric: { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4,
+      praise: [ "AI 칭찬" ], fix: [ "AI 보완" ],
+      grow: [ { text: "제안 원본", standard_code: "2국05-01" } ] })
+
+    login_as @teacher
+    patch teacher_review_path(@report), params: {
+      report: {
+        teacher_feedback: {
+          praise: "교사 칭찬1\n교사 칭찬2",
+          fix: "교사 보완",
+          grow: { "0" => { text: "교사가 고친 제안", standard_code: "위조코드-999" } }
+        }
+      }
+    }
+
+    feedback = @report.reload.teacher_feedback.with_indifferent_access
+    assert_equal [ "교사 칭찬1", "교사 칭찬2" ], feedback[:praise]
+    assert_equal [ "교사 보완" ], feedback[:fix]
+    assert_equal "교사가 고친 제안", feedback[:grow].first["text"]
+    assert_equal "2국05-01", feedback[:grow].first["standard_code"],
+      "성취기준 코드는 폼 위조값이 아니라 원본 rubric 기준으로 서버가 재설정해야 한다"
+  end
+
+  # 미승인(reviewed false) 편집은 학생에게 아직 안 보이므로 방송하지 않는다. 승인 후(reviewed
+  # true) 정정은 학생이 이미 볼 수 있는 첨삭이므로 즉시 라이브 반영해야 한다.
+  test "update broadcasts the report detail stream only once the report is already reviewed" do
+    login_as @teacher
+
+    assert_no_turbo_stream_broadcasts(@report) do
+      patch teacher_review_path(@report), params: { report: { teacher_comment: "미승인 편집" } }
+    end
+    assert_not @report.reload.reviewed?
+
+    post approve_teacher_review_path(@report)
+    assert @report.reload.reviewed?
+
+    assert_turbo_stream_broadcasts(@report) do
+      patch teacher_review_path(@report), params: { report: { teacher_comment: "승인 후 편집" } }
+    end
+  end
+
   private
 end

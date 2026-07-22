@@ -21,35 +21,64 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match @student.name, response.body
     assert_match "0XP", response.body
+
+    assert_select "form[action=?]", teacher_students_path do
+      assert_select "input[type=?][name=?][minlength=?][required]", "password", "student[password]", "6"
+    end
+    assert_select "form[action=?]", reset_password_teacher_student_path(@student) do
+      assert_select "input[type=?][name=?][minlength=?][required]", "password", "student[password]", "6"
+    end
   end
 
-  test "create adds a student with a random temporary password surfaced to the teacher" do
+  test "create adds a student with the teacher supplied password" do
     login_as @teacher
+    password = "abc123"
     assert_difference -> { User.count }, 1 do
-      post teacher_students_path, params: { student: { name: "신규학생" } }
+      post teacher_students_path, params: { student: { name: "신규학생", password: password } }
     end
 
     created = User.find_by(name: "신규학생")
     assert created.student?
     assert_equal @classroom.id, created.classroom_id
-
-    temp = flash[:notice][/임시 비밀번호 ([A-Za-z0-9]+)/, 1]
-    assert temp.present?, "임시 비밀번호가 안내 메시지에 노출돼야 한다"
-    assert_not_equal "1234", temp, "기본 비밀번호 1234 는 더 이상 쓰지 않는다"
-    assert created.authenticate(temp), "안내된 임시 비밀번호로 인증돼야 한다"
-    assert_not_equal temp, created.password_digest, "비밀번호는 평문이 아니라 해시로 저장돼야 한다"
+    assert created.authenticate(password), "교사가 입력한 비밀번호로 인증돼야 한다"
+    assert_not_equal password, created.password_digest, "비밀번호는 평문이 아니라 해시로 저장돼야 한다"
+    assert_not_includes flash[:notice], password
   end
 
-  test "reset_password resets to a random temporary password surfaced to the teacher" do
+  test "create rejects blank whitespace-only and short passwords" do
+    login_as @teacher
+
+    [ "", "      ", "12345" ].each_with_index do |password, index|
+      assert_no_difference -> { User.count } do
+        post teacher_students_path,
+             params: { student: { name: "거부학생#{index}", password: password } }
+      end
+      assert flash[:alert].present?
+    end
+  end
+
+  test "reset_password uses the teacher supplied password" do
     @student.update!(password: "changed99")
     login_as @teacher
-    post reset_password_teacher_student_path(@student)
+    password = "new123"
+    post reset_password_teacher_student_path(@student), params: { student: { password: password } }
 
-    temp = flash[:notice][/임시 비밀번호 ([A-Za-z0-9]+)/, 1]
-    assert temp.present?, "임시 비밀번호가 안내 메시지에 노출돼야 한다"
-    assert_not_equal "1234", temp
-    assert @student.reload.authenticate(temp)
+    assert @student.reload.authenticate(password)
     assert_not @student.authenticate("changed99")
+    assert_not_equal password, @student.password_digest
+    assert_not_includes flash[:notice], password
+  end
+
+  test "reset_password rejects blank whitespace-only and short passwords without changing the password" do
+    @student.update!(password: "changed99")
+    login_as @teacher
+
+    [ "", "      ", "12345" ].each do |password|
+      post reset_password_teacher_student_path(@student), params: { student: { password: password } }
+
+      assert @student.reload.authenticate("changed99")
+      assert flash[:alert].present?
+    end
   end
 
   test "give_points increments the student's points and experience via award_points" do
@@ -86,6 +115,14 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     assert_equal 0, @student.reload.points
     assert_equal 0, @student.experience
+  end
+
+  test "a non-담임 teacher cannot reset this classroom student's password" do
+    login_as @other_teacher
+    post reset_password_teacher_student_path(@student), params: { student: { password: "new123" } }
+
+    assert_response :forbidden
+    assert @student.reload.authenticate("password")
   end
 
   test "a student is forbidden from student management" do

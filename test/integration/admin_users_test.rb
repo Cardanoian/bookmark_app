@@ -35,6 +35,9 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "경험치", response.body
     assert_match "80", response.body
+    assert_select "form[action=?]", reset_password_admin_user_path(@student) do
+      assert_select "input[type=?][name=?][minlength=?][required]", "password", "user[password]", "6"
+    end
   end
 
   test "suspend sets suspended true" do
@@ -50,16 +53,27 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_not @student.reload.suspended?
   end
 
-  test "reset_password stores a working hashed random password surfaced to the admin" do
+  test "reset_password stores the admin supplied password as a hash" do
     login_as @superadmin
-    post reset_password_admin_user_path(@student)
+    password = "new123"
+    post reset_password_admin_user_path(@student), params: { user: { password: password } }
     @student.reload
 
-    temp = flash[:notice][/임시 비밀번호 ‘([A-Za-z0-9]+)’/, 1]
-    assert temp.present?, "임시 비밀번호가 안내 메시지에 노출돼야 한다"
-    assert_not_equal "1234", temp, "기본 비밀번호 1234 는 더 이상 쓰지 않는다"
-    assert @student.authenticate(temp), "random password should authenticate"
-    assert_not_equal temp, @student.password_digest, "password must be hashed, not plaintext"
+    assert @student.authenticate(password)
+    assert_not @student.authenticate("password")
+    assert_not_equal password, @student.password_digest, "password must be hashed, not plaintext"
+    assert_not_includes flash[:notice], password
+  end
+
+  test "reset_password rejects blank whitespace-only and short passwords without changing the password" do
+    login_as @superadmin
+
+    [ "", "      ", "12345" ].each do |password|
+      post reset_password_admin_user_path(@student), params: { user: { password: password } }
+
+      assert @student.reload.authenticate("password")
+      assert flash[:alert].present?
+    end
   end
 
   test "role change updates the role" do

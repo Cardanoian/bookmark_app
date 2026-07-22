@@ -15,8 +15,10 @@
       </div>
     </div>
     <div class="relative z-10 flex shrink-0 items-center gap-2">
-      <%= level_badge(report.level) %>
-      <%= ai_status_badge(report) %>
+      <% if report.reviewed? %>
+        <%= level_badge(report.level) %>
+      <% end %>
+      <%= student_status_badge(report) %>
       <% if local_assigns.fetch(:show_delete, false) %>
         <%= button_to "삭제", report_path(report), method: :delete,
               form: { data: { turbo_confirm: "이 독후감을 삭제할까요? 삭제한 글은 되돌릴 수 없어요." } },
@@ -37,7 +39,9 @@
     <% end %>
   </div>
 
-  <% if report.teacher_comment.present? %>
+  <%# 교사 코멘트도 승인(reviewed) 후에만 노출한다 — 승인 전 코멘트만 저장한 경우의 누출 차단
+      (상세 화면 _report_detail 의 reviewed? 게이트와 대칭). %>
+  <% if report.reviewed? && report.teacher_comment.present? %>
     <p class="mt-3 rounded-md border border-hairline-soft bg-surface-featured p-2 text-sm text-ink">
       선생님: <%= report.teacher_comment %>
     </p>

@@ -46,12 +46,6 @@ class User < ApplicationRecord
     !student?
   end
 
-  # 계정 생성·비밀번호 초기화 시 부여하는 랜덤 임시 비밀번호(0.5). 기본비번 "1234" 대체.
-  # 최소 길이(6) 이상을 보장하며, 호출부에서 교사/관리자에게 노출해 학생에게 전달한다.
-  def self.generate_temporary_password
-    SecureRandom.alphanumeric(10)
-  end
-
   private
 
   # 이메일 정규화: 앞뒤 공백 제거 + 소문자화, 빈 문자열은 NULL 로 저장(유니크 인덱스 NULL 다중 허용).

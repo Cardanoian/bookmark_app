@@ -30,9 +30,15 @@
     <% else %>
       <%= button_to "계정 정지", suspend_admin_user_path(@user), class: "btn btn-danger btn-sm" %>
     <% end %>
-    <%= button_to "비밀번호 초기화", reset_password_admin_user_path(@user),
-          form: { data: { turbo_confirm: "임시 비밀번호로 초기화할까요?" } },
-          class: "btn btn-secondary btn-sm" %>
+    <%= form_with url: reset_password_admin_user_path(@user), method: :post, scope: :user,
+          class: "flex items-end gap-2", data: { turbo_confirm: "입력한 비밀번호로 초기화할까요?" } do |f| %>
+      <div>
+        <%= f.label :password, "새 비밀번호 (6자 이상)", class: "form-label" %>
+        <%= f.password_field :password, required: true, minlength: 6, autocomplete: "new-password",
+              class: "form-input" %>
+      </div>
+      <%= f.submit "비밀번호 초기화", class: "btn btn-secondary btn-sm" %>
+    <% end %>
   </div>
 
   <%= form_with url: role_admin_user_path(@user), method: :patch, class: "card flex items-end gap-2" do |f| %>

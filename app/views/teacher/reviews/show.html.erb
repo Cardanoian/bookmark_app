@@ -61,6 +61,39 @@
           <%= text_area_tag "report[teacher_comment]", @report.teacher_comment, rows: 3, class: "form-textarea" %>
         </div>
 
+        <%# AI 첨삭 텍스트 편집(승인 후 학생이 볼 최종본). 현재값은 teacher_feedback 있으면 그것,
+            없으면 AI 프리필(student_feedback). 칭찬/보완=줄 단위, 성장=항목별 고정 text(성취기준 읽기전용). %>
+        <% student_feedback = @report.student_feedback %>
+        <div class="space-y-4 border-t border-hairline-soft pt-4">
+          <div>
+            <h3 class="text-base font-semibold text-brand-blue">첨삭 내용 편집</h3>
+            <p class="mt-1 text-xs text-steel">칭찬·보완은 한 줄에 하나씩 적어요. 성장 제안은 문장만 고칠 수 있고, 성취기준 코드는 그대로 유지돼요.</p>
+          </div>
+
+          <div>
+            <%= label_tag "report_teacher_feedback_praise", "잘한 점 (한 줄에 하나)", class: "form-label" %>
+            <%= text_area_tag "report[teacher_feedback][praise]", student_feedback[:praise].join("\n"), rows: 3, class: "form-textarea" %>
+          </div>
+
+          <div>
+            <%= label_tag "report_teacher_feedback_fix", "보완할 점 (한 줄에 하나)", class: "form-label" %>
+            <%= text_area_tag "report[teacher_feedback][fix]", student_feedback[:fix].join("\n"), rows: 3, class: "form-textarea" %>
+          </div>
+
+          <% if student_feedback[:grow].any? %>
+            <div class="space-y-3">
+              <span class="form-label">성장 제안</span>
+              <% student_feedback[:grow].each_with_index do |grow, i| %>
+                <div class="rounded-md border border-hairline-soft p-3">
+                  <%= text_area_tag "report[teacher_feedback][grow][#{i}][text]", grow[:text], rows: 2, class: "form-textarea" %>
+                  <%= hidden_field_tag "report[teacher_feedback][grow][#{i}][standard_code]", grow[:standard_code] %>
+                  <p class="mt-1 text-xs text-stone">성취기준: <%= grow[:standard_code].presence || "-" %></p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
         <%= f.submit "저장", class: "btn btn-primary" %>
       <% end %>
 

@@ -1,0 +1,46 @@
+<%# 승인된 첨삭열(5축·칭찬/보완/성장·맞춤법). feedback_visible? 일 때만 render 되는 조건부 파셜
+    (호출부 _report_detail 에서 게이트). 칭찬/보완/성장은 교사 편집본 우선(student_feedback),
+    5축 점수는 기존 _rubric(AI+교사 조정 오버레이) 재사용. local: report %>
+<% feedback = report.student_feedback %>
+<div class="space-y-6">
+  <section class="card">
+    <h2 class="mb-3 text-lg font-semibold text-ink">AI 선생님의 5축 첨삭</h2>
+    <%= render "reports/rubric", report: report %>
+
+    <% if feedback[:praise].any? %>
+      <div class="mt-4">
+        <h3 class="mb-1 text-sm font-semibold text-success-accent">잘한 점</h3>
+        <ul class="list-inside list-disc text-sm text-slate">
+          <% feedback[:praise].each do |line| %><li><%= line %></li><% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <% if feedback[:fix].any? %>
+      <div class="mt-3">
+        <h3 class="mb-1 text-sm font-semibold text-yellow-dark">보완할 점</h3>
+        <ul class="list-inside list-disc text-sm text-slate">
+          <% feedback[:fix].each do |line| %><li><%= line %></li><% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <% if feedback[:grow].any? %>
+      <div class="mt-3">
+        <h3 class="mb-1 text-sm font-semibold text-brand-blue">성장 제안</h3>
+        <ul class="list-inside list-disc text-sm text-slate">
+          <% feedback[:grow].each do |grow| %>
+            <li><%= grow[:text] %> <span class="text-xs text-stone"><%= grow[:standard_code] %></span></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </section>
+
+  <% if (spelling = report.spelling_feedback) %>
+    <section class="card card-muted">
+      <h2 class="mb-1 text-sm font-semibold text-slate">중간 검사 · 맞춤법</h2>
+      <p class="text-sm text-slate"><%= spelling[:message] %> (<%= spelling[:score] %>/5)</p>
+    </section>
+  <% end %>
+</div>

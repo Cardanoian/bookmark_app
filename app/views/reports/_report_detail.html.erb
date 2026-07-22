@@ -1,6 +1,8 @@
 <%# 재첨삭 완료 시 AiReviewJob 이 이 영역만 Turbo 로 교체한다(라이브 갱신). local: report
     데스크톱은 본문/보조 정보(좌) + AI 5축 첨삭·피드백(우)로 분할하고, 모바일은 세로 스택. %>
-<% has_feedback = report.ai_status == "done" && report.rubric.present? %>
+<%# has_feedback = 학생에게 AI 첨삭(5축·칭찬/보완/성장·맞춤법)을 보일지의 단일 게이트.
+    교사 검토·승인(reviewed) 전에는 검수 안 된 AI 산출물을 노출하지 않는다(feedback_visible?). %>
+<% has_feedback = report.feedback_visible? %>
 <div id="<%= dom_id(report, :detail) %>" class="space-y-6">
   <header class="page-header">
     <div class="flex min-w-0 items-start gap-3">
@@ -18,8 +20,11 @@
       </div>
     </div>
     <div class="page-actions">
-      <%= level_badge(report.level) %>
-      <%= ai_status_badge(report) %>
+      <%# 등급(level)은 AI 판정이므로 교사 승인 후에만 노출한다. %>
+      <% if report.reviewed? %>
+        <%= level_badge(report.level) %>
+      <% end %>
+      <%= student_status_badge(report) %>
     </div>
   </header>
 
@@ -32,6 +37,11 @@
     <div class="state-banner">
       <span aria-hidden="true">✍️</span>
       <span>AI 선생님이 첨삭 중이에요. 조금만 기다려 주세요.</span>
+    </div>
+  <% elsif !report.reviewed? %>
+    <div class="state-banner">
+      <span aria-hidden="true">👀</span>
+      <span>선생님이 확인하고 있어요. 확인이 끝나면 첨삭 결과를 볼 수 있어요.</span>
     </div>
   <% end %>
 
@@ -56,7 +66,9 @@
       <% if report.revision? && (diff = report.diff_against_original) %>
         <section class="card">
           <h2 class="mb-3 text-lg font-semibold text-ink">고쳐쓰기 전 / 후</h2>
-          <% if report.improvement.present? %>
+          <%# 향상도는 등급 파생 수치라 승인 전에는 숨긴다(등급 변화 방향·크기 누출 차단).
+              diff 본문·추가표현은 학생 본인 글이라 그대로 노출한다. %>
+          <% if report.reviewed? && report.improvement.present? %>
             <p class="mb-3 text-sm font-medium text-brand-blue">
               향상도: <%= report.improvement >= 0 ? "+" : "" %><%= report.improvement %>점
             </p>
@@ -78,49 +90,10 @@
       <% end %>
     </div>
 
+    <%# 민감 첨삭열은 별도 파셜로 추출해 feedback_visible? 일 때만 렌더 자체를 건다(은닉이
+        아니라 미렌더 → 미래 필드 추가 시 셸 누출 방지). %>
     <% if has_feedback %>
-      <div class="space-y-6">
-        <section class="card">
-          <h2 class="mb-3 text-lg font-semibold text-ink">AI 선생님의 5축 첨삭</h2>
-          <%= render "reports/rubric", report: report %>
-
-          <% if report.praise_list.any? %>
-            <div class="mt-4">
-              <h3 class="mb-1 text-sm font-semibold text-success-accent">잘한 점</h3>
-              <ul class="list-inside list-disc text-sm text-slate">
-                <% report.praise_list.each do |line| %><li><%= line %></li><% end %>
-              </ul>
-            </div>
-          <% end %>
-
-          <% if report.fix_list.any? %>
-            <div class="mt-3">
-              <h3 class="mb-1 text-sm font-semibold text-yellow-dark">보완할 점</h3>
-              <ul class="list-inside list-disc text-sm text-slate">
-                <% report.fix_list.each do |line| %><li><%= line %></li><% end %>
-              </ul>
-            </div>
-          <% end %>
-
-          <% if report.grow_list.any? %>
-            <div class="mt-3">
-              <h3 class="mb-1 text-sm font-semibold text-brand-blue">성장 제안</h3>
-              <ul class="list-inside list-disc text-sm text-slate">
-                <% report.grow_list.each do |grow| %>
-                  <li><%= grow[:text] %> <span class="text-xs text-stone"><%= grow[:standard_code] %></span></li>
-                <% end %>
-              </ul>
-            </div>
-          <% end %>
-        </section>
-
-        <% if (spelling = report.spelling_feedback) %>
-          <section class="card card-muted">
-            <h2 class="mb-1 text-sm font-semibold text-slate">중간 검사 · 맞춤법</h2>
-            <p class="text-sm text-slate"><%= spelling[:message] %> (<%= spelling[:score] %>/5)</p>
-          </section>
-        <% end %>
-      </div>
+      <%= render "reports/report_feedback", report: report %>
     <% end %>
   </div>
 </div>

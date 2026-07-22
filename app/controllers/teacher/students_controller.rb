@@ -9,17 +9,21 @@ class Teacher::StudentsController < Teacher::BaseController
 
   def create
     classroom = owned_classroom!(target_classroom)
-    temporary_password = User.generate_temporary_password
+    password = student_params[:password]
+    if password.blank?
+      return redirect_to teacher_students_path, alert: "비밀번호를 6자 이상 입력해 주세요."
+    end
+
     @student = User.new(
       name: student_params[:name],
       classroom: classroom,
       school_id: classroom.school_id,
       role: :student,
-      password: temporary_password
+      password: password
     )
 
     if @student.save
-      redirect_to teacher_students_path, notice: "#{@student.name} 학생을 추가했어요. (임시 비밀번호 #{temporary_password})"
+      redirect_to teacher_students_path, notice: "#{@student.name} 학생을 추가했어요."
     else
       redirect_to teacher_students_path, alert: @student.errors.full_messages.to_sentence
     end
@@ -32,9 +36,16 @@ class Teacher::StudentsController < Teacher::BaseController
   end
 
   def reset_password
-    temporary_password = User.generate_temporary_password
-    @student.update!(password: temporary_password)
-    redirect_to teacher_students_path, notice: "#{@student.name} 학생의 비밀번호를 초기화했어요. (임시 비밀번호 #{temporary_password})"
+    password = params.permit(student: [ :password ]).dig(:student, :password)
+    if password.blank?
+      return redirect_to teacher_students_path, alert: "비밀번호를 6자 이상 입력해 주세요."
+    end
+
+    if @student.update(password: password)
+      redirect_to teacher_students_path, notice: "#{@student.name} 학생의 비밀번호를 초기화했어요."
+    else
+      redirect_to teacher_students_path, alert: "비밀번호를 6자 이상 입력해 주세요."
+    end
   end
 
   def give_points
@@ -61,6 +72,6 @@ class Teacher::StudentsController < Teacher::BaseController
   end
 
   def student_params
-    params.require(:student).permit(:name, :classroom_id)
+    params.require(:student).permit(:name, :classroom_id, :password)
   end
 end
