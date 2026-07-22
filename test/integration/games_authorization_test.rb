@@ -14,9 +14,19 @@ class GamesAuthorizationTest < ActionDispatch::IntegrationTest
     @student_a = User.create!(school: @school, classroom: @room_a, name: "A반학생", password: "password")
     @student_b = User.create!(school: @school, classroom: @room_b, name: "B반학생", password: "password")
     @student_low = User.create!(school: @school, classroom: @room_low, name: "저학년학생", password: "password")
-    # summary 를 주어 AI-적격(가용) 책으로 둔다 — 이 테스트의 관심사는 밴드/학급 경계 클램프(§3.3)이지
-    # 가용성 게이트(Phase 4 §2)가 아니므로, 게이트를 통과하는 책으로 클램프만 검증한다.
-    @book = Book.create!(title: "경계책", author: "저자", summary: "경계 검증용 줄거리.", category: :recommended)
+    # 검수 큐레이션 문항(curated)을 주어 가용(게이트 통과) 책으로 둔다 — 이 테스트의 관심사는
+    # 밴드/학급 경계 클램프(§3.3)이지 가용성 게이트(Phase 4 §2)가 아니므로, 게이트를 통과하는
+    # 책으로 클램프만 검증한다. **현행 가용성 기준은 summary·고전이 아니라 curated·contributed
+    # 콘텐츠**(content_provider `game_content_available?`)라, summary 만으론 비활성 → 온디맨드
+    # 퀴즈가 안 생겨 게이트 리다이렉트됐다(회귀 수정). quiz(mcq) 표면만 쓰므로 mcq 축만 시딩.
+    @book = Book.create!(title: "경계책", author: "저자", category: :recommended)
+    CuratedQuiz.create!(book: @book, content_axis: :mcq, payload: [
+      { "prompt" => "이야기의 주인공은 누구인가요?", "choices" => %w[소년 소녀 선생님 마법사], "answer_index" => 0, "explanation" => "소년이 주인공이에요.", "difficulty" => 1 },
+      { "prompt" => "주인공은 무엇을 하나요?", "choices" => %w[모험 요리 청소 노래], "answer_index" => 0, "explanation" => "주인공은 모험을 해요.", "difficulty" => 1 },
+      { "prompt" => "이야기의 배경은 어디인가요?", "choices" => %w[숲 바다 도시 우주], "answer_index" => 0, "explanation" => "숲에서 시작돼요.", "difficulty" => 1 },
+      { "prompt" => "주인공이 만나는 것은 무엇인가요?", "choices" => %w[친구 적 보물 시험], "answer_index" => 0, "explanation" => "친구를 만나요.", "difficulty" => 1 },
+      { "prompt" => "이야기의 교훈은 무엇인가요?", "choices" => %w[용기 게으름 욕심 거짓], "answer_index" => 0, "explanation" => "용기의 소중함을 배워요.", "difficulty" => 1 }
+    ])
     AppSetting.set("feature_flags", { "on_demand_games" => true })
   end
 

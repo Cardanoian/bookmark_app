@@ -7,9 +7,18 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     @school = School.create!(name: "메뉴초등학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @student = User.create!(school: @school, classroom: @classroom, name: "메뉴학생", password: "password")
-    # summary 로 AI-적격(가용) 책 — 독서활동 게임 칩(퀴즈) 표시를 검증하므로 게이트를 통과시킨다
-    # (가용성 게이트 자체는 games_content_gate_test 가 검증).
-    @book = Book.create!(title: "메뉴책", author: "지은이", summary: "메뉴 검증용 줄거리.", category: :recommended)
+    # 검수 큐레이션 문항(curated)으로 가용(게이트 통과) 책 — 독서활동 게임 칩(퀴즈) 표시를
+    # 검증하므로 게이트를 통과시킨다(가용성 게이트 자체는 games_content_gate_test 가 검증).
+    # **현행 가용성 기준은 summary·고전이 아니라 curated·contributed 콘텐츠**라 summary 만으론
+    # 퀴즈 칩이 은닉된다(회귀 수정). quiz(mcq) 칩만 검증하므로 mcq 축만 시딩.
+    @book = Book.create!(title: "메뉴책", author: "지은이", category: :recommended)
+    CuratedQuiz.create!(book: @book, content_axis: :mcq, payload: [
+      { "prompt" => "이야기의 주인공은 누구인가요?", "choices" => %w[소년 소녀 선생님 마법사], "answer_index" => 0, "explanation" => "소년이 주인공이에요.", "difficulty" => 1 },
+      { "prompt" => "주인공은 무엇을 하나요?", "choices" => %w[모험 요리 청소 노래], "answer_index" => 0, "explanation" => "주인공은 모험을 해요.", "difficulty" => 1 },
+      { "prompt" => "이야기의 배경은 어디인가요?", "choices" => %w[숲 바다 도시 우주], "answer_index" => 0, "explanation" => "숲에서 시작돼요.", "difficulty" => 1 },
+      { "prompt" => "주인공이 만나는 것은 무엇인가요?", "choices" => %w[친구 적 보물 시험], "answer_index" => 0, "explanation" => "친구를 만나요.", "difficulty" => 1 },
+      { "prompt" => "이야기의 교훈은 무엇인가요?", "choices" => %w[용기 게으름 욕심 거짓], "answer_index" => 0, "explanation" => "용기의 소중함을 배워요.", "difficulty" => 1 }
+    ])
     @recommended_book = Book.create!(title: "공식추천책", author: "추천인", category: :recommended)
     recommendation_import = RecommendationImport.create!(
       filename: "추천.xlsx", file_digest: "student-menu-recommendations", source_title: "테스트 추천",
