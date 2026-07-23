@@ -9,11 +9,13 @@ class StudentHomeQuery
 
   MAX_CYCLE = 10_000
 
-  def initialize(user, discovery_cycle: 0, recommend_cycle: 0, popular_cycle: 0)
+  def initialize(user, discovery_cycle: 0, recommend_cycle: 0, popular_cycle: 0,
+                 popular_discovery: Library::PopularDiscovery.new)
     @user = user
     @discovery_cycle = discovery_cycle.to_i.clamp(0, MAX_CYCLE)
     @recommend_cycle = recommend_cycle.to_i.clamp(0, MAX_CYCLE)
     @popular_cycle = popular_cycle.to_i.clamp(0, MAX_CYCLE)
+    @popular_discovery = popular_discovery
   end
 
   # 공식 추천도서: 총괄관리자가 마지막으로 활성화한 엑셀의 어린이 분과 중 아직 활동하지 않은 책.
@@ -40,26 +42,23 @@ class StudentHomeQuery
     @recommend_cycle >= MAX_CYCLE ? 0 : @recommend_cycle + 1
   end
 
-  # 책 발견: 학생·날짜별 시작점을 기본값으로 삼고 "다른 책 보기"를 누를 때마다 다음 6권으로
-  # 순환한다. SQL RANDOM 대신 offset+고정 title 순을 써서 큰 카탈로그에서도 재현 가능하게 한다.
+  # 책 발견: 정보나루 학년군 인기도서 풀이 있으면 그 풀에서 복원추출 랜덤으로 6권을 뽑고,
+  # 없으면(무키·실패·매칭<MIN_POOL) 기존 회전 폴백으로 넘어간다. 폴백은 학생·날짜별 시작점을
+  # 기본값으로 삼고 "다른 책 보기"를 누를 때마다 다음 6권으로 순환하며, SQL RANDOM 대신
+  # offset+고정 title 순을 써서 큰 카탈로그에서도 재현 가능하게 한다.
   def discovery_books
     return @discovery_books if defined?(@discovery_books)
 
-    scope = Book.where(category: [ Book.categories[:recommended], Book.categories[:classic] ])
-                .where.not(id: active_book_ids)
-    if (recommendation_import = RecommendationImport.current)
-      scope = scope.where.not(id: recommendation_import.book_recommendations.select(:book_id))
-    end
-    ordered = scope.order(:title, :id)
-    total = ordered.count
-    return @discovery_books = Book.none if total.zero?
+    @discovery_pool_size = nil
+    @discovery_books = pool_discovery_books || fallback_discovery_books
+  end
 
-    offset = discovery_offset(total)
-    books = ordered.offset(offset).limit(BOOK_LIMIT).to_a
-    if books.size < BOOK_LIMIT
-      books.concat(ordered.where.not(id: books.map(&:id)).limit(BOOK_LIMIT - books.size).to_a)
-    end
-    @discovery_books = books
+  # 발견 후보가 한 화면(BOOK_LIMIT)보다 많을 때만 "다른 책 보기"가 의미를 가진다. 풀 경로면
+  # 풀 크기로(MIN_POOL>BOOK_LIMIT 라 항상 참), 폴백 경로면 기존 동작(항상 노출)을 보존한다.
+  # discovery_books 를 먼저 평가해 @discovery_pool_size 를 확정한다.
+  def more_discovery_books?
+    discovery_books
+    @discovery_pool_size ? @discovery_pool_size > BOOK_LIMIT : true
   end
 
   def next_discovery_cycle
@@ -150,6 +149,58 @@ class StudentHomeQuery
         []
       end
     end
+  end
+
+  # 정보나루 학년군 인기도서 풀에서 복원추출 랜덤으로 최대 BOOK_LIMIT 권을 뽑아 로드한다.
+  # 풀이 없거나(무키·실패·매칭<MIN_POOL) 이미 활동한 책을 뺀 후보가 비면·삭제로 로드가 전무하면
+  # nil 을 반환해 fallback_discovery_books 회전으로 넘긴다. 성공 시 @discovery_pool_size 확정.
+  def pool_discovery_books
+    band = ReadingDomain.discovery_band_for(@user.classroom&.grade)
+    pool = @popular_discovery.pool_book_ids(band)
+    return nil if pool.blank?
+
+    candidates = pool - active_book_ids
+    return nil if candidates.empty?
+
+    books = load_sampled_books(candidates)
+    return nil if books.empty?
+
+    @discovery_pool_size = pool.size
+    books
+  end
+
+  # candidates 에서 그리드 내 distinct(비복원) 랜덤으로 BOOK_LIMIT 권을 뽑아 로드한다.
+  # 샘플에 삭제된 id 가 섞여 로드가 BOOK_LIMIT 에 못 미치면 잔여 후보에서 추가로 뽑아 채운다
+  # (잔여 소진 시 더 적게 허용). "다른 책 보기"는 매 렌더 재샘플이라 refresh 간 복원추출이다.
+  def load_sampled_books(candidates)
+    remaining = candidates.dup
+    books = []
+    while books.size < BOOK_LIMIT && remaining.any?
+      picked = remaining.sample(BOOK_LIMIT - books.size)
+      remaining -= picked
+      by_id = Book.where(id: picked).index_by(&:id)
+      books.concat(picked.filter_map { |id| by_id[id] })
+    end
+    books
+  end
+
+  # 풀 미존재·빈약 시의 기존 발견 로직(recommended+classic, active·활성 XLSX 제외, 날짜 회전).
+  def fallback_discovery_books
+    scope = Book.where(category: [ Book.categories[:recommended], Book.categories[:classic] ])
+                .where.not(id: active_book_ids)
+    if (recommendation_import = RecommendationImport.current)
+      scope = scope.where.not(id: recommendation_import.book_recommendations.select(:book_id))
+    end
+    ordered = scope.order(:title, :id)
+    total = ordered.count
+    return Book.none if total.zero?
+
+    offset = discovery_offset(total)
+    books = ordered.offset(offset).limit(BOOK_LIMIT).to_a
+    if books.size < BOOK_LIMIT
+      books.concat(ordered.where.not(id: books.map(&:id)).limit(BOOK_LIMIT - books.size).to_a)
+    end
+    books
   end
 
   def discovery_offset(total)

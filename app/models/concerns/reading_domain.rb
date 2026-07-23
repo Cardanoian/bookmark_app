@@ -16,6 +16,11 @@ module ReadingDomain
   BAND_LABELS = { g12: "1~2학년군", g34: "3~4학년군", g56: "5~6학년군" }.freeze
   DEFAULT_BAND = :g56
 
+  # 학년군 → 정보나루(data4library) 인기대출 연령대 코드. "이 책은 어때요?" 발견 섹션이
+  # 학년군에 맞는 인기도서를 조회할 때 loanItemSrch 의 age 파라미터로 넘긴다.
+  # 값은 몬스터 스프라이트 빌드스크립트 BANDS 매핑과 일치(a8=8세·a10=10세·a12=12세).
+  AGE_CODE_BY_BAND = { g12: "a8", g34: "a10", g56: "a12" }.freeze
+
   # content_axis(캐시축)별 고정 문항 수(Phase 1 §1.1, A6). 표면·버전이 달라도 같은 축이면
   # 문항 수가 같아야 콘텐츠축 상한(maximum(:points_awarded)) 비교의 스케일이 일관된다.
   # 생성(QuizDraftService#normalize, Phase 2a)과 검증이 이 상수를 강제한다.
@@ -400,6 +405,13 @@ module ReadingDomain
   # 밴드(:g12)** 로 고정한다(age-safety — 학급/학년이 없는 학생에게 어려운 5~6학년 문항을 기본
   # 노출하지 않기 위함). 첨삭·대시보드용 band_for(g56 폴백)와 목적이 달라 guided 전용으로 둔다.
   def self.guided_band_for(grade)
+    grade.to_i.zero? ? :g12 : band_for(grade)
+  end
+
+  # 발견("이 책은 어때요?") 밴드 판별. 아동 대면 콘텐츠라 game_band_for/guided_band_for 와
+  # 동일 규칙 — 학급 없는 학생(nil/0)을 최저 학년군(:g12)으로 고정해 5~6학년 인기책 기본
+  # 노출을 막는다. 명시된 학년은 band_for 와 동일하게 매핑한다.
+  def self.discovery_band_for(grade)
     grade.to_i.zero? ? :g12 : band_for(grade)
   end
 

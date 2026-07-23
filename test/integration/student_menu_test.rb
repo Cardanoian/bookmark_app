@@ -77,6 +77,35 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_not_equal first_books, next_books
   end
 
+  test "이 책은 어때요는 정보나루 인기도서 풀 캐시가 있으면 그 풀에서 노출하고 카드 링크가 살아있다" do
+    # test 환경 기본 cache_store 는 null_store 라 풀 캐시를 배선할 수 없으므로, 이 테스트에서만
+    # Rails.cache 를 MemoryStore 로 스왑한다(StudentHomeQuery 의 popular_discovery: 기본값
+    # Library::PopularDiscovery.new 가 요청마다 Rails.cache 를 그대로 물려받는다). 실패해도
+    # 누수 없이 반드시 원복한다(ensure).
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    begin
+      pool_books = (1..7).map { |i| Book.create!(title: "정보나루인기#{i}", author: "작가", category: :recommended) }
+      band = ReadingDomain.discovery_band_for(@classroom.grade)
+      Rails.cache.write("discovery_popular:v1:#{band}", pool_books.map(&:id))
+
+      get root_path
+      assert_response :success
+
+      discovery_ids = css_select("#book-discovery a[href*='book_id=']").map { |node| node["href"][/book_id=(\d+)/, 1].to_i }
+      assert_equal 6, discovery_ids.size, "풀(7권)에서 BOOK_LIMIT(6)만큼 노출해야 한다"
+      assert discovery_ids.all? { |id| pool_books.map(&:id).include?(id) }, "발견 섹션은 풀의 부분집합이어야 한다"
+      assert_select "#book-discovery a", text: /다른 책 보기/, count: 1 # 풀(7)>BOOK_LIMIT(6)
+
+      # 카드 링크가 resolve_book(비-searched)을 통과해 죽은 링크가 아님을 확인한다(D1 계약).
+      get reading_activity_path(book_id: discovery_ids.first)
+      assert_response :success
+      assert_no_match "먼저 읽은 책을 골라", response.body
+    ensure
+      Rails.cache = original_cache
+    end
+  end
+
   test "홈은 진행 중 미션 카드를 표시한다" do
     mission = Mission.new(classroom: @classroom, title: "홈미션", reward_points: 20,
                           start_date: Date.current - 1, end_date: Date.current + 5)

@@ -27,6 +27,25 @@ class ReadingDomainTest < ActiveSupport::TestCase
     assert_equal :g56, ReadingDomain.band_for(nil)
   end
 
+  # 발견("이 책은 어때요?") 전용 밴드: game_band_for/guided_band_for 와 동형으로 학년 미상(nil/0)을
+  # 최저 밴드(g12)로 고정한다(아동안전 — 학급 없는 학생에게 5~6학년 인기책을 기본 노출하지 않음).
+  test "discovery_band_for fixes unknown grade to the lowest band (g12), mirroring game_band_for/guided_band_for" do
+    assert_equal :g12, ReadingDomain.discovery_band_for(nil)
+    assert_equal :g12, ReadingDomain.discovery_band_for(0)
+    assert_equal :g12, ReadingDomain.discovery_band_for(1)
+    assert_equal :g12, ReadingDomain.discovery_band_for(2)
+    assert_equal :g34, ReadingDomain.discovery_band_for(3)
+    assert_equal :g34, ReadingDomain.discovery_band_for(4)
+    assert_equal :g56, ReadingDomain.discovery_band_for(5)
+    assert_equal :g56, ReadingDomain.discovery_band_for(6)
+  end
+
+  # 학년군 → 정보나루 연령대 코드(loanItemSrch age 파라미터). 몬스터 스프라이트 빌드스크립트
+  # BANDS 매핑(a8·a10·a12)과 일치해야 한다(§ ReadingDomain 헤더 주석).
+  test "AGE_CODE_BY_BAND maps each band to its data4library age code" do
+    assert_equal({ g12: "a8", g34: "a10", g56: "a12" }, ReadingDomain::AGE_CODE_BY_BAND)
+  end
+
   test "each band exposes all five axes with band-appropriate 성취기준 code prefixes" do
     { g12: "2국", g34: "4국", g56: "6국" }.each do |band, prefix|
       codes = ReadingDomain.achievement_standards(band)

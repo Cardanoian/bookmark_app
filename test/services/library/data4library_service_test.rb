@@ -93,6 +93,36 @@ class Library::Data4libraryServiceTest < ActiveSupport::TestCase
     assert_equal "2026-06-30", captured["endDt"]
   end
 
+  test "popular_loans passes age to the API when given (발견 학년군 인기도서)" do
+    captured = {}
+    connection = stub_connection do |stub|
+      stub.get("/api/loanItemSrch") do |env|
+        captured.merge!(Faraday::Utils.parse_query(env.url.query.to_s))
+        [ 200, {}, { "response" => { "docs" => [] } }.to_json ]
+      end
+    end
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    service.popular_loans(age: "a8")
+
+    assert_equal "a8", captured["age"]
+  end
+
+  test "popular_loans omits age from the request when not given (하위호환, 기존 호출자 무회귀)" do
+    captured = {}
+    connection = stub_connection do |stub|
+      stub.get("/api/loanItemSrch") do |env|
+        captured.merge!(Faraday::Utils.parse_query(env.url.query.to_s))
+        [ 200, {}, { "response" => { "docs" => [] } }.to_json ]
+      end
+    end
+    service = Library::Data4libraryService.new(api_key: "KEY", connection: connection)
+
+    service.popular_loans
+
+    assert_not captured.key?("age"), "age 미지정 시 쿼리 파라미터 자체가 없어야 한다"
+  end
+
   test "last_error stays nil after a successful sync (distinguishes empty from failure)" do
     connection = stub_connection do |stub|
       stub.get("/api/loanItemSrch") { [ 200, {}, { "response" => { "docs" => [] } }.to_json ] }

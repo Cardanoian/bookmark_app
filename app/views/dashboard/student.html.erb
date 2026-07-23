@@ -149,9 +149,11 @@
     <section id="book-discovery" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-lg font-bold text-ink">✨ 이 책은 어때요?</h2>
-        <%= link_to "↻ 다른 책 보기",
-              root_path(discovery: @home.next_discovery_cycle, anchor: "book-discovery"),
-              class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
+        <% if @home.more_discovery_books? %>
+          <%= link_to "↻ 다른 책 보기",
+                root_path(discovery: @home.next_discovery_cycle, anchor: "book-discovery"),
+                class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
+        <% end %>
       </div>
       <%= render "dashboard/home_book_grid", books: discovery %>
     </section>

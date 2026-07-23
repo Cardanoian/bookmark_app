@@ -40,7 +40,8 @@ module Library
 
     # 인기대출 목록을 정규화 배열로 반환. 무키·실패 시 [] (호출자가 CSV 폴백).
     # from/to: 대출 집계 기간("YYYY-MM-DD" 또는 Date). 생략 시 API 기본 기간.
-    def popular_loans(from: nil, to: nil, page_size: 10)
+    # age: 연령대 코드(예 "a8"·"a10"·"a12", 발견 학년군 인기도서). 있을 때만 전송(하위호환).
+    def popular_loans(from: nil, to: nil, page_size: 10, age: nil)
       @last_error = nil
       return [] unless available?
 
@@ -52,6 +53,7 @@ module Library
         req.params["pageSize"] = page_size
         req.params["startDt"] = from if from.present?
         req.params["endDt"] = to if to.present?
+        req.params["age"] = age if age.present?
       end
       unless response.success?
         @last_error = "정보나루 응답 오류 (HTTP #{response.status})"
