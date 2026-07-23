@@ -36,13 +36,14 @@
       <%= link_to "책 바꾸기", reading_activity_path, class: "btn btn-secondary btn-sm shrink-0" %>
     </section>
 
-    <%# 미션 문맥(진행 중 미션 목표 안내) %>
-    <% if @active_missions.any? %>
+    <%# 미션 문맥 — 이 책 활동이 미션 진행에 실제로 반영되는 목표가 있을 때만 배너를 띄운다.
+        컨트롤러가 goals 를 이 책 반영 목표로만 좁혀 두므로 미달 목표만 힌트로 렌더한다. %>
+    <% if @book_missions.any? %>
       <div class="state-banner state-banner--info" role="note">
         <%= ui_icon :target %>
         <span>
           진행 중인 미션이 있어요 —
-          <% hints = @active_missions.flat_map { |m| m[:progress][:goals].reject { |g| g[:met] }.map { |g| goal_label[g[:type]] } }.uniq %>
+          <% hints = @book_missions.flat_map { |m| m[:goals].reject { |g| g[:met] }.map { |g| goal_label[g[:type]] } }.uniq %>
           <% if hints.any? %><%= hints.to_sentence %> 활동이 미션 진행에 반영돼요.<% else %>목표를 거의 다 채웠어요!<% end %>
         </span>
       </div>

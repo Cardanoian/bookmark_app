@@ -9,7 +9,9 @@ class ReadingActivitiesController < ApplicationController
     return unless @book
 
     @recent_reports = Current.user.reports.where(book_id: @book.id).order(created_at: :desc).limit(3).to_a
-    @active_missions = StudentHomeQuery.new(Current.user).active_missions
+    # 미션 문맥 배너는 이 책 활동이 실제로 미션 진행에 반영될 때만 노출한다. 진행 중 미션 전체가
+    # 아니라 이 책이 반영되는 목표만 추려서 넘긴다(mission_context_for).
+    @book_missions = mission_context_for(@book, StudentHomeQuery.new(Current.user).active_missions)
     # 가용성 게이트(Phase 4 §2b): 퀴즈·나는 누구게? 칩은 진짜 콘텐츠를 만들 수 있는 책에만 보여 준다
     # (창작 소셜인 책 소개 대결·뒷이야기는 콘텐츠 무관하게 항상 표시). 플레이 게이트(§2c)와 같은 판정.
     @quiz_available = Games::ContentProvider.game_content_available?(book: @book, content_axis: :mcq, user: Current.user)
@@ -33,6 +35,23 @@ class ReadingActivitiesController < ApplicationController
   end
 
   private
+
+  # 진행 중 미션 중 이 책 활동이 반영되는 목표만 추린다. 각 원소는 { mission:, goals: }로,
+  # goals 는 이 책이 실제 반영되는 목표의 진행 행만 담는다(뷰가 미달 목표를 배너 힌트로 렌더).
+  # 반영 판정: 목표가 특정 도서를 지정하면(goal.books) 그 허용목록에 이 책이 있어야 하고,
+  # 지정이 없으면(아무 책이나) 모든 책이 반영된다. 어느 목표에도 안 걸리면 제외 → 배너 미노출.
+  # goal.books 는 active_missions 가 includes 로 프리로드해 N+1 없이 인메모리 판정한다.
+  def mission_context_for(book, active_missions)
+    active_missions.filter_map do |entry|
+      mission = entry[:mission]
+      eligible_types = mission.mission_goals.select do |goal|
+        goal.books.empty? || goal.books.any? { |b| b.id == book.id }
+      end.map(&:goal_type)
+      next if eligible_types.empty?
+
+      { mission: mission, goals: entry[:progress][:goals].select { |row| eligible_types.include?(row[:type]) } }
+    end
+  end
 
   # 등록 도서(비-searched)만 허용. 없거나 searched·미존재면 nil → 책 선택 상태로 되돌린다(§4.2).
   # 다른 학생의 개인 데이터는 book_id 만으로 조회하지 않는다(활동은 Current.user 로 스코프).
