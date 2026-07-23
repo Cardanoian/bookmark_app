@@ -4,9 +4,19 @@ class OcrJobTest < ActiveJob::TestCase
   setup do
     @school = School.create!(name: "OCR잡학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @user = User.create!(school: @school, classroom: @classroom, name: "OCR잡학생", password: "password")
+    @user = User.create!(school: @school, classroom: @classroom, name: "OCR잡학생", password: "password",
+                         ai_consent: true, privacy_consent_at: Time.current)
     @report = Report.create!(user: @user, classroom: @classroom, book_title: "책", input_mode: :ocr)
     @report.photo.attach(io: StringIO.new("fake-image-bytes"), filename: "hw.png", content_type: "image/png")
+    # 동의 게이트가 무키(테스트 기본)로 막지 않도록 configured 스텁을 주입 — 기존 OCR 동작 검증용.
+    OcrJob.gate_client_factory = -> { GateStub.new(true) }
+  end
+
+  teardown { OcrJob.reset_factories! }
+
+  class GateStub
+    def initialize(configured) = (@configured = configured)
+    def configured? = @configured
   end
 
   class OcrStub
@@ -50,6 +60,19 @@ class OcrJobTest < ActiveJob::TestCase
     @report.reload
     assert_equal "인식된 손글씨 본문", @report.body
     assert @report.done?
+  end
+
+  test "does not run OCR (no Gemini call) for a student without AI consent (P1-1)" do
+    student = User.create!(school: @school, classroom: @classroom, name: "미동의OCR학생", password: "password")
+    report = Report.create!(user: student, classroom: @classroom, book_title: "책", input_mode: :ocr)
+    report.photo.attach(io: StringIO.new("fake"), filename: "hw.png", content_type: "image/png")
+
+    # OcrService 가 호출되면 rescue 안 되는 RuntimeError 로 즉시 실패시켜 "호출되면 테스트 에러"로 감시한다.
+    stub_new(Ai::OcrService, RaisingStub.new(RuntimeError.new("OCR must not run for a non-consenting student"))) do
+      OcrJob.perform_now(report)
+    end
+
+    assert report.reload.failed?, "미동의 학생 사진은 OCR 없이 실패 처리된다"
   end
 
   private

@@ -27,7 +27,7 @@ module Ai
 
     # 반환: 격려형 코멘트 문자열(항상 유효). 무키/실패/스키마이탈 시 규칙기반 폴백.
     def call(sequel)
-      return fallback_comment(sequel) unless @client.configured?
+      return fallback_comment(sequel) unless Ai::ConsentGate.gemini_allowed?(sequel.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(sequel),

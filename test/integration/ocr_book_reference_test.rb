@@ -9,7 +9,8 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "도서가드학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @student = User.create!(school: @school, classroom: @classroom, name: "도서가드학생", password: "password")
+    @student = User.create!(school: @school, classroom: @classroom, name: "도서가드학생", password: "password",
+                            ai_consent: true, privacy_consent_at: Time.current)
   end
 
   # AC6 — book_id·book_title 모두 공백이면 draft 를 만들기 전에 거부하고 500 이 아니다.

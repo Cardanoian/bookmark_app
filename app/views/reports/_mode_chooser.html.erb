@@ -24,7 +24,7 @@
     <span class="mt-1 block text-sm text-brand-blue">키보드로 내 생각을 바로 적어요</span>
   <% end %>
 
-  <% if ocr_available? %>
+  <% if ocr_available? && Current.user&.ai_consented? %>
     <%= link_to new_report_path(input_mode: :ocr, report: chosen_book),
           class: "card card-feature block text-center" do %>
       <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-light"><%= ui_icon :camera, class_name: "h-11 w-11" %></span>

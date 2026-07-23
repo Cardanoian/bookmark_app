@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_24_000001) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -658,6 +658,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
 
   create_table "users", force: :cascade do |t|
     t.integer "active_monster_id"
+    t.boolean "ai_consent", default: false, null: false
+    t.datetime "ai_consent_at"
+    t.integer "ai_consent_recorded_by_id"
     t.integer "classroom_id"
     t.datetime "created_at", null: false
     t.string "email"
@@ -667,11 +670,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
     t.string "nickname"
     t.string "password_digest", null: false
     t.integer "points", default: 0, null: false
+    t.datetime "privacy_consent_at"
     t.boolean "ranking_opted_in", default: false, null: false
     t.integer "role", default: 0, null: false
     t.integer "school_id"
     t.boolean "suspended", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["ai_consent_recorded_by_id"], name: "index_users_on_ai_consent_recorded_by_id"
     t.index ["classroom_id", "role", "points"], name: "index_users_on_classroom_role_points"
     t.index ["classroom_id"], name: "index_users_on_classroom_id"
     t.index ["email"], name: "index_users_on_email", unique: true
@@ -766,4 +771,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
   add_foreign_key "users", "classrooms"
   add_foreign_key "users", "schools"
   add_foreign_key "users", "user_monsters", column: "active_monster_id"
+  add_foreign_key "users", "users", column: "ai_consent_recorded_by_id", on_delete: :nullify
 end

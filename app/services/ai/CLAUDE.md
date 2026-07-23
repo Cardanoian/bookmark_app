@@ -4,6 +4,7 @@
 
 ## 파일
 - `gemini_client.rb` — Gemini `generateContent` Faraday 래퍼. `available?`(키 존재)·`generate(contents:, system_instruction:, ...)`, systemInstruction 을 Content 객체로 감싸고 JSON 응답을 파싱. 실패 시 `NotConfigured`/`ApiError` 를 던지는 것이 계약.
+- `consent_gate.rb` — **학생 PII → Gemini 전송의 단일 동의 게이트(P1-1)**. `ConsentGate.gemini_allowed?(user, client:)` = `client.configured? && user&.ai_consented?`. 키가 있고 그 학생이 AI 활용에 동의(`User#ai_consented?` — §1 개인정보 + §2 AI 동의)했을 때만 true. 미동의·무키는 각 서비스가 기존 규칙기반/중립값으로 우아하게 강등(무키와 동형). **현재 경유 4경로: `ReviewService`(첨삭)·`VerifyService`(진위)·`SequelFeedbackService`(뒷이야기)·`OcrJob`(손글씨)**. ⚠️ 신규 AI 서비스가 학생 원문을 Gemini 로 보낸다면(book 기반 무-PII 경로가 아니라면) 반드시 이 게이트를 경유해야 한다(`grep ConsentGate` 1회로 전 PII 경로 감사). book_summary·quiz_draft·quiz_moderator 는 book 기반 무-PII 라 미게이트.
 - `review_service.rb` — 5축 발전적 첨삭(RUBRIC). LLM 응답을 `{ level, rubric(5축), praise, fix, grow, pts }` 로 정규화, 무키/실패/스키마이탈 시 `RuleBasedReview` 폴백. system_instruction 은 `report.grade_band_key`로 고른 `ReadingDomain.rubric_prompt(band)` — **학년군 성취기준 전체 목록(allowlist)을 주입하고 목록 밖·상위 학년 성취기준 사용을 금지**해, 예컨대 3학년 독후감에 6학년 성취기준을 요구하지 못하게 막는다.
 - `rule_based_review.rb` — 외부 호출 없는 규칙기반 5축 첨삭(무중단 폴백). 본문 길이·문장수·감정/삶 어휘 카운트로 축 점수 산출, LLM 경로와 동형 해시 반환.
 - `sequel_feedback_service.rb` — 뒷이야기 이어쓰기 격려 코멘트(review_service 미러, 가벼움). 입력=학생이 쓴 뒷이야기 body(+맥락용 book.title/author). **정직한 AI**: 평가 대상이 "책"이 아니라 프롬프트에 든 "학생 글"이라 환각 없음. Gemini 프롬프트는 **초등 전학년(1학년 포함) 격려형**(칭찬 1~2 + 부드러운 제안 1, **점수·등급 금지**, JSON `{comment}`). 무키/실패/스키마이탈 시 `RuleBasedSequelFeedback` 폴백. 반환=코멘트 문자열.

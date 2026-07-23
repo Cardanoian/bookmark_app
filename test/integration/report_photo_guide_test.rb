@@ -9,7 +9,8 @@ class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "가이드학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @student = User.create!(school: @school, classroom: @classroom, name: "가이드학생", password: "password")
+    @student = User.create!(school: @school, classroom: @classroom, name: "가이드학생", password: "password",
+                            ai_consent: true, privacy_consent_at: Time.current)
     @book = Book.create!(title: "가이드 테스트 책", author: "테스트저자", category: :recommended)
   end
 

@@ -4,7 +4,8 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
   setup do
     @school = School.create!(name: "리뷰학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @user = User.create!(school: @school, classroom: @classroom, name: "리뷰학생", password: "password")
+    @user = User.create!(school: @school, classroom: @classroom, name: "리뷰학생", password: "password",
+                         ai_consent: true, privacy_consent_at: Time.current)
     @report = Report.create!(user: @user, classroom: @classroom, book_title: "책", body: "본문 내용입니다.")
   end
 
@@ -43,6 +44,19 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
 
   test "falls back to rule-based review when unconfigured" do
     result = Ai::ReviewService.new(client: StubClient.new(configured: false)).call(@report)
+    assert_valid_review(result)
+  end
+
+  test "does not call Gemini and falls back for a student without AI consent (P1-1)" do
+    non_consenting = User.create!(school: @school, classroom: @classroom, name: "미동의리뷰학생", password: "password")
+    report = Report.create!(user: non_consenting, classroom: @classroom, book_title: "책", body: "본문 내용입니다.")
+    called = false
+    client = StubClient.new(configured: true)
+    client.define_singleton_method(:generate) { |**| called = true; {} }
+
+    result = Ai::ReviewService.new(client: client).call(report)
+
+    assert_not called, "미동의 학생은 configured 클라이언트라도 Gemini 를 호출하지 않는다"
     assert_valid_review(result)
   end
 

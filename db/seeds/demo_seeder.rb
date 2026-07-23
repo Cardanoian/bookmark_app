@@ -202,7 +202,8 @@ class DemoSeeder
     name = sd.fetch("name").to_s
     user = User.find_or_initialize_by(school_id: school.id, classroom_id: classroom.id, name:)
     if user.new_record?
-      user.assign_attributes(role: :student, password: STUDENT_PASSWORD)
+      user.assign_attributes(role: :student, password: STUDENT_PASSWORD,
+                             ai_consent: true, ai_consent_at: Time.current, privacy_consent_at: Time.current)
       user.save!
     end
 

@@ -10,7 +10,8 @@ class ReportFirstReviewTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "첫첨삭학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @student = User.create!(school: @school, classroom: @classroom, name: "첫첨삭학생", password: "password")
+    @student = User.create!(school: @school, classroom: @classroom, name: "첫첨삭학생", password: "password",
+                            ai_consent: true, privacy_consent_at: Time.current)
   end
 
   # AC5 — 본인 OCR draft(body 채움, ai_status done, rubric 공란, revision_of nil).

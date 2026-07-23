@@ -4,7 +4,8 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
   setup do
     @school = School.create!(name: "검증학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @user = User.create!(school: @school, classroom: @classroom, name: "검증학생", password: "password")
+    @user = User.create!(school: @school, classroom: @classroom, name: "검증학생", password: "password",
+                         ai_consent: true, privacy_consent_at: Time.current)
   end
 
   class StubClient
@@ -27,6 +28,19 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
     result = Ai::VerifyService.new(client: StubClient.new(configured: false)).call(create_report(body: "본문"))
     assert_nil result[:suspicion]
     assert_equal [], result[:reasons]
+  end
+
+  test "returns neutral without calling Gemini for a student without AI consent (P1-1)" do
+    non_consenting = User.create!(school: @school, classroom: @classroom, name: "미동의검증학생", password: "password")
+    report = Report.create!(user: non_consenting, classroom: @classroom, book_title: "책", body: "본문")
+    called = false
+    client = StubClient.new(configured: true)
+    client.define_singleton_method(:generate) { |**| called = true; { "suspicion" => 0.9, "reasons" => [] } }
+
+    result = Ai::VerifyService.new(client: client).call(report)
+
+    assert_not called, "미동의 학생 본문은 Gemini 로 보내지 않는다"
+    assert_nil result[:suspicion]
   end
 
   test "returns the model suspicion and reasons when configured" do

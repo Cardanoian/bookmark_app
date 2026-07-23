@@ -171,6 +171,7 @@ Rails.application.routes.draw do
       member do
         post :reset_password
         post :give_points
+        post :set_ai_consent
       end
     end
 

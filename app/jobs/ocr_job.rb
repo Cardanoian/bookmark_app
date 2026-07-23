@@ -4,7 +4,28 @@
 class OcrJob < ApplicationJob
   queue_as :default
 
+  # AI 동의 재확인용 클라이언트 팩토리(테스트 seam, GenerateGameContentJob 선례). 잡 실행 시점에
+  # 동의를 재평가해 "동의 후 사진 업로드 → 교사 철회 → 인플라이트 잡 실행" 레이스에서 미동의 학생의
+  # 손글씨 이미지가 Gemini 로 전송되지 않게 한다(P1-1). 테스트는 configured? 스텁을 주입해 무키가
+  # 아닌 미동의 사유로 차단됨을 검증한다.
+  class << self
+    attr_writer :gate_client_factory
+
+    def gate_client_factory
+      @gate_client_factory ||= -> { Ai::GeminiClient.new }
+    end
+
+    def reset_factories!
+      @gate_client_factory = nil
+    end
+  end
+
   def perform(report)
+    unless Ai::ConsentGate.gemini_allowed?(report.user, client: self.class.gate_client_factory.call)
+      report.update(ai_status: :failed)
+      return broadcast_ocr_failed(report)
+    end
+
     text = Ai::OcrService.new.call(report.photo.blob)
     report.update!(body: text, ai_status: :done)
     broadcast_ocr_ready(report)

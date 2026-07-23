@@ -12,6 +12,15 @@ class OcrController < ApplicationController
       return
     end
 
+    # 보호자 AI 활용 동의 게이트(P1-1). 미동의 학생은 손글씨 사진(PII)을 Gemini 로 보내지 않도록
+    # draft 생성 전에 조기 거부한다(_mode_chooser 의 사진 카드 은닉과 짝 — URL 직접 요청 방어).
+    unless Current.user&.ai_consented?
+      skip_authorization
+      redirect_back fallback_location: new_report_path,
+        alert: "보호자 AI 활용 동의가 없어 사진 모드를 쓸 수 없어요. 키보드로 입력해 주세요."
+      return
+    end
+
     # 유효 book_id 계산(가드·draft 공용). 자동완성이 채운 book_id 를 우선 검증하고, 없으면
     # 검색 버튼으로 고른 원격 책의 remote_isbn 을 제출 시 등록(캐시-우선·비차단)해 링크한다.
     # register 는 raise 하지 않고 nil 로 degrade 하므로(무키·미일치·실패) 등록 실패는 아래

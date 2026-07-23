@@ -14,7 +14,7 @@ module Ai
     # 학생 학급 학년으로 학년군(band)을 판별해 눈높이별 프롬프트/폴백을 태운다.
     def call(report)
       band = report.grade_band_key
-      return fallback_review(report, band) unless @client.configured?
+      return fallback_review(report, band) unless Ai::ConsentGate.gemini_allowed?(report.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(report),

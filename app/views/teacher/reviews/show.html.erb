@@ -32,7 +32,7 @@
         <section class="card border-brand-red-dark bg-brand-red">
           <h2 class="mb-1 text-sm font-semibold text-coral-dark">진위·표절 보조 결과</h2>
           <p class="text-sm text-coral-dark">
-            의심 정도: <%= @verify[:suspicion].present? ? @verify[:suspicion] : "판단 보류(키 없음)" %> ·
+            의심 정도: <%= @verify[:suspicion].present? ? @verify[:suspicion] : "판단 보류" %> ·
             학급 내 최대 유사도: <%= (@verify[:similarity].to_f * 100).round %>%
           </p>
           <% if @verify[:reasons].present? %>

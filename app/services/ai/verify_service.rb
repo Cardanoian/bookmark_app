@@ -9,7 +9,8 @@ module Ai
 
     # 반환: { suspicion:, reasons: [] }. 키 없음/실패 시 중립값.
     def call(report)
-      return NEUTRAL.dup unless @client.configured?
+      # 학생 본문(PII)을 Gemini 로 보내므로 AI 동의 게이트를 탄다(P1-1). 미동의·무키 → 중립값.
+      return NEUTRAL.dup unless Ai::ConsentGate.gemini_allowed?(report.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(report),

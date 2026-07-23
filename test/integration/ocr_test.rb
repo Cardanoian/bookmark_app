@@ -6,7 +6,8 @@ class OcrTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(name: "OCR통합학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
-    @student = User.create!(school: @school, classroom: @classroom, name: "OCR학생", password: "password")
+    @student = User.create!(school: @school, classroom: @classroom, name: "OCR학생", password: "password",
+                            ai_consent: true, privacy_consent_at: Time.current)
   end
 
   # P3.5 — 키 없음: 모드 선택 화면에서 사진 카드 비활성 + 서버에서 OCR 거부.

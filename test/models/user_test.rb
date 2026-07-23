@@ -81,6 +81,32 @@ class UserTest < ActiveSupport::TestCase
     assert build_user(password: "123456").valid?
   end
 
+  test "a new student has no AI consent and no privacy consent by default (opt-in)" do
+    student = User.create!(school: @school, classroom: @classroom, name: "동의기본학생", password: "password")
+    assert_equal false, student.ai_consent
+    assert_nil student.ai_consent_at
+    assert_nil student.privacy_consent_at
+    assert_not student.ai_consented?
+  end
+
+  test "ai_consented? requires student role, AI consent, and recorded privacy consent (P1-1)" do
+    student = User.create!(school: @school, classroom: @classroom, name: "동의판정학생", password: "password")
+    assert_not student.ai_consented?, "기본은 미동의"
+
+    student.update!(ai_consent: true)
+    assert_not student.ai_consented?, "§1 개인정보 동의 기록(privacy_consent_at)이 없으면 false(fail-closed)"
+
+    student.update!(privacy_consent_at: Time.current)
+    assert student.ai_consented?, "학생 + AI 동의 + 개인정보 동의 기록이면 true"
+
+    student.update!(ai_consent: false)
+    assert_not student.ai_consented?, "철회하면 false"
+
+    teacher = User.create!(school: @school, name: "동의교사", role: :teacher, password: "password",
+                           ai_consent: true, privacy_consent_at: Time.current)
+    assert_not teacher.ai_consented?, "비학생은 항상 false"
+  end
+
   private
 
   def build_user(attrs = {})

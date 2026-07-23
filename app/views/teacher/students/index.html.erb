@@ -25,6 +25,18 @@
                   id: "student_classroom_id", class: "form-select" %>
           </div>
         <% end %>
+        <div class="w-full space-y-2 border-t border-hairline-soft pt-3">
+          <label class="flex items-start gap-2 text-sm text-ink">
+            <%= check_box_tag "student[privacy_consent]", "1", false, required: true, class: "mt-0.5" %>
+            <span>보호자 <strong>개인정보 수집·이용 동의서</strong>를 받았어요 <span class="text-coral-dark">(필수)</span></span>
+          </label>
+          <label class="flex items-start gap-2 text-sm text-ink">
+            <%= check_box_tag "student[ai_consent]", "1", false, class: "mt-0.5" %>
+            <span>보호자 <strong>AI 활용 동의</strong>도 받았어요 (선택 — 미동의 시 AI 첨삭 없이 규칙기반으로 도와줘요)</span>
+          </label>
+          <%= link_to "동의서 양식 내려받기 (PDF)", "/agree.pdf", target: "_blank", rel: "noopener",
+                class: "inline-block text-sm font-medium text-brand-blue hover:underline" %>
+        </div>
         <%= submit_tag "학생 추가", class: "btn btn-primary" %>
       <% end %>
 
@@ -34,7 +46,14 @@
             <% @students.each do |student| %>
               <li class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                 <span class="min-w-0">
-                  <span class="block font-medium text-ink"><%= student.name %></span>
+                  <span class="block font-medium text-ink">
+                    <%= student.name %>
+                    <% if student.ai_consent? %>
+                      <span class="ml-1 text-xs font-semibold text-success-accent">AI 동의</span>
+                    <% else %>
+                      <span class="ml-1 text-xs text-steel">AI 미동의</span>
+                    <% end %>
+                  </span>
                   <span class="block text-xs text-steel">
                     <%= student.classroom&.label %> · <%= student.points %>P · <%= student.experience %>XP · Lv.<%= student.trainer_level %>
                   </span>
@@ -50,6 +69,13 @@
                           required: true, minlength: 6, autocomplete: "new-password",
                           placeholder: "새 비밀번호 (6자 이상)", class: "form-input w-48" %>
                     <%= button_tag "비번 초기화", type: :submit, class: "btn btn-yellow btn-sm" %>
+                  <% end %>
+                  <% if student.ai_consent? %>
+                    <%= button_to "AI 철회", set_ai_consent_teacher_student_path(student), method: :post,
+                          params: { consent: "0" }, class: "btn btn-secondary btn-sm" %>
+                  <% else %>
+                    <%= button_to "AI 동의", set_ai_consent_teacher_student_path(student), method: :post,
+                          params: { consent: "1" }, class: "btn btn-blue btn-sm" %>
                   <% end %>
                   <%= button_to "삭제", teacher_student_path(student), method: :delete,
                         form: { data: { turbo_confirm: "#{student.name} 학생을 삭제할까요?" } },
