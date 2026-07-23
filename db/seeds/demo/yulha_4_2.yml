@@ -1,0 +1,657 @@
+classroom:
+  school_neis_code: "9091046"
+  school_label: 율하초등학교
+  grade: 4
+  class_no: 2
+  academic_year: 2026
+teacher:
+  name: 김하늘
+  email: teacher.yulha@chaekgalpi.demo
+missions:
+  - title: 봄맞이 독서왕
+    description: 봄 동안 책을 읽고 기록해요.
+    reward_points: 40
+    start_days_ago: 22
+    end_days_ahead: 8
+    completion_rate: 0.55
+    goals:
+      - { type: approved_reports, target: 3 }
+      - { type: game_plays, target: 4 }
+  - title: 몬스터 진화 챌린지
+    description: 게임을 플레이하고 몬스터를 진화시켜요.
+    reward_points: 60
+    start_days_ago: 15
+    end_days_ahead: 15
+    completion_rate: 0.4
+    goals:
+      - { type: game_plays, target: 6 }
+      - { type: approved_reports, target: 2 }
+  - title: 여름 독서 마라톤
+    description: 여름방학 전 다양한 책을 읽어요.
+    reward_points: 70
+    start_days_ago: 10
+    end_days_ahead: 20
+    completion_rate: 0.35
+    goals:
+      - { type: approved_reports, target: 4 }
+      - { type: game_plays, target: 5 }
+topics:
+  - 가장 재미있었던 부분은?
+  - 나라면 어떻게 했을까?
+  - 주인공에게 하고 싶은 말은?
+  - 이 책을 추천하고 싶은 친구는?
+students:
+  - name: 박도현
+    reports:
+      - book_title: 찰리와 초콜릿 공장
+        quality: b
+        reviewed: true
+        days_ago: 45
+        teacher_comment: 재미있게 잘 읽었구나!
+        body: |
+          찰리가 초콜릿 공장 안에서 신기한 것들을 구경하는 장면이 정말 재미있었다. 욕심을 부리던 다른 친구들이 차례로 곤란해지는 부분에서는 나도 모르게 웃음이 났다. 찰리는 가난해도 욕심을 부리지 않아서 참 착한 아이라고 생각했다. 나도 찰리처럼 정직하고 겸손한 사람이 되고 싶다. 웡카 아저씨의 상상력이 정말 대단하게 느껴졌다.
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 38
+        body: |
+          한자를 배우면서 신나는 모험도 함께 할 수 있다는 게 신기했다. 손오공과 친구들이 마법으로 어려운 문제를 해결하는 장면이 통쾌했다. 어려운 한자도 이야기 속에서 만나니까 훨씬 쉽게 외워졌다. 앞으로 한자 공부를 더 열심히 해야겠다고 다짐했다.
+      - book_title: 오즈의 마법사
+        quality: a
+        reviewed: true
+        days_ago: 25
+        teacher_comment: 느낀 점을 잘 표현했어요.
+        body: |
+          도로시가 회오리바람에 휩쓸려 낯선 오즈나라로 떨어지는 장면부터 눈을 뗄 수 없었다. 허수아비와 양철나무꾼, 겁쟁이 사자가 저마다 부족한 것을 채워가는 이야기가 감동적이었다. 사실은 다들 이미 지혜와 용기를 가지고 있었다는 사실이 놀라웠다. 나도 내가 가진 좋은 점을 더 믿어야겠다고 생각했다. 친구들과 함께라면 어떤 어려움도 헤쳐 나갈 수 있을 것 같다.
+      - book_title: 도그맨
+        quality: b
+        reviewed: true
+        days_ago: 15
+        body: |
+          개 얼굴에 사람 몸을 가진 도그맨의 활약이 정말 웃겼다. 나쁜 고양이 캣킬러를 물리치는 장면에서는 통쾌한 기분이 들었다. 그림이 많아서 빠르게 읽을 수 있었고 계속 웃으면서 봤다. 다음 편도 얼른 빌려서 읽고 싶어졌다.
+      - book_title: 구스범스
+        quality: c
+        reviewed: false
+        days_ago: 3
+        body: |
+          이야기가 오싹해서 조금 무서웠지만 다음 내용이 궁금해서 계속 읽게 되었다. 밤에 혼자 읽으면 더 무서울 것 같다는 생각이 들었다. 결말이 생각보다 놀라워서 신기했다.
+    game_plays: 9
+    quiz_attempts: 6
+    monster_lines: 10
+    evolved: 3
+    forum_posts:
+      - 저는 초콜릿 공장 안의 발명품들이 제일 신기했어요.
+      - 도로시처럼 저도 친구들과 힘을 합치면 뭐든 할 수 있을 것 같아요.
+      - 다음에는 마법천자문 다음 권도 읽어보고 싶어요.
+    book_intro: 이 책은 도로시가 회오리바람에 휩쓸려 신비한 오즈나라로 가서 친구들을 만나는 이야기예요.
+    book_sequel: 그 뒤로 도로시는 친구들과 함께 오즈나라를 여행하며 새로운 모험을 계속 떠날 것 같아요.
+
+  - name: 김서연
+    reports:
+      - book_title: 마틸다
+        quality: a
+        reviewed: true
+        days_ago: 60
+        teacher_comment: 생각이 깊어서 좋아요.
+        body: |
+          마틸다가 나쁜 어른들에게 지지 않고 씩씩하게 맞서는 모습이 정말 멋있었다. 책을 좋아하는 마틸다가 나와 비슷한 것 같아서 더 정이 갔다. 무서운 트런치불 교장 선생님이 결국 벌을 받아서 속이 시원했다. 허니 선생님과 마틸다가 진짜 가족이 되는 결말이 따뜻했다. 나도 마틸다처럼 어려운 상황에서 용기를 내고 싶다.
+      - book_title: 소공녀
+        quality: b
+        reviewed: true
+        days_ago: 50
+        body: |
+          부유했던 세라가 갑자기 가난해져도 품위를 잃지 않는 모습이 대단했다. 힘든 상황에서도 다른 사람에게 친절하게 대하는 세라를 보고 배울 점이 많았다. 결국 다시 행복해지는 결말이라서 마음이 놓였다. 나도 세라처럼 어려울 때 남을 먼저 생각하는 사람이 되고 싶다.
+      - book_title: 키다리 아저씨
+        quality: b
+        reviewed: true
+        days_ago: 40
+        body: |
+          주디가 얼굴도 모르는 후원자에게 편지를 쓰는 설정이 신선하고 재미있었다. 편지 속 주디의 밝고 유쾌한 성격 덕분에 나도 모르게 웃음이 났다. 어려운 환경에서도 씩씩하게 자라는 주디를 보며 응원하는 마음이 들었다. 마지막에 후원자의 정체를 알게 되는 장면이 놀라웠다.
+      - book_title: 오즈의 마법사
+        quality: b
+        reviewed: true
+        days_ago: 30
+        body: |
+          도로시와 친구들이 힘을 합쳐 마법사를 찾아가는 여행이 정말 흥미진진했다. 사실은 다들 처음부터 용기와 지혜를 가지고 있었다는 결말이 인상 깊었다. 나도 내 안의 좋은 점을 더 믿어봐야겠다고 생각했다.
+      - book_title: 하이디
+        quality: a
+        reviewed: true
+        days_ago: 20
+        teacher_comment: 표현이 참 예뻐요.
+        body: |
+          알프스의 아름다운 풍경 속에서 지내는 하이디의 모습이 평화롭게 느껴졌다. 할아버지와 친구들을 진심으로 대하는 하이디가 정말 착해 보였다. 도시에 갔다가 다시 산으로 돌아와 행복해하는 장면이 좋았다. 클라라가 다시 걷게 되는 부분에서는 감동해서 눈물이 날 뻔했다. 나도 하이디처럼 밝고 따뜻한 사람이 되고 싶다.
+      - book_title: 롤러 걸
+        quality: b
+        reviewed: false
+        days_ago: 6
+        body: |
+          롤러더비를 처음 시작한 주인공이 점점 자신감을 찾아가는 모습이 멋있었다. 친구와의 오해를 풀어가는 과정도 감동적으로 느껴졌다. 나도 새로운 것에 도전하는 용기를 가져야겠다고 생각했다.
+    game_plays: 11
+    quiz_attempts: 7
+    monster_lines: 12
+    evolved: 4
+    forum_posts:
+      - 저는 마틸다가 트런치불 교장 선생님을 혼내주는 장면이 제일 통쾌했어요.
+      - 주디처럼 저도 누군가에게 편지를 써보고 싶어졌어요.
+    book_intro: 이 책은 천재 소녀 마틸다가 자신을 힘들게 하는 어른들에게 신기한 능력으로 맞서는 이야기예요.
+    book_sequel: 그 뒤로 마틸다는 허니 선생님과 행복하게 지내며 더 많은 책을 읽고 새로운 것을 배울 것 같아요.
+
+  - name: 이준서
+    reports:
+      - book_title: 15소년 표류기
+        quality: b
+        reviewed: true
+        days_ago: 55
+        body: |
+          무인도에 남겨진 소년들이 힘을 합쳐 살아가는 이야기가 정말 흥미진진했다. 서로 다투기도 하지만 결국 협동해서 문제를 해결하는 모습이 멋있었다. 나라면 그런 상황에서 어떻게 행동했을지 생각해 보게 되었다. 리더를 뽑고 규칙을 정하는 장면이 특히 인상 깊었다.
+      - book_title: 잘못 뽑은 전교 회장
+        quality: b
+        reviewed: true
+        days_ago: 42
+        teacher_comment: 회장의 마음을 잘 이해했네요.
+        body: |
+          장난처럼 시작된 선거였는데 진짜 회장이 되어서 정말 놀랐다. 처음엔 실수만 하던 주인공이 점점 책임감 있는 회장으로 변하는 모습이 멋있었다. 친구들과 함께 학교 문제를 해결해 나가는 장면이 인상 깊었다. 나도 맡은 일에는 최선을 다해야겠다고 생각했다.
+      - book_title: 도그맨
+        quality: c
+        reviewed: true
+        days_ago: 28
+        body: |
+          도그맨이 사건을 해결하는 방법이 엉뚱해서 계속 웃으면서 읽었다. 나쁜 짓을 한 친구도 결국 도와주는 모습이 착해 보였다. 그림이 많아서 쉽게 읽혔다.
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 12
+        body: |
+          한자의 마법으로 모험을 떠나는 이야기가 신기하고 재미있었다. 손오공이 위기를 해결하는 장면에서 통쾌한 기분이 들었다. 한자를 이야기로 배우니까 훨씬 재미있게 느껴졌다.
+    game_plays: 7
+    quiz_attempts: 5
+    monster_lines: 8
+    evolved: 2
+    forum_posts:
+      - 저는 15소년 표류기에서 소년들이 힘을 합치는 장면이 제일 재미있었어요.
+      - 저라면 전교 회장이 됐을 때 급식 메뉴부터 바꿔보고 싶어요.
+      - 도그맨처럼 저도 엉뚱한 아이디어를 내보고 싶어요.
+    book_intro: 이 책은 무인도에 표류하게 된 열다섯 명의 소년들이 힘을 모아 살아가는 모험 이야기예요.
+    book_sequel: 그 뒤로 소년들은 무사히 구조되어 각자의 집으로 돌아가 이 경험을 잊지 못할 것 같아요.
+
+  - name: 최서진
+    reports:
+      - book_title: 푸른 사자 와니니
+        quality: a
+        reviewed: true
+        days_ago: 65
+        teacher_comment: 와니니처럼 용감하네요!
+        body: |
+          와니니가 무리에서 쫓겨났을 때 정말 마음이 아팠다. 하지만 혼자서도 씩씩하게 살아가려고 애쓰는 모습이 멋있었다. 새로운 친구들을 만나 다시 무리를 이루는 과정이 감동적이었다. 나도 힘든 일이 생기면 와니니처럼 포기하지 않아야겠다고 생각했다. 친구들과 다시 만나는 마지막 장면에서는 눈물이 날 뻔했다.
+      - book_title: 찰리와 초콜릿 공장
+        quality: b
+        reviewed: true
+        days_ago: 58
+        body: |
+          초콜릿 강과 다람쥐 방 같은 신기한 공간들이 눈앞에 그려지듯 재미있었다. 찰리는 가난해도 욕심을 부리지 않아서 좋은 사람이라는 생각이 들었다. 결국 공장을 물려받게 되는 결말이 뿌듯했다. 나도 찰리처럼 겸손한 사람이 되고 싶다.
+      - book_title: 마틸다
+        quality: b
+        reviewed: true
+        days_ago: 48
+        body: |
+          어린 마틸다가 신기한 능력으로 못된 어른들을 혼내주는 장면이 통쾌했다. 항상 책을 가까이하는 마틸다를 보면서 나도 책을 더 많이 읽어야겠다고 생각했다. 허니 선생님과 진짜 가족이 되는 결말이 따뜻했다.
+      - book_title: 5월 35일
+        quality: b
+        reviewed: true
+        days_ago: 35
+        body: |
+          현실에는 없는 5월 35일이라는 날짜의 세계로 떠나는 설정이 정말 독특했다. 두 아이가 힘을 합쳐 여러 문제를 해결해 나가는 모습이 멋있었다. 상상력이 얼마나 중요한지 다시 생각하게 되었다.
+      - book_title: 잘못 뽑은 전교 회장
+        quality: b
+        reviewed: true
+        days_ago: 22
+        body: |
+          얼떨결에 전교 회장이 된 주인공이 좌충우돌하는 이야기가 재미있었다. 실수를 하면서도 포기하지 않고 노력하는 모습에서 배울 점이 많았다. 나라면 그런 상황에서 어떻게 했을지 생각해 보게 되었다.
+      - book_title: 윔피 키드
+        quality: c
+        reviewed: true
+        days_ago: 14
+        body: |
+          그레그의 학교생활 이야기가 나와 비슷해서 웃으면서 읽었다. 만화처럼 그림이 많아서 훨씬 쉽게 읽혔다. 그레그의 엉뚱한 생각들이 재미있었다.
+      - book_title: 구스범스
+        quality: b
+        reviewed: false
+        days_ago: 4
+        body: |
+          소름 끼치는 이야기들이 계속 이어져서 심장이 두근거렸다. 무섭지만 다음 내용이 궁금해서 끝까지 다 읽었다. 결말이 예상과 달라서 더 놀라웠다.
+    game_plays: 12
+    quiz_attempts: 8
+    monster_lines: 12
+    evolved: 4
+    forum_posts:
+      - 저는 와니니가 새 친구들을 만나는 장면이 제일 감동적이었어요.
+      - 저라면 5월 35일 나라에 가면 제일 먼저 하늘을 날아보고 싶어요.
+      - 찰리처럼 욕심부리지 않는 사람이 되고 싶어요.
+    book_intro: 이 책은 무리에서 쫓겨난 어린 사자 와니니가 새로운 친구들을 만나 성장해 가는 이야기예요.
+    book_sequel: 그 뒤로 와니니는 새로운 무리의 리더가 되어 친구들과 함께 초원을 씩씩하게 지켜낼 것 같아요.
+
+  - name: 정하은
+    reports:
+      - book_title: 나쁜 어린이 표
+        quality: b
+        reviewed: true
+        days_ago: 52
+        body: |
+          선생님께 나쁜 어린이 표를 받은 건우의 마음이 이해가 됐다. 억울한 마음에 선생님께 좋은 어린이 표를 만들어 주는 장면이 통쾌했다. 어른들도 실수를 할 수 있다는 걸 알게 되었다. 나도 억울한 일이 있으면 용기 내어 말해야겠다.
+      - book_title: 하이디
+        quality: b
+        reviewed: true
+        days_ago: 40
+        teacher_comment: 따뜻한 이야기였겠어요.
+        body: |
+          알프스의 아름다운 자연 속에서 사는 하이디가 부러웠다. 할아버지와 마음을 나누며 가까워지는 모습이 따뜻했다. 클라라와 우정을 쌓는 장면도 감동적이었다.
+      - book_title: 소공녀
+        quality: b
+        reviewed: true
+        days_ago: 27
+        body: |
+          세라가 어려운 상황에서도 상상력을 잃지 않는 모습이 멋있었다. 나라면 그렇게 힘들 때 세라처럼 씩씩할 수 있었을지 생각해 보았다. 결말에서 다시 행복해져서 다행이라고 느꼈다.
+      - book_title: 롤러 걸
+        quality: c
+        reviewed: true
+        days_ago: 9
+        body: |
+          그림으로 이야기를 보는 것이 색다르게 느껴졌다. 롤러더비에 도전하는 주인공을 보고 나도 새로운 것에 도전하고 싶어졌다.
+    game_plays: 6
+    quiz_attempts: 3
+    monster_lines: 6
+    evolved: 2
+    forum_posts:
+      - 저는 세라가 힘든 상황에서도 친절한 모습이 기억에 남아요.
+      - 하이디처럼 저도 자연 속에서 지내보고 싶어요.
+    book_intro: 이 책은 나쁜 어린이 표를 받은 건우가 억울한 마음을 표현하는 이야기예요.
+
+  - name: 강준영
+    reports:
+      - book_title: 도그맨
+        quality: b
+        reviewed: true
+        days_ago: 48
+        body: |
+          도그맨이 나쁜 고양이를 물리치는 장면이 정말 웃겼다. 그림이 많아서 빠르게 읽을 수 있었다. 힘들어도 항상 착하게 행동하는 도그맨이 멋있었다.
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 30
+        body: |
+          손오공과 친구들이 마법으로 문제를 해결하는 장면이 재미있었다. 한자를 이야기로 배우니까 어렵지 않게 느껴졌다. 나도 한자 공부를 더 열심히 해야겠다.
+      - book_title: 5월 35일
+        quality: c
+        reviewed: true
+        days_ago: 10
+        body: |
+          상상 속에서만 있는 나라로 떠나는 이야기가 신기했다. 두 아이가 겪는 모험이 흥미진진했다.
+    game_plays: 4
+    quiz_attempts: 2
+    monster_lines: 4
+    evolved: 1
+    forum_posts:
+      - 저는 도그맨이 사건을 해결하는 방법이 제일 웃겼어요.
+    book_sequel: 그 뒤로 손오공과 친구들은 더 어려운 한자를 배우며 새로운 모험을 떠날 것 같아요.
+
+  - name: 윤서아
+    reports:
+      - book_title: 마틸다
+        quality: a
+        reviewed: true
+        days_ago: 54
+        body: |
+          마틸다가 신기한 능력으로 못된 어른들에게 맞서는 모습이 정말 통쾌했다. 항상 책을 가까이하는 모습이 나와 비슷해서 정이 갔다. 허니 선생님과 진짜 가족이 되는 결말이 따뜻했다. 나도 마틸다처럼 씩씩하고 지혜로운 사람이 되고 싶다.
+      - book_title: 오즈의 마법사
+        quality: b
+        reviewed: true
+        days_ago: 44
+        teacher_comment: 생각을 잘 정리했어요.
+        body: |
+          도로시와 친구들이 함께 여행하며 서로 부족한 점을 채워가는 이야기가 감동적이었다. 사실은 이미 용기와 지혜를 가지고 있었다는 결말이 인상 깊었다. 나도 친구들과 함께라면 무엇이든 해낼 수 있을 것 같다.
+      - book_title: 키다리 아저씨
+        quality: b
+        reviewed: true
+        days_ago: 25
+        body: |
+          주디가 밝고 유쾌하게 편지를 쓰는 모습이 좋았다. 어려운 환경에서도 씩씩하게 자라는 주디를 응원하게 되었다. 편지 형식으로 된 이야기가 신선했다.
+      - book_title: 플랜더스의 개
+        quality: b
+        reviewed: true
+        days_ago: 7
+        body: |
+          넬로와 파트라슈의 우정이 정말 감동적이었다. 마지막 장면에서는 마음이 짠했다. 힘든 상황에서도 서로를 아끼는 모습이 오래 기억에 남을 것 같다.
+    game_plays: 7
+    quiz_attempts: 4
+    monster_lines: 7
+    evolved: 2
+    forum_posts:
+      - 저는 마틸다가 어른들에게 맞서는 장면이 가장 통쾌했어요.
+      - 넬로와 파트라슈를 생각하면 아직도 마음이 짠해요.
+    book_intro: 이 책은 천재 소녀 마틸다가 자신을 괴롭히는 어른들에게 용기 있게 맞서는 이야기예요.
+
+  - name: 임예준
+    reports:
+      - book_title: 15소년 표류기
+        quality: b
+        reviewed: true
+        days_ago: 50
+        body: |
+          무인도에 남겨진 소년들이 힘을 합쳐 살아가는 이야기가 흥미로웠다. 서로 다투다가도 결국 협동하는 모습이 멋있었다. 나라면 그런 상황에서 어떻게 했을지 생각해 보게 되었다.
+      - book_title: 불량한 자전거 여행
+        quality: b
+        reviewed: true
+        days_ago: 33
+        body: |
+          형제가 자전거로 전국을 여행하는 이야기가 신났다. 힘든 순간에도 서로 도와가며 나아가는 모습이 감동적이었다. 나도 언젠가 이런 여행을 해보고 싶다는 생각이 들었다.
+      - book_title: 구스범스
+        quality: c
+        reviewed: true
+        days_ago: 11
+        body: |
+          오싹한 이야기가 계속 이어져서 무섭지만 재미있었다. 다음 이야기가 궁금해서 책을 놓을 수 없었다.
+    game_plays: 3
+    quiz_attempts: 2
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 자전거로 여행하는 형제의 우애가 가장 멋있었어요.
+    book_sequel: 그 뒤로 소년들은 무사히 집으로 돌아가 이 경험을 친구들에게 자랑스럽게 이야기할 것 같아요.
+
+  - name: 한윤서
+    reports:
+      - book_title: 소공녀
+        quality: b
+        reviewed: true
+        days_ago: 49
+        body: |
+          부유했던 세라가 갑자기 가난해져도 품위를 잃지 않는 모습이 대단했다. 힘든 상황에서도 다른 사람에게 친절하게 대하는 세라를 보고 배울 점이 많았다. 결국 다시 행복해지는 결말이 뿌듯했다.
+      - book_title: 하이디
+        quality: b
+        reviewed: true
+        days_ago: 36
+        teacher_comment: 잘 정리했어요.
+        body: |
+          알프스의 풍경 속에서 지내는 하이디가 평화로워 보였다. 할아버지와 친구들을 진심으로 대하는 모습이 착해 보였다. 나도 하이디처럼 밝은 사람이 되고 싶다.
+      - book_title: 잘못 뽑은 전교 회장
+        quality: b
+        reviewed: true
+        days_ago: 19
+        body: |
+          장난으로 회장이 된 주인공이 점점 책임감을 가지게 되는 모습이 멋있었다. 친구들과 함께 문제를 해결하는 장면이 인상 깊었다.
+      - book_title: 윔피 키드
+        quality: b
+        reviewed: true
+        days_ago: 8
+        body: |
+          그레그의 학교생활이 나와 비슷해서 재미있게 읽었다. 그림이 많아서 쉽게 읽을 수 있었다. 그레그의 엉뚱한 생각들이 웃겼다.
+    game_plays: 5
+    quiz_attempts: 3
+    monster_lines: 5
+    evolved: 2
+    forum_posts:
+      - 저는 세라가 힘들어도 친절함을 잃지 않는 모습이 인상 깊었어요.
+      - 그레그처럼 저도 학교에서 있었던 일을 일기로 써보고 싶어요.
+    book_intro: 이 책은 부유했던 소녀 세라가 갑자기 가난해져도 품위를 잃지 않고 살아가는 이야기예요.
+
+  - name: 오태윤
+    reports:
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 46
+        body: |
+          한자의 마법으로 모험을 떠나는 이야기가 재미있었다. 손오공이 위기를 해결하는 장면이 통쾌했다. 한자 공부에 흥미가 생겼다.
+      - book_title: 도그맨
+        quality: b
+        reviewed: true
+        days_ago: 29
+        body: |
+          도그맨이 사건을 해결하는 방법이 엉뚱해서 웃겼다. 그림이 많아서 쉽게 읽혔다. 나쁜 짓을 한 친구도 도와주는 모습이 착해 보였다.
+      - book_title: 나쁜 어린이 표
+        quality: c
+        reviewed: true
+        days_ago: 13
+        body: |
+          나쁜 어린이 표를 받은 건우의 마음이 이해가 됐다. 억울해하다가 스스로 해결하는 모습이 인상 깊었다.
+    game_plays: 4
+    quiz_attempts: 2
+    monster_lines: 4
+    evolved: 1
+    forum_posts:
+      - 저는 도그맨이 나쁜 고양이를 물리치는 장면이 제일 웃겼어요.
+    book_sequel: 그 뒤로 건우는 선생님과 오해를 풀고 더 즐거운 학교생활을 하게 될 것 같아요.
+
+  - name: 신예린
+    reports:
+      - book_title: 키다리 아저씨
+        quality: a
+        reviewed: true
+        days_ago: 53
+        teacher_comment: 표현이 좋아요.
+        body: |
+          주디가 얼굴도 모르는 후원자에게 편지를 쓰는 설정이 신선했다. 밝고 유쾌한 주디의 성격이 좋았다. 어려운 환경에서도 씩씩하게 자라는 모습이 멋있었다. 편지를 통해 주디가 점점 성장해 가는 과정이 인상 깊었다.
+      - book_title: 소공녀
+        quality: b
+        reviewed: true
+        days_ago: 37
+        body: |
+          세라가 어려운 상황에서도 상상력을 잃지 않는 모습이 멋있었다. 힘들 때도 다른 사람을 먼저 생각하는 세라를 보고 배울 점이 많았다. 결말이 행복해서 다행이었다.
+      - book_title: 하이디
+        quality: b
+        reviewed: true
+        days_ago: 24
+        body: |
+          알프스의 자연 속에서 지내는 하이디의 모습이 평화로웠다. 할아버지와 가까워지는 과정이 따뜻했다. 클라라와의 우정도 감동적이었다.
+      - book_title: 롤러 걸
+        quality: b
+        reviewed: true
+        days_ago: 6
+        body: |
+          롤러더비를 시작한 주인공이 자신감을 찾아가는 모습이 멋있었다. 그림으로 보는 이야기가 색달랐다. 나도 새로운 것에 도전해 보고 싶어졌다.
+    game_plays: 6
+    quiz_attempts: 3
+    monster_lines: 6
+    evolved: 2
+    forum_posts:
+      - 저는 주디의 편지가 유쾌해서 읽는 내내 웃었어요.
+      - 세라처럼 힘들 때도 다른 사람을 생각하는 사람이 되고 싶어요.
+    book_intro: 이 책은 고아 소녀 주디가 얼굴 모르는 후원자에게 편지를 쓰며 성장해 가는 이야기예요.
+
+  - name: 조현준
+    reports:
+      - book_title: 15소년 표류기
+        quality: b
+        reviewed: true
+        days_ago: 47
+        body: |
+          무인도에 표류한 소년들이 힘을 합쳐 살아가는 이야기가 흥미로웠다. 리더를 뽑고 규칙을 정하는 장면이 인상 깊었다. 나라면 어떻게 했을지 생각해보게 되었다.
+      - book_title: 5월 35일
+        quality: b
+        reviewed: true
+        days_ago: 31
+        body: |
+          상상 속 나라로 떠나는 이야기 설정이 독특했다. 두 아이가 힘을 합쳐 문제를 해결하는 모습이 멋있었다.
+      - book_title: 플랜더스의 개
+        quality: c
+        reviewed: true
+        days_ago: 15
+        body: |
+          넬로와 파트라슈의 우정이 슬프면서도 따뜻했다. 마지막 장면에서 마음이 아팠다.
+    game_plays: 3
+    quiz_attempts: 2
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 15소년 표류기에서 소년들이 규칙을 정하는 장면이 기억에 남아요.
+    book_sequel: 그 뒤로 소년들은 무사히 구조되어 각자 가족의 품으로 돌아가게 될 것 같아요.
+
+  - name: 배수아
+    reports:
+      - book_title: 마틸다
+        quality: b
+        reviewed: true
+        days_ago: 51
+        teacher_comment: 생각을 잘 표현했어요.
+        body: |
+          마틸다가 신기한 능력으로 못된 어른들을 혼내주는 장면이 통쾌했다. 책을 좋아하는 마틸다가 나와 비슷해서 정이 갔다. 허니 선생님과 진짜 가족이 되는 결말이 따뜻했다.
+      - book_title: 오즈의 마법사
+        quality: b
+        reviewed: true
+        days_ago: 39
+        body: |
+          도로시와 친구들이 함께 여행하며 서로를 돕는 모습이 감동적이었다. 사실은 이미 용기와 지혜를 가지고 있었다는 결말이 인상 깊었다.
+      - book_title: 빨강 연필
+        quality: b
+        reviewed: true
+        days_ago: 26
+        body: |
+          신기한 빨강 연필로 글을 잘 쓰게 된 민호의 이야기가 흥미로웠다. 자기 힘으로 쓴 게 아니어서 마음이 불편했을 것 같았다. 정직하게 노력하는 것이 더 중요하다는 걸 깨달았다.
+      - book_title: 일기 감추는 날
+        quality: b
+        reviewed: true
+        days_ago: 9
+        body: |
+          일기를 숨기고 싶어 하는 주인공의 마음이 나와 비슷해서 공감이 됐다. 결국 솔직하게 마음을 표현하는 모습이 용기 있어 보였다. 나도 일기를 쓸 때 더 솔직해져야겠다고 생각했다.
+    game_plays: 7
+    quiz_attempts: 4
+    monster_lines: 7
+    evolved: 2
+    forum_posts:
+      - 저는 마틸다가 어른들에게 맞서는 부분이 가장 통쾌했어요.
+      - 민호처럼 저도 제 힘으로 노력하는 사람이 되고 싶어요.
+    book_intro: 이 책은 천재 소녀 마틸다가 신기한 능력으로 못된 어른들에게 맞서는 이야기예요.
+
+  - name: 권지호
+    reports:
+      - book_title: 불량한 자전거 여행
+        quality: b
+        reviewed: true
+        days_ago: 45
+        body: |
+          형제가 자전거로 국토를 여행하는 이야기가 대단하게 느껴졌다. 힘들어도 포기하지 않는 모습에서 끈기를 배울 수 있었다. 형제 사이의 우애도 따뜻하게 느껴졌다.
+      - book_title: 잘못 뽑은 전교 회장
+        quality: b
+        reviewed: true
+        days_ago: 28
+        body: |
+          얼떨결에 회장이 된 주인공이 점점 책임감을 갖는 모습이 멋있었다. 나라면 그런 상황에서 어떻게 했을지 생각해 보았다.
+      - book_title: 구스범스
+        quality: c
+        reviewed: true
+        days_ago: 10
+        body: |
+          소름 끼치는 이야기들이 이어져서 심장이 두근거렸다. 그래도 결말이 궁금해서 끝까지 읽었다.
+    game_plays: 5
+    quiz_attempts: 3
+    monster_lines: 5
+    evolved: 1
+    forum_posts:
+      - 저는 자전거 여행을 하는 형제의 끈기가 정말 대단하다고 생각했어요.
+    book_sequel: 그 뒤로 형제는 자전거 여행에서 만난 사람들과 계속 연락하며 우정을 이어갈 것 같아요.
+
+  - name: 홍유나
+    reports:
+      - book_title: 하이디
+        quality: b
+        reviewed: true
+        days_ago: 41
+        body: |
+          알프스의 아름다운 자연 속에서 사는 하이디가 부러웠다. 할아버지와 가까워지는 모습이 따뜻했다. 나도 자연 속에서 지내보고 싶어졌다.
+      - book_title: 소공녀
+        quality: b
+        reviewed: true
+        days_ago: 17
+        body: |
+          세라가 힘든 상황에서도 품위를 잃지 않는 모습이 멋있었다. 결국 다시 행복해지는 결말이 좋았다.
+    game_plays: 2
+    quiz_attempts: 1
+    monster_lines: 2
+    evolved: 1
+    forum_posts:
+      - 저는 하이디가 할아버지와 가까워지는 장면이 좋았어요.
+
+  - name: 서민규
+    reports:
+      - book_title: 도그맨
+        quality: c
+        reviewed: true
+        days_ago: 20
+        body: |
+          도그맨이 나쁜 고양이를 물리치는 장면이 웃겼다. 그림이 많아서 쉽게 읽을 수 있었다.
+    game_plays: 0
+    quiz_attempts: 0
+    monster_lines: 1
+    evolved: 0
+    forum_posts: []
+
+  - name: 문채원
+    reports:
+      - book_title: 키다리 아저씨
+        quality: b
+        reviewed: true
+        days_ago: 34
+        teacher_comment: 잘 읽었어요.
+        body: |
+          주디가 편지를 쓰는 설정이 신선하고 재미있었다. 밝고 유쾌한 주디의 성격이 마음에 들었다. 어려운 환경에서도 씩씩하게 자라는 모습이 멋있었다.
+      - book_title: 마틸다
+        quality: b
+        reviewed: true
+        days_ago: 12
+        body: |
+          마틸다가 못된 어른들에게 맞서는 장면이 통쾌했다. 책을 좋아하는 모습이 나와 비슷해서 좋았다.
+    game_plays: 3
+    quiz_attempts: 2
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 주디의 편지가 재미있고 유쾌해서 좋았어요.
+
+  - name: 노시우
+    reports:
+      - book_title: 5월 35일
+        quality: b
+        reviewed: true
+        days_ago: 22
+        body: |
+          상상 속 나라로 떠나는 설정이 신기했다. 두 아이가 겪는 모험이 흥미로웠다.
+    game_plays: 1
+    quiz_attempts: 0
+    monster_lines: 1
+    evolved: 0
+    forum_posts: []
+
+  - name: 백하람
+    reports:
+      - book_title: 오즈의 마법사
+        quality: b
+        reviewed: true
+        days_ago: 30
+        body: |
+          도로시와 친구들이 함께 여행하는 이야기가 재미있었다. 서로 부족한 점을 채워가는 모습이 감동적이었다.
+      - book_title: 나쁜 어린이 표
+        quality: c
+        reviewed: true
+        days_ago: 7
+        body: |
+          나쁜 어린이 표를 받은 건우의 마음이 이해가 됐다. 억울해하는 모습이 안타까웠다.
+    game_plays: 2
+    quiz_attempts: 1
+    monster_lines: 2
+    evolved: 0
+    forum_posts:
+      - 저는 도로시와 친구들이 힘을 합치는 장면이 좋았어요.
+
+  - name: 안현우
+    reports:
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 18
+        body: |
+          한자의 마법으로 모험을 떠나는 이야기가 신기했다. 손오공이 문제를 해결하는 장면이 재미있었다.
+    game_plays: 0
+    quiz_attempts: 0
+    monster_lines: 1
+    evolved: 0
+    forum_posts: []

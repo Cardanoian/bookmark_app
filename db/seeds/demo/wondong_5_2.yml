@@ -1,0 +1,34 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 5
+  class_no: 2
+  academic_year: 2026
+teacher:
+  name: 김도현
+  email: teacher.wondong52@chaekgalpi.demo
+template: yugang_5_3.yml
+activity_level: high
+student_names:
+  - 민여름
+  - 모해든
+  - 류가람
+  - 도노을
+  - 남다름
+  - 김라움
+  - 권마음
+  - 곽사랑
+  - 강아람
+  - 이아람
+  - 유여름
+  - 원해든
+  - 오가람
+  - 여노을
+  - 양다름
+  - 심라움
+  - 송마음
+  - 소사랑
+  - 선아람
+  - 서여름
+  - 복해든
+  - 백가람

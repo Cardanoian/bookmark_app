@@ -1,0 +1,532 @@
+classroom:
+  school_neis_code: "8761168"
+  school_label: 효자초등학교
+  grade: 2
+  class_no: 1
+  academic_year: 2026
+teacher:
+  name: 강도현
+  email: teacher.hyoja1@chaekgalpi.demo
+missions:
+  - title: 책 읽기 습관 만들기
+    description: 매주 책을 읽고 독후감을 써봐요.
+    reward_points: 40
+    start_days_ago: 20
+    end_days_ahead: 5
+    completion_rate: 0.55
+    goals:
+      - { type: approved_reports, target: 2 }
+      - { type: game_plays, target: 3 }
+  - title: 몬스터와 함께 놀아요
+    description: 반려 몬스터와 게임을 하며 마음을 키워요.
+    reward_points: 25
+    start_days_ago: 10
+    end_days_ahead: 14
+    completion_rate: 0.7
+    goals:
+      - { type: game_plays, target: 4 }
+      - { type: approved_reports, target: 1 }
+topics:
+  - 제일 기억에 남는 장면은?
+  - 주인공에게 하고 싶은 말은?
+  - 내가 만약 주인공이라면?
+students:
+  - name: 김하람
+    reports:
+      - book_title: 구름빵
+        quality: b
+        reviewed: true
+        days_ago: 45
+        teacher_comment: "참 잘했어요!"
+        body: |
+          엄마와 아빠가 만든 구름빵을 동생과 나눠 먹었어요. 구름빵을 먹으니 하늘을 훨훨 날 수 있어서 정말 신기했어요. 나도 구름빵을 먹고 학교에 빨리 가고 싶었어요. 가족이 힘을 모으는 모습이 따뜻하게 느껴졌어요.
+      - book_title: 무지개 물고기
+        quality: a
+        reviewed: true
+        days_ago: 30
+        body: |
+          무지개 물고기는 반짝이는 비늘을 혼자만 가지려고 했어요. 하지만 비늘을 친구들에게 나누어 주니 모두가 행복해졌어요. 나도 아끼는 것을 친구와 나누면 더 즐거울 것 같아요. 혼자보다 함께가 좋다는 것을 배웠어요.
+      - book_title: 슈퍼 거북
+        quality: b
+        reviewed: true
+        days_ago: 20
+        teacher_comment: 느낌을 생생하게 잘 썼어요.
+        body: |
+          거북이가 갑자기 엄청 빨라져서 슈퍼 거북이 되었어요. 그런데 친구들이 계속 기대를 해서 거북이는 힘들어했어요. 나도 잘하는 것 때문에 부담을 느낀 적이 있어서 공감이 되었어요. 있는 그대로의 나를 좋아하는 게 중요한 것 같아요.
+      - book_title: 어린 왕자
+        quality: b
+        reviewed: true
+        days_ago: 10
+        body: |
+          어린 왕자는 자기 별에 있는 장미꽃을 아주 소중하게 생각했어요. 여우를 만나서 친구가 되는 방법도 배웠어요. 나도 소중한 친구를 길들이는 것처럼 천천히 사귀고 싶어요. 눈에 보이지 않는 마음이 더 중요하다는 말이 기억에 남아요.
+      - book_title: 이솝 우화
+        quality: c
+        reviewed: false
+        days_ago: 4
+        body: |
+          개미와 베짱이 이야기를 읽었어요. 개미는 여름에 열심히 일하고 베짱이는 놀기만 했어요. 겨울이 되니 개미는 먹을 것이 많았지만 베짱이는 배가 고팠어요. 나도 미리미리 준비하는 습관을 가져야겠다고 생각했어요.
+    game_plays: 8
+    quiz_attempts: 5
+    monster_lines: 11
+    evolved: 3
+    forum_posts:
+      - 저는 무지개 비늘이 진짜 반짝반짝해서 좋았어요.
+      - 슈퍼 거북처럼 나도 있는 그대로가 좋아요.
+      - 여우랑 어린 왕자가 친구 되는 장면이 감동이었어요.
+    book_intro: 이 책은 자기 별을 떠나 여러 별을 여행하는 어린 왕자 이야기예요.
+    book_sequel: 어린 왕자가 지구에서 더 많은 친구를 만나면 재미있을 것 같아요.
+
+  - name: 이서준
+    reports:
+      - book_title: 지각대장 존
+        quality: b
+        reviewed: true
+        days_ago: 55
+        teacher_comment: 다음엔 더 자세히 써볼까요?
+        body: |
+          존은 학교에 가는 길에 이상한 일이 자꾸 생겨서 자꾸 늦었어요. 선생님은 존의 말을 믿지 않고 자꾸 벌을 주셨어요. 그런데 마지막에는 선생님한테도 이상한 일이 생겨서 웃겼어요. 진짜인지 아닌지 나도 궁금했어요.
+      - book_title: 프레드릭
+        quality: b
+        reviewed: true
+        days_ago: 40
+        body: |
+          다른 쥐들은 겨울 양식을 모으는데 프레드릭은 햇살과 색깔을 모았어요. 겨울이 되어 먹을 것이 떨어지자 프레드릭의 이야기가 큰 힘이 되었어요. 나는 프레드릭이 그냥 게으른 줄 알았는데 아니었어요. 마음을 따뜻하게 해주는 것도 소중하다는 걸 알았어요.
+      - book_title: 배드 가이즈
+        quality: a
+        reviewed: true
+        days_ago: 25
+        body: |
+          나쁜 짓만 하던 동물들이 착한 일을 해보기로 했어요. 처음에는 서툴렀지만 점점 진짜 착해지는 모습이 멋있었어요. 나도 착한 일을 하면 기분이 좋아질 것 같아요. 겉모습만 보고 판단하면 안 된다는 것도 배웠어요.
+      - book_title: 흔한남매
+        quality: b
+        reviewed: true
+        days_ago: 8
+        body: |
+          흔한남매는 남매가 티격태격하는 이야기라서 진짜 웃겼어요. 나도 동생이랑 비슷하게 싸울 때가 있어서 공감이 됐어요. 그래도 결국은 서로 도와주는 모습이 좋았어요. 우리 남매도 이렇게 사이좋게 지내고 싶어요.
+    game_plays: 6
+    quiz_attempts: 4
+    monster_lines: 9
+    evolved: 2
+    forum_posts:
+      - 저는 프레드릭이 모은 색깔 이야기가 제일 좋았어요.
+      - 흔한남매 보면서 저희 집 생각이 났어요.
+    book_intro: 이 책은 매일 학교 가는 길에 이상한 일이 생기는 존의 이야기예요.
+    book_sequel: 존이 다음에는 학교에서도 재미있는 일을 겪으면 좋겠어요.
+
+  - name: 박지우
+    reports:
+      - book_title: 괴물들이 사는 나라
+        quality: b
+        reviewed: true
+        days_ago: 60
+        body: |
+          맥스는 화가 나서 늑대 옷을 입고 괴물들이 사는 나라로 갔어요. 그곳에서 괴물들의 왕이 되어서 신나게 놀았어요. 그래도 결국 집이 그리워져서 다시 돌아왔어요. 화가 나도 결국 가족이 제일 좋다는 걸 알았어요.
+      - book_title: 복면공주
+        quality: a
+        reviewed: true
+        days_ago: 33
+        teacher_comment: "생생하게 잘 썼어요!"
+        body: |
+          복면공주는 낮에는 얌전하지만 밤에는 복면을 쓰고 나쁜 사람들을 혼내줘요. 겉모습만 보고 사람을 판단하면 안 된다는 걸 알았어요. 나도 복면공주처럼 용감해지고 싶어요. 숨겨진 힘이 있다는 게 멋있었어요.
+      - book_title: 까만 아기 양
+        quality: b
+        reviewed: true
+        days_ago: 6
+        body: |
+          까만 아기 양은 색깔이 다르다고 다른 양들에게 따돌림을 당했어요. 하지만 힘든 일이 생겼을 때 까만 아기 양이 큰 도움을 줬어요. 다르다고 놀리면 안 된다는 걸 배웠어요. 나도 친구를 겉모습으로 판단하지 않을 거예요.
+    game_plays: 9
+    quiz_attempts: 6
+    monster_lines: 12
+    evolved: 3
+    forum_posts:
+      - 저는 맥스가 왕이 된 장면이 제일 멋있었어요.
+      - 복면공주처럼 용감한 사람이 되고 싶어요.
+      - 까만 아기 양을 놀리면 안 될 것 같아요.
+    book_intro: 이 책은 복면을 쓰고 나쁜 사람을 혼내주는 공주님 이야기예요.
+    book_sequel: 복면공주가 다음에는 더 큰 마을을 지켜줬으면 좋겠어요.
+
+  - name: 최수아
+    reports:
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 50
+        body: |
+          손오공과 친구들이 한자의 힘으로 요괴들과 싸우는 이야기예요. 한자를 배우면서 모험도 할 수 있어서 신기했어요. 나도 한자를 열심히 배워보고 싶어졌어요. 글자에 이런 힘이 있다는 게 놀라웠어요.
+      - book_title: 이사도라 문
+        quality: b
+        reviewed: true
+        days_ago: 36
+        body: |
+          이사도라 문은 사람과 마녀 두 세계를 오가며 사는 아이예요. 두 세계 사이에서 고민하는 모습이 나랑 비슷하다고 느꼈어요. 이사도라가 자기만의 방법으로 문제를 해결해서 멋있었어요. 나도 어려운 일이 생기면 침착하게 생각해봐야겠어요.
+      - book_title: 피노키오
+        quality: c
+        reviewed: true
+        days_ago: 18
+        teacher_comment: 다음엔 더 길게 써봐요.
+        body: |
+          피노키오는 거짓말을 하면 코가 길어지는 나무 인형이에요. 자꾸 거짓말을 해서 곤란한 일을 많이 겪었어요. 결국 정직하게 살기로 마음먹고 진짜 아이가 되었어요. 나도 거짓말을 하지 않아야겠다고 생각했어요.
+      - book_title: 언제까지나 너를 사랑해
+        quality: b
+        reviewed: false
+        days_ago: 5
+        body: |
+          엄마가 아이에게 언제까지나 사랑한다고 노래를 불러줘요. 아이가 커서 어른이 되어도 엄마는 계속 사랑을 줘요. 나중에는 아이가 엄마를 안아주는 장면이 뭉클했어요. 우리 엄마도 나를 이렇게 사랑해주시는 것 같아요.
+    game_plays: 4
+    quiz_attempts: 3
+    monster_lines: 6
+    evolved: 2
+    forum_posts:
+      - 저는 피노키오가 정직해지는 부분이 감동이었어요.
+      - 엄마 생각이 나서 눈물이 날 뻔했어요.
+    book_intro: 이 책은 한자의 힘을 빌려 요괴와 싸우는 손오공 이야기예요.
+    book_sequel: 손오공이 다음에는 더 어려운 한자로 모험하면 좋겠어요.
+
+  - name: 정준우
+    reports:
+      - book_title: 구름빵
+        quality: b
+        reviewed: true
+        days_ago: 42
+        body: |
+          구름빵을 먹으면 하늘을 날 수 있다는 게 신기했어요. 엄마 아빠가 회사에 늦지 않게 구름빵을 먹고 날아갔어요. 나도 구름빵이 있으면 학교에 빨리 가고 싶어요. 재미있는 상상이 담긴 책이었어요.
+      - book_title: 슈퍼 거북
+        quality: b
+        reviewed: true
+        days_ago: 22
+        teacher_comment: "잘 읽었어요!"
+        body: |
+          거북이가 갑자기 빨라져서 다들 깜짝 놀랐어요. 그런데 너무 빨라지니까 오히려 힘들어했어요. 자기 속도대로 사는 게 좋다는 걸 알았어요. 나도 천천히 해도 괜찮다고 생각했어요.
+      - book_title: "사과가 쿵!"
+        quality: c
+        reviewed: true
+        days_ago: 9
+        body: |
+          사과가 쿵 하고 떨어지자 동물들이 모두 모여들었어요. 처음에는 서로 가지려고 했지만 나중엔 같이 나눠 먹었어요. 나눠 먹으니까 더 맛있어 보였어요. 나도 친구랑 나눠 먹는 걸 좋아해요.
+    game_plays: 3
+    quiz_attempts: 2
+    monster_lines: 5
+    evolved: 1
+    forum_posts:
+      - 저는 구름빵 먹고 날아가는 장면이 신기했어요.
+      - 사과를 다같이 나눠 먹는 게 보기 좋았어요.
+    book_intro: 이 책은 구름빵을 먹고 하늘을 나는 가족 이야기예요.
+
+  - name: 강나은
+    reports:
+      - book_title: 무지개 물고기
+        quality: b
+        reviewed: true
+        days_ago: 48
+        body: |
+          무지개 물고기는 반짝이는 비늘이 예뻐서 자랑만 했어요. 친구가 없어서 외로워하다가 비늘을 나눠주기로 했어요. 나눠준 뒤에는 친구들이 많이 생겼어요. 나도 가진 것을 나누면 더 행복해질 것 같아요.
+      - book_title: 흔한남매
+        quality: b
+        reviewed: true
+        days_ago: 15
+        teacher_comment: "재미있게 읽었네요!"
+        body: |
+          흔한남매는 맨날 싸우는데 결국 화해를 해요. 저도 동생이랑 자주 싸워서 웃으면서 봤어요. 싸워도 다시 사이좋게 지내는 게 남매인 것 같아요. 다음 이야기도 궁금해요.
+    game_plays: 2
+    quiz_attempts: 1
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 무지개 물고기가 비늘을 나눠줘서 좋았어요.
+    book_intro: 이 책은 반짝이는 비늘을 가진 물고기가 친구를 사귀는 이야기예요.
+
+  - name: 조하준
+    reports:
+      - book_title: 이솝 우화
+        quality: a
+        reviewed: true
+        days_ago: 62
+        teacher_comment: 생각을 잘 담았어요.
+        body: |
+          토끼와 거북이가 달리기 시합을 했어요. 토끼는 자만해서 낮잠을 자다가 거북이한테 졌어요. 나도 자만하지 않고 꾸준히 노력해야겠다고 생각했어요. 느려도 포기하지 않는 게 중요한 것 같아요.
+      - book_title: 배드 가이즈
+        quality: b
+        reviewed: true
+        days_ago: 28
+        body: |
+          나쁜 동물들이 착해지려고 노력하는 이야기가 재미있었어요. 처음엔 다들 안 믿었지만 진심이 통해서 인정받았어요. 나도 진심으로 노력하면 사람들이 알아줄 것 같아요. 웃긴 장면도 많아서 즐거웠어요.
+      - book_title: 프레드릭
+        quality: b
+        reviewed: true
+        days_ago: 11
+        body: |
+          프레드릭은 다른 쥐들과 다르게 색깔과 이야기를 모았어요. 겨울에 그 이야기 덕분에 모두가 힘을 냈어요. 나도 프레드릭처럼 특별한 재능이 있을지 궁금해요. 다양한 재능이 다 소중하다고 느꼈어요.
+    game_plays: 5
+    quiz_attempts: 3
+    monster_lines: 6
+    evolved: 1
+    forum_posts:
+      - 저는 거북이가 포기 안 하는 게 멋있었어요.
+      - 나쁜 가이즈들이 착해지는 게 신기했어요.
+    book_intro: 이 책은 옛날부터 전해오는 지혜가 담긴 짧은 이야기 모음이에요.
+
+  - name: 윤서연
+    reports:
+      - book_title: 어린 왕자
+        quality: b
+        reviewed: true
+        days_ago: 66
+        body: |
+          어린 왕자는 자기 별에 있는 장미를 그리워했어요. 여러 별을 여행하면서 어른들의 이상한 모습을 봤어요. 여우를 만나서 진짜 친구가 되는 법도 배웠어요. 나도 소중한 사람을 잘 챙기고 싶어요.
+      - book_title: 까만 아기 양
+        quality: c
+        reviewed: true
+        days_ago: 20
+        teacher_comment: 느낀 점을 더 써봐요.
+        body: |
+          까만 아기 양은 색깔이 달라서 친구들이 놀렸어요. 그래도 씩씩하게 지내는 모습이 멋있었어요. 나중엔 다들 까만 아기 양을 좋아하게 되었어요. 겉모습보다 마음이 중요한 것 같아요.
+    game_plays: 2
+    quiz_attempts: 2
+    monster_lines: 4
+    evolved: 1
+    forum_posts:
+      - 저는 어린 왕자와 여우가 친구 되는 게 좋았어요.
+    book_intro: 이 책은 어린 왕자가 여러 별을 여행하는 이야기예요.
+
+  - name: 임지후
+    reports:
+      - book_title: 지각대장 존
+        quality: b
+        reviewed: true
+        days_ago: 58
+        body: |
+          존은 학교에 가는 길마다 이상한 일을 겪었어요. 악어가 나오고 파도가 치고 사자가 나타났어요. 선생님은 하나도 안 믿어줘서 존이 답답했을 것 같아요. 나라면 정말 억울했을 것 같아요.
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 34
+        body: |
+          한자마다 다른 힘이 나와서 신기했어요. 손오공이 한자의 힘으로 요괴를 물리쳤어요. 나도 한자를 많이 알면 멋진 힘을 쓸 수 있을 것 같아요. 공부가 재미있어지는 책이었어요.
+      - book_title: 슈퍼 거북
+        quality: b
+        reviewed: true
+        days_ago: 7
+        teacher_comment: "잘했어요!"
+        body: |
+          거북이가 너무 빨라져서 오히려 불편해졌어요. 친구들이 자꾸 시합을 하자고 해서 힘들어했어요. 결국 원래 속도로 돌아가서 편안해졌어요. 나도 내 속도를 지키는 게 좋을 것 같아요.
+    game_plays: 4
+    quiz_attempts: 3
+    monster_lines: 5
+    evolved: 1
+    forum_posts:
+      - 저도 존처럼 이상한 일을 겪으면 억울할 것 같아요.
+      - 손오공의 한자 힘이 멋있었어요.
+    book_intro: 이 책은 매일 다른 이유로 학교에 늦는 존의 이야기예요.
+
+  - name: 한서윤
+    reports:
+      - book_title: 복면공주
+        quality: b
+        reviewed: true
+        days_ago: 44
+        body: |
+          복면공주는 낮에는 조용한 공주지만 밤에는 나쁜 사람들을 혼내줘요. 두 가지 모습을 가진 게 신기하고 멋있었어요. 나도 이렇게 용감한 사람이 되고 싶어요. 숨은 힘을 가진 주인공이 멋졌어요.
+      - book_title: 이사도라 문
+        quality: b
+        reviewed: true
+        days_ago: 13
+        teacher_comment: 상상력이 좋아요.
+        body: |
+          이사도라 문은 마법을 쓸 수 있는 특별한 아이예요. 사람들 세상과 마녀 세상을 오가면서 여러 일을 겪어요. 힘든 일이 생겨도 씩씩하게 해결하는 모습이 좋았어요. 나도 어려운 일이 생기면 씩씩하게 해결하고 싶어요.
+    game_plays: 3
+    quiz_attempts: 1
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 복면공주의 두 가지 모습이 신기했어요.
+    book_intro: 이 책은 낮과 밤에 다른 모습으로 사는 공주 이야기예요.
+
+  - name: 오하은
+    reports:
+      - book_title: 피노키오
+        quality: b
+        reviewed: true
+        days_ago: 52
+        body: |
+          피노키오는 거짓말을 할 때마다 코가 길어져요. 계속 거짓말을 하다가 여러 번 곤란해졌어요. 결국 정직하게 살기로 결심하고 진짜 사람이 되었어요. 나도 거짓말은 하지 않아야겠다고 다짐했어요.
+      - book_title: 언제까지나 너를 사랑해
+        quality: a
+        reviewed: true
+        days_ago: 26
+        teacher_comment: 마음이 잘 느껴졌어요.
+        body: |
+          엄마가 아이에게 언제나 사랑한다고 노래해줘요. 아이가 크면서도 그 마음은 변하지 않았어요. 나중에 아이가 늙은 엄마를 안아주는 장면이 뭉클했어요. 우리 엄마도 항상 나를 사랑해주시는 것 같아요.
+      - book_title: "사과가 쿵!"
+        quality: b
+        reviewed: true
+        days_ago: 3
+        body: |
+          사과가 쿵 떨어지고 동물들이 하나둘 모여들었어요. 처음엔 서로 먹으려고 다퉜지만 곧 함께 나눠 먹었어요. 나눠 먹으니 더 즐거워 보였어요. 나도 친구랑 나누는 걸 좋아해요.
+    game_plays: 5
+    quiz_attempts: 2
+    monster_lines: 6
+    evolved: 1
+    forum_posts:
+      - 저는 피노키오가 정직해져서 다행이라고 생각했어요.
+      - 엄마 사랑 이야기가 감동적이었어요.
+    book_intro: 이 책은 거짓말을 하면 코가 길어지는 나무 인형 이야기예요.
+
+  - name: 신동현
+    reports:
+      - book_title: 괴물들이 사는 나라
+        quality: b
+        reviewed: true
+        days_ago: 39
+        body: |
+          맥스는 화가 나서 괴물 나라로 모험을 떠났어요. 괴물들의 왕이 되어서 신나게 놀았어요. 그래도 배가 고파지자 집이 그리워졌어요. 결국 집으로 돌아가서 저녁을 먹었어요.
+      - book_title: 까만 아기 양
+        quality: b
+        reviewed: true
+        days_ago: 17
+        teacher_comment: 잘 읽었어요.
+        body: |
+          까만 아기 양은 색이 달라서 친구들에게 놀림을 받았어요. 그래도 포기하지 않고 씩씩하게 지냈어요. 나중에는 모두가 까만 아기 양을 좋아하게 됐어요. 다르다고 놀리면 안 된다는 걸 배웠어요.
+    game_plays: 2
+    quiz_attempts: 2
+    monster_lines: 4
+    evolved: 1
+    forum_posts:
+      - 저는 맥스가 다시 집으로 돌아가서 다행이라고 생각했어요.
+    book_intro: 이 책은 화가 나서 괴물 나라로 떠난 아이 이야기예요.
+
+  - name: 배윤아
+    reports:
+      - book_title: 마법천자문
+        quality: b
+        reviewed: true
+        days_ago: 47
+        body: |
+          손오공이 한자의 힘을 빌려서 요괴들과 싸워요. 한자마다 다른 마법이 나와서 신기했어요. 나도 한자를 배우면 멋진 힘이 생길 것 같아요. 공부와 모험이 같이 있어서 재미있었어요.
+      - book_title: 무지개 물고기
+        quality: b
+        reviewed: true
+        days_ago: 24
+        body: |
+          무지개 물고기는 반짝이는 비늘을 자랑만 하다가 외로워졌어요. 결국 비늘을 나눠주고 친구들을 많이 사귀었어요. 나눠주니까 더 행복해 보였어요. 나도 나누는 걸 좋아하게 됐어요.
+      - book_title: 흔한남매
+        quality: c
+        reviewed: true
+        days_ago: 14
+        teacher_comment: 조금 더 자세히 써봐요.
+        body: |
+          흔한남매는 맨날 티격태격하지만 결국 사이좋게 지내요. 저희 남매도 이렇게 자주 싸워서 웃겼어요. 그래도 서로 돕는 모습이 보기 좋았어요. 다음 이야기도 읽어보고 싶어요.
+    game_plays: 4
+    quiz_attempts: 3
+    monster_lines: 5
+    evolved: 1
+    forum_posts:
+      - 저는 무지개 물고기가 친구들과 나눠서 좋았어요.
+      - 흔한남매 이야기가 저희 집이랑 비슷해요.
+    book_intro: 이 책은 한자의 힘으로 요괴와 싸우는 손오공 이야기예요.
+
+  - name: 홍시우
+    reports:
+      - book_title: 슈퍼 거북
+        quality: b
+        reviewed: true
+        days_ago: 41
+        body: |
+          거북이가 갑자기 슈퍼 거북이 되어서 아주 빨라졌어요. 그런데 계속 잘해야 한다는 부담 때문에 힘들어했어요. 결국 원래 자기 모습으로 돌아가서 편안해졌어요. 나도 있는 그대로의 내가 좋은 것 같아요.
+      - book_title: 이솝 우화
+        quality: b
+        reviewed: true
+        days_ago: 19
+        teacher_comment: 생각을 잘 정리했어요.
+        body: |
+          개미와 베짱이 이야기를 읽고 부지런함의 중요성을 알았어요. 개미는 여름에 열심히 일해서 겨울을 잘 보냈어요. 베짱이는 놀기만 해서 겨울에 힘들어했어요. 나도 미리 준비하는 습관을 가지고 싶어요.
+    game_plays: 2
+    quiz_attempts: 1
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 거북이가 원래 모습으로 돌아가서 다행이라고 생각했어요.
+    book_intro: 이 책은 갑자기 빨라진 거북이의 이야기예요.
+
+  - name: 문지호
+    reports:
+      - book_title: 구름빵
+        quality: b
+        reviewed: true
+        days_ago: 45
+        body: |
+          구름빵을 먹으면 하늘을 날 수 있어서 신기했어요. 엄마 아빠가 회사에 늦지 않으려고 구름빵을 먹고 하늘을 날았어요. 나도 구름빵을 한번 먹어보고 싶다고 생각했어요.
+    game_plays: 1
+    quiz_attempts: 0
+    monster_lines: 2
+    evolved: 0
+
+  - name: 서예린
+    reports:
+      - book_title: 프레드릭
+        quality: b
+        reviewed: true
+        days_ago: 33
+        body: |
+          다른 쥐들은 겨울 먹이를 모으는데 프레드릭은 햇살과 색깔을 모았어요. 겨울이 되어 먹을 게 없을 때 프레드릭의 이야기가 도움이 됐어요. 나도 프레드릭처럼 특별한 걸 모아보고 싶어요.
+    game_plays: 2
+    quiz_attempts: 1
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 프레드릭이 모은 이야기가 신기했어요.
+
+  - name: 권태윤
+    reports:
+      - book_title: 이솝 우화
+        quality: c
+        reviewed: true
+        days_ago: 60
+        teacher_comment: 다음엔 더 써볼까요?
+        body: |
+          토끼와 거북이가 달리기 시합을 했어요. 토끼는 자고 있다가 거북이한테 졌어요. 나도 자만하면 안 되겠다고 생각했어요.
+    game_plays: 0
+    quiz_attempts: 0
+    monster_lines: 1
+    evolved: 0
+
+  - name: 황수빈
+    reports:
+      - book_title: 까만 아기 양
+        quality: b
+        reviewed: true
+        days_ago: 25
+        body: |
+          까만 아기 양은 색깔이 달라서 친구들에게 놀림을 받았어요. 그래도 힘든 일이 생겼을 때 큰 도움을 줬어요. 나도 다르다고 놀리지 않아야겠다고 생각했어요.
+    game_plays: 1
+    quiz_attempts: 1
+    monster_lines: 2
+    evolved: 0
+
+  - name: 노현우
+    reports:
+      - book_title: 배드 가이즈
+        quality: b
+        reviewed: false
+        days_ago: 5
+        body: |
+          나쁜 짓만 하던 동물들이 착한 일을 해보기로 했어요. 처음엔 다들 못 믿었지만 점점 진짜로 착해졌어요. 나도 좋은 행동을 하면 인정받을 수 있을 것 같아요.
+    game_plays: 2
+    quiz_attempts: 2
+    monster_lines: 3
+    evolved: 1
+    forum_posts:
+      - 저는 나쁜 가이즈들이 착해져서 좋았어요.
+
+  - name: 안채원
+    reports:
+      - book_title: 무지개 물고기
+        quality: b
+        reviewed: true
+        days_ago: 38
+        teacher_comment: 잘 읽었어요.
+        body: |
+          무지개 물고기는 반짝이는 비늘을 자랑만 했어요. 친구가 없어져서 외로워하다가 비늘을 나눠줬어요. 나도 가진 것을 나누면 좋을 것 같다고 생각했어요.
+    game_plays: 0
+    quiz_attempts: 0
+    monster_lines: 1
+    evolved: 0

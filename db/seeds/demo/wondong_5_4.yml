@@ -1,0 +1,32 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 5
+  class_no: 4
+  academic_year: 2026
+teacher:
+  name: 오지영
+  email: teacher.wondong54@chaekgalpi.demo
+template: yugang_5_3.yml
+activity_level: balanced
+student_names:
+  - 박노을
+  - 문다름
+  - 맹라움
+  - 라마음
+  - 노사랑
+  - 나아람
+  - 기여름
+  - 구해든
+  - 고가람
+  - 임가람
+  - 윤노을
+  - 위다름
+  - 우라움
+  - 연마음
+  - 엄사랑
+  - 안아람
+  - 신여름
+  - 손해든
+  - 성가람
+  - 석노을

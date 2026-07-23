@@ -1,0 +1,32 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 4
+  class_no: 5
+  academic_year: 2026
+teacher:
+  name: 조하진
+  email: teacher.wondong45@chaekgalpi.demo
+template: yulha_4_2.yml
+activity_level: balanced
+student_names:
+  - 고마음
+  - 임마음
+  - 윤사랑
+  - 위아람
+  - 우여름
+  - 연해든
+  - 엄가람
+  - 안노을
+  - 신다름
+  - 손라움
+  - 성마음
+  - 석사랑
+  - 봉아람
+  - 변여름
+  - 배해든
+  - 민가람
+  - 모노을
+  - 류다름
+  - 도라움
+  - 남마음

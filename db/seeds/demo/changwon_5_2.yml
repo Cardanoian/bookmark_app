@@ -1,0 +1,31 @@
+classroom:
+  school_neis_code: "9022015"
+  school_label: 광려초등학교
+  grade: 5
+  class_no: 2
+  academic_year: 2026
+teacher:
+  name: 김현정
+  email: teacher.changwon5_2@chaekgalpi.demo
+template: yugang_5_3.yml
+student_names:
+  - 김예성
+  - 이예린
+  - 박예원
+  - 최예준
+  - 정우빈
+  - 강우성
+  - 조우진
+  - 윤유민
+  - 장유빈
+  - 임유정
+  - 한은서
+  - 오은성
+  - 서은재
+  - 신은찬
+  - 권이든
+  - 황이안
+  - 안재민
+  - 송재윤
+  - 류주원
+  - 홍주하

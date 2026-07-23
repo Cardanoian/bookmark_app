@@ -1,0 +1,34 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 1
+  class_no: 1
+  academic_year: 2026
+teacher:
+  name: 황미라
+  email: teacher.wondong11@chaekgalpi.demo
+template: hyoja_1_4.yml
+activity_level: high
+student_names:
+  - 강가람
+  - 이가람
+  - 유노을
+  - 원다름
+  - 오라움
+  - 여마음
+  - 양사랑
+  - 심아람
+  - 송여름
+  - 소해든
+  - 선가람
+  - 서노을
+  - 복다름
+  - 백라움
+  - 박마음
+  - 문사랑
+  - 맹아람
+  - 라여름
+  - 노해든
+  - 나가람
+  - 기노을
+  - 구다름

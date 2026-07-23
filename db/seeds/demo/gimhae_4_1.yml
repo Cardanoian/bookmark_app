@@ -1,0 +1,31 @@
+classroom:
+  school_neis_code: "9091006"
+  school_label: 경운초등학교
+  grade: 4
+  class_no: 1
+  academic_year: 2026
+teacher:
+  name: 최은지
+  email: teacher.gimhae4_1@chaekgalpi.demo
+template: yulha_4_2.yml
+student_names:
+  - 김가은
+  - 이건우
+  - 박건호
+  - 최경민
+  - 정규리
+  - 강규민
+  - 조나경
+  - 윤나연
+  - 장다빈
+  - 임다희
+  - 한도경
+  - 오도겸
+  - 서동욱
+  - 신민경
+  - 권민규
+  - 황민성
+  - 안민아
+  - 송보민
+  - 류보영
+  - 홍서진

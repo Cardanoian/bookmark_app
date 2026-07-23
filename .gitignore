@@ -44,4 +44,7 @@
 .venv
 __pycache__
 .env
-/db/seeds
+/db/seeds/*
+!/db/seeds/demo/
+!/db/seeds/demo/**
+!/db/seeds/demo_seeder.rb

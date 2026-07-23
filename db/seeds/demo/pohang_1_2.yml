@@ -1,0 +1,31 @@
+classroom:
+  school_neis_code: "8761121"
+  school_label: 대이초등학교
+  grade: 1
+  class_no: 2
+  academic_year: 2026
+teacher:
+  name: 이은정
+  email: teacher.pohang1_2@chaekgalpi.demo
+template: hyoja_1_4.yml
+student_names:
+  - 김지민
+  - 이지안
+  - 박지민
+  - 최지율
+  - 정지한
+  - 강진우
+  - 조채린
+  - 윤채민
+  - 장채은
+  - 임태민
+  - 한태오
+  - 오하율
+  - 서하진
+  - 신하린
+  - 권현서
+  - 황현우
+  - 안혜원
+  - 송혜린
+  - 류호진
+  - 홍효주

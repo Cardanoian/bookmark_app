@@ -1,0 +1,31 @@
+classroom:
+  school_neis_code: "8771070"
+  school_label: 경주초등학교
+  grade: 3
+  class_no: 2
+  academic_year: 2026
+teacher:
+  name: 정수진
+  email: teacher.gyeongju3_2@chaekgalpi.demo
+template: mundeok_3_1.yml
+student_names:
+  - 김도현
+  - 이도겸
+  - 박도율
+  - 최동현
+  - 정다연
+  - 강다인
+  - 조라온
+  - 윤로희
+  - 장리원
+  - 임민찬
+  - 한민지
+  - 오민준
+  - 서보경
+  - 신보민
+  - 권상윤
+  - 황서영
+  - 안서율
+  - 송수진
+  - 류수호
+  - 홍슬아

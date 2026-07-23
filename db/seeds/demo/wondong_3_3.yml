@@ -1,0 +1,32 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 3
+  class_no: 3
+  academic_year: 2026
+teacher:
+  name: 남기훈
+  email: teacher.wondong33@chaekgalpi.demo
+template: mundeok_3_1.yml
+activity_level: high
+student_names:
+  - 복여름
+  - 백해든
+  - 박가람
+  - 문노을
+  - 맹다름
+  - 라라움
+  - 노마음
+  - 나사랑
+  - 기아람
+  - 구여름
+  - 고해든
+  - 임해든
+  - 윤가람
+  - 위노을
+  - 우다름
+  - 연라움
+  - 엄마음
+  - 안사랑
+  - 신아람
+  - 손여름
