@@ -16,7 +16,7 @@ class Teacher::DashboardsController < Teacher::BaseController
 
     @axis_averages = axis_averages(reports) # Relation → SQL 집계(본문·행 미적재)
     @axis_labels = ReadingDomain::RUBRIC_AXES.map { |axis| ReadingDomain::AXIS_LABELS[axis] }
-    @weakness = weakness_insight(@axis_averages)
+    @weakness = weakness_insight(@axis_averages, dashboard_band(@classrooms))
     @improvement_avg = improvement_summary(reports)
     @review_queue = reports.where(reviewed: false).where.not(rubric: nil)
                            .includes(:user, :book).order(:created_at).limit(5).to_a
@@ -50,8 +50,19 @@ class Teacher::DashboardsController < Teacher::BaseController
     (reports.where(level: "A").count * 100.0 / scored).round
   end
 
-  # 가장 낮은 5축 → 추천 활동 + 성취기준 코드.
-  def weakness_insight(averages)
+  # 담당 학급 집합에서 대표 학년군(band)을 파생. 단일 밴드면 그 밴드로 약점 인사이트의
+  # 성취기준·추천활동을 학생 눈높이에 맞춘다. 여러 밴드가 섞이면(총괄=Classroom.all,
+  # 교차-밴드 겸임 담임) g56 기본으로 폴백한다 — 이는 전교 통계(school_admin)와 동일한
+  # "종착 밴드" 관례(교사·집계 대면)이며, game_band_for/guided_band_for/discovery_band_for
+  # 의 g12 age-safety 폴백(아동 대면, 너무 어려운 콘텐츠 노출 차단 목적)과는 방향이 의도적으로
+  # 다르다. 학년→밴드로 접은 뒤 uniq 하므로 3+4학년(교차 학년도) 겸임은 둘 다 g34 로 수렴한다.
+  def dashboard_band(classrooms)
+    bands = classrooms.map { |classroom| ReadingDomain.band_for(classroom.grade) }.uniq
+    bands.one? ? bands.first : ReadingDomain::DEFAULT_BAND
+  end
+
+  # 가장 낮은 5축 → 추천 활동 + 성취기준 코드(학급 학년군 눈높이).
+  def weakness_insight(averages, band)
     return nil if averages.values.all?(&:zero?)
 
     axis, score = averages.min_by { |_, value| value }
@@ -59,8 +70,8 @@ class Teacher::DashboardsController < Teacher::BaseController
       axis: axis,
       label: ReadingDomain::AXIS_LABELS[axis],
       score: score,
-      standard: ReadingDomain::ACHIEVEMENT_STANDARDS[axis],
-      activity: ReadingDomain::RECOMMENDED_ACTIVITIES[axis]
+      standard: ReadingDomain.achievement_standards(band)[axis],
+      activity: ReadingDomain.recommended_activities(band)[axis]
     }
   end
 

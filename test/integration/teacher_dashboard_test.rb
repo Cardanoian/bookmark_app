@@ -46,6 +46,48 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     assert_match ReadingDomain::ACHIEVEMENT_STANDARDS[:spelling], response.body
   end
 
+  # 약점 인사이트는 담임 학급의 학년군 기준을 보여야 한다(3학년 → g34, 6학년 기준 미노출).
+  test "weakness insight uses the classroom grade band (g34 for grade 3)" do
+    school = School.create!(name: "3학년학교")
+    classroom = Classroom.create!(school: school, grade: 3, class_no: 1)
+    teacher = User.create!(school: school, classroom: classroom, name: "3담임", role: :teacher, password: "password")
+    classroom.update!(teacher: teacher)
+    student = User.create!(school: school, classroom: classroom, name: "3학생", password: "password")
+    rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
+    Report.create!(user: student, classroom: classroom, book_title: "책", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true)
+
+    login_as teacher
+    get teacher_dashboard_path
+
+    assert_response :success
+    # 성취기준: g34 노출, g56 미노출
+    assert_match ReadingDomain.achievement_standards(:g34)[:spelling], response.body
+    assert_no_match(/#{Regexp.escape(ReadingDomain.achievement_standards(:g56)[:spelling])}/, response.body)
+    # 추천활동도 밴드화됐는지(성취기준만 밴드화하는 비대칭 수정 방지)
+    assert_match ReadingDomain.recommended_activities(:g34)[:spelling], response.body
+    assert_no_match(/#{Regexp.escape(ReadingDomain.recommended_activities(:g56)[:spelling])}/, response.body)
+  end
+
+  # 여러 밴드가 섞인 담임(2학년+5학년)은 g56 종착 폴백(전교 통계 관례). 아동 대면 g12 age-safety 폴백과 무관.
+  test "weakness insight falls back to g56 when classrooms span multiple bands" do
+    school = School.create!(name: "혼합학교")
+    teacher = User.create!(school: school, name: "혼합담임", role: :teacher, password: "password")
+    c2 = Classroom.create!(school: school, grade: 2, class_no: 1, teacher: teacher) # g12
+    c5 = Classroom.create!(school: school, grade: 5, class_no: 1, teacher: teacher) # g56
+    rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
+    [ c2, c5 ].each_with_index do |classroom, i|
+      student = User.create!(school: school, classroom: classroom, name: "학생#{i}", password: "password")
+      Report.create!(user: student, classroom: classroom, book_title: "책#{i}", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true)
+    end
+
+    login_as teacher
+    get teacher_dashboard_path
+
+    assert_response :success
+    assert_match ReadingDomain.achievement_standards(:g56)[:spelling], response.body
+    assert_no_match(/#{Regexp.escape(ReadingDomain.achievement_standards(:g12)[:spelling])}/, response.body)
+  end
+
   test "dashboard improvement average matches the SQL aggregate" do
     # improvement 기록이 있는 리포트 2개 → 평균 향상도 = (0.5 + 1.5) / 2 = 1.0
     Report.create!(user: @student, classroom: @classroom, book_title: "고쳐1", improvement: 0.5, avg: 3.0, level: "B", ai_status: :done)

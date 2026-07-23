@@ -8,8 +8,9 @@
 # 1~2/3~4/5~6학년군으로 나눈다. 학생의 학급 학년(`classroom.grade`)으로 band 를
 # 판별(`band_for`)하고, 개별 리포트에 적용되는 첨삭 경로(ReviewService·RuleBasedReview·
 # QuizDraftService)가 band 별 상수를 쓴다. 학년을 알 수 없으면 :g56 으로 폴백해
-# 기존 동작을 보존한다. 여러 학년을 섞어 집계하는 대시보드(교사/학교/NEIS)는
-# band 가 애매하므로 flat 기본 상수(=5~6학년군)를 그대로 사용한다.
+# 기존 동작을 보존한다. 교사 대시보드 약점 인사이트는 담임 학급 집합에서 밴드를 파생해
+# (단일 밴드=그 학년군, 여러 밴드가 섞이면 g56 종착 폴백) 학년군 기준을 보여 준다.
+# 전교(학교)·NEIS 집계는 여러 학년을 진짜로 섞으므로 flat 기본 상수(=5~6학년군)를 그대로 쓴다.
 module ReadingDomain
   # 학년군 키·라벨. :g12=1~2학년군, :g34=3~4학년군, :g56=5~6학년군.
   BANDS = %i[g12 g34 g56].freeze
@@ -592,8 +593,9 @@ module ReadingDomain
     by_band.fetch(content_axis.to_sym, by_band.fetch(:mcq))
   end
 
-  # ── 하위호환 flat 상수(=5~6학년군 기본). 여러 학년을 섞어 집계하는 대시보드
-  #    (교사/학교/NEIS)와 기존 참조·테스트가 학년군 인자 없이 그대로 쓴다.
+  # ── 하위호환 flat 상수(=5~6학년군 기본). 전교(학교)·NEIS 집계처럼 여러 학년을 섞는
+  #    경로와 기존 참조·테스트가 학년군 인자 없이 그대로 쓴다(교사 대시보드 약점 인사이트는
+  #    밴드-aware 로 전환 — Teacher::DashboardsController#dashboard_band 참조).
   ACHIEVEMENT_STANDARDS = ACHIEVEMENT_STANDARDS_BY_BAND.fetch(DEFAULT_BAND)
   RECOMMENDED_ACTIVITIES = RECOMMENDED_ACTIVITIES_BY_BAND.fetch(DEFAULT_BAND)
   RUBRIC_PROMPT = RUBRIC_PROMPTS.fetch(DEFAULT_BAND)
