@@ -141,7 +141,6 @@ module Accounts
           "school_id" => @old.school_id,
           "name" => @old.name,
           "password_digest" => @old.password_digest,
-          "mode" => User.modes.fetch(@old.mode),
           "nickname" => @old.nickname,
           "ranking_opted_in" => @old.ranking_opted_in?,
           "points" => @old.points,
@@ -364,7 +363,6 @@ module Accounts
                        school_id: @new.school_id,
                        name: @new.name,
                        password_digest: @new.password_digest,
-                       mode: User.modes.fetch(@new.mode),
                        nickname: @new.nickname,
                        ranking_opted_in: @new.ranking_opted_in?,
                        updated_at: Time.current

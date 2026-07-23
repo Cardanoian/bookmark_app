@@ -13,14 +13,9 @@ class UserTest < ActiveSupport::TestCase
     )
   end
 
-  test "mode enum defines two modes" do
-    assert_equal({ "normal" => 0, "easy" => 1 }, User.modes)
-  end
-
-  test "defaults to student role and normal mode" do
+  test "defaults to student role with private ranking preferences" do
     user = User.new
     assert user.student?
-    assert user.normal?
     assert_not user.ranking_opted_in?
     assert_nil user.nickname
   end
@@ -37,7 +32,8 @@ class UserTest < ActiveSupport::TestCase
 
   test "ranking name never falls back to the student's real name" do
     user = build_user(name: "실명학생", nickname: nil)
-    assert_equal "익명 학생", user.ranking_name
+    assert_equal "비공개 학생", user.ranking_name
+    assert_not user.ranking_identity_visible?
   end
 
   test "has_secure_password authenticates correct password" do

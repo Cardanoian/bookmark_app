@@ -1,0 +1,50 @@
+<%# locals: (story:, line:, reached_stage:, owned:, current_species:) %>
+<%# P2-3 몬스터 성장 서사. 보유 몬스터는 도달한 단계(reached_stage)까지 장면을 공개하고, %>
+<%# 이후 장면은 진화 로드맵처럼 잠가 동기를 준다. 완전 성장 시 성장 메시지를 보상처럼 공개한다. %>
+<section class="card" aria-labelledby="monster-story-heading">
+  <div class="mb-4 flex items-center gap-2">
+    <%= ui_icon :book_open, class_name: "h-5 w-5 text-primary" %>
+    <h2 id="monster-story-heading" class="text-lg font-bold text-ink">
+      <%= owned ? "#{current_species.name}의 이야기" : "몬스터 이야기" %>
+    </h2>
+  </div>
+
+  <% unless owned %>
+    <p class="text-sm text-steel">아직 만나지 못한 몬스터예요. 함께하게 되면 이 몬스터의 이야기가 한 장면씩 열려요.</p>
+  <% else %>
+    <ol class="space-y-4">
+      <% line.each do |species| %>
+        <% scene = story.scene_for(species.stage) %>
+        <% next unless scene %>
+        <% revealed = species.stage <= reached_stage %>
+        <li class="flex gap-3">
+          <div class="flex w-14 shrink-0 flex-col items-center gap-1">
+            <div class="flex h-14 w-14 items-center justify-center" aria-hidden="true">
+              <%= revealed ? monster_sprite(species, img_class: "h-12 w-12 object-contain") : ui_icon(:lock, class_name: "h-8 w-8 text-muted") %>
+            </div>
+            <span class="text-[10px] font-medium text-muted"><%= species.stage %>단계</span>
+          </div>
+          <div class="min-w-0 flex-1 border-l-2 <%= revealed ? "border-hairline-strong" : "border-hairline" %> pl-3">
+            <p class="mb-1 text-sm font-semibold <%= revealed ? "text-ink" : "text-muted" %>">
+              <%= scene.title %><% if revealed %><span class="ml-1 font-normal text-steel">· <%= species.name %></span><% end %>
+            </p>
+            <% if revealed %>
+              <p class="whitespace-pre-line text-sm leading-relaxed text-slate"><%= scene.body %></p>
+            <% else %>
+              <p class="text-sm text-muted"><%= species.stage %>단계로 진화하면 이어지는 이야기가 열려요.</p>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ol>
+
+    <% if reached_stage >= MonsterSpecies::MAX_STAGE %>
+      <div class="mt-5 rounded-lg border border-brand-yellow bg-surface-soft p-4 text-center">
+        <p class="text-xs font-medium text-yellow-dark"><%= ui_icon :sparkle, class_name: "mr-1 inline h-4 w-4" %>이 몬스터가 너에게 건네는 한마디</p>
+        <p class="mt-1 text-base font-semibold text-ink">“<%= story.growth_message %>”</p>
+      </div>
+    <% else %>
+      <p class="card-muted mt-5 p-3 text-center text-xs text-muted">완전 성장하면 이 몬스터가 너에게 건네는 한마디가 열려요.</p>
+    <% end %>
+  <% end %>
+</section>

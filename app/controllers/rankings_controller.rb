@@ -5,11 +5,6 @@ class RankingsController < ApplicationController
 
   def index
     authorize :ranking, :index?
-    unless current_user.ranking_opted_in?
-      redirect_to edit_ranking_preference_path, alert: "랭킹에 참여하려면 참여 설정을 바꿔 주세요."
-      return
-    end
-
     @tab = TABS.include?(params[:tab]) ? params[:tab] : "class"
     @board = RankingBoard.new(current_user)
     load_tab

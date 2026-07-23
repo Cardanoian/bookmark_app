@@ -14,11 +14,10 @@ class RankingPreferencesController < ApplicationController
       return render :edit, status: :unprocessable_entity
     end
 
-    was_opted_in = current_user.ranking_opted_in?
     if current_user.update(ranking_preference_params)
-      remove_stale_ranking_row if was_opted_in && !current_user.ranking_opted_in?
-      current_user.broadcast_ranking_change if current_user.ranking_opted_in?
-      redirect_to growth_path, notice: "닉네임과 랭킹 참여 설정을 저장했어요."
+      # 비공개 전환도 행을 제거하지 않고 물음표 아바타·비식별 이름으로 즉시 교체한다.
+      current_user.broadcast_ranking_change
+      redirect_to growth_path, notice: "닉네임과 랭킹 공개 설정을 저장했어요."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -32,14 +31,5 @@ class RankingPreferencesController < ApplicationController
 
   def explicit_participation_choice?
     %w[0 1].include?(params.dig(:user, :ranking_opted_in).to_s)
-  end
-
-  def remove_stale_ranking_row
-    return unless current_user.classroom
-
-    Turbo::StreamsChannel.broadcast_remove_to(
-      [ current_user.classroom, :ranking ],
-      target: ActionView::RecordIdentifier.dom_id(current_user, :ranking)
-    )
   end
 end

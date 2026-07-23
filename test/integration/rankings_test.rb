@@ -80,6 +80,23 @@ class RankingsTest < ActionDispatch::IntegrationTest
     assert_select "svg use[href$='#mystery']", count: 0
   end
 
+  test "a private student's nickname and monster are masked but their rank remains" do
+    species = MonsterSpecies.find_by!(key: "pup_1")
+    monster = @s2.user_monsters.create!(monster_species: species, celebrated_at: Time.current)
+    @s2.update!(active_monster: monster, ranking_opted_in: false)
+    login_as @s1
+
+    get rankings_path(tab: "class")
+
+    assert_response :success
+    ranking_text = css_select("[id^='ranking_user_']").map(&:text).join(" ")
+    assert_includes ranking_text, "비공개 학생"
+    assert_not_includes ranking_text, @s2.nickname
+    assert_not_includes ranking_text, @s2.name
+    assert_select "svg use[href$='#mystery']", count: 2
+    assert_select "img[alt='#{species.name}']", count: 0
+  end
+
   test "an unknown tab falls back to the class ranking" do
     login_as @s1
 

@@ -9,10 +9,8 @@
       <h1 class="page-title mt-1">나의 성장</h1>
     </div>
     <div class="flex flex-wrap gap-2">
-      <%= link_to "닉네임·참여 설정", edit_ranking_preference_path, class: "btn btn-secondary" %>
-      <% if current_user.ranking_opted_in? %>
-        <%= link_to "랭킹 보기", rankings_path, class: "btn btn-primary" %>
-      <% end %>
+      <%= link_to "닉네임·공개 설정", edit_ranking_preference_path, class: "btn btn-secondary" %>
+      <%= link_to "랭킹 보기", rankings_path, class: "btn btn-primary" %>
     </div>
   </header>
 

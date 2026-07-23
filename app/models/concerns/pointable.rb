@@ -74,10 +74,10 @@ module Pointable
   end
 
   # 포인트 변동 시 학급 랭킹 행을 실시간 갱신(§10). 구독자 없어도 안전한 단일 행 replace.
+  # 비공개 학생도 성취 집계에는 포함되므로 행을 갱신하되, 파셜이 이름·몬스터를 비식별 처리한다.
   # spend_points! 는 방송하지 않으므로 구매 등 트랜잭션 경로에서는 호출자가 커밋 후 직접 호출한다(§0.3).
   def broadcast_ranking_change
     return unless respond_to?(:classroom_id) && classroom_id && respond_to?(:student?) && student?
-    return unless ranking_opted_in?
 
     season_experience = SeasonScore
       .where(user_id: id, academic_year: Classroom.current_academic_year)

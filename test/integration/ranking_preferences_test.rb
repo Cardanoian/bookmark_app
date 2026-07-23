@@ -15,7 +15,7 @@ class RankingPreferencesTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_ranking_preference_path
   end
 
-  test "a student can choose a nickname and opt out" do
+  test "a student can choose a nickname and keep their ranking identity private" do
     login_as @student, onboarded: false
 
     patch ranking_preference_path, params: {
@@ -28,7 +28,11 @@ class RankingPreferencesTest < ActionDispatch::IntegrationTest
     assert_not @student.ranking_opted_in?
 
     get rankings_path
-    assert_redirected_to edit_ranking_preference_path
+    assert_response :success
+    ranking_text = css_select("[id^='ranking_user_']").map(&:text).join(" ")
+    assert_includes ranking_text, "비공개 학생"
+    assert_not_includes ranking_text, @student.nickname
+    assert_not_includes ranking_text, @student.name
   end
 
   test "ranking participation requires an explicit choice" do

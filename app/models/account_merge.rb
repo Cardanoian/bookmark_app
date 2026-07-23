@@ -87,7 +87,6 @@ class AccountMerge < ApplicationRecord
         school_id = #{conn.quote(pre["school_id"])},
         name = #{conn.quote(pre["name"])},
         password_digest = #{conn.quote(pre["password_digest"])},
-        mode = #{pre["mode"].to_i},
         nickname = #{conn.quote(pre["nickname"])},
         ranking_opted_in = #{conn.quote(pre["ranking_opted_in"] ? true : false)},
         experience = MAX(experience - #{new_attrs["experience"].to_i}, 0),
@@ -116,7 +115,6 @@ class AccountMerge < ApplicationRecord
       "points" => new_attrs["points"].to_i,
       "experience" => new_attrs["experience"].to_i,
       "role" => enum_int(User.roles, new_attrs["role"]),
-      "mode" => enum_int(User.modes, new_attrs["mode"]),
       "nickname" => conn.quote(new_attrs["nickname"]),
       "ranking_opted_in" => conn.quote(new_attrs["ranking_opted_in"] ? true : false),
       "suspended" => conn.quote(new_attrs["suspended"] ? true : false),
@@ -131,7 +129,7 @@ class AccountMerge < ApplicationRecord
     [ new_id, reuse ]
   end
 
-  # enum 컬럼 값을 정수로. snapshot 의 new_attributes 는 enum 을 문자열 라벨("student"/"normal")로
+  # enum 컬럼 값을 정수로. snapshot 의 new_attributes 는 enum 을 문자열 라벨("student")로
   # 담으므로(User#attributes 계약) 매핑으로 정수화한다. 이미 정수면 그대로.
   def enum_int(mapping, value)
     value.is_a?(Integer) ? value : mapping.fetch(value)

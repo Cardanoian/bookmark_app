@@ -9,8 +9,8 @@ require "zlib"
 # 커뮤니티·미션·시즌점수·뱃지를 **멱등**하게 생성한다. seeds.rb 가 SEED_DEMO=1 + 비production
 # 게이트에서만 호출한다(운영에 가짜 아동 데이터 유입 차단).
 #
-# 멱등성: 학급에 이미 독후감이 있으면 그 학급 전체를 건너뛴다(학급 단위 트랜잭션이라 부분 상태 없음).
-# 재실행(SEED_DEMO=1 bin/rails db:seed)은 완성된 학급을 no-op 처리한다.
+# 멱등성: 학급에 이미 독후감이 있으면 활동 생성은 건너뛰되, 학생 프로필(닉네임·랭킹 공개·동의)은
+# 최신 스키마로 동기화한다. 재실행(SEED_DEMO=1 bin/rails db:seed)은 활동을 중복 생성하지 않는다.
 #
 # 도메인 일관성: 포인트=경험치=Σ(독후감 등급점수 + 게임/퀴즈 + 미션보상)로 산정하고 같은 값을
 # 현재 학년도 season_scores 에 적재한다. 뱃지는 활동을 모두 만든 뒤 refresh_badges! 로 실제
@@ -25,6 +25,19 @@ class DemoSeeder
 
   POINTS_PER_GAME_PLAY = 10
   POINTS_PER_QUIZ_ATTEMPT = 10
+
+  # 초등학생 데모 계정용 독서 별칭. 접두어와 독서 관련 낱말을 조합해 실명·숫자 없이 고유한
+  # 닉네임을 만든다(29 × 26 = 754개 — 현재 데모 학생 745명보다 많음).
+  NICKNAME_PREFIXES = %w[
+    반짝 포근 신나는 즐거운 용감한 다정한 씩씩한 재잘 꿈꾸는 상상 호기심 따뜻한
+    싱그런 쌩쌩 알록달록 꼬마 행복한 초롱 달빛 별빛 햇살 구름 바람 무지개 쑥쑥
+    반가운 톡톡 빙글 노랑
+  ].freeze
+  NICKNAME_SUFFIXES = %w[
+    책벌레 책콩 독서왕 이야기씨 동화요정 책탐험대 책나무 책구름 책바다 책별 책달
+    책여행자 글자친구 문장요정 단어요정 이야기별 동화별 그림책친구 책갈피 책보물
+    이야기보물 책모험가 독서새싹 책새싹 책빛 책마법사
+  ].freeze
 
   def initialize(root: Rails.root.join("db/seeds/demo"), io: $stdout)
     @root = root
@@ -46,7 +59,9 @@ class DemoSeeder
       raise
     end
 
+    assign_student_profiles!(data_sources)
     validate_unique_student_names!(data_sources)
+    validate_unique_student_nicknames!(data_sources)
 
     data_sources.each do |path, data|
       seed_classroom(data, File.basename(path))
@@ -129,6 +144,34 @@ class DemoSeeder
     scaled
   end
 
+  # 랭킹 프로필은 실명과 분리된 데모 전용 독서 별칭으로 일괄 생성한다. 파일명 순서 + 학생
+  # 순서로 조합을 골라 모든 데모 학급을 통틀어 안정적으로 고유하며, 실제 학생 이름을 노출하지
+  # 않는다. 인원이 홀수인 학급은 절반 미만(내림)만 랭킹 공개에 참여시킨다.
+  def assign_student_profiles!(data_sources)
+    nickname_sequence = 0
+
+    data_sources.each do |_path, data|
+      students = data.fetch("students")
+      ranking_participant_count = students.size / 2
+
+      students.each_with_index do |student, index|
+        nickname_sequence += 1
+        student["nickname"] = demo_nickname_for(nickname_sequence)
+        student["ranking_opted_in"] = index < ranking_participant_count
+      end
+    end
+  end
+
+  def demo_nickname_for(sequence)
+    index = sequence - 1
+    capacity = NICKNAME_PREFIXES.size * NICKNAME_SUFFIXES.size
+    if index >= capacity
+      raise ArgumentError, "데모 학생 수(#{sequence})가 준비된 닉네임 수(#{capacity})를 초과했습니다"
+    end
+
+    "#{NICKNAME_PREFIXES[index / NICKNAME_SUFFIXES.size]}#{NICKNAME_SUFFIXES[index % NICKNAME_SUFFIXES.size]}"
+  end
+
   # 데모 환경에서는 학급을 넘어 학생 이름도 고유하게 유지한다. 로그인·데모 확인 시
   # 같은 이름을 구별해야 하는 혼란을 막기 위한 데이터 자산 규약이다.
   def validate_unique_student_names!(data_sources)
@@ -140,6 +183,17 @@ class DemoSeeder
 
     details = duplicates.map { |name, entries| "#{name}(#{entries.map(&:last).join(', ')})" }.join(", ")
     raise ArgumentError, "데모 학생 이름 중복: #{details}"
+  end
+
+  def validate_unique_student_nicknames!(data_sources)
+    occurrences = data_sources.flat_map do |path, data|
+      data.fetch("students").map { |student| [ student.fetch("nickname").to_s, File.basename(path) ] }
+    end
+    duplicates = occurrences.group_by(&:first).select { |_, entries| entries.size > 1 }
+    return if duplicates.empty?
+
+    details = duplicates.map { |nickname, entries| "#{nickname}(#{entries.map(&:last).join(', ')})" }.join(", ")
+    raise ArgumentError, "데모 학생 닉네임 중복: #{details}"
   end
 
   def seed_classroom(data, filename)
@@ -157,7 +211,8 @@ class DemoSeeder
 
     classroom = Classroom.find_by(school_id: school.id, academic_year:, grade:, class_no:)
     if classroom&.reports&.exists?
-      @io.puts "  [demo] #{filename}: #{label} #{grade}-#{class_no} 이미 시드됨 — 건너뜀."
+      sync_existing_student_profiles!(data.fetch("students"), school:, classroom:, teacher_data: data.fetch("teacher"))
+      @io.puts "  [demo] #{filename}: #{label} #{grade}-#{class_no} 활동은 이미 시드됨 — 학생 프로필 동기화."
       return
     end
 
@@ -168,7 +223,7 @@ class DemoSeeder
       classroom ||= Classroom.create!(school:, academic_year:, grade:, class_no:, teacher:)
       classroom.update!(teacher:) if classroom.teacher_id.nil?
 
-      students = data.fetch("students").map { |sd| seed_student(sd, school, classroom) }
+      students = data.fetch("students").map { |sd| seed_student(sd, school, classroom, teacher) }
 
       seed_missions(Array(data["missions"]), classroom, teacher, students)
       seed_topics_and_forum(Array(data["topics"]), classroom, students)
@@ -198,14 +253,14 @@ class DemoSeeder
     teacher
   end
 
-  def seed_student(sd, school, classroom)
+  def seed_student(sd, school, classroom, teacher)
     name = sd.fetch("name").to_s
     user = User.find_or_initialize_by(school_id: school.id, classroom_id: classroom.id, name:)
     if user.new_record?
-      user.assign_attributes(role: :student, password: STUDENT_PASSWORD,
-                             ai_consent: true, ai_consent_at: Time.current, privacy_consent_at: Time.current)
-      user.save!
+      user.assign_attributes(role: :student, password: STUDENT_PASSWORD)
     end
+    apply_student_profile!(user, sd, teacher)
+    user.save! if user.new_record? || user.changed?
 
     st = { user:, sd:, classroom:, report_points: 0, game_points: 0, mission_points: 0,
            reports: [], shareable: [] }
@@ -214,6 +269,37 @@ class DemoSeeder
     seed_games(st)
     seed_monsters(st)
     st
+  end
+
+  # 이미 활동까지 생성된 학급도 스키마 확장 후에는 학생 설정을 갱신해야 한다. 활동은 건드리지
+  # 않고, 시드 명단에 있는 학생만 대상으로 하므로 실제 사용자 계정에는 영향을 주지 않는다.
+  def sync_existing_student_profiles!(students_data, school:, classroom:, teacher_data:)
+    teacher = seed_teacher(teacher_data, school)
+    classroom.update!(teacher:) if classroom.teacher_id.nil?
+
+    synced = students_data.count do |sd|
+      user = User.find_by(school_id: school.id, classroom_id: classroom.id, name: sd.fetch("name").to_s)
+      next false unless user
+
+      apply_student_profile!(user, sd, teacher)
+      user.save! if user.changed?
+      true
+    end
+    @totals[:students_profiles_synced] += synced
+  end
+
+  def apply_student_profile!(user, student_data, teacher)
+    consent_already_recorded = user.ai_consent? && user.ai_consent_at.present?
+    recorder_already_set = user.ai_consent? && user.ai_consent_recorded_by_id.present?
+
+    user.assign_attributes(
+      nickname: student_data.fetch("nickname"),
+      ranking_opted_in: student_data.fetch("ranking_opted_in"),
+      ai_consent: true,
+      ai_consent_at: (consent_already_recorded ? user.ai_consent_at : Time.current),
+      ai_consent_recorded_by_id: (recorder_already_set ? user.ai_consent_recorded_by_id : teacher.id),
+      privacy_consent_at: user.privacy_consent_at || Time.current
+    )
   end
 
   # ── 독후감 ──────────────────────────────────────────────────────────────

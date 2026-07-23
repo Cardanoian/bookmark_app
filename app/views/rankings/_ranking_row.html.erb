@@ -10,7 +10,11 @@
       <span class="w-6 text-center text-sm font-bold <%= rank <= 3 ? "text-yellow-dark" : "text-muted" %>"><%= rank %></span>
     <% end %>
     <span class="flex h-8 w-8 shrink-0 items-center justify-center text-2xl" aria-hidden="true">
-      <%= user.active_monster ? monster_sprite(user.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
+      <% if user.ranking_identity_visible? %>
+        <%= user.active_monster ? monster_sprite(user.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
+      <% else %>
+        <%= ui_icon(:mystery, label: "비공개 몬스터", class_name: "h-8 w-8") %>
+      <% end %>
     </span>
     <span>
       <span class="block text-sm font-medium text-ink"><%= user.ranking_name %></span>

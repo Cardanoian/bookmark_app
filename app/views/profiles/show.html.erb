@@ -79,10 +79,10 @@
 
     <div class="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-hairline pt-4">
       <div>
-        <p class="font-semibold text-ink">닉네임·랭킹 참여</p>
+        <p class="font-semibold text-ink">닉네임·랭킹 공개 설정</p>
         <p class="mt-1 text-sm text-steel">
-          닉네임 <%= current_user.ranking_name %> ·
-          <%= current_user.ranking_opted_in? ? "랭킹 참여 중" : "랭킹 미참여" %>
+          닉네임 <%= current_user.nickname %> ·
+          <%= current_user.ranking_opted_in? ? "닉네임·몬스터 공개 중" : "비공개로 순위 반영 중" %>
         </p>
       </div>
       <%= link_to "설정 변경", edit_ranking_preference_path, class: "btn btn-secondary" %>

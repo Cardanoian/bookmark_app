@@ -109,6 +109,19 @@ class AccountMergeTest < ActiveSupport::TestCase
     assert_equal @performer.id, ctx[:merge].reversed_by_id
   end
 
+  test "reverse! ignores legacy mode values left in snapshots from before mode removal" do
+    ctx = merged_scenario
+    legacy_snapshot = ctx[:merge].snapshot.deep_dup
+    legacy_snapshot["old_pre_merge"]["mode"] = 1
+    legacy_snapshot["new_attributes"]["mode"] = "easy"
+    ctx[:merge].update_column(:snapshot, legacy_snapshot)
+
+    result = ctx[:merge].reverse!(performed_by: @performer)
+
+    assert User.exists?(result[:restored_new_id])
+    assert_not User.column_names.include?("mode")
+  end
+
   test "reverse! 새 id 리매핑: 원 id 점유 시 새 id 발급 + 자식 새 id 원복" do
     ctx = merged_scenario
     squatter = User.create!(id: ctx[:new_id], school: @school, classroom: ctx[:new_classroom],

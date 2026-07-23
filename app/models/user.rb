@@ -26,7 +26,6 @@ class User < ApplicationRecord
                                     inverse_of: :imported_by
 
   enum :role, { student: 0, teacher: 1, school_admin: 2, librarian: 3, superadmin: 4 }, default: :student
-  enum :mode, { normal: 0, easy: 1 }, default: :normal
 
   # 이메일은 저장 전 정규화(앞뒤 공백 제거 + 소문자화, 빈 값이면 NULL)한다. 이로써 DB 유니크
   # 인덱스만으로 대소문자 무관 유일성이 보장되고, 로그인 조회(sessions_controller#find_staff)도
@@ -68,9 +67,18 @@ class User < ApplicationRecord
     !student? || nickname.present?
   end
 
-  # 랭킹 표면은 실명으로 폴백하지 않는다. 레거시·경합으로 닉네임이 비어도 익명 라벨만 노출한다.
+  # 랭킹 개인 표시는 공개에 동의한 학생의 닉네임만 쓴다. 비공개 학생도 성취 집계에는 포함하되,
+  # 이름·닉네임·대표 몬스터를 연결할 수 없도록 이 술어와 ranking_name 을 함께 사용한다.
+  def ranking_identity_visible?
+    student? && ranking_opted_in?
+  end
+
+  # 랭킹 표면은 실명으로 폴백하지 않는다. 공개에 동의하지 않았거나 레거시·경합으로 닉네임이
+  # 비어도 비식별 라벨만 노출한다.
   def ranking_name
-    nickname.presence || "익명 학생"
+    return nickname if ranking_identity_visible? && nickname.present?
+
+    "비공개 학생"
   end
 
   private

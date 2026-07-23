@@ -20,12 +20,13 @@ class RankingBoardTest < ActiveSupport::TestCase
     end
   end
 
-  test "all rankings exclude students who did not opt in" do
+  test "all rankings include students who choose private identity display" do
     @s1.update!(ranking_opted_in: false)
 
-    assert_not_includes RankingBoard.new(@s2).class_ranking, @s1
-    assert_not_includes RankingBoard.new(@s2).grade_ranking, @s1
-    assert_equal 300, RankingBoard.new(@s2).school_ranking.find { |entry| entry.subject == @class1 }.score
+    assert_includes RankingBoard.new(@s2).class_ranking, @s1
+    assert_includes RankingBoard.new(@s2).grade_ranking, @s1
+    assert_equal "비공개 학생", @s1.ranking_name
+    assert_equal 600, RankingBoard.new(@s2).school_ranking.find { |entry| entry.subject == @class1 }.score
   end
 
   test "class ranking orders classroom students by experience descending" do

@@ -25,4 +25,9 @@
       <%= render "monsters/evolution_roadmap", line: @line, current: @user_monster %>
     </div>
   </div>
+
+  <% if @story %>
+    <%= render "monsters/story", story: @story, line: @line, reached_stage: @reached_stage,
+          owned: @user_monster.present?, current_species: @current_species %>
+  <% end %>
 </div>

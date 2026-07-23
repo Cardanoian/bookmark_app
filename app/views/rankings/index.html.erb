@@ -17,6 +17,8 @@
     <% end %>
   </nav>
 
+  <p class="mb-5 text-sm text-steel">비공개 설정 친구의 성취도 순위와 통계에는 반영돼요. 이름과 몬스터는 비공개로 표시돼요.</p>
+
   <% case @tab %>
   <% when "class" %>
     <% if current_user.classroom %>
@@ -100,7 +102,11 @@
             <div class="flex items-center gap-3">
               <span class="w-6 text-center text-sm font-bold <%= index < 3 ? "text-yellow-dark" : "text-muted" %>"><%= index + 1 %></span>
               <span class="flex h-8 w-8 shrink-0 items-center justify-center text-2xl" aria-hidden="true">
-                <%= entry.subject.active_monster ? monster_sprite(entry.subject.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
+                <% if entry.subject.ranking_identity_visible? %>
+                  <%= entry.subject.active_monster ? monster_sprite(entry.subject.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
+                <% else %>
+                  <%= ui_icon(:mystery, label: "비공개 몬스터", class_name: "h-8 w-8") %>
+                <% end %>
               </span>
               <div>
                 <p class="text-sm font-medium text-ink"><%= entry.subject.ranking_name %></p>

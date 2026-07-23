@@ -3,8 +3,8 @@
 <div class="page-shell page-shell-content space-y-6">
   <header>
     <p class="text-sm font-medium text-steel">처음 한 번만 정하면 돼요</p>
-    <h1 class="page-title mt-1">닉네임과 랭킹 참여 설정</h1>
-    <p class="page-subtitle">랭킹에는 실명 대신 닉네임만 보여요. 참여 여부는 나중에도 바꿀 수 있어요.</p>
+    <h1 class="page-title mt-1">닉네임과 랭킹 공개 설정</h1>
+    <p class="page-subtitle">랭킹에는 실명 대신 닉네임만 보여요. 비공개를 고르면 성취는 반영하되 이름과 몬스터를 숨겨요.</p>
   </header>
 
   <%= form_with model: current_user, url: ranking_preference_path, method: :patch, class: "card space-y-6" do |form| %>
@@ -30,20 +30,20 @@
     </div>
 
     <fieldset>
-      <legend class="form-label">랭킹에 참여할까요?</legend>
+      <legend class="form-label">랭킹 공개 설정</legend>
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="card flex cursor-pointer items-start gap-3">
           <%= form.radio_button :ranking_opted_in, "1", required: true, class: "mt-1" %>
           <span>
-            <span class="block font-semibold text-ink">참여할래요</span>
+            <span class="block font-semibold text-ink">닉네임과 몬스터를 공개할래요</span>
             <span class="mt-1 block text-sm text-steel">닉네임과 활동 점수가 랭킹에 표시돼요.</span>
           </span>
         </label>
         <label class="card flex cursor-pointer items-start gap-3">
           <%= form.radio_button :ranking_opted_in, "0", required: true, class: "mt-1" %>
           <span>
-            <span class="block font-semibold text-ink">참여하지 않을래요</span>
-            <span class="mt-1 block text-sm text-steel">랭킹에서 완전히 빠지고 나의 성장 기록만 볼 수 있어요.</span>
+            <span class="block font-semibold text-ink">비공개로 표시할래요</span>
+            <span class="mt-1 block text-sm text-steel">성취는 순위와 통계에 반영되고, 개인 목록에는 비공개 학생과 물음표 몬스터로만 보여요.</span>
           </span>
         </label>
       </div>
