@@ -32,7 +32,7 @@
     <% end %>
   </div>
   <%# 우측 열: 번호·이름·속성. 카드(이미지) 높이 대비 세로 중앙 정렬 + 상하 마진. %>
-  <div class="flex min-w-0 flex-col gap-1 self-center my-2">
+  <div class="my-2 flex min-w-0 flex-col items-center gap-1 self-center text-center">
     <p class="text-xs text-muted">No.<%= format("%02d", line.dex_no) %></p>
     <p class="text-sm font-semibold text-ink">
       <%= owned ? species.name : "???" %>
