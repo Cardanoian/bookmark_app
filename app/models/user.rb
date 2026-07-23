@@ -20,6 +20,7 @@ class User < ApplicationRecord
   has_many :quiz_contributions, dependent: :destroy
   has_many :game_plays, dependent: :destroy
   has_many :mission_participations, dependent: :destroy
+  has_many :audit_logs, foreign_key: :actor_id, dependent: :nullify, inverse_of: :actor
   has_many :recommendation_imports, foreign_key: :imported_by_id, dependent: :nullify,
                                     inverse_of: :imported_by
 
@@ -30,9 +31,18 @@ class User < ApplicationRecord
   # 인덱스만으로 대소문자 무관 유일성이 보장되고, 로그인 조회(sessions_controller#find_staff)도
   # 같은 규칙(소문자)으로 일치시킨다.
   before_validation :normalize_email
+  before_validation :normalize_nickname
 
   validates :name, presence: true
   validates :name, uniqueness: { scope: [ :school_id, :classroom_id ] }
+  validates :nickname, length: { in: 2..12 }, allow_nil: true
+  validates :nickname,
+            format: {
+              with: /\A[가-힣A-Za-z0-9]+(?: [가-힣A-Za-z0-9]+)*\z/,
+              message: "은 한글·영문·숫자와 단어 사이 공백만 사용할 수 있어요."
+            },
+            allow_nil: true
+  validates :nickname, uniqueness: { scope: :school_id, case_sensitive: false }, allow_nil: true
   validates :password, length: { minimum: 6 }, allow_nil: true
   # 교직원(교사·관리자·사서)은 이메일로 로그인하고 학생은 튜플로 로그인한다. 그래서 이메일은
   # 학생에겐 없어도 되고 교직원에겐 로그인 식별자다. 여기선 presence 를 강제하지 않고(이메일
@@ -46,10 +56,23 @@ class User < ApplicationRecord
     !student?
   end
 
+  def ranking_profile_complete?
+    !student? || nickname.present?
+  end
+
+  # 랭킹 표면은 실명으로 폴백하지 않는다. 레거시·경합으로 닉네임이 비어도 익명 라벨만 노출한다.
+  def ranking_name
+    nickname.presence || "익명 학생"
+  end
+
   private
 
   # 이메일 정규화: 앞뒤 공백 제거 + 소문자화, 빈 문자열은 NULL 로 저장(유니크 인덱스 NULL 다중 허용).
   def normalize_email
     self.email = email.to_s.strip.downcase.presence
+  end
+
+  def normalize_nickname
+    self.nickname = nickname.to_s.squish.presence
   end
 end

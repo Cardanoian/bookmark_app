@@ -23,7 +23,7 @@
 - `quiz_contribution_policy.rb` — 학생 출제 기여(전국 공유 문제은행 Phase 3 §4). **작성(출제)은 학급 소속 학생 본인만**(`create?`/`new?` = `user.student? && classroom_id`, BookIntroPolicy 미러). 교사·비학급·비로그인 불가. 교사 검토·수정·승인/반려 경계는 정책이 아니라 `Teacher::QuizContributionsController`가 `owned_student!`로 강제한다(담임이 자기 학급 학생 기여만 — 크로스-학급 403).
 - `quiz_policy.rb` — 퀴즈. published 퀴즈 열람·플레이 + 생성·수정은 교사·총괄만(manage?). **경계 클램프(Phase 3 §3.3, N2/#2/#3)**: 학생 `show?` 는 origin 별로 플레이 경계를 강제한다 — **system**(온디맨드 캐시)은 `record.band == game_band_for(학급 학년)` 서버계산 일치(다른 band 행을 id 로 치면 403; **학년 미상 학생은 최저 밴드 g12** 로 고정 — 리졸버와 동일 함수라 생성=인가 밴드 일치), **teacher** 는 학급-스코프 퀴즈면 소속 학급만(전역은 전체). raw quiz_id 경로에도 적용되어 **선존 크로스-학급 published 퀴즈 id 플레이 구멍**을 닫는다. 교사·총괄은 클램프 면제(미리보기/관리). Scope 도 동일.
 - `quiz_attempt_policy.rb` — 퀴즈 플레이 기록. `create?`(제출)·`update?`(whoami 힌트 공개)는 **대상 퀴즈의 플레이 경계를 QuizPolicy#show? 로 위임**해 한 곳에서 강제(band/학급 클램프 재사용). `update?` 는 본인 attempt 이면서 플레이 가능해야 함. 열람은 본인 기록만.
-- `ranking_policy.rb` — 랭킹. 로그인 사용자면 열람.
+- `ranking_policy.rb` — 랭킹. 학생만 열람하며, 실제 참여 여부(`ranking_opted_in`)는 `RankingsController`가 설정 화면 리다이렉트로 추가 강제한다.
 - `sticker_policy.rb` — 문장 스티커. 학생만 생성하되 대상 report의 게시물이 보이는 경우만.
 - `topic_policy.rb` — 토론방. 경계는 **역할별로 다르다**: 학생=자기 학급(`record.classroom_id == user.classroom_id`)+자기 학교, **교사=담당 학급(`Classroom.teacher_id == user.id`, 다학급 가능)+자기 학교**(교사는 `user.classroom_id`가 nil이라 학생 규칙 재사용 불가 — 이 분기가 없으면 담임이 자기 반 토픽을 못 봄), 총괄=전체. 생성은 학생·교사. Scope도 역할별 classroom_ids 로 경계 필터링.
 

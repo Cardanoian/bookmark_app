@@ -21,6 +21,7 @@ class SessionsController < ApplicationController
 
   skip_before_action :require_login,
     only: [ :new, :student_new, :student_create, :staff_new, :staff_create ]
+  skip_before_action :require_student_ranking_profile
   # 로그인/로그아웃·안내 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
   skip_after_action :verify_authorized
 

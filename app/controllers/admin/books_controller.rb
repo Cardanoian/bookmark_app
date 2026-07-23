@@ -39,7 +39,10 @@ class Admin::BooksController < Admin::BaseController
   end
 
   def destroy
-    @book.destroy
+    Book.transaction do
+      @book.destroy!
+      audit!("admin.book_delete", target: @book)
+    end
     redirect_to admin_books_path, notice: "도서를 삭제했어요."
   end
 

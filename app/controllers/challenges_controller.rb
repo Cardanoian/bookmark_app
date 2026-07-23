@@ -66,7 +66,10 @@ class ChallengesController < ApplicationController
 
   def destroy
     authorize @challenge
-    @challenge.destroy
+    Challenge.transaction do
+      @challenge.destroy!
+      audit!("staff.challenge_delete", target: @challenge)
+    end
     redirect_to challenges_path, notice: "챌린지를 삭제했어요."
   end
 

@@ -8,21 +8,16 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
     <%= yield :head %>
-
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
-
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-
   <body>
     <%= render "shared/app_header" %>
     <%= render "shared/seasonal_banner" %>
@@ -31,10 +26,9 @@
         1536px(shell-max-wide)로 상한·중앙정렬하고, 가로 거터(16→24→32px)와 세로
         리듬은 여기서 소유한다. 각 뷰는 page-shell* 로 그 안에서 max-width 를 제어.
         flex 컨텍스트는 기존 다자식 뷰 회귀 방지를 위해 유지. %>
-    <main class="mx-auto flex w-full max-w-[96rem] flex-col px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto flex w-full max-w-384 flex-col px-4 py-6 sm:px-6 lg:px-8">
       <%= yield %>
     </main>
-
     <%# 발견 연출 영속 드레인: 학생이면 미연출(celebrated_at IS NULL) 몬스터를 조회해
         축하 모달 큐를 채운다. 부분 인덱스로 경량(보통 0행)이며 비학생엔 렌더하지 않는다. %>
     <% if current_user&.student? %>

@@ -29,7 +29,10 @@ class Admin::GameContentsController < Admin::BaseController
 
   # 영구 삭제(dependent: :destroy 로 문항·기록·신고도 함께 정리).
   def destroy
-    @quiz.destroy
+    Quiz.transaction do
+      @quiz.destroy!
+      audit!("admin.game_content_delete", target: @quiz)
+    end
     redirect_to admin_game_contents_path, notice: "게임 콘텐츠를 삭제했어요."
   end
 

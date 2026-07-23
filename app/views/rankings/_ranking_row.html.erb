@@ -13,7 +13,7 @@
       <%= user.active_monster ? monster_sprite(user.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
     </span>
     <span>
-      <span class="block text-sm font-medium text-ink"><%= user.name %></span>
+      <span class="block text-sm font-medium text-ink"><%= user.ranking_name %></span>
       <span class="block text-xs text-steel">Lv.<%= user.trainer_level %> · <%= user.points %>P</span>
     </span>
   </div>

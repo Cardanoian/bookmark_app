@@ -21,6 +21,8 @@ class Admin::UsersController < Admin::BaseController
 
   def update
     target = params.dig(:user, :points)
+    points_before = @user.points
+    state_before = @user.slice("name", "school_id", "classroom_id")
 
     # 포인트 목표값은 0 이상의 정수만 허용한다. 음수·비정수는 저장 없이 정확히 거부한다 —
     # 예전엔 음수 target 이면 spend_points! 가 조용히 실패(잔액 초과)하는데도 "수정했어요"라고
@@ -33,10 +35,26 @@ class Admin::UsersController < Admin::BaseController
       return render :edit, status: :unprocessable_entity
     end
 
-    return render :edit, status: :unprocessable_entity unless @user.update(user_params)
+    points_adjusted = nil
+    updated = User.transaction do
+      next false unless @user.update(user_params)
+
+      points_adjusted = target.blank? || adjust_points(@user, target)
+      audit!(
+        target.present? && points_adjusted ? "admin.points_adjust" : "admin.user_update",
+        target: @user,
+        metadata: {
+          changed_fields: state_before.keys.select { |key| state_before[key] != @user.public_send(key) },
+          points_before: target.present? ? points_before : nil,
+          points_after: target.present? && points_adjusted ? @user.points : nil
+        }
+      )
+      true
+    end
+    return render :edit, status: :unprocessable_entity unless updated
 
     notice =
-      if target.present? && !adjust_points(@user, target)
+      if target.present? && !points_adjusted
         "계정 정보는 저장했지만, 포인트는 잔액을 초과해 조정하지 못했어요."
       else
         "계정 정보를 수정했어요."
@@ -45,12 +63,18 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def suspend
-    @user.update!(suspended: true)
+    User.transaction do
+      @user.update!(suspended: true)
+      audit!("admin.account_suspend", target: @user)
+    end
     redirect_to admin_user_path(@user), notice: "‘#{@user.name}’ 계정을 정지했어요."
   end
 
   def unsuspend
-    @user.update!(suspended: false)
+    User.transaction do
+      @user.update!(suspended: false)
+      audit!("admin.account_unsuspend", target: @user)
+    end
     redirect_to admin_user_path(@user), notice: "‘#{@user.name}’ 계정 정지를 해제했어요."
   end
 
@@ -60,7 +84,14 @@ class Admin::UsersController < Admin::BaseController
       return redirect_to admin_user_path(@user), alert: "비밀번호를 6자 이상 입력해 주세요."
     end
 
-    if @user.update(password: password)
+    updated = User.transaction do
+      next false unless @user.update(password: password)
+
+      audit!("admin.password_reset", target: @user)
+      true
+    end
+
+    if updated
       redirect_to admin_user_path(@user), notice: "비밀번호를 초기화했어요."
     else
       redirect_to admin_user_path(@user), alert: "비밀번호를 6자 이상 입력해 주세요."
@@ -74,7 +105,15 @@ class Admin::UsersController < Admin::BaseController
       return
     end
 
-    @user.update!(role: new_role)
+    previous_role = @user.role
+    User.transaction do
+      @user.update!(role: new_role)
+      audit!(
+        "admin.role_change",
+        target: @user,
+        metadata: { from: previous_role, to: new_role }
+      )
+    end
     redirect_to admin_user_path(@user), notice: "역할을 ‘#{new_role}’ (으)로 바꿨어요."
   end
 

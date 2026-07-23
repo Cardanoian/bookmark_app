@@ -44,7 +44,10 @@ class Admin::QuizzesController < Admin::BaseController
   end
 
   def destroy
-    @quiz.destroy
+    Quiz.transaction do
+      @quiz.destroy!
+      audit!("admin.quiz_delete", target: @quiz)
+    end
     redirect_to admin_quizzes_path, notice: "퀴즈를 삭제했어요."
   end
 

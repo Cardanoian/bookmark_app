@@ -28,6 +28,29 @@ class SchoolAdminNeisTest < ActionDispatch::IntegrationTest
     assert_match "마당을 나온 암탉", response.body
   end
 
+  test "uses the selected student's grade-band achievement standard" do
+    {
+      1 => :g12,
+      3 => :g34,
+      5 => :g56
+    }.each do |grade, band|
+      classroom = Classroom.create!(school: @school, grade: grade, class_no: grade + 1)
+      student = User.create!(school: @school, classroom: classroom, name: "#{grade}학년학생", password: "password")
+      Report.create!(user: student, classroom: classroom, book: @book, book_title: @book.title, body: "본문",
+                     rubric: { content: 5, emotion: 4, life: 4, structure: 3, spelling: 4 }, avg: 4.0,
+                     level: "A", reviewed: true)
+
+      login_as @admin
+      get school_admin_neis_path, params: { student_id: student.id }
+
+      assert_response :success
+      assert_match ReadingDomain.achievement_standards(band)[:content], response.body
+      (ReadingDomain::BANDS - [ band ]).each do |other_band|
+        assert_no_match ReadingDomain.achievement_standards(other_band)[:content], response.body
+      end
+    end
+  end
+
   test "cannot summarize a student from another school (scope)" do
     other_school = School.create!(name: "타생기부학교")
     other_classroom = Classroom.create!(school: other_school, grade: 5, class_no: 2)

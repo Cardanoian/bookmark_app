@@ -67,6 +67,8 @@ class AccountMergeTest < ActiveSupport::TestCase
     assert_equal ctx[:old_classroom].id, old.classroom_id, "생존자 학급 복원"
     assert_equal "옛이름", old.name
     assert old.authenticate("oldpw1"), "작년 비번 복원"
+    assert_equal "작년별", old.nickname
+    assert_not old.ranking_opted_in?
     assert_equal 200, old.points, "평생 포인트 합산분 차감 복원"
     assert_equal 500, old.experience
     assert_equal ctx[:old_dex1].id, old.active_monster_id, "active_monster 복원"
@@ -75,6 +77,8 @@ class AccountMergeTest < ActiveSupport::TestCase
     assert new, "placeholder 재삽입(원 id 재사용)"
     assert_equal "새이름", new.name
     assert new.authenticate("newpw1"), "placeholder 비번 복원"
+    assert_equal "올해별", new.nickname
+    assert new.ranking_opted_in?
     assert_equal ctx[:new_classroom].id, new.classroom_id
 
     assert_equal 1, Report.where(user_id: new.id).count, "이동행 NEW 로 원복"
@@ -181,6 +185,8 @@ class AccountMergeTest < ActiveSupport::TestCase
     new_classroom = Classroom.create!(school: @school, grade: 4, class_no: 2, academic_year: current)
     old = User.create!(school: @school, classroom: old_classroom, name: "옛이름", password: "oldpw1")
     new = User.create!(school: @school, classroom: new_classroom, name: "새이름", password: "newpw1")
+    old.update!(nickname: "작년별", ranking_opted_in: false)
+    new.update!(nickname: "올해별", ranking_opted_in: true)
     author = User.create!(school: @school, classroom: new_classroom, name: "글쓴이R", password: "password")
     book = Book.create!(title: "역머지도서")
 

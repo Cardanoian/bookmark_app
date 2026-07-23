@@ -31,7 +31,10 @@ class Teacher::StudentsController < Teacher::BaseController
 
   def destroy
     name = @student.name
-    @student.destroy
+    User.transaction do
+      @student.destroy!
+      audit!("teacher.student_delete", target: @student)
+    end
     redirect_to teacher_students_path, notice: "#{name} 학생을 삭제했어요."
   end
 
@@ -41,7 +44,14 @@ class Teacher::StudentsController < Teacher::BaseController
       return redirect_to teacher_students_path, alert: "비밀번호를 6자 이상 입력해 주세요."
     end
 
-    if @student.update(password: password)
+    updated = User.transaction do
+      next false unless @student.update(password: password)
+
+      audit!("teacher.password_reset", target: @student)
+      true
+    end
+
+    if updated
       redirect_to teacher_students_path, notice: "#{@student.name} 학생의 비밀번호를 초기화했어요."
     else
       redirect_to teacher_students_path, alert: "비밀번호를 6자 이상 입력해 주세요."
@@ -55,7 +65,15 @@ class Teacher::StudentsController < Teacher::BaseController
     end
 
     amount = raw_amount.to_i
-    @student.award_points(amount, reason: "교사 수동 지급")
+    points_before = @student.points
+    User.transaction do
+      @student.award_points(amount, reason: "교사 수동 지급")
+      audit!(
+        "teacher.points_grant",
+        target: @student,
+        metadata: { amount: amount, points_before: points_before, points_after: @student.points }
+      )
+    end
     redirect_to teacher_students_path,
                 notice: "#{@student.name} 학생에게 #{amount}포인트와 #{amount}경험치를 지급했어요."
   end

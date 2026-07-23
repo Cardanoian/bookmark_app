@@ -36,7 +36,10 @@ class Admin::MonsterSpeciesController < Admin::BaseController
   end
 
   def destroy
-    @species_record.destroy
+    MonsterSpecies.transaction do
+      @species_record.destroy!
+      audit!("admin.monster_species_delete", target: @species_record)
+    end
     redirect_to admin_monster_species_index_path, notice: "몬스터를 삭제했어요."
   end
 

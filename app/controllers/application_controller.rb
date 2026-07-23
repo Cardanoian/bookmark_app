@@ -11,6 +11,7 @@ class ApplicationController < ActionController::Base
   before_action :set_current_user
   before_action :enforce_not_suspended
   before_action :require_login
+  before_action :require_student_ranking_profile
 
   helper_method :current_user, :logged_in?, :ocr_available?, :reading_discussion_enabled?
 
@@ -58,6 +59,28 @@ class ApplicationController < ActionController::Base
 
   def user_not_authorized
     head :forbidden
+  end
+
+  # 기존 학생도 배포 뒤 첫 요청에서 닉네임·랭킹 참여 여부를 한 번 명시하게 한다.
+  # 설정 컨트롤러는 이 콜백을 skip 해 리다이렉트 루프를 끊는다.
+  def require_student_ranking_profile
+    return unless current_user&.student?
+    return if current_user.ranking_profile_complete?
+
+    redirect_to edit_ranking_preference_path,
+                alert: "먼저 사용할 닉네임과 랭킹 참여 여부를 정해 주세요."
+  end
+
+  def audit!(action, target: nil, school_id: nil, classroom_id: nil, metadata: {})
+    AuditLogger.record!(
+      actor: Current.user || current_user,
+      action: action,
+      target: target,
+      request: request,
+      school_id: school_id,
+      classroom_id: classroom_id,
+      metadata: metadata
+    )
   end
 
   # 독서 토론 기능 플래그(reading_discussion). 신고·모더레이션·금칙어 안전 스택을 함께 출하하므로

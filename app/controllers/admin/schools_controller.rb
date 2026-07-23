@@ -39,7 +39,10 @@ class Admin::SchoolsController < Admin::BaseController
   end
 
   def destroy
-    @school.destroy
+    School.transaction do
+      @school.destroy!
+      audit!("admin.school_delete", target: @school, school_id: @school.id)
+    end
     redirect_to admin_schools_path, notice: "학교를 삭제했어요."
   end
 

@@ -3,7 +3,11 @@
 <% tabs = { "class" => "우리 반", "grade" => "학년", "school" => "우리 학교", "nation" => "전국", "challenge" => "챌린지", "hall" => "명예의 전당" } %>
 
 <div class="page-shell page-shell-wide">
-  <%= render "shared/student_nav", active: :rankings %>
+  <%= render "shared/student_nav", active: :growth %>
+
+  <div class="mb-4 flex justify-end">
+    <%= link_to "나의 성장으로 돌아가기", growth_path, class: "btn btn-secondary btn-sm" %>
+  </div>
 
   <nav class="mb-6 flex flex-wrap gap-2" aria-label="랭킹 탭">
     <% tabs.each do |key, label| %>
@@ -77,7 +81,7 @@
           <div class="flex items-center justify-between rounded-lg border border-hairline-soft px-4 py-3">
             <div class="flex items-center gap-3">
               <span class="w-6 text-center text-sm font-bold <%= index < 3 ? "text-yellow-dark" : "text-muted" %>"><%= index + 1 %></span>
-              <span class="text-sm font-medium text-ink"><%= entry.subject.name %></span>
+              <span class="text-sm font-medium text-ink"><%= entry.subject.ranking_name %></span>
             </div>
             <span class="text-sm font-bold text-yellow-dark"><%= entry.score %>회 참여</span>
           </div>
@@ -99,7 +103,7 @@
                 <%= entry.subject.active_monster ? monster_sprite(entry.subject.active_monster.species, img_class: "h-8 w-8 object-contain") : ui_icon(:egg, class_name: "h-8 w-8") %>
               </span>
               <div>
-                <p class="text-sm font-medium text-ink"><%= entry.subject.name %></p>
+                <p class="text-sm font-medium text-ink"><%= entry.subject.ranking_name %></p>
                 <p class="text-xs text-steel">도감 <%= entry.meta[:dex] %> · 완전형 <%= entry.meta[:complete] %></p>
               </div>
             </div>

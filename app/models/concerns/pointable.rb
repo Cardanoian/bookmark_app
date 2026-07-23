@@ -77,6 +77,7 @@ module Pointable
   # spend_points! 는 방송하지 않으므로 구매 등 트랜잭션 경로에서는 호출자가 커밋 후 직접 호출한다(§0.3).
   def broadcast_ranking_change
     return unless respond_to?(:classroom_id) && classroom_id && respond_to?(:student?) && student?
+    return unless ranking_opted_in?
 
     season_experience = SeasonScore
       .where(user_id: id, academic_year: Classroom.current_academic_year)

@@ -15,6 +15,17 @@ class RankingBoardTest < ActiveSupport::TestCase
     @s3 = User.create!(school: @school, classroom: @class1, name: "삼등", points: 100, password: "password")
     @s4 = User.create!(school: @school, classroom: @class2, name: "다른반", points: 500, password: "password")
     @sb = User.create!(school: @school_b, classroom: @class_b, name: "타교", points: 1000, password: "password")
+    [ @s1, @s2, @s3, @s4, @sb ].each_with_index do |student, index|
+      student.update!(nickname: "순위#{index + 1}", ranking_opted_in: true)
+    end
+  end
+
+  test "all rankings exclude students who did not opt in" do
+    @s1.update!(ranking_opted_in: false)
+
+    assert_not_includes RankingBoard.new(@s2).class_ranking, @s1
+    assert_not_includes RankingBoard.new(@s2).grade_ranking, @s1
+    assert_equal 300, RankingBoard.new(@s2).school_ranking.find { |entry| entry.subject == @class1 }.score
   end
 
   test "class ranking orders classroom students by experience descending" do
@@ -149,7 +160,15 @@ class RankingBoardTest < ActiveSupport::TestCase
     100.times do |i|
       s = School.create!(name: "상위교#{i}")
       c = Classroom.create!(school: s, grade: 6, class_no: 1)
-      User.create!(school: s, classroom: c, name: "상위학생#{i}", points: 5000 + i, password: "password")
+      User.create!(
+        school: s,
+        classroom: c,
+        name: "상위학생#{i}",
+        nickname: "상위닉네임#{i}",
+        ranking_opted_in: true,
+        points: 5000 + i,
+        password: "password"
+      )
     end
 
     ranking = RankingBoard.new(@s1).nation_ranking

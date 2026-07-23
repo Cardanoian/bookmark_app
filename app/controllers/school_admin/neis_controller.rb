@@ -25,7 +25,7 @@ class SchoolAdmin::NeisController < SchoolAdmin::BaseController
     sentences = [ "#{student.name} 학생은 총 #{reports.size}편의 독후감을 작성함." ]
     sentences << "#{book_phrase(titles)}을 읽으며 꾸준히 독서 활동에 참여함." if titles.any?
 
-    strength = strongest_axis(reports)
+    strength = strongest_axis(student, reports)
     if strength
       sentences << "특히 #{strength[:label]}(#{strength[:standard]}) 영역에서 우수한 성취를 보이며 " \
                    "책의 내용을 깊이 있게 이해하고 표현함."
@@ -42,13 +42,15 @@ class SchoolAdmin::NeisController < SchoolAdmin::BaseController
     titles.size > 3 ? "#{phrase} 등" : phrase
   end
 
-  # 5축 평균 중 가장 높은 축(강점) → 라벨 + 성취기준.
-  def strongest_axis(reports)
+  # 5축 평균 중 가장 높은 축(강점) → 학생의 현재 학년군에 맞는 라벨 + 성취기준.
+  # NEIS 요약은 학생 한 명을 대상으로 하므로 전교 집계용 g56 기본값을 쓰지 않는다.
+  def strongest_axis(student, reports)
     averages = axis_averages(reports)
     return nil if averages.values.all?(&:zero?)
 
     axis, _score = averages.max_by { |_, value| value }
-    { axis: axis, label: ReadingDomain::AXIS_LABELS[axis], standard: ReadingDomain::ACHIEVEMENT_STANDARDS[axis] }
+    band = ReadingDomain.band_for(student.classroom&.grade)
+    { axis: axis, label: ReadingDomain::AXIS_LABELS[axis], standard: ReadingDomain.achievement_standards(band)[axis] }
   end
 
   def grew?(reports)

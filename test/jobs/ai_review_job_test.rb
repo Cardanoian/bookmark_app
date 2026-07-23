@@ -5,6 +5,7 @@ class AiReviewJobTest < ActiveJob::TestCase
     @school = School.create!(name: "리뷰잡학교")
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @user = User.create!(school: @school, classroom: @classroom, name: "리뷰잡학생", password: "password")
+    @user.update!(nickname: "리뷰별", ranking_opted_in: true)
     @report = Report.create!(
       user: @user, classroom: @classroom, book_title: "책",
       body: "나는 이 책을 읽고 우리의 삶을 생각했다. 감동을 느꼈다."

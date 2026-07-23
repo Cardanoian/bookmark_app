@@ -10,7 +10,12 @@ class Admin::AnalyticsController < Admin::BaseController
 
   def export
     load_global_stats
-    send_data build_csv,
+    csv = build_csv
+    audit!(
+      "admin.analytics_csv_download",
+      metadata: { school_count: @school_stats.size, student_count: @total_students, report_count: @total_reports }
+    )
+    send_data csv,
               type: "text/csv; charset=utf-8",
               filename: "national_reading_stats_#{Date.current}.csv",
               disposition: "attachment"

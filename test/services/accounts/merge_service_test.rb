@@ -34,6 +34,7 @@ class Accounts::MergeServiceTest < ActiveSupport::TestCase
   test "placeholder 는 사라지고 생존자가 현재 학년도 신원을 승계한다" do
     populate!
     digest = @new.password_digest
+    @new.update!(nickname: "올해별", ranking_opted_in: true)
     assert run_merge.ok?
 
     assert_not User.exists?(@new.id), "placeholder 는 삭제된다"
@@ -42,6 +43,8 @@ class Accounts::MergeServiceTest < ActiveSupport::TestCase
     assert_equal @school.id, @old.school_id
     assert_equal "올해이름", @old.name
     assert_equal digest, @old.password_digest
+    assert_equal "올해별", @old.nickname
+    assert @old.ranking_opted_in?
   end
 
   test "테이블별 count parity: after(survivor) == before(old)+before(new)-dropped" do

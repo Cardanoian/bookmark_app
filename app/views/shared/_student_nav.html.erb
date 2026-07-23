@@ -3,14 +3,15 @@
     아이콘은 장식용 공용 SVG(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
-  <%# menu_refactor 심화 PR5: 학생 상위 메뉴 5개(홈·내 서재·독서활동·도감·랭킹). 독후감·게임·상점·미션은
+  <%# 학생 상위 메뉴 5개(홈·내 서재·독서활동·도감·나의 성장). 랭킹은 성장 화면의 선택 경로로 제공하고,
+      독후감·게임·상점·미션은
       상위 메뉴에서 제거(독후감·게임은 독서활동 하위 흐름, 미션은 홈·독서활동 문맥 카드). %>
   <% nav_items = [
        [ :home,     "홈",       root_path,             :home ],
        [ :library,  "내 서재",  library_path,          :books ],
        [ :activity, "독서활동", reading_activity_path, :writing ],
        [ :monsters, "도감",     monsters_path,         :paw ],
-       [ :rankings, "랭킹",     rankings_path,         :trophy ]
+       [ :growth,   "나의 성장", growth_path,          :chart ]
      ] %>
   <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
   <% active_nav_classes = "border-brand-blue/25 bg-surface-featured font-semibold text-blue-pressed shadow-sm" %>

@@ -7,6 +7,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     @classroom = Classroom.create!(school: @school, grade: 6, class_no: 2)
     @superadmin = User.create!(name: "총괄", role: :superadmin, password: "password")
     @student = User.create!(school: @school, classroom: @classroom, name: "김학생", role: :student, password: "password")
+    @student.update!(nickname: "관리별", ranking_opted_in: true)
   end
 
   test "index searches by name" do

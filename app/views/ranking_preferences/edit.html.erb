@@ -1,0 +1,59 @@
+<% content_for :title, "닉네임과 랭킹 설정 · 책갈피" %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <header>
+    <p class="text-sm font-medium text-steel">처음 한 번만 정하면 돼요</p>
+    <h1 class="page-title mt-1">닉네임과 랭킹 참여 설정</h1>
+    <p class="page-subtitle">랭킹에는 실명 대신 닉네임만 보여요. 참여 여부는 나중에도 바꿀 수 있어요.</p>
+  </header>
+
+  <%= form_with model: current_user, url: ranking_preference_path, method: :patch, class: "card space-y-6" do |form| %>
+    <% if current_user.errors.any? %>
+      <div class="state-banner state-banner--error" role="alert">
+        <%= ui_icon :warning %>
+        <ul class="list-inside list-disc">
+          <% current_user.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div>
+      <%= form.label :nickname, "랭킹에서 사용할 닉네임", class: "form-label" %>
+      <%= form.text_field :nickname,
+            required: true,
+            minlength: 2,
+            maxlength: 12,
+            autocomplete: "nickname",
+            placeholder: "예: 책읽는별",
+            class: "form-input" %>
+      <p class="mt-1 text-xs text-steel">2~12자의 한글·영문·숫자를 사용할 수 있어요. 같은 학교 친구와 다른 닉네임을 골라 주세요.</p>
+    </div>
+
+    <fieldset>
+      <legend class="form-label">랭킹에 참여할까요?</legend>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="card flex cursor-pointer items-start gap-3">
+          <%= form.radio_button :ranking_opted_in, "1", required: true, class: "mt-1" %>
+          <span>
+            <span class="block font-semibold text-ink">참여할래요</span>
+            <span class="mt-1 block text-sm text-steel">닉네임과 활동 점수가 랭킹에 표시돼요.</span>
+          </span>
+        </label>
+        <label class="card flex cursor-pointer items-start gap-3">
+          <%= form.radio_button :ranking_opted_in, "0", required: true, class: "mt-1" %>
+          <span>
+            <span class="block font-semibold text-ink">참여하지 않을래요</span>
+            <span class="mt-1 block text-sm text-steel">랭킹에서 완전히 빠지고 나의 성장 기록만 볼 수 있어요.</span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="page-actions">
+      <%= form.submit "설정 저장하기", class: "btn btn-primary" %>
+      <% if current_user.ranking_profile_complete? %>
+        <%= link_to "취소", growth_path, class: "btn btn-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

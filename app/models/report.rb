@@ -65,6 +65,16 @@ class Report < ApplicationRecord
     ReadingDomain::RUBRIC_AXES.index_with { |axis| data[axis] }
   end
 
+  # 학생 성장 시계열의 최종 점수. 교사 조정값이 있는 축은 그것을 우선하고,
+  # 조정하지 않은 축은 승인된 AI 루브릭 점수를 사용한다.
+  def final_rubric_scores
+    ai_scores = rubric_scores
+    adjusted_scores = teacher_rubric_scores
+    ReadingDomain::RUBRIC_AXES.index_with do |axis|
+      adjusted_scores[axis].nil? ? ai_scores.fetch(axis) : adjusted_scores[axis].to_i
+    end
+  end
+
   # 학생 대면 AI 첨삭 산출물 표시의 **유일한 판정**. 교사가 검토·승인(reviewed)한 뒤에만
   # 첨삭 텍스트·등급을 학생에게 노출한다. 게이트는 레코드 상태만 본다(current_user/policy 금지)
   # — `_report_detail` 은 HTTP 렌더뿐 아니라 뷰어 없는 백그라운드 잡 방송에서도 렌더되기 때문.

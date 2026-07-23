@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -67,6 +67,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
     t.datetime "updated_at", null: false
     t.json "value"
     t.index ["key"], name: "index_app_settings_on_key", unique: true
+  end
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.integer "actor_id"
+    t.string "actor_role", null: false
+    t.integer "classroom_id"
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.json "metadata", default: {}, null: false
+    t.integer "school_id"
+    t.integer "target_id"
+    t.string "target_type"
+    t.string "user_agent"
+    t.index ["action", "created_at"], name: "index_audit_logs_on_action_and_created_at"
+    t.index ["actor_id", "created_at"], name: "index_audit_logs_on_actor_id_and_created_at"
+    t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
+    t.index ["school_id", "created_at"], name: "index_audit_logs_on_school_id_and_created_at"
+    t.index ["target_type", "target_id"], name: "index_audit_logs_on_target_type_and_target_id"
   end
 
   create_table "badges", force: :cascade do |t|
@@ -645,8 +664,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
     t.integer "experience", default: 0, null: false
     t.integer "mode", default: 0, null: false
     t.string "name", null: false
+    t.string "nickname"
     t.string "password_digest", null: false
     t.integer "points", default: 0, null: false
+    t.boolean "ranking_opted_in", default: false, null: false
     t.integer "role", default: 0, null: false
     t.integer "school_id"
     t.boolean "suspended", default: false, null: false
@@ -654,8 +675,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
     t.index ["classroom_id", "role", "points"], name: "index_users_on_classroom_role_points"
     t.index ["classroom_id"], name: "index_users_on_classroom_id"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["ranking_opted_in", "role"], name: "index_users_on_ranking_opt_in_and_role"
     t.index ["role"], name: "index_users_on_role"
     t.index ["school_id", "classroom_id", "name"], name: "index_users_on_tuple_identity", unique: true
+    t.index ["school_id", "nickname"], name: "index_users_on_school_and_nickname", unique: true, where: "nickname IS NOT NULL"
     t.index ["school_id", "role", "points"], name: "index_users_on_school_role_points"
     t.index ["school_id"], name: "index_users_on_school_id"
   end
@@ -665,6 +688,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_22_000016) do
   add_foreign_key "account_merges", "users", column: "surviving_user_id", on_delete: :nullify
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "audit_logs", "users", column: "actor_id", on_delete: :nullify
   add_foreign_key "board_posts", "reports"
   add_foreign_key "board_posts", "users", column: "hidden_by_id"
   add_foreign_key "book_intro_votes", "book_intros"

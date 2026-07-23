@@ -19,13 +19,13 @@ class RankingBoard
     classroom = @user.classroom
     return [] unless classroom
 
-    students = classroom.users.where(role: :student)
-    return students.order(experience: :desc, name: :asc).to_a unless seasons_enabled?
+    students = classroom.users.where(role: :student, ranking_opted_in: true)
+    return students.order(experience: :desc, nickname: :asc).to_a unless seasons_enabled?
 
     students
       .joins(season_join_sql)
       .select("users.*", "COALESCE(season_scores.experience_earned, 0) AS season_experience")
-      .order(Arel.sql("season_experience DESC, users.name ASC"))
+      .order(Arel.sql("season_experience DESC, users.nickname ASC"))
       .to_a
   end
 
@@ -41,15 +41,15 @@ class RankingBoard
     school = @user.school
     return [] unless classroom && school
 
-    students = User.where(role: :student, school_id: school.id)
+    students = User.where(role: :student, school_id: school.id, ranking_opted_in: true)
                    .joins(:classroom)
                    .where(classrooms: { grade: classroom.grade })
-    return students.order(experience: :desc, name: :asc).to_a unless seasons_enabled?
+    return students.order(experience: :desc, nickname: :asc).to_a unless seasons_enabled?
 
     students
       .joins(season_join_sql)
       .select("users.*", "COALESCE(season_scores.experience_earned, 0) AS season_experience")
-      .order(Arel.sql("season_experience DESC, users.name ASC"))
+      .order(Arel.sql("season_experience DESC, users.nickname ASC"))
       .to_a
   end
 
@@ -120,7 +120,7 @@ class RankingBoard
     return [] unless challenge
 
     counts = Report.where(challenge_id: challenge.id).group(:user_id).count
-    users = User.where(id: counts.keys).index_by(&:id)
+    users = User.where(id: counts.keys, role: :student, ranking_opted_in: true).index_by(&:id)
     # users[user_id] 가 nil(유저 삭제/스코프 제외)이면 subject 가 nil 인 Entry 가 만들어져
     # 뷰의 entry.subject.name 에서 크래시한다 → nil subject 는 건너뛴다(P2.7).
     counts.filter_map do |user_id, count|
@@ -134,7 +134,7 @@ class RankingBoard
   # 두 번의 그룹 집계로 접어 학생 수에 무관한 상수 쿼리로 만든다(P3.1). user_monsters 는
   # 학생에게만 달리므로 그룹 결과를 학생별로 조회해도 출력은 종전 per-student 계산과 동일하다.
   def hall_of_fame(limit: 10)
-    students = User.where(role: :student).includes(:active_monster).to_a
+    students = User.where(role: :student, ranking_opted_in: true).includes(:active_monster).to_a
     dex_counts = UserMonster.group(:user_id).distinct.count(:dex_no)
     complete_counts = UserMonster.joins(:monster_species)
                                  .where(monster_species: { stage: MonsterSpecies::MAX_STAGE })
@@ -145,7 +145,7 @@ class RankingBoard
       complete = complete_counts[student.id] || 0
       Entry.new(subject: student, score: dex + complete, meta: { dex: dex, complete: complete })
     end.select { |entry| entry.score.positive? }
-        .sort_by { |entry| [ -entry.score, entry.subject.name ] }
+        .sort_by { |entry| [ -entry.score, entry.subject.ranking_name ] }
         .first(limit)
   end
 
@@ -175,7 +175,7 @@ class RankingBoard
 
   # 학교 순위용 학급별 (경험치 합, 포인트 합, 인원수) 집계.
   def classroom_experience_aggregates(classroom_ids)
-    students = User.where(role: :student, classroom_id: classroom_ids)
+    students = User.where(role: :student, classroom_id: classroom_ids, ranking_opted_in: true)
     if seasons_enabled?
       students.joins(season_join_sql)
               .group(Arel.sql("users.classroom_id"))
@@ -195,7 +195,7 @@ class RankingBoard
   def school_experience_aggregates
     if seasons_enabled?
       User.joins(:school).joins(season_join_sql)
-          .where(role: :student, schools: { active: true })
+          .where(role: :student, ranking_opted_in: true, schools: { active: true })
           .group(Arel.sql("users.school_id"))
           .pluck(Arel.sql("users.school_id"),
                  Arel.sql("SUM(COALESCE(season_scores.experience_earned, 0))"),
@@ -203,7 +203,7 @@ class RankingBoard
           .map { |school_id, experience, points| [ school_id, experience.to_i, points.to_i ] }
     else
       User.joins(:school)
-          .where(role: :student, schools: { active: true })
+          .where(role: :student, ranking_opted_in: true, schools: { active: true })
           .group(:school_id)
           .pluck(:school_id, Arel.sql("SUM(experience)"), Arel.sql("SUM(points)"))
     end

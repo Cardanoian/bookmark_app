@@ -21,6 +21,23 @@ class UserTest < ActiveSupport::TestCase
     user = User.new
     assert user.student?
     assert user.normal?
+    assert_not user.ranking_opted_in?
+    assert_nil user.nickname
+  end
+
+  test "normalizes and validates a school-scoped ranking nickname" do
+    user = build_user(nickname: "  책읽는   별  ")
+    assert user.valid?
+    assert_equal "책읽는 별", user.nickname
+
+    user.save!
+    duplicate = build_user(name: "학생2", nickname: "책읽는 별")
+    assert_not duplicate.valid?
+  end
+
+  test "ranking name never falls back to the student's real name" do
+    user = build_user(name: "실명학생", nickname: nil)
+    assert_equal "익명 학생", user.ranking_name
   end
 
   test "has_secure_password authenticates correct password" do

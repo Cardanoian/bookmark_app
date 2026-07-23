@@ -62,7 +62,10 @@ class Teacher::MissionsController < Teacher::BaseController
   end
 
   def destroy
-    @mission.destroy
+    Mission.transaction do
+      @mission.destroy!
+      audit!("teacher.mission_delete", target: @mission)
+    end
     redirect_to teacher_missions_path, notice: "미션을 삭제했어요."
   end
 

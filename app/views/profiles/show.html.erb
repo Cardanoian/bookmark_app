@@ -61,9 +61,9 @@
         <%= ui_icon :paw %>
         <span>몬스터 도감</span>
       <% end %>
-      <%= link_to rankings_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
-        <%= ui_icon :trophy %>
-        <span>나의 랭킹</span>
+      <%= link_to growth_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
+        <%= ui_icon :chart %>
+        <span>나의 성장</span>
       <% end %>
     </div>
   </section>
@@ -75,6 +75,17 @@
         <p class="mt-1 text-sm text-steel">비밀번호를 바꾸거나, 공용 기기에서는 사용 후 꼭 로그아웃해 주세요.</p>
       </div>
       <%= link_to "비밀번호 변경", edit_password_path, class: "btn btn-secondary" %>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-hairline pt-4">
+      <div>
+        <p class="font-semibold text-ink">닉네임·랭킹 참여</p>
+        <p class="mt-1 text-sm text-steel">
+          닉네임 <%= current_user.ranking_name %> ·
+          <%= current_user.ranking_opted_in? ? "랭킹 참여 중" : "랭킹 미참여" %>
+        </p>
+      </div>
+      <%= link_to "설정 변경", edit_ranking_preference_path, class: "btn btn-secondary" %>
     </div>
 
     <% if @account_link_available %>

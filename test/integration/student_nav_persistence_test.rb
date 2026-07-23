@@ -11,10 +11,10 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "랭킹" ].freeze
+  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "나의 성장" ].freeze
 
   def menu_paths
-    [ root_path, library_path, reading_activity_path, monsters_path, rankings_path ]
+    [ root_path, library_path, reading_activity_path, monsters_path, growth_path ]
   end
 
   def assert_full_navbar(path, active_label)
@@ -54,11 +54,11 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     assert_full_navbar library_path, "내 서재"
     assert_full_navbar reading_activity_path, "독서활동"
     assert_full_navbar monsters_path, "도감"
-    assert_full_navbar rankings_path, "랭킹"
+    assert_full_navbar growth_path, "나의 성장"
   end
 
   test "menu pages do not repeat the active menu as an h1 page heading" do
-    [ library_path, reading_activity_path, monsters_path, rankings_path ].each do |path|
+    [ library_path, reading_activity_path, monsters_path ].each do |path|
       get path
 
       assert_response :success

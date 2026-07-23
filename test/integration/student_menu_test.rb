@@ -30,11 +30,11 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  test "학생 상위 메뉴는 5개(홈·내 서재·독서활동·도감·랭킹)이고 상점·미션·독후감·게임은 상위에 없다" do
+  test "학생 상위 메뉴는 5개(홈·내 서재·독서활동·도감·나의 성장)이고 상점·미션·독후감·게임은 상위에 없다" do
     get root_path
     assert_response :success
     # 라벨은 아이콘 span 과 분리된 label span 에 있다(모바일·데스크톱 각 1회).
-    [ "홈", "내 서재", "독서활동", "도감", "랭킹" ].each do |label|
+    [ "홈", "내 서재", "독서활동", "도감", "나의 성장" ].each do |label|
       assert_select "nav[aria-label='학생 메뉴'] span", text: label
     end
     # 제거된 상위 메뉴는 nav 에 없다.

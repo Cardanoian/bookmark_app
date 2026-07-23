@@ -35,7 +35,10 @@ class Admin::BadgesController < Admin::BaseController
   end
 
   def destroy
-    @badge.destroy
+    Badge.transaction do
+      @badge.destroy!
+      audit!("admin.badge_delete", target: @badge)
+    end
     redirect_to admin_badges_path, notice: "뱃지를 삭제했어요."
   end
 

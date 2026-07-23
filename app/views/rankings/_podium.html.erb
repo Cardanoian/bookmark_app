@@ -11,7 +11,7 @@
       <div class="mx-auto flex h-12 w-12 items-center justify-center text-3xl" aria-hidden="true">
         <%= student.active_monster ? monster_sprite(student.active_monster.species, img_class: "h-12 w-12 object-contain") : ui_icon(:egg, class_name: "h-12 w-12") %>
       </div>
-      <p class="text-sm font-semibold text-ink"><%= student.name %></p>
+      <p class="text-sm font-semibold text-ink"><%= student.ranking_name %></p>
       <p class="text-xs font-bold text-yellow-dark"><%= xp %>XP</p>
       <p class="text-xs text-steel">Lv.<%= student.trainer_level %> · <%= student.points %>P</p>
     </div>

@@ -87,8 +87,11 @@ module ActiveSupport
     #   - 교직원(교사·교무관리자·사서·총괄관리자): 이메일 + 비밀번호 → staff_login_path.
     # 교직원 계정에 이메일이 없으면 로그인용 합성 이메일을 즉석 부여한다(검증 우회 update_column,
     # 각 테스트 트랜잭션과 함께 롤백). 이로써 기존 테스트는 role 만 알면 표면 분리 후에도 동작한다.
-    def login_as(user, password: "password")
+    def login_as(user, password: "password", onboarded: true)
       if user.student?
+        if onboarded && user.nickname.blank?
+          user.update_columns(nickname: "테스트#{user.id}", ranking_opted_in: true)
+        end
         post student_login_path, params: {
           school_id: user.school_id, classroom_id: user.classroom_id,
           name: user.name, password: password

@@ -9,8 +9,14 @@ class Teacher::ExportsController < Teacher::BaseController
     reports = Report.where(classroom_id: teacher_classrooms.select(:id), revision_of_id: nil)
                     .includes(:user, :book, :revisions)
                     .order(:user_id, :created_at)
+    csv = build_csv(reports)
+    audit!(
+      "teacher.reports_csv_download",
+      school_id: Current.user.school_id,
+      metadata: { report_count: reports.size, classroom_ids: teacher_classrooms.pluck(:id) }
+    )
 
-    send_data build_csv(reports),
+    send_data csv,
               type: "text/csv; charset=utf-8",
               filename: "reports_5axis_#{Date.current}.csv",
               disposition: "attachment"

@@ -8,6 +8,8 @@ class RankingsTest < ActionDispatch::IntegrationTest
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @s1 = User.create!(school: @school, classroom: @classroom, name: "랭킹일등", points: 300, password: "password")
     @s2 = User.create!(school: @school, classroom: @classroom, name: "랭킹이등", points: 100, password: "password")
+    @s1.update!(nickname: "책왕", ranking_opted_in: true)
+    @s2.update!(nickname: "독서별", ranking_opted_in: true)
   end
 
   test "each ranking tab renders successfully" do
@@ -26,8 +28,11 @@ class RankingsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "nav a[aria-current='page']", text: "학년"
-    assert_match "랭킹일등", response.body
-    assert_match "랭킹이등", response.body
+    ranking_text = css_select("[id^='ranking_user_']").map(&:text).join(" ")
+    assert_includes ranking_text, "책왕"
+    assert_includes ranking_text, "독서별"
+    assert_not_includes ranking_text, "랭킹일등"
+    assert_not_includes ranking_text, "랭킹이등"
   end
 
   # 시즌 플래그 on 이면 랭킹 행(_ranking_row — Pointable 브로드캐스트와 공유하는 파셜)이
@@ -51,8 +56,8 @@ class RankingsTest < ActionDispatch::IntegrationTest
     get rankings_path(tab: "class")
 
     assert_response :success
-    assert_match "랭킹일등", response.body
-    assert_match "랭킹이등", response.body
+    assert_match "책왕", response.body
+    assert_match "독서별", response.body
     assert_select "svg use[href$='#medal-gold']", count: 1
     assert_match "300XP", response.body
   end

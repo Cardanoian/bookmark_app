@@ -1,6 +1,7 @@
 # 계정 연동(MERGE) 코어(account_linking_seasons_plan §Phase 2). 학년이 바뀌면 새 담임이 만든
 # **현재 학년도 placeholder 계정(new)** 을 접어 삭제하고, 작년 기록을 가진 **작년 계정(old)** 을
-# 생존자로 남긴다. 생존자는 placeholder 의 학급·학교·이름·비번·모드(현재 학년도 신원)를 승계한다.
+# 생존자로 남긴다. 생존자는 placeholder 의 학급·학교·이름·비번·모드와
+# 닉네임·랭킹 참여 설정(현재 학년도 신원·선택)을 승계한다.
 #
 # 계약(§1.1 원칙 3): 전 과정은 **하나의 ApplicationRecord.transaction** 이다. 매니페스트 + pre-merge
 # 스냅샷을 account_merges 원장에 남겨 실질 가역(reverse!, Phase 4)이고, dedup 으로 삭제된 중복행만
@@ -141,6 +142,8 @@ module Accounts
           "name" => @old.name,
           "password_digest" => @old.password_digest,
           "mode" => User.modes.fetch(@old.mode),
+          "nickname" => @old.nickname,
+          "ranking_opted_in" => @old.ranking_opted_in?,
           "points" => @old.points,
           "experience" => @old.experience,
           "active_monster_id" => @old.active_monster_id
@@ -362,6 +365,8 @@ module Accounts
                        name: @new.name,
                        password_digest: @new.password_digest,
                        mode: User.modes.fetch(@new.mode),
+                       nickname: @new.nickname,
+                       ranking_opted_in: @new.ranking_opted_in?,
                        updated_at: Time.current
                      )
       raise MergeError.new(:claim_conflict) if affected.zero?
