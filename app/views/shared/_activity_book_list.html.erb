@@ -2,7 +2,7 @@
     캐시 도서만 인메모리로 제외하고(재쿼리 금지 — 프리로드 연관 유지), 남은 책을 표지·제목 카드로
     렌더해 독서활동 허브(book_id)로 링크한다. 지정 도서가 없으면(자유 독서) 안내 문구 + 바로가기. %>
 <section class="card space-y-3">
-  <h2 class="text-base font-bold text-ink"><span aria-hidden="true">📚</span> 이 활동에 포함된 책</h2>
+  <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :books %> 이 활동에 포함된 책</h2>
   <% visible = Array(books).reject(&:searched?) %>
   <% if visible.empty? %>
     <p class="text-sm text-steel">이 미션·챌린지는 자유 독서예요. 원하는 책으로 활동을 시작하세요.</p>
@@ -14,7 +14,7 @@
           <% if book.cover_url.present? %>
             <%= image_tag book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover", loading: "lazy" %>
           <% else %>
-            <span aria-hidden="true" class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+            <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
           <% end %>
           <span class="min-w-0">
             <span class="block truncate text-sm font-semibold text-ink"><%= book.title %></span>

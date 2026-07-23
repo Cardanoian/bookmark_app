@@ -17,11 +17,11 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-soft px-4 py-3">
       <h2 class="text-base font-bold text-ink">
         <% if @book %>
-          <span aria-hidden="true">📖</span> 『<%= @book.title %>』 독후감
+          <%= ui_icon :book_open %> 『<%= @book.title %>』 독후감
         <% elsif @reviewed_filter %>
-          <span class="badge badge-success"><span aria-hidden="true">✅</span> 선생님 확인 독후감</span>
+          <span class="badge badge-success"><%= ui_icon :check, class_name: "h-4 w-4" %> 선생님 확인 독후감</span>
         <% elsif @book_title_filter %>
-          <span aria-hidden="true">📖</span> 『<%= @book_title_filter %>』 독후감 <span class="text-sm font-normal text-ink-soft">(책 정보 없음)</span>
+          <%= ui_icon :book_open %> 『<%= @book_title_filter %>』 독후감 <span class="text-sm font-normal text-ink-soft">(책 정보 없음)</span>
         <% end %>
       </h2>
       <%= link_to "전체 보기", reports_path, class: "btn btn-secondary btn-sm" %>
@@ -35,24 +35,24 @@
     </div>
   <% elsif @book || @reviewed_filter || @book_title_filter %>
     <%= render "shared/empty_state",
-          message: "아직 독후감이 없어요.", icon: "📚" %>
+          message: "아직 독후감이 없어요.", icon: :books %>
     <div class="mt-4 text-center">
       <%= link_to "전체 보기", reports_path, class: "btn btn-secondary btn-sm" %>
     </div>
   <% else %>
     <%= render "shared/empty_state",
-          message: "아직 독후감이 없어요. 첫 독후감을 써 볼까요?", icon: "📚" %>
+          message: "아직 독후감이 없어요. 첫 독후감을 써 볼까요?", icon: :books %>
   <% end %>
 
   <% if @has_next_page || @page > 1 %>
     <nav class="mt-6 flex items-center justify-between text-sm">
       <% if @page > 1 %>
-        <%= link_to "← 이전", reports_path(request.query_parameters.merge("page" => @page - 1)), class: "btn btn-secondary btn-sm" %>
+        <%= link_to icon_text(:arrow_left, "이전"), reports_path(request.query_parameters.merge("page" => @page - 1)), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", reports_path(request.query_parameters.merge("page" => @page + 1)), class: "btn btn-secondary btn-sm" %>
+        <%= link_to text_icon("다음", :arrow_right), reports_path(request.query_parameters.merge("page" => @page + 1)), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>

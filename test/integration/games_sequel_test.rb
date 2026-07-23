@@ -57,6 +57,7 @@ class GamesSequelTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "h1", /뒷이야기 이어쓰기/
+    assert_select "img[src*='empty_states/sequel-writing'][alt=''][width='128'][height='128']", count: 1
   end
 
   test "a too-short sequel is rejected with a validation message" do

@@ -7,7 +7,7 @@
                        unknown: [ "확인 필요", "badge badge-yellow" ] } %>
   <% if nearby&.state == :ok %>
     <section class="card space-y-3">
-      <h3 class="font-semibold text-ink">📍 우리 학교 근처에서 빌리기</h3>
+      <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :location %> 우리 학교 근처에서 빌리기</h3>
       <ul class="divide-y divide-hairline-soft">
         <% nearby.libraries.each do |lib| %>
           <li class="flex items-center justify-between gap-3 py-2">
@@ -38,7 +38,7 @@
   <% elsif nearby&.state == :none %>
     <section>
       <%= render "shared/empty_state",
-            message: "우리 학교 근처에는 이 책을 빌릴 수 있는 도서관이 없어요", icon: "📚" %>
+            message: "우리 학교 근처에는 이 책을 빌릴 수 있는 도서관이 없어요", icon: :books %>
     </section>
   <% elsif nearby&.state == :no_location %>
     <section class="card">

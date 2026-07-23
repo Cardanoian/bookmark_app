@@ -18,7 +18,7 @@
 - `learn/` — 학습 홈(index)
 - `librarian/` — 사서 화면. `dashboards`·`events` CRUD·`loans`(대출 목록)
 - `missions/` — **학생 미션 상세 `show`(challenge-mission-detail)**. 상단 미션 정보 카드(제목·소개·기간·보상·`@progress` 목표별 진행바[**nil 가드** — 교직원 렌더 시 진행상황 섹션 숨김, `challenges/show` 패턴 미러]) + 하단 `shared/_activity_book_list`(목표 지정 도서→reading_activity, 자유 독서면 안내). `MissionsController#show` 렌더, 홈 미션 카드·teacher 미션 관리와 분리된 학생 열람 화면.
-- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 이모지로 폴백한다. **잠긴(미보유) 카드·상세**는 헬퍼 `unlock_progress_items`로 해금 조건과 현재 진행도(예: "승인 독후감 4/6편 ✓")를 표시한다(`_monster_card`·`_detail`, `monsters_controller#index`/`#show`가 넘기는 `ReadingStats` 스냅샷 기준).
+- `monsters/` — 몬스터 도감·상세 + `_active_monster`·`_detail`·`_dex_grid`·`_evolution_roadmap`·`_monster_card` partial. 보유·도달한 폼은 `monster_sprite`로 애니메이션 WebP를 렌더하고, 에셋 누락 시 공용 미발견 SVG로 폴백한다. **잠긴(미보유) 카드·상세**는 헬퍼 `unlock_progress_items`로 해금 조건과 현재 진행도(예: "승인 독후감 4/6편")를 표시한다(`_monster_card`·`_detail`, `monsters_controller#index`/`#show`가 넘기는 `ReadingStats` 스냅샷 기준).
 - `ocr/` — (뷰 없음) 사진 업로드 후 `OcrController`가 compose(edit) 화면으로 redirect하고, 본문 채움/실패 안내는 `OcrJob`이 `report_editor` 채널로 방송한다(기존 `create.turbo_stream.erb`는 redirect 통일로 제거).
 - `passwords/` — 본인 비밀번호 변경 `edit`(현재/새/새 확인 3필드 폼, `PATCH password_path`, 역할무관). 오류는 공통 상단 토스트(`shared/_flash`)가 담당.
 - `profiles/` — 학생 마이페이지 `show`(독서가 레벨·활동 통계·바로가기 + 계정 섹션). **계정 섹션은 로그아웃 대신 `edit_password_path` 비밀번호 변경 링크**를 둔다(로그아웃은 전역 밴드 `shared/_app_header`로 이동). **'나의 활동'의 '작성한 독후감'/'선생님 확인' stat-card 는 링크**로 각각 `reports_path`/`reports_path(reviewed: "true")` 목록에 진입한다(요구 2). **계정 연동 진입점(account_linking_seasons_plan §Phase 3)**: 계정 섹션 하단에 `@account_link_available`(컨트롤러 게이트 — 플래그 on + 학급 학생 + 미연동)이 true 일 때만 "계정 연동하기"(`new_account_link_path`) 링크를 노출한다.
@@ -36,6 +36,7 @@
 - `topics/` — 토론 주제 목록·상세 + `_forum_post`(좋아요 + **신고 🚩 버튼**[자기 글·이미 신고한 글 제외, turbo_confirm])·`_like_button` partial. **reading_discussion 진입점 복원**: `index`·`show` 가 `shared/student_nav`(active: :activity)를 렌더해 학생 이탈감을 없애고, 책 앵커드 맥락(📖 도서)·안전 문구·교사 학급 선택(다학급 담임)·글/제목 길이 제한을 노출한다. 책 앵커드 진입은 `reading_activities/show`("💬 이 책으로 토론하기" 섹션 + 인라인 개설), 홈은 `dashboard/student`("💬 우리 반 책 이야기" 카드). 교사 대시보드(`teacher/dashboards/show`)는 "🚩 신고된 토론 글" 섹션 + 숨김/해제 버튼.
 
 ## 패턴·규칙
+- **이미지 아이콘**: 화면의 장식·상태·액션 아이콘은 이모지 대신 `ui_icon`과 `images/ui-icons.svg` 공용 symbol을 사용한다. `shared/_empty_state`는 의미별 128×128 투명 PNG(`images/empty_states/`)를 자동 선택하며, 책 소개 대결·뒷이야기 이어쓰기는 `sequel-writing.png`를 공유한다. 반응 스티커는 저장값 호환을 위해 이모지 값을 유지하되 화면에는 `sticker_icon` SVG로 렌더한다.
 - **partial**: `_이름.html.erb` 접두. `render "리소스/이름"`으로 재사용하며 공통 UI는 `shared/`에 둠.
 - **turbo_stream**: `액션.turbo_stream.erb`는 Turbo Stream 응답 전용. 페이지 전체 리로드 없이 특정 DOM 조각만 갱신(응원·구매·스티커·OCR 등 상호작용).
 - **레이아웃**: 컨트롤러 네임스페이스에 맞춰 `admin`/`print`/`mailer` 레이아웃을 명시 지정, 그 외 화면은 `application` 사용.

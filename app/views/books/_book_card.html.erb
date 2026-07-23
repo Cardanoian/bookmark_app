@@ -4,7 +4,7 @@
     <% if book.cover_url.present? %>
       <%= image_tag book.cover_url, alt: book.title, class: "h-full w-full object-cover", loading: "lazy" %>
     <% else %>
-      <div class="flex h-full w-full items-center justify-center text-2xl">📖</div>
+      <div class="flex h-full w-full items-center justify-center"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></div>
     <% end %>
   </div>
   <div class="min-w-0">

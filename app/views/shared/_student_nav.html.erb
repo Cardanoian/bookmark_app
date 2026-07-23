@@ -1,16 +1,16 @@
 <%# 학생 상단 네비게이션(반응형). locals: active(심볼)로 현재 탭 강조.
     데스크톱=가로 줄바꿈 필 바 / 모바일=현재 메뉴 summary + 세로 disclosure.
-    아이콘은 장식용 이모지(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
+    아이콘은 장식용 공용 SVG(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
   <%# menu_refactor 심화 PR5: 학생 상위 메뉴 5개(홈·내 서재·독서활동·도감·랭킹). 독후감·게임·상점·미션은
       상위 메뉴에서 제거(독후감·게임은 독서활동 하위 흐름, 미션은 홈·독서활동 문맥 카드). %>
   <% nav_items = [
-       [ :home,     "홈",       root_path,             "🏠" ],
-       [ :library,  "내 서재",  library_path,          "📚" ],
-       [ :activity, "독서활동", reading_activity_path, "✏️" ],
-       [ :monsters, "도감",     monsters_path,         "🐾" ],
-       [ :rankings, "랭킹",     rankings_path,         "🏆" ]
+       [ :home,     "홈",       root_path,             :home ],
+       [ :library,  "내 서재",  library_path,          :books ],
+       [ :activity, "독서활동", reading_activity_path, :writing ],
+       [ :monsters, "도감",     monsters_path,         :paw ],
+       [ :rankings, "랭킹",     rankings_path,         :trophy ]
      ] %>
   <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
   <% active_nav_classes = "border-brand-blue/25 bg-surface-featured font-semibold text-blue-pressed shadow-sm" %>
@@ -24,12 +24,12 @@
                aria-controls="student-mobile-menu"
                data-student-nav-target="summary">
         <span class="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" class="text-base leading-none"><%= current_item[3] %></span>
+          <%= ui_icon current_item[3], class_name: "h-4 w-4" %>
           <span class="truncate"><%= current_item[1] %></span>
         </span>
         <span class="shrink-0">
-          <span aria-hidden="true" class="text-xl leading-none group-open:hidden">☰</span>
-          <span aria-hidden="true" class="hidden text-xl leading-none group-open:inline">×</span>
+          <span class="group-open:hidden"><%= ui_icon :menu, class_name: "h-5 w-5" %></span>
+          <span class="hidden group-open:inline"><%= ui_icon :close, class_name: "h-5 w-5" %></span>
           <span class="sr-only">학생 메뉴 열기 또는 닫기</span>
         </span>
       </summary>
@@ -43,7 +43,7 @@
                   aria: { current: (key == active ? "page" : nil) },
                   data: { action: "student-nav#close" },
                   class: "flex min-h-[2.75rem] w-full items-center gap-3 rounded-xl border px-4 text-sm font-medium transition #{key == active ? active_nav_classes : "border-transparent text-steel hover:bg-surface hover:text-ink"}" do %>
-              <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
+              <%= ui_icon icon, class_name: "h-4 w-4" %>
               <span><%= label %></span>
             <% end %>
           </li>
@@ -57,7 +57,7 @@
           <%= link_to path,
                 aria: { current: (key == active ? "page" : nil) },
                 class: "flex min-h-[2.75rem] items-center gap-2 rounded-full border px-4 text-sm font-medium transition #{key == active ? active_nav_classes : "border-transparent text-steel hover:bg-surface hover:text-ink"}" do %>
-            <span aria-hidden="true" class="text-base leading-none"><%= icon %></span>
+            <%= ui_icon icon, class_name: "h-4 w-4" %>
             <span><%= label %></span>
           <% end %>
         </li>

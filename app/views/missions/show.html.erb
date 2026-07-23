@@ -3,7 +3,7 @@
 
 <div class="page-shell page-shell-content space-y-4">
   <header>
-    <%= link_to "← 홈", root_path, class: "text-sm text-steel hover:text-ink" %>
+    <%= link_to icon_text(:arrow_left, "홈"), root_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   </header>
 
   <div class="card-feature space-y-3">
@@ -18,27 +18,27 @@
       <p class="text-xs text-muted"><%= @mission.start_date %> ~ <%= @mission.end_date %></p>
     <% end %>
     <% if @mission.reward_points.to_i.positive? %>
-      <p class="text-sm text-steel">🎁 모든 목표 달성 시 <span class="font-semibold text-ink"><%= @mission.reward_points %>P + <%= @mission.reward_points %>XP</span></p>
+      <p class="text-sm text-steel"><%= ui_icon :gift, class_name: "h-4 w-4" %> 모든 목표 달성 시 <span class="font-semibold text-ink"><%= @mission.reward_points %>P + <%= @mission.reward_points %>XP</span></p>
     <% end %>
   </div>
 
   <%# 학생 본인 진행률. 교직원 렌더 시 @progress 는 nil 이라 이 섹션을 건너뛴다(nil 가드). %>
   <% if @progress %>
     <section class="card space-y-3">
-      <h2 class="text-base font-bold text-ink"><span aria-hidden="true">🎯</span> 미션 진행상황</h2>
+      <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :target %> 미션 진행상황</h2>
       <% @progress[:goals].each do |g| %>
         <div>
           <div class="flex justify-between text-sm">
             <span class="text-steel"><%= goal_label[g[:type]] %> <%= g[:target] %>편</span>
-            <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
+            <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
           </div>
           <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
         </div>
       <% end %>
       <% if @participation&.rewarded_at? %>
-        <p class="text-sm font-semibold text-green-700">🎉 미션 완료! <%= @participation.reward_points_awarded %>P + <%= @participation.reward_points_awarded %>XP 받았어요</p>
+        <p class="text-sm font-semibold text-green-700"><%= ui_icon :celebrate, class_name: "h-4 w-4" %> 미션 완료! <%= @participation.reward_points_awarded %>P + <%= @participation.reward_points_awarded %>XP 받았어요</p>
       <% elsif @progress[:completed] %>
-        <p class="text-sm font-semibold text-green-700">🎉 모든 목표를 달성했어요!</p>
+        <p class="text-sm font-semibold text-green-700"><%= ui_icon :celebrate, class_name: "h-4 w-4" %> 모든 목표를 달성했어요!</p>
       <% end %>
     </section>
   <% end %>

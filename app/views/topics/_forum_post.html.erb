@@ -12,7 +12,7 @@
               class: "btn btn-secondary btn-sm",
               aria: { label: "이 글 신고하기" },
               form: { data: { turbo_confirm: "이 글을 선생님께 신고할까요?" } } do %>
-          <span aria-hidden="true">🚩</span> 신고
+          <%= ui_icon :flag, class_name: "h-4 w-4" %> 신고
         <% end %>
       <% end %>
     </div>

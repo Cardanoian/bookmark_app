@@ -5,7 +5,7 @@
       class: "card max-w-lg space-y-4" do |f| %>
   <% if @user.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <span><%= @user.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>

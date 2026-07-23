@@ -14,7 +14,7 @@
          class="card space-y-4">
       <h2 id="photo-guide-title" class="text-lg font-bold text-ink">
         좋은 독후감은 줄거리보다 <span class="text-brand-blue">내 생각과 느낌</span>이 중심이에요!
-        <span aria-hidden="true">✨</span>
+        <%= ui_icon :sparkle %>
       </h2>
 
       <% if @guided[:ratio_hint].present? %>
@@ -38,7 +38,7 @@
       </ol>
 
       <% if @guided[:spelling_tip].present? %>
-        <p class="text-sm text-steel"><span aria-hidden="true">💡</span> <%= @guided[:spelling_tip] %></p>
+        <p class="text-sm text-steel"><%= ui_icon :lightbulb, class_name: "h-4 w-4" %> <%= @guided[:spelling_tip] %></p>
       <% end %>
 
       <div class="page-actions">
@@ -55,7 +55,7 @@
 
     <button type="button" data-action="guide-modal#open"
             class="mt-2 min-h-[44px] text-sm font-medium text-steel hover:text-ink hover:underline">
-      <span aria-hidden="true">💡</span> 작성 팁 다시 보기
+      <%= ui_icon :lightbulb, class_name: "h-4 w-4" %> 작성 팁 다시 보기
     </button>
   </div>
 <% end %>

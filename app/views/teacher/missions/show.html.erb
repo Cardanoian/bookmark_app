@@ -2,7 +2,7 @@
 <% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 
 <div class="page-shell page-shell-content space-y-4">
-  <%= link_to "← 미션 관리", teacher_missions_path, class: "text-sm text-steel hover:text-ink" %>
+  <%= link_to icon_text(:arrow_left, "미션 관리"), teacher_missions_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   <div class="flex items-center gap-2">
     <h1 class="page-title"><%= @mission.title %></h1>
     <%= render "teacher/missions/status_badge", mission: @mission %>
@@ -71,7 +71,7 @@
                   <td class="py-2 pr-3 text-ink"><%= participation.user.name %></td>
                   <% prog[:goals].each do |g| %>
                     <td class="py-2 pr-3 <%= g[:met] ? "text-green-700 font-semibold" : "text-steel" %>">
-                      <%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %>
+                      <span class="inline-flex items-center gap-1"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
                     </td>
                   <% end %>
                   <td class="py-2">

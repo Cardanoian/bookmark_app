@@ -71,7 +71,7 @@ class MonstersController < ApplicationController
     current_user.reload.broadcast_ranking_change
     broadcast_active_monster if active?(@user_monster)
     flash[:celebrate] = "evolve"
-    redirect_to monster_path(@user_monster.dex_no), notice: "#{cost}포인트를 사용해 #{form.name}(으)로 진화했어요! ✨"
+    redirect_to monster_path(@user_monster.dex_no), notice: "#{cost}포인트를 사용해 #{form.name}(으)로 진화했어요!"
   end
 
   # 대표(활성) 몬스터 지정.

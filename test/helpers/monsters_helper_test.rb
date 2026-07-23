@@ -16,10 +16,12 @@ class MonstersHelperTest < ActionView::TestCase
     assert_equal "lazy", image["loading"]
   end
 
-  test "monster_sprite falls back to the species emoji when the asset is missing" do
+  test "monster_sprite falls back to the project mystery icon when the asset is missing" do
     species = Species.new(key: "pup_1", image_key: "missing-pup", name: "갈피멍")
 
-    assert_equal "🐶", monster_sprite(species)
+    html = monster_sprite(species)
+    assert_includes html, "#mystery"
+    assert_includes html, "갈피멍"
   end
 
   test "monster_sprite allows image tag options to override defaults" do

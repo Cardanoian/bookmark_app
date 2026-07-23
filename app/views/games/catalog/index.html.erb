@@ -38,7 +38,7 @@
            data-play-path="<%= public_send("games_#{key}_play_path") %>"
            aria-disabled="true"
            class="<%= game_accent(key) %> inline-flex items-center justify-center gap-1 rounded-lg px-3 min-h-[2.75rem] text-sm font-medium pointer-events-none opacity-50 transition">
-          <span aria-hidden="true"><%= meta[:icon] %></span> <%= meta[:name] %>
+          <%= ui_icon meta[:icon], class_name: "h-4 w-4" %> <%= meta[:name] %>
         </a>
       <% end %>
     </div>

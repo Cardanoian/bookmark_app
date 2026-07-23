@@ -3,7 +3,7 @@
       class: "max-w-lg space-y-4 card" do |f| %>
   <% if school.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <span><%= school.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>

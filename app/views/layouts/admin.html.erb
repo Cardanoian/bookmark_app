@@ -28,7 +28,7 @@
             role="navigation" aria-label="총괄관리자 메뉴">
         <div class="mb-4 flex items-center justify-between">
           <%= link_to "총괄관리자", admin_root_path, class: "text-lg font-bold text-ink" %>
-          <button type="button" class="btn-icon lg:hidden" data-action="admin-sidebar#close" aria-label="메뉴 닫기">✕</button>
+          <button type="button" class="btn-icon lg:hidden" data-action="admin-sidebar#close" aria-label="메뉴 닫기"><%= ui_icon :close, class_name: "h-5 w-5" %></button>
         </div>
         <nav class="space-y-1">
           <% nav_items = [
@@ -61,7 +61,7 @@
         <%# 모바일/태블릿 상단 바 — 햄버거로 오프캔버스 사이드바를 연다. lg 이상에서는 숨김. %>
         <div class="flex items-center gap-3 border-b border-hairline bg-canvas px-4 py-3 lg:hidden">
           <button type="button" class="btn-icon" data-admin-sidebar-target="menuButton" data-action="admin-sidebar#toggle"
-                aria-label="메뉴 열기" aria-controls="admin-sidebar-panel" aria-expanded="false">☰</button>
+                aria-label="메뉴 열기" aria-controls="admin-sidebar-panel" aria-expanded="false"><%= ui_icon :menu %></button>
           <%= link_to "총괄관리자", admin_root_path, class: "text-base font-bold text-ink" %>
         </div>
 

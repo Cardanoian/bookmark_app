@@ -12,7 +12,7 @@
      data-discovery-dex-nos-value="<%= monsters.map(&:dex_no).to_json %>"
      data-discovery-acknowledge-url-value="<%= acknowledge_discoveries_path %>">
   <div class="card w-full max-w-sm text-center">
-    <p class="text-sm font-semibold text-yellow-dark" aria-hidden="true">🎉 새로운 친구를 발견했어요!</p>
+    <p class="flex items-center justify-center gap-1.5 text-sm font-semibold text-yellow-dark"><%= ui_icon :celebrate %> 새로운 친구를 발견했어요!</p>
 
     <% monsters.each_with_index do |monster, index| %>
       <% species = monster.species %>

@@ -1,5 +1,5 @@
 <% content_for :title, "학생 기여 문제 검토 · 책갈피" %>
-<% axis_label = { "mcq" => "❓ 객관식 퀴즈", "hint_reveal" => "🕵️ 나는 누구게?" } %>
+<% axis_meta = { "mcq" => [ :quiz, "객관식 퀴즈" ], "hint_reveal" => [ :detective, "나는 누구게?" ] } %>
 <% band_label = { "g12" => "1~2학년", "g34" => "3~4학년", "g56" => "5~6학년" } %>
 
 <div class="page-shell page-shell-wide">
@@ -24,7 +24,8 @@
                 <span class="text-sm text-slate">
                   <strong><%= contribution.user.name %></strong> ·
                   「<%= contribution.book.title %>」 ·
-                  <span class="badge badge-neutral"><%= axis_label[contribution.content_axis] %></span>
+                  <% axis_icon, axis_label = axis_meta.fetch(contribution.content_axis) %>
+                  <span class="badge badge-neutral"><%= ui_icon axis_icon, class_name: "h-4 w-4" %> <%= axis_label %></span>
                 </span>
                 <span class="text-xs text-steel"><%= contribution.created_at.strftime("%-m/%-d %H:%M") %></span>
               </div>

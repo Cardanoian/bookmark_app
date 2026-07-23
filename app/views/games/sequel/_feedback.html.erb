@@ -2,11 +2,11 @@
     SequelFeedbackJob 이 완료 시 이 영역(dom_id sequel :feedback)을 Turbo 로 라이브 교체한다. %>
 <div id="<%= dom_id(sequel, :feedback) %>" class="mt-2 rounded-md bg-surface-featured px-3 py-2 text-xs">
   <% if sequel.ai_status == "done" && sequel.ai_comment.present? %>
-    <p class="font-semibold text-brand-blue"><span aria-hidden="true">📣</span> 책갈피 도우미</p>
+    <p class="font-semibold text-brand-blue"><%= ui_icon :megaphone, class_name: "h-4 w-4" %> 책갈피 도우미</p>
     <p class="mt-0.5 whitespace-pre-line text-ink"><%= sequel.ai_comment %></p>
   <% elsif sequel.ai_status == "failed" %>
     <p class="text-steel">코멘트를 준비하지 못했어요. 다음에 다시 시도해 볼게요.</p>
   <% else %>
-    <p class="text-steel"><span aria-hidden="true">✍️</span> 책갈피 도우미가 네 이야기를 읽는 중이에요…</p>
+    <p class="text-steel"><%= ui_icon :writing, class_name: "h-4 w-4" %> 책갈피 도우미가 네 이야기를 읽는 중이에요…</p>
   <% end %>
 </div>

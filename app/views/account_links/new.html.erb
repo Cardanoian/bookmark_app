@@ -4,7 +4,7 @@
 <div class="page-shell page-shell-form space-y-6">
   <header>
     <p class="text-sm font-medium text-steel">마이페이지 · 계정 연동</p>
-    <h1 class="page-title mt-1"><span aria-hidden="true">🔗</span> 작년 계정 이어받기</h1>
+    <h1 class="page-title mt-1 flex items-center gap-2"><%= ui_icon :link, class_name: "h-7 w-7" %> 작년 계정 이어받기</h1>
     <p class="page-subtitle">학년이 바뀌었나요? 작년에 쓰던 계정 정보를 확인하면 그동안의 독후감·몬스터·포인트를 지금 계정으로 가져올 수 있어요.</p>
   </header>
 
@@ -29,6 +29,6 @@
   </div>
 
   <p class="text-center text-sm">
-    <%= link_to "← 마이페이지로 돌아가기", profile_path, class: "text-steel underline" %>
+    <%= link_to icon_text(:arrow_left, "마이페이지로 돌아가기"), profile_path, class: "inline-flex items-center gap-1 text-steel underline" %>
   </p>
 </div>

@@ -6,7 +6,7 @@
   <%= render "shared/student_nav", active: :activity %>
 
   <header class="page-header">
-    <h2 class="page-title">✏️ 독서활동</h2>
+    <h2 class="page-title flex items-center gap-2"><%= ui_icon :writing, class_name: "h-7 w-7" %> 독서활동</h2>
   </header>
 
   <% if @book.nil? %>
@@ -26,7 +26,7 @@
       <% if @book.cover_url.present? %>
         <%= image_tag @book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover" %>
       <% else %>
-        <span aria-hidden="true" class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+        <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
       <% end %>
       <div class="min-w-0 flex-1">
         <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
@@ -39,7 +39,7 @@
     <%# 미션 문맥(진행 중 미션 목표 안내) %>
     <% if @active_missions.any? %>
       <div class="state-banner state-banner--info" role="note">
-        <span aria-hidden="true">🎯</span>
+        <%= ui_icon :target %>
         <span>
           진행 중인 미션이 있어요 —
           <% hints = @active_missions.flat_map { |m| m[:progress][:goals].reject { |g| g[:met] }.map { |g| goal_label[g[:type]] } }.uniq %>
@@ -51,7 +51,7 @@
     <%# 활동 선택 카드 2종 %>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <section class="card space-y-2">
-        <h3 class="font-semibold text-ink">✍️ 독후감 쓰기</h3>
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :writing %> 독후감 쓰기</h3>
         <p class="text-sm text-steel">이 책으로 독후감을 쓰고 AI 첨삭을 받아요.</p>
         <%= link_to "독후감 쓰기", new_report_path(report: { book_id: @book.id, book_title: @book.title }),
               class: "btn btn-primary btn-sm" %>
@@ -61,7 +61,7 @@
       </section>
 
       <section class="card space-y-2">
-        <h3 class="font-semibold text-ink">🎮 독서 게임</h3>
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :game %> 독서 게임</h3>
         <p class="text-sm text-steel">이 책으로 게임을 즐겨요.</p>
         <%# 퀴즈·나는 누구게?는 가용성 게이트(§2b) — 콘텐츠 만들 수 있는 책에만. 책 소개 대결·뒷이야기는 항상. %>
         <% game_chips = [] %>
@@ -79,8 +79,10 @@
         <% end %>
         <%# 학생 출제 기여(전국 공유 문제은행 §4.1) — 이 책 문제를 직접 낸다. 승인 후 전국 풀 편입. %>
         <div class="border-t border-hairline-soft pt-2">
-          <%= link_to "✍️ 이 책 문제 내기", new_quiz_contribution_path(book_id: @book.id),
-                class: "text-sm font-medium text-brand-blue underline" %>
+          <%= link_to new_quiz_contribution_path(book_id: @book.id),
+                class: "inline-flex items-center gap-1 text-sm font-medium text-brand-blue underline" do %>
+            <%= ui_icon :writing, class_name: "h-4 w-4" %> <span>이 책 문제 내기</span>
+          <% end %>
           <p class="text-xs text-steel">내가 낸 문제는 선생님이 확인한 뒤 친구들에게 보여 줘요.</p>
         </div>
       </section>
@@ -89,13 +91,13 @@
     <%# 이 책으로 나누는 독서 토론(책 앵커드 진입점, reading_discussion). 기능 플래그가 꺼지면 숨김. %>
     <% if reading_discussion_enabled? %>
       <section class="card space-y-3">
-        <h3 class="font-semibold text-ink">💬 이 책으로 토론하기</h3>
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :discussion %> 이 책으로 토론하기</h3>
         <% if @book_topics.any? %>
           <ul class="space-y-1.5">
             <% @book_topics.each do |topic| %>
               <li class="flex items-center justify-between gap-2">
                 <%= link_to topic.title, topic_path(topic), class: "min-w-0 truncate text-brand-blue underline" %>
-                <span class="shrink-0 text-xs text-steel"><span aria-hidden="true">💬</span> <%= topic.forum_posts_count %></span>
+                <span class="flex shrink-0 items-center gap-1 text-xs text-steel"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> <%= topic.forum_posts_count %></span>
               </li>
             <% end %>
           </ul>

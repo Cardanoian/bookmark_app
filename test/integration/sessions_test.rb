@@ -23,7 +23,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_includes response.body, student_login_path
     assert_includes response.body, staff_login_path
     assert_select "a.card[href='#{new_registration_path}']" do
-      assert_select "span[aria-hidden='true']", text: "📝"
+      assert_select "svg use[href$='#document']", count: 1
       assert_select "span", text: "선생님 회원가입"
       assert_select "span", text: "가입 후 바로 활동할 수 있어요"
     end

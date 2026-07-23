@@ -1,9 +1,9 @@
-<%# 새 독후감 쓰기 1스텝 — 책 고르기(진입). 타이핑=로컬 카탈로그 자동완성, 🔍 검색=네이버 원격.
+<%# 새 독후감 쓰기 1스텝 — 책 고르기(진입). 타이핑=로컬 카탈로그 자동완성, 검색 버튼=네이버 원격.
     GET 제출로 report[book_id|book_title|remote_isbn] 를 실어 모드 선택 스텝으로 넘어간다.
     목록에 없어도 자유텍스트 제목만으로 다음 스텝으로 갈 수 있다(fallback). %>
 <div class="card space-y-4">
   <p class="text-sm text-steel">
-    먼저 어떤 책의 독후감을 쓸지 골라요. 목록에 없으면 🔍 검색으로 찾을 수 있어요.
+    먼저 어떤 책의 독후감을 쓸지 골라요. 목록에 없으면 <%= ui_icon :search, class_name: "h-4 w-4" %> 검색으로 찾을 수 있어요.
   </p>
 
   <%= form_with url: new_report_path, method: :get, scope: :report, class: "space-y-4" do |f| %>

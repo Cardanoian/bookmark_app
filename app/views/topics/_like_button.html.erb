@@ -4,11 +4,11 @@
 <span id="<%= dom_id(forum_post, :like) %>" class="inline-flex items-center gap-2">
   <% if liked %>
     <%= button_to forum_post_like_path(forum_post), method: :delete, class: "btn btn-secondary btn-sm" do %>
-      <span aria-hidden="true">👍</span> 좋아요 취소
+      <%= ui_icon :like, class_name: "h-4 w-4" %> 좋아요 취소
     <% end %>
   <% else %>
     <%= button_to forum_post_like_path(forum_post), method: :post, class: "btn btn-yellow btn-sm" do %>
-      <span aria-hidden="true">👍</span> 좋아요
+      <%= ui_icon :like, class_name: "h-4 w-4" %> 좋아요
     <% end %>
   <% end %>
   <span class="text-xs font-semibold text-slate"><%= forum_post.likes_count %></span>

@@ -9,7 +9,7 @@
       <span class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold <%= reached ? "bg-primary text-on-primary" : "border-2 border-dashed border-hairline-strong text-muted" %>">
         <%= index + 1 %>
       </span>
-      <div class="text-3xl" aria-hidden="true"><%= reached ? monster_sprite(species, img_class: "h-10 w-10 object-contain") : "🔒" %></div>
+      <div><%= reached ? monster_sprite(species, img_class: "h-10 w-10 object-contain") : ui_icon(:lock, class_name: "h-10 w-10") %></div>
       <p class="text-xs font-medium text-ink"><%= reached ? species.name : "???" %></p>
       <p class="text-[10px] text-muted"><%= species.stage %>단계</p>
     </div>

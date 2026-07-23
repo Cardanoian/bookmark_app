@@ -20,6 +20,6 @@ module MonsterDiscovery
     return message if discovered.blank?
 
     names = discovered.map { |monster| monster.species.name }.join(", ")
-    "#{message} 새 몬스터를 발견했어요: #{names} 🎉"
+    "#{message} 새 몬스터를 발견했어요: #{names}"
   end
 end

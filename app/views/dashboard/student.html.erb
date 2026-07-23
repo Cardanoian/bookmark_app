@@ -9,7 +9,7 @@
     <div class="h-full [&>*]:h-full">
       <% if current_user.active_monster.nil? %>
         <div class="card-feature h-full">
-          <h2 class="text-base font-bold text-ink"><span aria-hidden="true">🥚</span> 첫 반려 몬스터를 골라 볼까요?</h2>
+          <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :egg %> 첫 반려 몬스터를 골라 볼까요?</h2>
           <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
               <%= button_to choose_starter_monsters_path, params: { key: starter.key }, class: "card text-center" do %>
@@ -41,7 +41,7 @@
   <% missions = @home.active_missions %>
   <% if missions.any? %>
     <section class="space-y-3">
-      <h2 class="text-lg font-bold text-ink">🎯 진행 중인 우리 반 미션</h2>
+      <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :target %> 진행 중인 우리 반 미션</h2>
       <% missions.each do |item| %>
         <% mission = item[:mission] %>
         <%# 카드 전체를 미션 상세로 링크(카드 안엔 인터랙티브 요소 없어 중첩 안전). %>
@@ -57,13 +57,13 @@
             <div>
               <div class="flex justify-between text-xs">
                 <span class="text-steel"><%= goal_label[g[:type]] %></span>
-                <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
+                <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
               </div>
               <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
             </div>
           <% end %>
           <% if item[:participation].rewarded_at? %>
-            <p class="text-sm font-semibold text-green-700">🎉 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-green-700"><%= ui_icon :celebrate %> 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
           <% end %>
         <% end %>
       <% end %>
@@ -73,7 +73,7 @@
   <section aria-labelledby="challenge-entry-title">
     <%= link_to challenges_path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>
       <span class="flex min-w-0 items-center gap-3">
-        <span aria-hidden="true" class="text-2xl">🔥</span>
+        <%= ui_icon :flame, class_name: "h-7 w-7" %>
         <span class="min-w-0">
           <span id="challenge-entry-title" class="block font-semibold text-ink">챌린지</span>
           <span class="block text-xs text-steel">
@@ -85,7 +85,7 @@
           </span>
         </span>
       </span>
-      <span aria-hidden="true" class="shrink-0 text-steel">→</span>
+      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
     <% end %>
   </section>
   <%# 4) 총괄관리자 업로드 기반 공식 추천도서 %>
@@ -93,9 +93,9 @@
   <% if recommended.any? %>
     <section id="recommended-books" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-lg font-bold text-ink">📖 추천도서</h2>
+        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :book_open %> 추천도서</h2>
         <% if @home.more_recommended_books? %>
-          <%= link_to "↻ 다른 책 보기",
+          <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(recommend: @home.next_recommend_cycle, anchor: "recommended-books"),
                 class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
         <% end %>
@@ -108,9 +108,9 @@
   <% if popular.any? %>
     <section id="popular-books" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-lg font-bold text-ink">🔥 우리 반 인기 도서</h2>
+        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :flame %> 우리 반 인기 도서</h2>
         <% if @home.more_popular_books? %>
-          <%= link_to "↻ 다른 책 보기",
+          <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(popular: @home.next_popular_cycle, anchor: "popular-books"),
                 class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
         <% end %>
@@ -124,8 +124,8 @@
     <% if topics.any? %>
       <section class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-lg font-bold text-ink">💬 우리 반 책 이야기</h2>
-          <%= link_to "토론방 가기 →", topics_path, class: "text-sm text-brand-blue underline" %>
+          <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :discussion %> 우리 반 책 이야기</h2>
+          <%= link_to text_icon("토론방 가기", :arrow_right), topics_path, class: "inline-flex items-center gap-1 text-sm text-brand-blue underline" %>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <% topics.each do |topic| %>
@@ -133,10 +133,10 @@
               <span class="min-w-0">
                 <span class="block truncate font-semibold text-ink"><%= topic.title %></span>
                 <% if topic.book %>
-                  <span class="block truncate text-xs text-steel"><span aria-hidden="true">📖</span> <%= topic.book.title %></span>
+                  <span class="flex items-center gap-1 truncate text-xs text-steel"><%= ui_icon :book_open, class_name: "h-3.5 w-3.5" %> <%= topic.book.title %></span>
                 <% end %>
               </span>
-              <span class="shrink-0 text-xs text-steel"><span aria-hidden="true">💬</span> <%= topic.forum_posts_count %></span>
+              <span class="flex shrink-0 items-center gap-1 text-xs text-steel"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> <%= topic.forum_posts_count %></span>
             <% end %>
           <% end %>
         </div>
@@ -148,9 +148,9 @@
   <% if discovery.any? %>
     <section id="book-discovery" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-lg font-bold text-ink">✨ 이 책은 어때요?</h2>
+        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :sparkle %> 이 책은 어때요?</h2>
         <% if @home.more_discovery_books? %>
-          <%= link_to "↻ 다른 책 보기",
+          <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(discovery: @home.next_discovery_cycle, anchor: "book-discovery"),
                 class: "btn btn-secondary btn-sm", data: { turbo_action: "replace" } %>
         <% end %>

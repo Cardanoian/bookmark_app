@@ -4,13 +4,13 @@
   <div class="pointer-events-none fixed inset-x-0 top-20 z-50 mx-auto flex w-full max-w-xl flex-col gap-2 px-4">
     <% if notice.present? %>
       <div class="state-banner state-banner--success pointer-events-auto shadow-sm" role="status" aria-live="polite">
-        <span aria-hidden="true">✅</span>
+        <%= ui_icon :check %>
         <span><%= notice %></span>
       </div>
     <% end %>
     <% if alert.present? %>
       <div class="state-banner state-banner--error pointer-events-auto shadow-sm" role="alert" aria-live="assertive">
-        <span aria-hidden="true">⚠️</span>
+        <%= ui_icon :warning %>
         <span><%= alert %></span>
       </div>
     <% end %>

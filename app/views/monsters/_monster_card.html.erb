@@ -16,14 +16,14 @@
         <%= monster_sprite(species, img_class: "h-16 w-16 object-contain sm:h-24 sm:w-24 lg:h-32 lg:w-32") %>
       </div>
     <% else %>
-      <div class="flex h-12 w-12 items-center justify-center text-4xl" aria-hidden="true">🔒</div>
+      <div class="flex h-12 w-12 items-center justify-center"><%= ui_icon :lock, class_name: "h-10 w-10" %></div>
       <% if stats && line.unlock_condition.present? %>
         <ul class="w-full space-y-0.5 border-t border-hairline pt-2 text-left">
           <% unlock_progress_items(stats, line.unlock_condition).each do |item| %>
             <li class="flex items-center justify-between gap-1 text-[10px] leading-tight">
               <span class="truncate text-muted"><%= item[:label] %></span>
               <span class="shrink-0 <%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
-                <%= item[:current] %>/<%= item[:target] %><%= " ✓" if item[:met] %>
+                <span class="inline-flex items-center gap-1"><%= item[:current] %>/<%= item[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if item[:met] %></span>
               </span>
             </li>
           <% end %>

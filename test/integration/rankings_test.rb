@@ -53,7 +53,7 @@ class RankingsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "랭킹일등", response.body
     assert_match "랭킹이등", response.body
-    assert_match "🥇", response.body
+    assert_select "svg use[href$='#medal-gold']", count: 1
     assert_match "300XP", response.body
   end
 
@@ -72,7 +72,7 @@ class RankingsTest < ActionDispatch::IntegrationTest
     images.each do |image|
       assert_match %r{/(?:assets|images)/monsters/pup_1(?:-[^/.]+)?\.webp}, image["src"]
     end
-    assert_no_match "🐶", response.body
+    assert_select "svg use[href$='#mystery']", count: 0
   end
 
   test "an unknown tab falls back to the class ranking" do

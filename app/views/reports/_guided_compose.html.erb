@@ -20,14 +20,14 @@
     <div class="card card-feature">
       <h2 class="text-xl font-bold text-ink">이 질문에 답하면 독후감이 완성돼요</h2>
       <p class="form-hint mt-2">
-        <span aria-hidden="true">💡</span>
+        <%= ui_icon :lightbulb %>
         <%= @guided[:ratio_hint] %>
       </p>
     </div>
 
     <%# localStorage 에 이어 쓸 답변이 있을 때만 컨트롤러가 노출한다(기본 hidden). %>
     <div data-report-guide-target="banner" class="state-banner state-banner--info hidden" role="status">
-      <span aria-hidden="true">💾</span>
+      <%= ui_icon :save %>
       <div class="min-w-0 flex-1">
         <p>쓰다 만 답변이 있어요. 이어서 쓸까요?</p>
         <div class="mt-2 flex flex-wrap gap-2">
@@ -47,7 +47,7 @@
           </div>
           <p class="font-bold text-ink"><%= q[:question] %></p>
           <% if q[:hint].present? %>
-            <p class="form-hint"><span aria-hidden="true">✨</span> <%= q[:hint] %></p>
+            <p class="form-hint"><%= ui_icon :sparkle, class_name: "h-4 w-4" %> <%= q[:hint] %></p>
           <% end %>
           <%= tag.textarea nil,
                 data: { report_guide_target: "answer", action: "input->report-guide#saveDraft" },
@@ -60,19 +60,19 @@
 
       <% if @guided[:spelling_tip].present? %>
         <div class="state-banner">
-          <span aria-hidden="true">📝</span>
+          <%= ui_icon :document %>
           <span><%= @guided[:spelling_tip] %></span>
         </div>
       <% end %>
 
       <div data-report-guide-target="notice" class="state-banner state-banner--error hidden" role="alert">
-        <span aria-hidden="true">✏️</span>
+        <%= ui_icon :writing %>
         <span>질문에 한 가지라도 답을 써 주세요.</span>
       </div>
 
       <div class="page-actions">
         <button type="button" class="btn btn-primary" data-action="report-guide#assemble">
-          <span aria-hidden="true">✍️</span> 초안 만들기
+          <%= ui_icon :writing %> 초안 만들기
         </button>
       </div>
 

@@ -1,16 +1,16 @@
 <% content_for :title, "문제 내기 · 책갈피" %>
 
 <div class="page-shell page-shell-form space-y-4">
-  <%= link_to "← 독서활동", reading_activity_path(book_id: @book.id), class: "text-sm text-steel hover:text-ink" %>
+  <%= link_to icon_text(:arrow_left, "독서활동"), reading_activity_path(book_id: @book.id), class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   <header class="page-header">
-    <h1 class="page-title">✍️ 이 책 문제 내기</h1>
+    <h1 class="page-title flex items-center gap-2"><%= ui_icon :writing, class_name: "h-7 w-7" %> 이 책 문제 내기</h1>
   </header>
 
   <section class="card flex items-center gap-3">
     <% if @book.cover_url.present? %>
       <%= image_tag @book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover" %>
     <% else %>
-      <span aria-hidden="true" class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+      <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
     <% end %>
     <div class="min-w-0">
       <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
@@ -20,7 +20,7 @@
 
   <% if @contribution.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <span><%= @contribution.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>
@@ -32,12 +32,12 @@
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <%= link_to new_quiz_contribution_path(book_id: @book.id, content_axis: "mcq"),
               class: "card card-muted block space-y-1 hover:border-primary/40" do %>
-          <span class="block text-lg font-semibold text-ink">❓ 객관식 퀴즈</span>
+          <span class="flex items-center gap-1.5 text-lg font-semibold text-ink"><%= ui_icon :quiz %> 객관식 퀴즈</span>
           <span class="block text-sm text-steel">질문과 보기 4개, 정답을 골라 만들어요.</span>
         <% end %>
         <%= link_to new_quiz_contribution_path(book_id: @book.id, content_axis: "hint_reveal"),
               class: "card card-muted block space-y-1 hover:border-primary/40" do %>
-          <span class="block text-lg font-semibold text-ink">🕵️ 나는 누구게?</span>
+          <span class="flex items-center gap-1.5 text-lg font-semibold text-ink"><%= ui_icon :detective %> 나는 누구게?</span>
           <span class="block text-sm text-steel">정답 하나와 힌트를 여러 개 만들어요.</span>
         <% end %>
       </div>

@@ -7,7 +7,7 @@
   <header class="page-header">
     <div>
       <p class="text-sm font-medium text-steel">커뮤니티</p>
-      <h1 class="page-title"><span aria-hidden="true">💬</span> 독서 토론</h1>
+      <h1 class="page-title flex items-center gap-2"><%= ui_icon :discussion, class_name: "h-7 w-7" %> 독서 토론</h1>
       <p class="page-subtitle">우리 반·우리 학교 친구들과 책 이야기를 나눠 보세요. 고운 말로 서로를 존중해요.</p>
     </div>
   </header>
@@ -35,28 +35,28 @@
         <article class="card flex h-full flex-col gap-2">
           <%= link_to topic.title, topic_path(topic), class: "font-semibold text-ink hover:underline" %>
           <% if topic.book %>
-            <p class="text-xs text-steel"><span aria-hidden="true">📖</span> <%= topic.book.title %></p>
+            <p class="flex items-center gap-1 text-xs text-steel"><%= ui_icon :book_open, class_name: "h-3.5 w-3.5" %> <%= topic.book.title %></p>
           <% end %>
           <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-steel">
             <span class="badge badge-neutral"><%= topic.classroom? ? "우리 반" : "우리 학교" %></span>
-            <span><span aria-hidden="true">💬</span> 글 <%= topic.forum_posts_count %>개</span>
+            <span class="inline-flex items-center gap-1"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> 글 <%= topic.forum_posts_count %>개</span>
           </p>
         </article>
       <% end %>
     </div>
   <% else %>
-    <%= render "shared/empty_state", message: "아직 토론방이 없어요. 첫 토론을 열어 볼까요?", icon: "💬" %>
+    <%= render "shared/empty_state", message: "아직 토론방이 없어요. 첫 토론을 열어 볼까요?", icon: :discussion %>
   <% end %>
 
   <% if @has_next_page || @page > 1 %>
     <nav class="flex items-center justify-between gap-3">
       <% if @page > 1 %>
-        <%= link_to "← 이전", topics_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
+        <%= link_to icon_text(:arrow_left, "이전"), topics_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", topics_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
+        <%= link_to text_icon("다음", :arrow_right), topics_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
       <% else %>
         <span></span>
       <% end %>

@@ -39,7 +39,7 @@
         <div class="card border-brand-blue bg-surface-featured">
           <div class="flex items-center justify-between gap-2">
             <h2 class="text-lg font-semibold text-brand-blue">
-              <span aria-hidden="true">✍️</span> 학생 기여 문제 검토 (<%= @pending_contributions_count %>)
+              <%= ui_icon :writing %> 학생 기여 문제 검토 (<%= @pending_contributions_count %>)
             </h2>
             <%= link_to "검토하러 가기", teacher_quiz_contributions_path, class: "btn btn-primary btn-sm" %>
           </div>
@@ -53,7 +53,7 @@
       <% if @reported_content.any? %>
         <div class="card border-brand-red-dark bg-brand-red">
           <h2 class="mb-1 text-lg font-semibold text-coral-dark">
-            <span aria-hidden="true">🚩</span> 신고된 게임 콘텐츠 (<%= @reported_content.size %>)
+            <%= ui_icon :flag %> 신고된 게임 콘텐츠 (<%= @reported_content.size %>)
           </h2>
           <p class="mb-3 text-xs text-coral-dark">
             학생이 온디맨드 게임에서 신고한 문제예요. 서로 다른
@@ -79,7 +79,7 @@
       <% if reading_discussion_enabled? && @reported_forum_posts.any? %>
         <div class="card border-brand-red-dark bg-brand-red">
           <h2 class="mb-1 text-lg font-semibold text-coral-dark">
-            <span aria-hidden="true">🚩</span> 신고된 토론 글 (<%= @reported_forum_posts.size %>)
+            <%= ui_icon :flag %> 신고된 토론 글 (<%= @reported_forum_posts.size %>)
           </h2>
           <p class="mb-3 text-xs text-coral-dark">
             우리 반 학생의 토론 글이 신고됐어요. 내용을 확인하고, 문제가 있으면 숨겨 주세요.

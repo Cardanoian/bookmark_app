@@ -19,7 +19,7 @@
 
   <%= link_to new_report_path(input_mode: :keyboard, guided: 1, report: chosen_book),
         class: "card card-feature block text-center" do %>
-    <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface-featured text-4xl" aria-hidden="true">✏️</span>
+    <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface-featured"><%= ui_icon :writing, class_name: "h-11 w-11" %></span>
     <span class="block text-xl font-bold text-ink">직접 쓰기</span>
     <span class="mt-1 block text-sm text-brand-blue">키보드로 내 생각을 바로 적어요</span>
   <% end %>
@@ -27,13 +27,13 @@
   <% if ocr_available? %>
     <%= link_to new_report_path(input_mode: :ocr, report: chosen_book),
           class: "card card-feature block text-center" do %>
-      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-light text-4xl" aria-hidden="true">📸</span>
+      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-light"><%= ui_icon :camera, class_name: "h-11 w-11" %></span>
       <span class="block text-xl font-bold text-ink">사진으로 쓰기</span>
       <span class="mt-1 block text-sm text-steel">손으로 쓴 글을 찍으면 자동으로 옮겨 줘요</span>
     <% end %>
   <% else %>
     <div class="card card-feature block text-center opacity-50" aria-disabled="true">
-      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface text-4xl" aria-hidden="true">📸</span>
+      <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface"><%= ui_icon :camera, class_name: "h-11 w-11" %></span>
       <span class="block text-xl font-bold text-ink">사진으로 쓰기</span>
       <span class="mt-1 block text-sm text-steel">지금은 사진 입력을 쓸 수 없어요</span>
     </div>

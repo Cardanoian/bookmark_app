@@ -74,11 +74,15 @@ class AdminModerationTest < ActionDispatch::IntegrationTest
     get admin_moderation_index_path
     assert_response :success
     # 첫 페이지에 PER_PAGE 건만 렌더되고 다음 페이지 링크가 있다.
-    assert_select "a", text: "다음 →"
+    assert_select "a", text: /다음/ do
+      assert_select "use[href$='#arrow-right']", minimum: 1
+    end
 
     get admin_moderation_index_path(forum_page: 2)
     assert_response :success
-    assert_select "a", text: "← 이전"
+    assert_select "a", text: /이전/ do
+      assert_select "use[href$='#arrow-left']", minimum: 1
+    end
   end
 
   private

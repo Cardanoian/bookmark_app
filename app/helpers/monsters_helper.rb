@@ -1,13 +1,6 @@
-# 몬스터 도감 표시 헬퍼(WebP 스프라이트·이모지 폴백·속성 라벨/색).
+# 몬스터 도감 표시 헬퍼(WebP 스프라이트·SVG 폴백·속성 라벨/색).
 module MonstersHelper
-  EMOJI = {
-    "pup" => "🐶", "cat" => "🐱", "hedgehog" => "🦔", "parrot" => "🦜",
-    "pencil" => "✏️", "fox" => "🦊", "owl" => "🦉", "robot" => "🤖",
-    "turtle" => "🐢", "hamster" => "🐹", "whale" => "🐳", "rabbit" => "🐰",
-    "deer" => "🦌", "bear" => "🐻", "chick" => "🐤", "penguin" => "🐧",
-    "dino" => "🦖", "frog" => "🐸", "squirrel" => "🐿️", "mushroom" => "🍄",
-    "unicorn" => "🦄", "butterfly" => "🦋", "dokkaebi" => "👺", "dragon" => "🐲"
-  }.freeze
+  include ApplicationHelper
 
   ELEMENT_LABELS = {
     "story" => "이야기", "knowledge" => "지식", "emotion" => "감정",
@@ -23,13 +16,7 @@ module MonstersHelper
     "imagination" => "bg-amber-100 text-amber-700"
   }.freeze
 
-  # 종(또는 key) → 대표 이모지. 미지정이면 알 이모지.
-  def monster_emoji(species_or_key)
-    key = species_or_key.respond_to?(:key) ? species_or_key.key : species_or_key.to_s
-    EMOJI[key.to_s.sub(/_\d+\z/, "")] || "🥚"
-  end
-
-  # image_key 에 해당하는 WebP가 있으면 이미지 태그, 없으면 기존 이모지를 반환한다.
+  # image_key 에 해당하는 WebP가 있으면 이미지 태그, 없으면 미발견 SVG를 반환한다.
   def monster_sprite(species_or_key, img_class: "h-full w-full object-contain", **html_options)
     key = if species_or_key.respond_to?(:image_key) && species_or_key.image_key.present?
       species_or_key.image_key
@@ -40,9 +27,9 @@ module MonstersHelper
     end
     logical_path = "monsters/#{key}.webp"
 
-    return monster_emoji(species_or_key) unless monster_asset_exists?(logical_path)
-
     default_alt = species_or_key.respond_to?(:name) ? species_or_key.name : ""
+    return ui_icon(:mystery, label: default_alt.presence || "몬스터 이미지 없음", class_name: img_class) unless monster_asset_exists?(logical_path)
+
     image_tag logical_path, { alt: default_alt, class: img_class, loading: "lazy" }.merge(html_options)
   end
 

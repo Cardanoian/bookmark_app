@@ -5,7 +5,7 @@
   <%= render "shared/student_nav", active: :library %>
 
   <header class="page-header">
-    <h2 class="page-title">📚 내 서재</h2>
+    <h2 class="page-title flex items-center gap-2"><%= ui_icon :books, class_name: "h-7 w-7" %> 내 서재</h2>
   </header>
 
   <%# kind 필터 %>
@@ -25,7 +25,7 @@
             <% if entry.book.cover_url.present? %>
               <%= image_tag entry.book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover", loading: "lazy" %>
             <% else %>
-              <span aria-hidden="true" class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+              <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
             <% end %>
             <div class="min-w-0">
               <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
@@ -47,7 +47,7 @@
       <% end %>
     </div>
   <% else %>
-    <%= render "shared/empty_state", message: "아직 활동한 책이 없어요. 첫 독서활동을 시작해 볼까요?", icon: "📚" %>
+    <%= render "shared/empty_state", message: "아직 활동한 책이 없어요. 첫 독서활동을 시작해 볼까요?", icon: :books %>
     <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-primary btn-sm" %>
   <% end %>
 

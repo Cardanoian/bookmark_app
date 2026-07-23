@@ -43,10 +43,11 @@ class OcrJob < ApplicationJob
 
   def ocr_failed_status_html
     retry_path = Rails.application.routes.url_helpers.new_report_path(input_mode: :ocr)
+    warning_icon = ApplicationController.helpers.ui_icon(:warning)
     <<~HTML.html_safe
       <div id="ocr_reading_status" aria-live="polite" class="mb-4">
         <div class="state-banner state-banner--error">
-          <span aria-hidden="true">⚠️</span>
+          #{warning_icon}
           <span>
             사진을 못 읽었어요. 직접 입력하거나 다시 찍어 주세요.
             <a href="#{retry_path}" class="underline font-semibold">다시 찍기</a>

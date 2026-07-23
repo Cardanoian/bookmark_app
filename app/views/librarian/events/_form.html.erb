@@ -3,7 +3,7 @@
       class: "card space-y-4" do |f| %>
   <% if event.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <%= event.errors.full_messages.to_sentence %>
     </div>
   <% end %>

@@ -3,7 +3,7 @@
 
 <div class="page-shell page-shell-content space-y-4">
   <header>
-    <%= link_to "← 챌린지 목록", challenges_path, class: "text-sm text-steel hover:text-ink" %>
+    <%= link_to icon_text(:arrow_left, "챌린지 목록"), challenges_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   </header>
 
   <div class="card-feature space-y-3">
@@ -18,14 +18,14 @@
       <p class="text-xs text-muted"><%= @challenge.starts_on %> ~ <%= @challenge.ends_on %></p>
     <% end %>
     <% if @challenge.reward_points.to_i.positive? %>
-      <p class="text-sm text-steel">🎁 모든 목표 달성 시 <span class="font-semibold text-ink"><%= @challenge.reward_points %>P + <%= @challenge.reward_points %>XP</span></p>
+      <p class="text-sm text-steel"><%= ui_icon :gift, class_name: "h-4 w-4" %> 모든 목표 달성 시 <span class="font-semibold text-ink"><%= @challenge.reward_points %>P + <%= @challenge.reward_points %>XP</span></p>
     <% end %>
   </div>
 
   <%# 목표 + (학생) 본인 진행률. 목표 없는 레거시 챌린지는 이 섹션을 건너뛴다. %>
   <% if @challenge.has_goals? %>
     <section class="card space-y-3">
-      <h2 class="text-base font-bold text-ink">🎯 챌린지 목표</h2>
+      <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :target %> 챌린지 목표</h2>
 
       <% if @progress %>
         <%# 학생: 본인 진행률(자동 집계). %>
@@ -35,21 +35,21 @@
               <span class="text-steel">
                 <%= goal_label[g[:type]] %> <%= g[:target] %>편<% if g[:book_title] %> · <span class="text-ink">『<%= g[:book_title] %>』</span><% end %>
               </span>
-              <span class="<%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= g[:met] ? " ✓" : "" %></span>
+              <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
             </div>
             <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
           </div>
         <% end %>
         <% if @participation&.rewarded_at? %>
-          <p class="text-sm font-semibold text-green-700">🎉 챌린지 완료! <%= @participation.reward_points_awarded %>P + <%= @participation.reward_points_awarded %>XP 받았어요</p>
+          <p class="text-sm font-semibold text-green-700"><%= ui_icon :celebrate, class_name: "h-4 w-4" %> 챌린지 완료! <%= @participation.reward_points_awarded %>P + <%= @participation.reward_points_awarded %>XP 받았어요</p>
         <% elsif @progress[:completed] %>
-          <p class="text-sm font-semibold text-green-700">🎉 모든 목표를 달성했어요!</p>
+          <p class="text-sm font-semibold text-green-700"><%= ui_icon :celebrate, class_name: "h-4 w-4" %> 모든 목표를 달성했어요!</p>
         <% end %>
       <% else %>
         <%# 교직원(관리자): 목표 정의만 표시. %>
         <% @challenge.challenge_goals.includes(:books).order(:position, :id).each do |goal| %>
           <div class="flex items-center gap-2 text-sm text-ink">
-            <span aria-hidden="true"><%= goal.approved_reports? ? "✏️" : "🎮" %></span>
+            <%= ui_icon(goal.approved_reports? ? :writing : :game) %>
             <span>
               <%= goal_label[goal.goal_type] %> <strong><%= goal.target_count %></strong><%= goal.approved_reports? ? "편" : "개" %>
               <% if goal.books.any? %><span class="text-steel">· 『<%= goal.books.map(&:title).join("』 『") %>』</span><% else %><span class="text-steel">· 아무 책이나</span><% end %>

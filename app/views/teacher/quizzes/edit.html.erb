@@ -1,14 +1,14 @@
 <% content_for :title, "퀴즈 편집 · 책갈피" %>
 
 <div class="page-shell page-shell-form space-y-4">
-  <%= link_to "← 퀴즈 관리", teacher_quizzes_path, class: "text-sm text-steel hover:text-ink" %>
+  <%= link_to icon_text(:arrow_left, "퀴즈 관리"), teacher_quizzes_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   <h1 class="page-title">퀴즈 편집</h1>
 
   <%= form_with model: @quiz, url: teacher_quiz_path(@quiz), method: :patch,
         class: "card space-y-5" do |f| %>
     <% if @quiz.errors.any? %>
       <div class="state-banner state-banner--error" role="alert">
-        <span aria-hidden="true">⚠️</span>
+        <%= ui_icon :warning %>
         <span><%= @quiz.errors.full_messages.to_sentence %></span>
       </div>
     <% end %>

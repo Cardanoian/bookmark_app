@@ -29,18 +29,18 @@
       <%= render partial: "books/book_card", collection: @books, as: :book %>
     </div>
   <% else %>
-    <%= render "shared/empty_state", message: "해당하는 도서가 없어요.", icon: "📚" %>
+    <%= render "shared/empty_state", message: "해당하는 도서가 없어요.", icon: :books %>
   <% end %>
 
   <% if @has_next_page || @page > 1 %>
     <nav class="mt-2 flex items-center justify-between text-sm">
       <% if @page > 1 %>
-        <%= link_to "← 이전", books_path(category: @category, page: @page - 1), class: "text-indigo-600" %>
+        <%= link_to icon_text(:arrow_left, "이전"), books_path(category: @category, page: @page - 1), class: "inline-flex items-center gap-1 text-indigo-600" %>
       <% else %>
         <span></span>
       <% end %>
       <% if @has_next_page %>
-        <%= link_to "다음 →", books_path(category: @category, page: @page + 1), class: "text-indigo-600" %>
+        <%= link_to text_icon("다음", :arrow_right), books_path(category: @category, page: @page + 1), class: "inline-flex items-center gap-1 text-indigo-600" %>
       <% else %>
         <span></span>
       <% end %>

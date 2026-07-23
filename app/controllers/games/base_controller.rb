@@ -7,10 +7,10 @@ module Games
     # (퀴즈 2종은 미스=오프라인 즉시, 소셜 2종은 항상 가능). classic(→quiz 통합)·vocab(hard-delete) 표면은
     # 제거됐다(game_type enum 의 classic:1 은 과거 기록 보존차 유지).
     CATALOG = {
-      "quiz" => { name: "독서 퀴즈", icon: "❓", surface: "quiz", playable: true },
-      "whoami" => { name: "나는 누구게?", icon: "🕵️", surface: "whoami", playable: true },
-      "book" => { name: "책 소개 대결", icon: "📖", playable: true },
-      "sequel" => { name: "뒷이야기 이어쓰기", icon: "✍️", playable: true }
+      "quiz" => { name: "독서 퀴즈", icon: :quiz, surface: "quiz", playable: true },
+      "whoami" => { name: "나는 누구게?", icon: :detective, surface: "whoami", playable: true },
+      "book" => { name: "책 소개 대결", icon: :book_open, playable: true },
+      "sequel" => { name: "뒷이야기 이어쓰기", icon: :writing, playable: true }
     }.freeze
 
     private

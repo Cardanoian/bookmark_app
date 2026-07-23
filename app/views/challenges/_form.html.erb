@@ -10,7 +10,7 @@
       class: "card space-y-4" do |f| %>
   <% if challenge.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <span><%= challenge.errors.full_messages.to_sentence %></span>
     </div>
   <% end %>

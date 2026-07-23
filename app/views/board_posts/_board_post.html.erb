@@ -8,7 +8,7 @@
   </div>
   <p class="line-clamp-3 text-sm text-slate"><%= truncate(report.body.to_s, length: 100) %></p>
   <div class="mt-auto flex items-center justify-between gap-2 pt-2">
-    <span class="badge badge-yellow"><span aria-hidden="true">👏</span> 응원 <%= report.cheers_count %></span>
-    <span class="text-sm font-medium text-brand-blue" aria-hidden="true">읽어보기 →</span>
+    <span class="badge badge-yellow"><%= ui_icon :cheer, class_name: "h-4 w-4" %> 응원 <%= report.cheers_count %></span>
+    <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-blue" aria-hidden="true"><%= text_icon "읽어보기", :arrow_right %></span>
   </div>
 </article>

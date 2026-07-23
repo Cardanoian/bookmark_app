@@ -30,17 +30,17 @@
 
   <% if report.ai_status == "failed" %>
     <div class="state-banner state-banner--error">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <span>첨삭에 실패했어요. 잠시 후 다시 시도해 주세요.</span>
     </div>
   <% elsif report.ai_status != "done" %>
     <div class="state-banner">
-      <span aria-hidden="true">✍️</span>
+      <%= ui_icon :writing %>
       <span>AI 선생님이 첨삭 중이에요. 조금만 기다려 주세요.</span>
     </div>
   <% elsif !report.reviewed? %>
     <div class="state-banner">
-      <span aria-hidden="true">👀</span>
+      <%= ui_icon :eye %>
       <span>선생님이 확인하고 있어요. 확인이 끝나면 첨삭 결과를 볼 수 있어요.</span>
     </div>
   <% end %>

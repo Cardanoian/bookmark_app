@@ -12,7 +12,7 @@
   <%= f.hidden_field :input_mode %>
   <% if report.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
-      <span aria-hidden="true">⚠️</span>
+      <%= ui_icon :warning %>
       <ul class="list-inside list-disc">
         <% report.errors.full_messages.each do |message| %>
           <li><%= message %></li>
@@ -52,7 +52,7 @@
 
   <% unless ocr_available? %>
     <div class="state-banner state-banner--info">
-      <span aria-hidden="true">ℹ️</span>
+      <%= ui_icon :info %>
       <span>지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드로 입력해 주세요.</span>
     </div>
   <% end %>

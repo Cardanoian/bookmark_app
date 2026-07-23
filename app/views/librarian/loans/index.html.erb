@@ -52,7 +52,7 @@
       </div>
     <% else %>
       <%= render "shared/empty_state",
-            message: "인기 대출 데이터가 없습니다. 정보나루 동기화 또는 CSV 업로드를 사용하세요.", icon: "📚" %>
+            message: "인기 대출 데이터가 없습니다. 정보나루 동기화 또는 CSV 업로드를 사용하세요.", icon: :books %>
     <% end %>
   </section>
 
@@ -61,7 +61,7 @@
     <%= form_with model: @loan, url: librarian_loans_path, class: "grid gap-3 sm:grid-cols-2" do |f| %>
       <% if @loan.errors.any? %>
         <div class="state-banner state-banner--error sm:col-span-2" role="alert">
-          <span aria-hidden="true">⚠️</span>
+          <%= ui_icon :warning %>
           <%= @loan.errors.full_messages.to_sentence %>
         </div>
       <% end %>

@@ -5,7 +5,7 @@
       <% if book.cover_url.present? %>
         <%= image_tag book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover", loading: "lazy" %>
       <% else %>
-        <span aria-hidden="true" class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface text-2xl">📕</span>
+        <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
       <% end %>
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold text-ink"><%= book.title %></span>

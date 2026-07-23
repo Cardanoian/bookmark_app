@@ -42,6 +42,7 @@ class GamesBookIntroTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
     assert_select "h1", /책 소개 대결/
+    assert_select "img[src*='empty_states/sequel-writing'][alt=''][width='128'][height='128']", count: 1
   end
 
   test "a too-short intro is rejected with a validation message" do

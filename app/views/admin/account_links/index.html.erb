@@ -21,7 +21,7 @@
           <tr class="text-left text-steel">
             <th class="p-2">생존자</th>
             <th class="p-2">이동 요약</th>
-            <th class="p-2">from → to 학급</th>
+            <th class="p-2"><span class="inline-flex items-center gap-1">from <%= ui_icon :arrow_right, class_name: "h-4 w-4" %> to 학급</span></th>
             <th class="p-2">수행자</th>
             <th class="p-2">시각</th>
             <th class="p-2">상태</th>
@@ -33,7 +33,7 @@
             <tr class="border-t border-hairline">
               <td class="p-2 font-medium text-ink"><%= merge.surviving_user&.name || "(삭제)" %></td>
               <td class="p-2">독후감 <%= merge.moved_counts&.dig("reports") || 0 %> · 몬스터 <%= merge.moved_counts&.dig("monsters") || 0 %></td>
-              <td class="p-2"><%= merge.from_classroom_id %> → <%= merge.to_classroom_id %></td>
+              <td class="p-2"><span class="inline-flex items-center gap-1"><%= merge.from_classroom_id %> <%= ui_icon :arrow_right, class_name: "h-4 w-4" %> <%= merge.to_classroom_id %></span></td>
               <td class="p-2"><%= merge.performed_by&.name || "학생 본인" %></td>
               <td class="p-2 whitespace-nowrap"><%= merge.created_at.strftime("%Y-%m-%d %H:%M") %></td>
               <td class="p-2">

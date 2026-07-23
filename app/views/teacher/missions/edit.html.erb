@@ -1,7 +1,7 @@
 <% content_for :title, "미션 수정 · 책갈피" %>
 
 <div class="page-shell page-shell-form space-y-4">
-  <%= link_to "← 미션 관리", teacher_missions_path, class: "text-sm text-steel hover:text-ink" %>
+  <%= link_to icon_text(:arrow_left, "미션 관리"), teacher_missions_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   <h1 class="page-title">미션 수정</h1>
 
   <%# 소유 교사는 발행 후에도 목표·기간·보상을 수정할 수 있다(학급은 생성 시 고정). %>

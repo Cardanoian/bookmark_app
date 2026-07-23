@@ -48,7 +48,7 @@
       </ol>
     <% else %>
       <%= render "shared/empty_state",
-            message: "인기 대출 데이터가 없습니다. 정보나루 동기화 또는 CSV 업로드를 사용하세요.", icon: "📚" %>
+            message: "인기 대출 데이터가 없습니다. 정보나루 동기화 또는 CSV 업로드를 사용하세요.", icon: :books %>
     <% end %>
   </section>
 
@@ -67,7 +67,7 @@
         <% end %>
       </ul>
     <% else %>
-      <%= render "shared/empty_state", message: "이달의 책과 행사를 등록해 보세요.", icon: "📖" %>
+      <%= render "shared/empty_state", message: "이달의 책과 행사를 등록해 보세요.", icon: :book_open %>
     <% end %>
   </section>
 </div>
