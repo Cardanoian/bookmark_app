@@ -49,4 +49,34 @@ class ReportsSelfViewTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", report_path(report), 1
     assert_select "form[action=?] button", report_path(report), text: "삭제", count: 1
   end
+
+  # 책 필터 문맥(book_id/book_title)에서 '새 독후감 쓰기'는 그 책을 실어 넘겨, 새 글에서
+  # 책을 다시 고르지 않고 바로 모드 선택 스텝으로 넘어가게 한다(reading_activities 관례).
+  test "책 필터 목록의 '새 독후감 쓰기'는 그 책을 실어 넘긴다" do
+    login_as @student
+    get reports_path(book_id: @book.id)
+    assert_response :success
+
+    assert_select "a[href=?]",
+      new_report_path(report: { book_id: @book.id, book_title: @book.title }),
+      text: "새 독후감 쓰기"
+  end
+
+  test "레거시 제목 필터 목록의 '새 독후감 쓰기'는 제목을 실어 넘긴다" do
+    Report.create!(user: @student, classroom: @classroom, book_title: "레거시 도서", body: "본문입니다.")
+    login_as @student
+    get reports_path(book_title: "레거시 도서")
+    assert_response :success
+
+    assert_select "a[href=?]",
+      new_report_path(report: { book_title: "레거시 도서" }), text: "새 독후감 쓰기"
+  end
+
+  test "필터 없는 목록의 '새 독후감 쓰기'는 맨몸 링크다" do
+    login_as @student
+    get reports_path
+    assert_response :success
+
+    assert_select "a[href=?]", new_report_path, text: "새 독후감 쓰기"
+  end
 end
