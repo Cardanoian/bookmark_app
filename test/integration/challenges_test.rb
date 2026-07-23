@@ -174,6 +174,17 @@ class ChallengesTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", challenges_path
   end
 
+  test "teacher console nav remains visible throughout challenge management" do
+    login_as @teacher_a
+
+    [ challenges_path, challenge_path(@school_a_challenge), new_challenge_path,
+      edit_challenge_path(@school_a_challenge) ].each do |path|
+      get path
+      assert_response :success
+      assert_select "aside nav a[href=?][aria-current=?]", challenges_path, "page"
+    end
+  end
+
   test "librarian and school_admin dashboards link to challenges" do
     login_as @librarian_a
     get root_path

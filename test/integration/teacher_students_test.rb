@@ -27,7 +27,7 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     end
     assert_select "form[action=?]", reset_password_teacher_student_path(@student) do
       assert_select "input[type=?][name=?][minlength=?][required]", "password", "student[password]", "6"
-      assert_select "input[type=submit].btn.btn-yellow.btn-sm[value=?]", "비번 초기화"
+      assert_select "button[type=submit].btn.btn-yellow.btn-sm", text: "비번 초기화"
     end
   end
 

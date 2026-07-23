@@ -43,13 +43,13 @@
                   <%= button_to "+10P · +10XP", give_points_teacher_student_path(student), method: :post,
                         params: { points: 10 }, class: "btn btn-blue btn-sm" %>
                   <%= form_with url: reset_password_teacher_student_path(student), method: :post,
-                        class: "flex items-end gap-2" do %>
+                        class: "flex items-center gap-2" do %>
                     <%= label_tag "student_password_#{student.id}", "#{student.name} 학생의 새 비밀번호",
                           class: "sr-only" %>
                     <%= password_field_tag "student[password]", nil, id: "student_password_#{student.id}",
                           required: true, minlength: 6, autocomplete: "new-password",
                           placeholder: "새 비밀번호 (6자 이상)", class: "form-input w-48" %>
-                    <%= submit_tag "비번 초기화", class: "btn btn-yellow btn-sm" %>
+                    <%= button_tag "비번 초기화", type: :submit, class: "btn btn-yellow btn-sm" %>
                   <% end %>
                   <%= button_to "삭제", teacher_student_path(student), method: :delete,
                         form: { data: { turbo_confirm: "#{student.name} 학생을 삭제할까요?" } },
