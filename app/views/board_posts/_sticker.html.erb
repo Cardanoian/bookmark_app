@@ -1,7 +1,0 @@
-<%# 문장 스티커(P5.3). local: sticker %>
-<span id="<%= dom_id(sticker) %>" class="badge badge-yellow">
-  <%= sticker_icon sticker.emoji %>
-  <% if sticker.label.present? %>
-    <span class="font-normal text-slate"><%= sticker.label %></span>
-  <% end %>
-</span>
