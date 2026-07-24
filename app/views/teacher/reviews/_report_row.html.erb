@@ -1,0 +1,23 @@
+<%# 검토 큐 행. AiReviewJob 방송 대상이므로 current_user 미사용. local: report %>
+<article id="<%= dom_id(report) %>" class="card flex items-center justify-between gap-3 p-3">
+  <label class="flex min-w-0 items-center gap-3">
+    <%= check_box_tag "report_ids[]", report.id, false,
+          form: "batch_approve_reports",
+          class: "shrink-0 rounded border-hairline-strong" %>
+    <span class="min-w-0">
+      <span class="block truncate font-medium text-ink">
+        <%= report.user.name %> · <%= report.book&.title.presence || report.book_title %>
+      </span>
+      <span class="block text-xs text-steel">
+        평균 <%= report.avg %> ·
+        유사도 <%= report.similarity.present? ? "#{(report.similarity * 100).round}%" : "-" %>
+      </span>
+    </span>
+  </label>
+
+  <div class="flex shrink-0 items-center gap-2">
+    <%= level_badge(report.level) %>
+    <%= link_to "검토", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
+    <%= button_to "승인", approve_teacher_review_path(report), method: :post, class: "btn btn-blue btn-sm" %>
+  </div>
+</article>

@@ -1,0 +1,34 @@
+<% content_for :title, "우수작 게시판 · 책갈피" %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">커뮤니티</p>
+      <h1 class="page-title flex items-center gap-2"><%= ui_icon :medal, class_name: "h-7 w-7" %> 우수작 게시판</h1>
+      <p class="page-subtitle">친구들의 멋진 독후감에 응원과 스티커를 남겨 보세요.</p>
+    </div>
+  </header>
+
+  <% if @board_posts.any? %>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <%= render partial: "board_posts/board_post", collection: @board_posts, as: :board_post %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 공유된 우수작이 없어요.", icon: :medal %>
+  <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="flex items-center justify-between gap-3">
+      <% if @page > 1 %>
+        <%= link_to icon_text(:arrow_left, "이전"), board_posts_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to text_icon("다음", :arrow_right), board_posts_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
+  <% end %>
+</div>

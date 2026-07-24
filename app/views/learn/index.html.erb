@@ -1,0 +1,54 @@
+<% content_for :title, "단계 학습 · 책갈피" %>
+
+<div class="w-full max-w-2xl mx-auto">
+  <header class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">단계 학습 위저드</h1>
+      <p class="mt-1 text-sm text-gray-500">다섯 단계를 따라가면 독후감 초안이 완성돼요.</p>
+    </div>
+    <%= link_to icon_text(:arrow_left, "내 서재"), root_path, class: "inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700" %>
+  </header>
+
+  <ol class="mb-6 flex items-center gap-2">
+    <% LearnController::STEPS.each_with_index do |definition, index| %>
+      <% number = index + 1 %>
+      <li class="flex-1">
+        <div class="h-1.5 rounded-full <%= number <= @step ? "bg-amber-500" : "bg-gray-200" %>"></div>
+        <p class="mt-1 text-center text-[11px] <%= number == @step ? "font-semibold text-amber-600" : "text-gray-400" %>">
+          <%= number %>. <%= definition[:title] %>
+        </p>
+      </li>
+    <% end %>
+  </ol>
+
+  <section class="rounded-2xl border border-gray-200 p-5">
+    <p class="text-xs font-medium text-amber-600"><%= @step %>단계 · 성취기준 <%= @definition[:code] %></p>
+    <h2 class="mt-1 text-lg font-bold text-gray-900"><%= @definition[:title] %></h2>
+    <p class="mt-1 text-sm text-gray-600"><%= @definition[:prompt] %></p>
+
+    <%= form_with url: advance_learn_index_path, method: :post, class: "mt-4 space-y-4" do |f| %>
+      <%= hidden_field_tag :step, @step %>
+      <%= text_area_tag :answer, @answer, rows: 6, required: true,
+            class: "w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-amber-400 focus:outline-none",
+            placeholder: "여기에 적어 보세요." %>
+      <%= f.submit @step >= LearnController::STEP_COUNT ? "완성하기" : "다음 단계",
+            class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white" %>
+    <% end %>
+  </section>
+
+  <% if @answers.any? %>
+    <section class="mt-6">
+      <h3 class="mb-2 text-sm font-semibold text-gray-700">지금까지 적은 내용</h3>
+      <div class="space-y-2">
+        <% LearnController::STEPS.each_with_index do |definition, index| %>
+          <% saved = @answers[(index + 1).to_s] %>
+          <% next if saved.blank? %>
+          <div class="rounded-lg bg-gray-50 p-3 text-sm">
+            <p class="text-xs font-medium text-gray-500"><%= index + 1 %>. <%= definition[:title] %></p>
+            <p class="mt-0.5 whitespace-pre-line text-gray-800"><%= saved %></p>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

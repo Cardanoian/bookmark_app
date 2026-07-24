@@ -1,0 +1,23 @@
+<% content_for :title, "표창장 · 책갈피" %>
+
+<article class="rounded-lg border-4 border-brand-yellow-deep p-12 text-center">
+  <p class="text-sm tracking-widest text-yellow-dark">책갈피 독서 표창장</p>
+  <h1 class="mt-8 text-3xl font-bold text-ink">표 창 장</h1>
+
+  <p class="mt-10 text-lg text-ink">
+    <%= @classroom.label %> <strong><%= @student.name %></strong> 학생
+  </p>
+  <p class="mt-6 leading-8 text-slate">
+    위 학생은 꾸준한 독서와 정성 어린 독후감 활동으로<br>
+    깊이 있는 읽기의 모범을 보였기에 이 상장을 드립니다.
+  </p>
+
+  <% if @report %>
+    <p class="mt-6 text-sm text-steel">
+      대표 독후감 「<%= @report.book&.title.presence || @report.book_title %>」 · 등급 <%= @report.level %>
+    </p>
+  <% end %>
+
+  <p class="mt-12 text-ink"><%= Date.current.strftime("%Y년 %m월 %d일") %></p>
+  <p class="mt-2 text-ink">담임교사 <%= current_user.name %></p>
+</article>

@@ -1,0 +1,66 @@
+<%# 독후감 작성·수정 폼. local: report, (선택) first_submit %>
+<%# 기존 글(고쳐쓰기/수정)만 dirty-check 대상: 본문이 달라져야 저장 활성화.
+    새 글은 위저드 초안이 프리필될 수 있어 컨트롤러를 붙이지 않는다.
+    OCR 초안의 첫 제출(first_submit)도 마찬가지로 컨트롤러를 떼어 낸다 — OCR이 로드 전에
+    빠르게 완료되면 textarea 기준값이 이미 OCR 본문이 되어 "그대로 제출"이 막히기 때문. %>
+<% first_submit = local_assigns.fetch(:first_submit, false) %>
+<%= form_with model: report, class: "space-y-6",
+      data: ((report.persisted? && !first_submit) ? { controller: "report-edit" } : {}) do |f| %>
+  <%# 직접 쓰기 폼임을 못박아, create 검증 실패 render :new 재렌더 시 input_mode 우선 분기가
+      _form 으로 복원되게 한다(book_title 만 남아 mode_chooser 로 새는 회귀 차단). 값은 모델의
+      input_mode 를 따르므로(고정값 아님) edit 로 재사용될 때 OCR 초안의 ocr 모드를 훼손하지 않는다. %>
+  <%= f.hidden_field :input_mode %>
+  <% if report.errors.any? %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <ul class="list-inside list-disc">
+        <% report.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :book_title, "책 제목", class: "form-label" %>
+    <%# 도서 자동완성(WS-D). 목록에서 고르면 hidden report[book_id] 가 채워지고, 안 고르면
+        표시 input(title_field: :book_title)이 report[book_title] 자유텍스트로 저장된다(fallback). %>
+    <%= render "books/autocomplete_field",
+          form: f,
+          book_id_field: :book_id,
+          title_field: :book_title,
+          url: autocomplete_books_path,
+          remote_search_url: remote_search_books_path,
+          isbn_field: :remote_isbn,
+          isbn_value: params.dig(:report, :remote_isbn),
+          show_search_button: true,
+          mode: "fallback",
+          show_cover: true,
+          selected_book: report.book %>
+    <% if report.errors[:book_title].any? %>
+      <p class="form-error"><%= report.errors.full_messages_for(:book_title).join(", ") %></p>
+    <% end %>
+  </div>
+
+  <div>
+    <%= f.label :body, "독후감", class: "form-label" %>
+    <%= render "reports/body_field", report: report %>
+    <% if report.errors[:body].any? %>
+      <p class="form-error"><%= report.errors.full_messages_for(:body).join(", ") %></p>
+    <% end %>
+  </div>
+
+  <% unless ocr_available? %>
+    <div class="state-banner state-banner--info">
+      <%= ui_icon :info %>
+      <span>지금은 사진(OCR) 입력을 사용할 수 없어요. 키보드로 입력해 주세요.</span>
+    </div>
+  <% end %>
+
+  <div class="page-actions">
+    <%= f.submit (report.persisted? && !first_submit) ? "수정하기" : "제출하기",
+          class: "btn btn-primary",
+          data: { "report-edit-target": "submit" } %>
+    <%= link_to "취소", reports_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

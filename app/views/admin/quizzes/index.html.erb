@@ -1,0 +1,30 @@
+<%# 전역 퀴즈 CRUD(P7.3). %>
+<div class="space-y-6">
+  <div class="page-header">
+    <h1 class="page-title">퀴즈 관리</h1>
+    <div class="page-actions">
+      <%= link_to "퀴즈 등록", new_admin_quiz_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="border-b border-hairline text-steel">
+        <tr><th class="py-2 pr-4">제목</th><th class="py-2 pr-4">범위</th><th class="py-2 pr-4">문항수</th><th class="py-2 pr-4">공개</th><th class="py-2"></th></tr>
+      </thead>
+      <tbody>
+        <% @quizzes.each do |quiz| %>
+          <tr class="border-b border-hairline-soft">
+            <td class="py-2 pr-4 font-medium text-ink"><%= link_to quiz.title, admin_quiz_path(quiz), class: "hover:underline" %></td>
+            <td class="py-2 pr-4 text-slate"><%= quiz.scope %></td>
+            <td class="py-2 pr-4 text-slate"><%= quiz.quiz_questions.size %></td>
+            <td class="py-2 pr-4"><span class="badge <%= quiz.published? ? "badge-success" : "badge-neutral" %>"><%= quiz.published? ? "공개" : "비공개" %></span></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_quiz_path(quiz), class: "text-sm text-brand-blue hover:underline" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%= render "admin/shared/pager", page: @page, has_next: @has_next_page %>
+</div>

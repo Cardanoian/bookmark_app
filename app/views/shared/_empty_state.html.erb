@@ -1,0 +1,6 @@
+<%# locals: (message:, icon: :inbox, image: nil) %>
+<% resolved_image = image || empty_state_image(icon) %>
+<div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline-strong bg-surface-soft px-6 py-12 text-center">
+  <%= image_tag resolved_image, alt: "", width: 128, height: 128, class: "mb-3 h-32 w-32 object-contain" %>
+  <p class="text-steel"><%= message %></p>
+</div>

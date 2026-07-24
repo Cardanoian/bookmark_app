@@ -1,0 +1,48 @@
+# Name of your application. Used to uniquely configure containers.
+service: bookmark_app
+
+# Name of the container image.
+image: bookmark_app
+
+# Deploy to these servers.
+servers:
+  web:
+    - 164.90.xxx.xxx   # TODO: DigitalOcean Droplet 공인 IP로 교체
+
+# Enable SSL auto certification via Let's Encrypt (requires config.assume_ssl + config.force_ssl in production.rb).
+proxy:
+  ssl: true
+  host: chaekgalpi.example.com   # TODO: 실제 도메인으로 교체. 배포 전 A 레코드를 Droplet IP에 연결
+
+# Where you keep your container images.
+registry:
+  server: localhost:5555   # Kamal 2.8+ 로컬 레지스트리. username/password 불필요
+
+# Inject ENV variables into containers (secrets come from .kamal/secrets).
+env:
+  secret:
+    # 앱의 유일한 배포 시크릿. 컨테이너는 이 키로 credentials.yml.enc 를 복호화해
+    # 외부 API 키(gemini·naver·data4library·neis)를 런타임에 읽는다(docs/API_KEYS.md §3).
+    - RAILS_MASTER_KEY
+  clear:
+    RAILS_ENV: production
+    # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
+    SOLID_QUEUE_IN_PUMA: true
+
+# Aliases are triggered with "bin/kamal <alias>".
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
+
+# Use a persistent storage volume for sqlite database files and local Active Storage files.
+volumes:
+  - "bookmark_app_storage:/rails/storage"
+
+# Bridge fingerprinted assets between versions to avoid 404 on in-flight requests.
+asset_path: /rails/public/assets
+
+# Configure the image builder.
+builder:
+  arch: amd64   # DO 일반 Droplet은 amd64

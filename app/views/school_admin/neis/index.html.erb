@@ -1,0 +1,39 @@
+<% content_for :title, "NEIS 생기부 요약 · 책갈피" %>
+
+<div class="page-shell page-shell-content">
+  <header class="page-header">
+    <div>
+      <p class="page-subtitle font-medium text-moss-dark">교무관리자 · NEIS 생기부 자동요약</p>
+      <h1 class="page-title"><%= @school&.name %></h1>
+    </div>
+    <%= link_to "전교 통계", school_admin_stats_path, class: "btn btn-secondary" %>
+  </header>
+
+  <%= form_with url: school_admin_neis_path, method: :get,
+        class: "card flex flex-col items-end gap-3 sm:flex-row" do |f| %>
+    <div class="w-full flex-1">
+      <%= f.label :student_id, "학생 선택", class: "form-label" %>
+      <%= f.collection_select :student_id, @students, :id, :name,
+            { include_blank: "학생을 선택하세요", selected: @student&.id },
+            class: "form-select" %>
+    </div>
+    <%= f.submit "요약 생성", class: "btn btn-primary" %>
+  <% end %>
+
+  <% if @student %>
+    <section class="card mt-6" data-controller="clipboard">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-ink"><%= @student.name %> · 독서활동상황</h2>
+        <button type="button" class="btn btn-secondary btn-sm"
+                data-action="clipboard#copy" data-clipboard-target="button">복사</button>
+      </div>
+      <textarea readonly rows="6" data-clipboard-target="source"
+                class="form-textarea bg-surface text-slate"><%= @summary %></textarea>
+      <p class="form-hint">※ 오프라인 템플릿 요약입니다. 검토 후 NEIS에 붙여넣어 사용하세요.</p>
+    </section>
+  <% else %>
+    <div class="mt-6">
+      <%= render "shared/empty_state", message: "학생을 선택하면 생기부 요약을 생성합니다.", icon: :document %>
+    </div>
+  <% end %>
+</div>

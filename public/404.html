@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#ffd02f">
+    <title>페이지를 찾을 수 없어요 · 책갈피</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icon.png" type="image/png">
+    <style>
+      :root {
+        --ink: #1c1c1e;
+        --steel: #6b6f7e;
+        --canvas: #ffffff;
+        --surface: #f7f8fa;
+        --hairline: #e0e2e8;
+        --brand-yellow: #ffd02f;
+        --brand-blue: #4262ff;
+        --feature: #f5f3ff;
+        --feature-ink: #2a41b6;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+          system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+        line-height: 1.6;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; }
+      :focus-visible { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
+
+      .page {
+        width: min(100%, 1080px);
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand {
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+      .brand img { width: 44px; height: 44px; border-radius: 14px; }
+      .brand-name { display: block; font-size: 1.125rem; font-weight: 800; letter-spacing: -0.03em; }
+      .brand-tagline { display: block; color: var(--steel); font-size: 0.75rem; }
+
+      .error-card {
+        width: 100%;
+        margin: auto 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        overflow: hidden;
+        background: var(--canvas);
+        border: 1px solid var(--hairline);
+        border-radius: 32px;
+      }
+      .error-copy { padding: clamp(32px, 6vw, 64px); }
+      .eyebrow {
+        display: inline-flex;
+        min-height: 32px;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: var(--brand-yellow);
+        color: var(--ink);
+        font-size: 0.8125rem;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 20px 0 0;
+        font-size: clamp(2rem, 5vw, 3.25rem);
+        line-height: 1.16;
+        letter-spacing: -0.045em;
+      }
+      .description { max-width: 38rem; margin: 18px 0 0; color: var(--steel); font-size: 1rem; }
+      .tip {
+        max-width: 38rem;
+        margin-top: 24px;
+        padding: 16px 18px;
+        border-radius: 16px;
+        background: var(--surface);
+        color: var(--steel);
+        font-size: 0.875rem;
+      }
+      .tip strong { color: var(--ink); }
+      .actions { margin-top: 28px; }
+      .button {
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 24px;
+        border: 1px solid var(--ink);
+        border-radius: 999px;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .button:hover { background: #2c2c34; }
+
+      .error-visual {
+        min-height: 390px;
+        padding: 32px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--feature);
+        text-align: center;
+      }
+      .error-code {
+        position: absolute;
+        top: -30px;
+        right: 20px;
+        color: var(--feature-ink);
+        font-size: clamp(7rem, 18vw, 11rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.08em;
+        opacity: 0.12;
+      }
+      .icon-frame {
+        width: min(58%, 184px);
+        padding: 10px;
+        position: relative;
+        border: 1px solid rgba(28, 28, 30, 0.08);
+        border-radius: 36px;
+        background: #ffffff;
+        transform: rotate(-2deg);
+      }
+      .icon-frame img { display: block; width: 100%; height: auto; border-radius: 28px; }
+      .visual-caption {
+        max-width: 16rem;
+        margin: 22px 0 0;
+        color: var(--feature-ink);
+        font-size: 0.9375rem;
+        font-weight: 800;
+      }
+      footer { padding: 20px 0 0; color: var(--steel); font-size: 0.75rem; text-align: center; }
+
+      @media (max-width: 720px) {
+        .page { padding: 18px; }
+        .error-card { margin-top: 32px; grid-template-columns: 1fr; }
+        .error-copy { padding: 32px 24px 36px; }
+        .error-visual { min-height: 260px; order: -1; }
+        .error-code { top: -14px; font-size: 7.5rem; }
+        .icon-frame { width: 132px; border-radius: 28px; }
+        .icon-frame img { border-radius: 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <a class="brand" href="/" aria-label="책갈피 홈">
+          <img src="/icon.svg" alt="">
+          <span>
+            <span class="brand-name">책갈피</span>
+            <span class="brand-tagline">읽고, 쓰고, 함께 성장해요</span>
+          </span>
+        </a>
+      </header>
+
+      <main class="error-card" aria-labelledby="error-title">
+        <section class="error-copy">
+          <p class="eyebrow">페이지 찾기 · 404</p>
+          <h1 id="error-title">찾는 페이지가 보이지 않아요</h1>
+          <p class="description">
+            페이지가 다른 곳으로 이동했거나 주소가 바뀌었을 수 있어요.
+            책갈피 홈에서 다시 시작하면 원하는 곳을 찾을 수 있어요.
+          </p>
+          <p class="tip"><strong>괜찮아요.</strong> 작성하던 주소를 다시 확인하거나 홈의 메뉴를 이용해 주세요.</p>
+          <div class="actions"><a class="button" href="/">책갈피 홈으로</a></div>
+        </section>
+        <aside class="error-visual" aria-hidden="true">
+          <span class="error-code">404</span>
+          <div class="icon-frame"><img src="/icon.svg" alt=""></div>
+          <p class="visual-caption">책장 사이에서 길을 잃었어요</p>
+        </aside>
+      </main>
+
+      <footer>AI 독후감 첨삭과 반려 몬스터로 즐기는 독서 플랫폼</footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+<%# 독서게임 공통 4지선다 폼(mcq 표면 quiz). locals: quiz, game, submit_label %>
+<%= form_with url: games_attempts_path, method: :post, class: "space-y-5" do |f| %>
+  <%= f.hidden_field :quiz_id, value: quiz.id %>
+  <%= f.hidden_field :game, value: game %>
+
+  <% quiz.quiz_questions.each_with_index do |question, index| %>
+    <fieldset class="rounded-lg border border-hairline p-4">
+      <legend class="px-1 text-sm font-semibold text-ink">
+        <%= index + 1 %>. <%= question.prompt %>
+      </legend>
+      <div class="mt-2 space-y-2">
+        <% question.choice_list.each_with_index do |choice, choice_index| %>
+          <label class="flex items-center gap-2 rounded-lg border border-hairline-strong px-3 min-h-[2.75rem] text-sm text-ink has-[:checked]:border-brand-blue has-[:checked]:bg-surface-featured">
+            <%= radio_button_tag "answers[#{question.id}]", choice_index, false, required: true, class: "text-brand-blue" %>
+            <%= choice %>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+  <% end %>
+
+  <%= f.submit submit_label, class: "btn btn-primary btn-block" %>
+<% end %>

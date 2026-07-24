@@ -1,0 +1,65 @@
+<%# 사진으로 쓰기 전 자가점검 가이드(요구 1b). 기본은 보이는 안내 카드로 완전 동작하고,
+    guide-modal 컨트롤러가 연결되면 화면 중앙 모달로 승격한다(그레이스풀: JS 미로딩 시에도
+    카드 형태로 안내 전달). @guided 는 ReportsController#new 가 세팅
+    (ReadingDomain.guided_questions(ReadingDomain.guided_band_for(...))). locals 없음. %>
+<% if @guided && @guided[:questions].present? %>
+  <% circled_numbers = %w[① ② ③ ④ ⑤ ⑥ ⑦ ⑧ ⑨ ⑩] %>
+  <div data-controller="guide-modal" class="mb-4">
+    <div data-guide-modal-target="overlay" data-action="click->guide-modal#close" class="hidden"></div>
+
+    <%# aria-modal 은 guide-modal 컨트롤러가 모달로 열 때만 부여한다(JS 미로딩·닫힘 상태에서는
+        인라인 안내 카드이므로 모달 시맨틱을 announce 하지 않게 함). %>
+    <div data-guide-modal-target="panel"
+         role="dialog" aria-labelledby="photo-guide-title"
+         class="card space-y-4">
+      <h2 id="photo-guide-title" class="text-lg font-bold text-ink">
+        좋은 독후감은 줄거리보다 <span class="text-brand-blue">내 생각과 느낌</span>이 중심이에요!
+        <%= ui_icon :sparkle %>
+      </h2>
+
+      <% if @guided[:ratio_hint].present? %>
+        <p class="rounded-md bg-surface-featured p-3 text-sm font-medium text-ink"><%= @guided[:ratio_hint] %></p>
+      <% end %>
+
+      <p class="rounded-md bg-surface-featured p-3 text-xs font-medium text-ink">
+        사진에 <strong>이름·학교·반</strong>이 보이지 않게 찍어 주세요. (개인정보 보호)
+      </p>
+
+      <p class="text-sm font-medium text-steel">사진 찍기 전에 아래 질문으로 나의 글을 점검해 봐요.</p>
+
+      <ol class="space-y-3">
+        <% @guided[:questions].each_with_index do |q, index| %>
+          <li class="rounded-md border border-hairline-soft p-3">
+            <p class="font-medium text-ink">
+              <span aria-hidden="true"><%= circled_numbers[index] || "#{index + 1}." %></span>
+              <%= q[:question] %>
+            </p>
+            <% if q[:example].present? %>
+              <p class="mt-1 text-xs text-steel">예시: <%= q[:example] %></p>
+            <% end %>
+          </li>
+        <% end %>
+      </ol>
+
+      <% if @guided[:spelling_tip].present? %>
+        <p class="text-sm text-steel"><%= ui_icon :lightbulb, class_name: "h-4 w-4" %> <%= @guided[:spelling_tip] %></p>
+      <% end %>
+
+      <div class="page-actions">
+        <button type="button" data-action="guide-modal#close" data-guide-modal-target="confirm"
+                class="btn btn-primary min-h-[44px] w-full sm:w-auto">
+          확인했어요
+        </button>
+      </div>
+
+      <p class="text-xs text-steel">
+        손으로 쓴 글을 다시 읽고, 줄거리만 길게 쓰지 않았는지·생각을 충분히 썼는지 살펴본 뒤 사진을 찍어요.
+      </p>
+    </div>
+
+    <button type="button" data-action="guide-modal#open"
+            class="mt-2 min-h-[44px] text-sm font-medium text-steel hover:text-ink hover:underline">
+      <%= ui_icon :lightbulb, class_name: "h-4 w-4" %> 작성 팁 다시 보기
+    </button>
+  </div>
+<% end %>

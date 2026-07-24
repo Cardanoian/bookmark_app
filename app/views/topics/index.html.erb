@@ -1,0 +1,65 @@
+<% content_for :title, "토론방 · 책갈피" %>
+
+<%# 학생 상단 네비 복원(활동 탭). 교사·기타 역할에는 아무것도 렌더하지 않는다(partial 가드). %>
+<%= render "shared/student_nav", active: :activity %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">커뮤니티</p>
+      <h1 class="page-title flex items-center gap-2"><%= ui_icon :discussion, class_name: "h-7 w-7" %> 독서 토론</h1>
+      <p class="page-subtitle">우리 반·우리 학교 친구들과 책 이야기를 나눠 보세요. 고운 말로 서로를 존중해요.</p>
+    </div>
+  </header>
+
+  <% if policy(Topic).create? %>
+    <%= form_with model: Topic.new, url: topics_path, method: :post, class: "card space-y-3" do |f| %>
+      <%= f.text_field :title, placeholder: "토론 주제를 입력하세요", required: true,
+            minlength: Topic::TITLE_LENGTH.min, maxlength: Topic::TITLE_LENGTH.max, class: "form-input" %>
+      <div class="flex flex-wrap items-center gap-3">
+        <%# 교사는 담당 학급을 골라 그 반의 토론방을 연다(다학급 담임 대응). 학생은 자기 반 고정. %>
+        <% if @teacher_classrooms.present? && @teacher_classrooms.any? %>
+          <%= f.select :classroom_id,
+                @teacher_classrooms.map { |c| [ c.label, c.id ] },
+                { include_blank: "학급 선택" }, class: "form-select w-auto" %>
+        <% end %>
+        <%= f.select :scope, [ [ "우리 반", "classroom" ], [ "우리 학교", "school" ] ], {}, class: "form-select w-auto" %>
+        <%= f.submit "토론방 열기", class: "btn btn-yellow btn-sm" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if @topics.any? %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <% @topics.each do |topic| %>
+        <article class="card flex h-full flex-col gap-2">
+          <%= link_to topic.title, topic_path(topic), class: "font-semibold text-ink hover:underline" %>
+          <% if topic.book %>
+            <p class="flex items-center gap-1 text-xs text-steel"><%= ui_icon :book_open, class_name: "h-3.5 w-3.5" %> <%= topic.book.title %></p>
+          <% end %>
+          <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-steel">
+            <span class="badge badge-neutral"><%= topic.classroom? ? "우리 반" : "우리 학교" %></span>
+            <span class="inline-flex items-center gap-1"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> 글 <%= topic.forum_posts_count %>개</span>
+          </p>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 토론방이 없어요. 첫 토론을 열어 볼까요?", icon: :discussion %>
+  <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="flex items-center justify-between gap-3">
+      <% if @page > 1 %>
+        <%= link_to icon_text(:arrow_left, "이전"), topics_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to text_icon("다음", :arrow_right), topics_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
+  <% end %>
+</div>

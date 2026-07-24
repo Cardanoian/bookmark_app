@@ -1,0 +1,23 @@
+<%# locals: (podium:) %>
+<%# Top3 포디움. 1위는 .card-feature로 강조. %>
+<% medals = %i[medal_gold medal_silver medal_bronze] %>
+<div class="mb-6 flex items-end justify-center gap-3">
+  <% podium.each_with_index do |student, index| %>
+    <%# 시즌 플래그 on 이면 현재 학년도 시즌 경험치(SELECT 별칭)를, off 면 평생 경험치를 표시. %>
+    <% season_on = AppSetting.feature_enabled?("ranking_seasons", scope: student.classroom, default: false) %>
+    <% xp = season_on ? student[:season_experience].to_i : student.experience %>
+    <div class="<%= index.zero? ? "card-feature scale-105" : "card" %> text-center">
+      <div><%= ui_icon medals[index], class_name: "h-7 w-7" %></div>
+      <div class="mx-auto flex h-12 w-12 items-center justify-center text-3xl" aria-hidden="true">
+        <% if student.ranking_identity_visible? %>
+          <%= student.active_monster ? monster_sprite(student.active_monster.species, img_class: "h-12 w-12 object-contain") : ui_icon(:egg, class_name: "h-12 w-12") %>
+        <% else %>
+          <%= ui_icon(:mystery, label: "비공개 몬스터", class_name: "h-12 w-12") %>
+        <% end %>
+      </div>
+      <p class="text-sm font-semibold text-ink"><%= student.ranking_name %></p>
+      <p class="text-xs font-bold text-yellow-dark"><%= xp %>XP</p>
+      <p class="text-xs text-steel">Lv.<%= student.trainer_level %> · <%= student.points %>P</p>
+    </div>
+  <% end %>
+</div>

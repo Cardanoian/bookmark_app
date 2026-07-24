@@ -1,0 +1,92 @@
+<% content_for :title, "챌린지 · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
+<% teacher_console = current_user.teacher? %>
+
+<div class="page-shell <%= teacher_console ? "page-shell-wide" : "page-shell-content" %>">
+  <div class="<%= "flex flex-col gap-6 lg:flex-row" if teacher_console %>">
+    <%= render "teacher/nav", active: :challenges if teacher_console %>
+
+    <section class="<%= teacher_console ? "min-w-0 flex-1" : "" %> space-y-6">
+      <header class="page-header">
+        <div>
+          <p class="text-sm font-medium text-steel">챌린지</p>
+          <h1 class="page-title flex items-center gap-2"><%= ui_icon :flame, class_name: "h-7 w-7" %> 챌린지</h1>
+        </div>
+        <div class="page-actions">
+          <% if policy(Challenge).new? %>
+            <%= link_to "+ 새 챌린지 만들기", new_challenge_path, class: "btn btn-primary btn-sm" %>
+          <% end %>
+        </div>
+      </header>
+
+      <% if @challenges.any? %>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <% @challenges.each do |challenge| %>
+            <%# stretched-link 카드(reports/_report 관용구): 카드 전체 클릭 → 상세. 버튼 클러스터는 z-10 로 독립. %>
+            <div class="card relative">
+              <div class="flex items-start justify-between gap-2">
+                <%= link_to challenge.title, challenge_path(challenge),
+                      class: "text-sm font-semibold text-ink hover:underline after:absolute after:inset-0 after:content-['']" %>
+                <span class="badge badge-info"><%= challenge.global? ? "전국" : "우리 학교" %> 챌린지</span>
+              </div>
+
+              <% if challenge.description.present? %>
+                <p class="mt-1 line-clamp-1 text-xs text-steel"><%= challenge.description %></p>
+              <% end %>
+
+              <% progress = @progress_by_challenge&.[](challenge) %>
+              <% if progress %>
+                <%# 학생 본인 진행상황(활성·목표 있는 챌린지만 세팅됨). %>
+                <div class="mt-2 space-y-1.5">
+                  <% progress[:goals].each do |g| %>
+                    <div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-steel"><%= goal_label[g[:type]] %> <%= g[:target] %></span>
+                        <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
+                      </div>
+                      <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
+                    </div>
+                  <% end %>
+                  <% if challenge.reward_points.to_i.positive? %>
+                    <span class="badge badge-yellow"><%= ui_icon :gift, class_name: "h-4 w-4" %> <%= challenge.reward_points %>P</span>
+                  <% end %>
+                </div>
+              <% elsif challenge.challenge_goals.any? %>
+                <%# 교직원·비활성·목표 요약: 목표 배지. %>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <% challenge.challenge_goals.each do |goal| %>
+                    <span class="badge badge-neutral"><%= ui_icon(goal.approved_reports? ? :writing : :game, class_name: "h-4 w-4") %> <%= goal.approved_reports? ? "독후감" : "게임" %> <%= goal.target_count %></span>
+                  <% end %>
+                  <% if challenge.reward_points.to_i.positive? %>
+                    <span class="badge badge-yellow"><%= ui_icon :gift, class_name: "h-4 w-4" %> <%= challenge.reward_points %>P</span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <% if challenge.starts_on || challenge.ends_on %>
+                <p class="mt-2 text-xs text-muted"><%= challenge.starts_on %> ~ <%= challenge.ends_on %></p>
+              <% end %>
+
+              <% if current_user.student? || policy(challenge).edit? || policy(challenge).destroy? %>
+                <div class="relative z-10 mt-4 flex flex-wrap gap-2">
+                  <% if current_user.student? %>
+                    <%= button_to "참여하기", join_challenge_path(challenge), method: :post, class: "btn btn-yellow btn-sm" %>
+                  <% end %>
+                  <% if policy(challenge).edit? %>
+                    <%= link_to "수정", edit_challenge_path(challenge), class: "btn btn-secondary btn-sm" %>
+                  <% end %>
+                  <% if policy(challenge).destroy? %>
+                    <%= button_to "삭제", challenge_path(challenge), method: :delete,
+                          form: { data: { turbo_confirm: "이 챌린지를 삭제할까요?" } }, class: "btn btn-danger btn-sm" %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "진행 중인 챌린지가 없어요.", icon: :flame %>
+      <% end %>
+    </section>
+  </div>
+</div>

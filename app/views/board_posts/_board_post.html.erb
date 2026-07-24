@@ -1,0 +1,14 @@
+<%# 우수작 카드(P5.3). local: board_post %>
+<% report = board_post.report %>
+<article id="<%= dom_id(board_post) %>" class="card flex h-full flex-col gap-3">
+  <div class="min-w-0 space-y-1">
+    <%= link_to (report.book&.title.presence || report.book_title), board_post_path(board_post),
+          class: "block font-semibold text-ink hover:underline" %>
+    <p class="text-xs text-steel"><%= report.user.name %></p>
+  </div>
+  <p class="line-clamp-3 text-sm text-slate"><%= truncate(report.body.to_s, length: 100) %></p>
+  <div class="mt-auto flex items-center justify-between gap-2 pt-2">
+    <span class="badge badge-yellow"><%= ui_icon :cheer, class_name: "h-4 w-4" %> 응원 <%= report.cheers_count %></span>
+    <span class="inline-flex items-center gap-1 text-sm font-medium text-brand-blue" aria-hidden="true"><%= text_icon "읽어보기", :arrow_right %></span>
+  </div>
+</article>

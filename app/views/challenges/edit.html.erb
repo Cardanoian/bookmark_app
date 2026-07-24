@@ -1,0 +1,22 @@
+<% content_for :title, "챌린지 수정 · 책갈피" %>
+<% teacher_console = current_user.teacher? %>
+
+<div class="page-shell <%= teacher_console ? "page-shell-wide" : "page-shell-form" %>">
+  <div class="<%= "flex flex-col gap-6 lg:flex-row" if teacher_console %>">
+    <%= render "teacher/nav", active: :challenges if teacher_console %>
+
+    <section class="<%= teacher_console ? "min-w-0 flex-1" : "" %> space-y-4">
+      <header class="page-header">
+        <div>
+          <p class="text-sm font-medium text-steel">챌린지</p>
+          <h1 class="page-title flex items-center gap-2"><%= ui_icon :writing, class_name: "h-7 w-7" %> 챌린지 수정</h1>
+        </div>
+        <div class="page-actions">
+          <%= link_to icon_text(:arrow_left, "챌린지 목록"), challenges_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+        </div>
+      </header>
+
+      <%= render "form", challenge: @challenge %>
+    </section>
+  </div>
+</div>

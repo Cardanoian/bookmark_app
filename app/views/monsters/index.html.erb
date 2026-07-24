@@ -1,0 +1,35 @@
+<% content_for :title, "몬스터 도감 · 책갈피" %>
+
+<div class="page-shell page-shell-wide space-y-6" data-controller="dex">
+  <%= turbo_stream_from current_user, :active_monster %>
+
+  <%= render "shared/student_nav", active: :monsters %>
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="sm:col-span-2">
+      <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
+    </div>
+    <div class="stat-card">
+      <p class="stat-card__label">도감 완성도</p>
+      <p class="stat-card__value"><%= @dex_count %> <span class="text-base font-normal text-muted">/ <%= @design_lines %></span></p>
+      <div class="progress-bar mt-2">
+        <div class="progress-bar__fill" style="width: <%= (@dex_count.to_f / @design_lines * 100).round %>%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap justify-center gap-2">
+    <button type="button" data-dex-target="filter" data-element="all"
+            data-action="dex#filter"
+            class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-xs font-medium text-slate">전체</button>
+    <% MonsterSpecies.elements.keys.each do |element| %>
+      <button type="button" data-dex-target="filter" data-element="<%= element %>"
+              data-action="dex#filter"
+              class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-xs font-medium <%= element_badge_classes(element) %>">
+        <%= element_label(element) %>
+      </button>
+    <% end %>
+  </div>
+
+  <%= render "monsters/dex_grid", lines: @lines, owned: @owned, evolvable_ids: @evolvable_ids, stats: @stats %>
+</div>

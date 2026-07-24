@@ -1,0 +1,40 @@
+<% content_for :title, "퀴즈 관리 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :quizzes %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <h1 class="page-title">퀴즈 관리</h1>
+        <%= link_to "새 퀴즈", new_teacher_quiz_path, class: "btn btn-blue" %>
+      </header>
+
+      <% if @quizzes.any? %>
+        <div class="space-y-3">
+          <% @quizzes.each do |quiz| %>
+            <div class="card flex items-center justify-between gap-3">
+              <span class="min-w-0">
+                <span class="block font-medium text-ink"><%= quiz.title %></span>
+                <span class="mt-1 flex items-center gap-2 text-xs text-steel">
+                  문항 <%= quiz.quiz_questions.size %>개
+                  <span class="badge <%= quiz.published? ? "badge-success" : "badge-neutral" %>">
+                    <%= quiz.published? ? "게시됨" : "미게시" %>
+                  </span>
+                </span>
+              </span>
+              <div class="flex shrink-0 items-center gap-2">
+                <%= link_to "편집", edit_teacher_quiz_path(quiz), class: "text-sm text-brand-blue" %>
+                <%= button_to "삭제", teacher_quiz_path(quiz), method: :delete,
+                      form: { data: { turbo_confirm: "삭제할까요?" } },
+                      class: "btn btn-sm btn-danger" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "등록된 퀴즈가 없어요.", icon: :quiz %>
+      <% end %>
+    </section>
+  </div>
+</div>

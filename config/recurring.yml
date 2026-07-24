@@ -1,0 +1,27 @@
+# examples:
+#   periodic_cleanup:
+#     class: CleanSoftDeletedRecordsJob
+#     queue: background
+#     args: [ 1000, { batch_size: 500 } ]
+#     schedule: every hour
+#   periodic_cleanup_with_command:
+#     command: "SoftDeletedRecord.due.delete_all"
+#     priority: 2
+#     schedule: at 5am every day
+
+production:
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+  # 미션 완료·보상 주기 재평가(menu_refactor 심화 §2.A.6 안전망2). 트리거 미스·지연배정 갭 백스톱.
+  # Rewarder 멱등이라 재실행 안전. production 전용이라 dev/test 는 즉시 평가 + 수동 rake 로 커버.
+  reevaluate_active_missions:
+    class: Missions::ReevaluateJob
+    schedule: every hour at minute 27
+  # 계정 연동 자격증명 purge(account_linking_seasons_plan §Phase 5). 교사 되돌리기 창(14일) 경과·
+  # 미되돌림 병합 snapshot 의 password_digest 를 야간 nullify(PII 보존기간 제한, 멱등). 잡 클래스로
+  # 스케줄해 rake 의존을 피한다(읽기 전용 리포트 account_links:audit·seasons:reconcile 은 로그 스팸을
+  # 피하려 recurring 미등록 — 운영자가 온디맨드/외부 스케줄러로 실행).
+  purge_account_link_credentials:
+    class: Accounts::PurgeCredentialsJob
+    schedule: at 4am every day

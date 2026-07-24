@@ -1,0 +1,109 @@
+require "test_helper"
+
+class BadgeableTest < ActiveSupport::TestCase
+  setup do
+    seed_badges!
+    @school = School.create!(name: "뱃지초등학교")
+    @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
+    @user = User.create!(school: @school, classroom: @classroom, name: "뱃지학생", password: "password")
+  end
+
+  def report(attrs = {})
+    Report.create!({ user: @user, classroom: @classroom, book_title: "책" }.merge(attrs))
+  end
+
+  def keys
+    @user.badges.reload.pluck(:key)
+  end
+
+  test "first / three / ten granted by reviewed report counts" do
+    3.times { report(reviewed: true) }
+    @user.refresh_badges!
+    assert_includes keys, "first"
+    assert_includes keys, "three"
+    assert_not_includes keys, "ten"
+  end
+
+  test "levelA and tripleA granted by A-grade counts" do
+    3.times { report(reviewed: true, level: "A") }
+    @user.refresh_badges!
+    assert_includes keys, "levelA"
+    assert_includes keys, "tripleA"
+  end
+
+  test "reviser granted with one improved revision but grower is NOT (grower needs 3)" do
+    report(reviewed: true, improvement: 2.0)
+    @user.refresh_badges!
+    assert_includes keys, "reviser"
+    assert_not_includes keys, "grower", "grower 는 reviser 와 분리된 상위 이정표(향상 3회)"
+  end
+
+  test "grower granted once three improved revisions exist (and reviser too)" do
+    3.times { report(reviewed: true, improvement: 1.0) }
+    @user.refresh_badges!
+    assert_includes keys, "reviser"
+    assert_includes keys, "grower"
+  end
+
+  test "challenger granted by challenge participation" do
+    challenge = Challenge.create!(title: "챌린지")
+    report(challenge_id: challenge.id)
+    @user.refresh_badges!
+    assert_includes keys, "challenger"
+  end
+
+  test "ocr granted when an OCR report exists" do
+    report(input_mode: :ocr)
+    @user.refresh_badges!
+    assert_includes keys, "ocr"
+  end
+
+  test "badges are idempotent (no duplicates on repeat refresh)" do
+    report(reviewed: true)
+    @user.refresh_badges!
+    @user.refresh_badges!
+    assert_equal 1, @user.user_badges.where(badge: Badge.find_by(key: "first")).count
+  end
+
+  test "final_form granted when a monster reaches stage 3" do
+    species3 = MonsterSpecies.create!(key: "bg_pup_3", stage: 3, dex_no: 1)
+    @user.user_monsters.create!(monster_species: species3, dex_no: 1, obtained_at: Time.current)
+    @user.refresh_badges!
+    assert_includes keys, "final_form"
+  end
+
+  # DENOMINATOR FIXED AT 24 — owning exactly 12 of 24 lines grants dex_half but NOT dex_complete.
+  test "dex_half granted at 12 owned lines but dex_complete is NOT (denominator 24)" do
+    seed_monster_species!
+    MonsterSpecies.where(stage: 1).order(:dex_no).limit(12).each do |species|
+      @user.user_monsters.create!(monster_species: species, dex_no: species.dex_no, obtained_at: Time.current)
+    end
+    assert_equal 12, @user.user_monsters.distinct.count(:dex_no)
+
+    @user.refresh_badges!
+    assert_includes keys, "dex_half", "12 >= 12 lines should grant dex_half"
+    assert_not_includes keys, "dex_complete", "12 of 24 must not complete the dex"
+  end
+
+  # 보상 루프가 닫히는지: 24라인 전량 시드 + 전량 보유 → dex_complete 발부.
+  test "dex_complete granted when all 24 seeded lines are owned" do
+    seed_monster_species!
+    MonsterSpecies.where(stage: 1).find_each do |species|
+      @user.user_monsters.create!(monster_species: species, dex_no: species.dex_no, obtained_at: Time.current)
+    end
+    assert_equal 24, @user.user_monsters.distinct.count(:dex_no)
+
+    @user.refresh_badges!
+    assert_includes keys, "dex_complete", "owning all 24 lines should complete the dex"
+    assert_includes keys, "dex_half"
+  end
+
+  test "dex_half NOT granted below 12 owned lines" do
+    seed_monster_species!
+    MonsterSpecies.where(stage: 1).limit(11).each do |species|
+      @user.user_monsters.create!(monster_species: species, dex_no: species.dex_no, obtained_at: Time.current)
+    end
+    @user.refresh_badges!
+    assert_not_includes keys, "dex_half"
+  end
+end

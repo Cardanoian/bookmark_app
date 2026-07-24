@@ -1,0 +1,97 @@
+<%# 챌린지 만들기/수정 폼(새 미션 폼 미러). locals: challenge.
+    scope·school_id 는 역할에서 파생하므로 폼엔 학급 선택 대신 노출 범위 안내만 둔다.
+    목표는 초기 2종(승인 독후감·게임) 고정 — target 양수면 목표로 저장(challenge[goals][<type>]).
+    종류별로 특정 책(challenge[goal_books][<type>])을 지정하면 그 책 활동만 인정, 비우면 아무 책이나 인정. %>
+<% report_goal = challenge.challenge_goals.detect { |g| g.goal_type == "approved_reports" } %>
+<% game_goal = challenge.challenge_goals.detect { |g| g.goal_type == "game_plays" } %>
+<% report_target = report_goal&.target_count %>
+<% game_target = game_goal&.target_count %>
+<%= form_with model: challenge, url: (challenge.persisted? ? challenge_path(challenge) : challenges_path),
+      class: "card space-y-4" do |f| %>
+  <% if challenge.errors.any? %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <span><%= challenge.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, "챌린지 제목", class: "form-label" %>
+    <%= f.text_field :title, class: "form-input", maxlength: 100, placeholder: "예: 여름방학 3권 읽기" %>
+  </div>
+
+  <div>
+    <%= f.label :description, "설명(선택)", class: "form-label" %>
+    <%= f.text_area :description, rows: 2, class: "form-input", placeholder: "학생에게 보여줄 안내 문구" %>
+  </div>
+
+  <div class="rounded-card bg-surface-soft p-3 text-xs text-steel">
+    <% if challenge.persisted? %>
+      <% if challenge.global? %>
+        <span class="badge badge-info">전국</span> 전국 모든 학생에게 보이는 챌린지예요.
+      <% else %>
+        <span class="badge badge-info">우리 학교</span> <%= challenge.school&.name || "학교" %> 학생에게 보이는 챌린지예요.
+      <% end %>
+    <% elsif current_user.superadmin? %>
+      <span class="badge badge-info">전국</span> 이 챌린지는 전국 모든 학생에게 보여요.
+    <% else %>
+      <span class="badge badge-info">우리 학교</span> 이 챌린지는 <%= current_user.school&.name || "우리 학교" %> 학생에게 보여요.
+    <% end %>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :starts_on, "시작일(선택)", class: "form-label" %>
+      <%= f.date_field :starts_on, class: "form-input" %>
+    </div>
+    <div>
+      <%= f.label :ends_on, "종료일(선택)", class: "form-label" %>
+      <%= f.date_field :ends_on, class: "form-input" %>
+    </div>
+  </div>
+
+  <fieldset class="space-y-4 rounded-card border border-hairline p-4">
+    <legend class="px-1 text-sm font-semibold text-ink">목표 <span class="text-steel">(하나 이상, 0이면 제외)</span></legend>
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
+      <label class="block">
+        <span class="form-label">승인 독후감 수</span>
+        <%= number_field_tag "challenge[goals][approved_reports]", report_target, min: 0, max: 50, class: "form-input", placeholder: "예: 3" %>
+      </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "challenge[goal_books][approved_reports][ids][]",
+              isbns_name: "challenge[goal_books][approved_reports][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (report_goal&.books || []) %>
+      </div>
+    </div>
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
+      <label class="block">
+        <span class="form-label">독서 게임 완료 수</span>
+        <%= number_field_tag "challenge[goals][game_plays]", game_target, min: 0, max: 50, class: "form-input", placeholder: "예: 2" %>
+      </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "challenge[goal_books][game_plays][ids][]",
+              isbns_name: "challenge[goal_books][game_plays][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (game_goal&.books || []) %>
+      </div>
+    </div>
+  </fieldset>
+
+  <div>
+    <%= f.label :reward_points, "완료 보상 포인트", class: "form-label" %>
+    <%= f.number_field :reward_points, min: 0, max: Challenge.reward_max_points, class: "form-input" %>
+    <p class="mt-1 text-xs text-steel">모든 목표를 달성하면 같은 양의 포인트와 경험치가 한 번 지급돼요(최대 <%= Challenge.reward_max_points %>P + XP). 목표가 없으면 보상도 없어요.</p>
+  </div>
+
+  <div class="page-actions">
+    <%= f.submit(challenge.persisted? ? "저장" : "챌린지 만들기", class: "btn btn-primary") %>
+    <%= link_to "취소", challenges_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

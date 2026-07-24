@@ -1,0 +1,35 @@
+<%# 마이페이지 비밀번호 변경 — 현재/새/새 확인 3필드. patch → passwords#update. %>
+<% content_for :title, "비밀번호 변경 · 책갈피" %>
+
+<div class="page-shell page-shell-form space-y-6">
+  <header>
+    <p class="text-sm font-medium text-steel">마이페이지</p>
+    <h1 class="page-title mt-1">비밀번호 변경</h1>
+    <p class="page-subtitle">현재 비밀번호를 확인한 뒤 새 비밀번호로 바꿀 수 있어요.</p>
+  </header>
+
+  <div class="card">
+    <%# flash 오류는 공통 상단 토스트(shared/_flash)가 담당 — 여기서 중복 렌더하지 않음. %>
+    <%= form_with url: password_path, method: :patch, local: true, class: "space-y-4" do %>
+      <div>
+        <%= label_tag :current_password, "현재 비밀번호", class: "form-label" %>
+        <%= password_field_tag :current_password, nil, autocomplete: "current-password", class: "form-input" %>
+      </div>
+
+      <div>
+        <%= label_tag :password, "새 비밀번호 (6자 이상)", class: "form-label" %>
+        <%= password_field_tag :password, nil, autocomplete: "new-password", class: "form-input" %>
+      </div>
+
+      <div>
+        <%= label_tag :password_confirmation, "새 비밀번호 확인", class: "form-label" %>
+        <%= password_field_tag :password_confirmation, nil, autocomplete: "new-password", class: "form-input" %>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <%= submit_tag "비밀번호 변경", class: "btn btn-primary" %>
+        <%= link_to "취소", profile_path, class: "btn btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

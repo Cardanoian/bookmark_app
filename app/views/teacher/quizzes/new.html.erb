@@ -1,0 +1,40 @@
+<% content_for :title, "새 퀴즈 · 책갈피" %>
+
+<div class="page-shell page-shell-form space-y-4">
+  <%= link_to icon_text(:arrow_left, "퀴즈 관리"), teacher_quizzes_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+  <h1 class="page-title">새 퀴즈</h1>
+  <p class="page-subtitle">도서를 고르면 AI가 초안 문항을 만들어 줘요(오프라인 시 템플릿).</p>
+
+  <%= form_with model: @quiz, url: teacher_quizzes_path, class: "card space-y-4" do |f| %>
+    <% if @quiz.errors.any? %>
+      <div class="state-banner state-banner--error" role="alert">
+        <%= ui_icon :warning %>
+        <span><%= @quiz.errors.full_messages.to_sentence %></span>
+      </div>
+    <% end %>
+
+    <div>
+      <%= f.label :title, "퀴즈 제목", class: "form-label" %>
+      <%= f.text_field :title, class: "form-input" %>
+    </div>
+
+    <div>
+      <%= f.label :book_id, "도서(선택)", class: "form-label" %>
+      <%= render "books/autocomplete_field", form: f, book_id_field: :book_id,
+            title_field: nil, url: autocomplete_books_path, mode: "strict",
+            show_cover: false, selected_book: @quiz&.book %>
+    </div>
+
+    <% if @classrooms.size > 1 %>
+      <div>
+        <%= f.label :classroom_id, "학급", class: "form-label" %>
+        <%= f.collection_select :classroom_id, @classrooms, :id, :label, {}, class: "form-select" %>
+      </div>
+    <% end %>
+
+    <div class="page-actions">
+      <%= f.submit "초안 만들기", class: "btn btn-primary" %>
+      <%= link_to "취소", teacher_quizzes_path, class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

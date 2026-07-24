@@ -1,0 +1,128 @@
+<% content_for :title, "독서활동 · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
+
+<div class="page-shell page-shell-wide space-y-6">
+  <h1 class="sr-only">독서활동</h1>
+  <%= render "shared/student_nav", active: :activity %>
+
+  <header class="page-header">
+    <h2 class="page-title flex items-center gap-2"><%= ui_icon :writing, class_name: "h-7 w-7" %> 독서활동</h2>
+  </header>
+
+  <% if @book.nil? %>
+    <%# 책 미선택 상태: 등록 도서 검색 → 선택 → 다음 %>
+    <section class="card space-y-3">
+      <p class="text-sm text-steel">먼저 읽은 책을 골라 주세요. 고른 책으로 독후감을 쓰거나 게임을 할 수 있어요.</p>
+      <%= form_with url: reading_activity_path, method: :get, class: "space-y-3" do |f| %>
+        <%= render "books/autocomplete_field", form: f, book_id_field: :book_id,
+              url: autocomplete_books_path, mode: "strict", show_cover: true %>
+        <%= f.submit "다음", class: "btn btn-primary btn-sm" %>
+      <% end %>
+      <p class="text-xs text-steel">찾는 책이 없으면 <%= link_to "책 검색하기", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
+    </section>
+  <% else %>
+    <%# 선택 도서 카드 + 책 바꾸기 %>
+    <section class="card flex items-center gap-3">
+      <% if @book.cover_url.present? %>
+        <%= image_tag @book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover" %>
+      <% else %>
+        <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
+      <% end %>
+      <div class="min-w-0 flex-1">
+        <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
+        <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+        <%= book_meta_badges(@book) %>
+      </div>
+      <%= link_to "책 바꾸기", reading_activity_path, class: "btn btn-secondary btn-sm shrink-0" %>
+    </section>
+
+    <%# 미션 문맥 — 이 책 활동이 미션 진행에 실제로 반영되는 목표가 있을 때만 배너를 띄운다.
+        컨트롤러가 goals 를 이 책 반영 목표로만 좁혀 두므로 미달 목표만 힌트로 렌더한다. %>
+    <% if @book_missions.any? %>
+      <div class="state-banner state-banner--info" role="note">
+        <%= ui_icon :target %>
+        <span>
+          진행 중인 미션이 있어요 —
+          <% hints = @book_missions.flat_map { |m| m[:goals].reject { |g| g[:met] }.map { |g| goal_label[g[:type]] } }.uniq %>
+          <% if hints.any? %><%= hints.to_sentence %> 활동이 미션 진행에 반영돼요.<% else %>목표를 거의 다 채웠어요!<% end %>
+        </span>
+      </div>
+    <% end %>
+
+    <%# 활동 선택 카드 2종 %>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <section class="card space-y-2">
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :writing %> 독후감 쓰기</h3>
+        <p class="text-sm text-steel">이 책으로 독후감을 쓰고 AI 첨삭을 받아요.</p>
+        <%= link_to "독후감 쓰기", new_report_path(report: { book_id: @book.id, book_title: @book.title }),
+              class: "btn btn-primary btn-sm" %>
+        <% if @recent_reports.any? %>
+          <p class="text-xs text-steel">최근 독후감 <%= @recent_reports.size %>편 · <%= link_to "내 서재에서 보기", library_path, class: "text-brand-blue underline" %></p>
+        <% end %>
+      </section>
+
+      <section class="card space-y-2">
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :game %> 독서 게임</h3>
+        <p class="text-sm text-steel">이 책으로 게임을 즐겨요.</p>
+        <%# 퀴즈·나는 누구게?는 가용성 게이트(§2b) — 콘텐츠 만들 수 있는 책에만. 책 소개 대결·뒷이야기는 항상. %>
+        <% game_chips = [] %>
+        <% game_chips << [ "퀴즈", games_quiz_play_path(book_id: @book.id) ] if @quiz_available %>
+        <% game_chips << [ "나는 누구게?", games_whoami_play_path(book_id: @book.id) ] if @whoami_available %>
+        <% game_chips << [ "책 소개 대결", games_book_play_path(book_id: @book.id) ] %>
+        <% game_chips << [ "뒷이야기 이어쓰기", games_sequel_play_path(book_id: @book.id) ] %>
+        <div class="flex flex-wrap gap-2">
+          <% game_chips.each do |label, path| %>
+            <%= link_to label, path, class: "rounded-full border border-hairline px-3 py-1.5 text-sm text-ink hover:border-primary/40 hover:bg-surface" %>
+          <% end %>
+        </div>
+        <% unless @quiz_available && @whoami_available %>
+          <p class="text-xs text-steel">아직 퀴즈·나는 누구게?를 만들 수 없는 책이에요. 직접 문제를 내거나 책 소개·뒷이야기로 즐겨 보세요!</p>
+        <% end %>
+        <%# 학생 출제 기여(전국 공유 문제은행 §4.1) — 이 책 문제를 직접 낸다. 승인 후 전국 풀 편입. %>
+        <div class="border-t border-hairline-soft pt-2">
+          <%= link_to new_quiz_contribution_path(book_id: @book.id),
+                class: "inline-flex items-center gap-1 text-sm font-medium text-brand-blue underline" do %>
+            <%= ui_icon :writing, class_name: "h-4 w-4" %> <span>이 책 문제 내기</span>
+          <% end %>
+          <p class="text-xs text-steel">내가 낸 문제는 선생님이 확인한 뒤 친구들에게 보여 줘요.</p>
+        </div>
+      </section>
+    </div>
+
+    <%# 이 책으로 나누는 독서 토론(책 앵커드 진입점, reading_discussion). 기능 플래그가 꺼지면 숨김. %>
+    <% if reading_discussion_enabled? %>
+      <section class="card space-y-3">
+        <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :discussion %> 이 책으로 토론하기</h3>
+        <% if @book_topics.any? %>
+          <ul class="space-y-1.5">
+            <% @book_topics.each do |topic| %>
+              <li class="flex items-center justify-between gap-2">
+                <%= link_to topic.title, topic_path(topic), class: "min-w-0 truncate text-brand-blue underline" %>
+                <span class="flex shrink-0 items-center gap-1 text-xs text-steel"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> <%= topic.forum_posts_count %></span>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-steel">아직 이 책으로 나눈 토론이 없어요. 첫 토론을 열어 보세요!</p>
+        <% end %>
+
+        <% if policy(Topic).create? %>
+          <%= form_with model: Topic.new, url: topics_path, method: :post, class: "flex flex-wrap items-end gap-2 border-t border-hairline-soft pt-3" do |f| %>
+            <%= f.hidden_field :book_id, value: @book.id %>
+            <%= f.hidden_field :scope, value: "classroom" %>
+            <%= f.text_field :title, value: truncate("《#{@book.title}》 이야기", length: Topic::TITLE_LENGTH.max),
+                  maxlength: Topic::TITLE_LENGTH.max, "aria-label": "토론 주제", class: "form-input flex-1" %>
+            <%= f.submit "토론 열기", class: "btn btn-yellow btn-sm" %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <%# 인근 도서관 대출 가능 표시 — 첫 렌더를 막지 않게 Turbo Frame lazy-load(§5.5). %>
+    <%= turbo_frame_tag "nearby_libraries",
+          src: nearby_libraries_reading_activity_path(book_id: @book.id),
+          loading: :lazy do %>
+      <section class="card"><p class="text-sm text-steel">인근 도서관을 찾는 중…</p></section>
+    <% end %>
+  <% end %>
+</div>

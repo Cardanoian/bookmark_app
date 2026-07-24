@@ -1,0 +1,243 @@
+require "test_helper"
+
+# Phase 3 §3 — 온디맨드 게임 편입 e2e(무키 오프라인). 카탈로그 진입 + 퀴즈 파이프라인 4종 표면 플레이 +
+# whoami 힌트 **서버 권위**(위조·stale-cookie replay 불변) + 재롤(새 버전·포인트 0) + 정직 안내.
+class GamesOndemandTest < ActionDispatch::IntegrationTest
+  setup do
+    seed_monster_species!
+    seed_badges!
+    @school = School.create!(name: "온디맨드초")
+    @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1) # g56
+    @student = User.create!(school: @school, classroom: @classroom, name: "온디학생", password: "password")
+    @book = Book.create!(title: "온디책", author: "김저자", summary: "모험을 떠난 소년의 긴 여정 이야기.", category: :recommended)
+    CuratedQuiz.create!(book: @book, content_axis: :mcq, payload: [
+      { "prompt" => "이야기의 주인공은 누구인가요?", "choices" => %w[소년 소녀 선생님 마법사], "answer_index" => 0, "explanation" => "소년이 모험을 떠나요.", "difficulty" => 1 },
+      { "prompt" => "주인공은 무엇을 떠나나요?", "choices" => %w[모험 여행 학교 경기], "answer_index" => 0, "explanation" => "주인공은 모험을 떠나요.", "difficulty" => 1 },
+      { "prompt" => "이야기에서 이어지는 것은 무엇인가요?", "choices" => %w[긴여정 짧은수업 요리시간 운동회], "answer_index" => 0, "explanation" => "긴 여정이 이어져요.", "difficulty" => 1 },
+      { "prompt" => "주인공이 마주하는 것은 무엇인가요?", "choices" => %w[새로운경험 같은하루 빈교실 시험지], "answer_index" => 0, "explanation" => "모험 속에서 새로운 경험을 해요.", "difficulty" => 1 },
+      { "prompt" => "이야기를 따라가며 알 수 있는 것은 무엇인가요?", "choices" => %w[여정의변화 정답지색깔 점심메뉴 책값], "answer_index" => 0, "explanation" => "주인공의 여정과 변화를 따라가요.", "difficulty" => 1 }
+    ])
+    CuratedQuiz.create!(book: @book, content_axis: :hint_reveal, payload: [
+      { "answer" => "소년", "hints" => [ "긴 여정을 떠나요", "이야기의 주인공이에요" ], "explanation" => "소년이 모험을 떠나요.", "difficulty" => 1 },
+      { "answer" => "모험", "hints" => [ "주인공이 떠나는 일이에요", "새로운 일을 찾아 나서는 것이에요" ], "explanation" => "주인공은 모험을 떠나요.", "difficulty" => 1 },
+      { "answer" => "여정", "hints" => [ "주인공이 오래 이어 가는 길이에요", "모험을 하며 지나가는 과정이에요" ], "explanation" => "긴 여정이 이야기의 중심이에요.", "difficulty" => 1 }
+    ])
+    login_as @student
+  end
+
+  # ── 카탈로그 진입 ─────────────────────────────────────────────────────
+  test "catalog offers a book search and links each game to on-demand play" do
+    get games_catalog_path
+    assert_response :success
+    assert_includes response.body, "독서 퀴즈"
+    assert_includes response.body, "책 소개 대결"
+    # WS-C 재구성: 책 전량 나열 대신 도서 검색(book-search) → 선택 시 JS 가 book_id 를 붙여 진입.
+    # 서버는 게임 칩에 book_id 없는 play 경로만 싣는다(data-play-path).
+    assert_select "[data-book-search-target=?]", "input"
+    assert_select "a[data-games-catalog-target='chip'][data-play-path=?]", games_whoami_play_path
+  end
+
+  # ── 퀴즈 파이프라인 mcq 표면 큐레이션 e2e ─────────────────────────────────
+  # 게임 재구성 Phase 1: classic·vocab 표면 제거 → quiz(mcq)만. whoami(hint_reveal)는 play 가
+  # 리다이렉트하므로 아래 별도 테스트에서 검증한다.
+  test "quiz on-demand play renders a curated system quiz immediately" do
+    get games_quiz_play_path(book_id: @book.id)
+    assert_response :success
+
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+    assert_equal "ready", quiz.generation_status
+    assert_equal "curated", quiz.quiz_questions.first.source, "검수된 큐레이션 문항을 즉시 제공"
+  end
+
+  test "whoami on-demand play pre-creates an attempt and redirects to the attempt-keyed show" do
+    get games_whoami_play_path(book_id: @book.id)
+    attempt = @student.quiz_attempts.order(:id).last
+    assert_not_nil attempt, "whoami 는 시작 시 attempt 를 선생성한다(reveal_hint 가 :attempt 요구)"
+    assert_redirected_to games_whoami_path(attempt)
+
+    follow_redirect!
+    assert_response :success
+    assert_select "h1", /나는 누구게/
+  end
+
+  # ── mcq 온디맨드 채점 → QuizAttempt + 포인트(정직 안내 유지) ───────────────
+  test "playing an on-demand mcq awards points and honest notice, then re-play awards zero" do
+    get games_quiz_play_path(book_id: @book.id)
+    quiz = Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).last
+
+    play_all_correct(quiz, "quiz")
+    assert_operator @student.reload.points, :>, 0, "첫 만점은 전액 적립"
+    assert_match "얻었어요", flash[:notice]
+
+    best = @student.points
+    play_all_correct(quiz, "quiz")
+    assert_equal best, @student.reload.points, "온디맨드 재플레이는 콘텐츠축 상한으로 +0"
+    assert_match "추가 포인트는 없어요", flash[:notice]
+    refute_match "얻었어요", flash[:notice]
+  end
+
+  # ── C1 whoami 힌트 서버 권위 — 위조/stale-cookie replay 로도 점수 불변 ───────
+  # (게임 재구성 Phase 1: matching[vocab] 온디맨드 채점 테스트는 표면·생성 경로 제거로 삭제)
+  test "whoami hint count is server-authoritative — revealing hints lowers the server-scored points" do
+    quiz, attempt = start_whoami
+    q1 = quiz.quiz_questions.first
+
+    # q1 힌트 2개 공개(서버 카운터 = 2, DB 에 저장).
+    2.times { reveal_hint(attempt, q1) }
+    assert_equal 2, attempt.reload.revealed_count(q1), "힌트 공개수는 서버(attempt.hint_reveals, DB)에 누적된다"
+
+    submit_whoami_all_correct(quiz, attempt)
+    finalized = attempt.reload
+    # q1: 정답이지만 힌트 2개 차감 → max(5-2,1)=3, q2·q3: 5점씩. 만점(15)이 아니라 13.
+    expected = (Games::QuestionScorer::POINTS_PER_CORRECT - 2) + 2 * Games::QuestionScorer::POINTS_PER_CORRECT
+    assert_equal expected, finalized.points_awarded, "서버 힌트 카운트만큼 차감된 점수"
+    assert_equal 3, finalized.score
+  end
+
+  test "a forged/stale client hint count cannot lower the penalty (C1 replay guard)" do
+    quiz, attempt = start_whoami
+    q1 = quiz.quiz_questions.first
+    2.times { reveal_hint(attempt, q1) } # 서버 카운터 = 2
+
+    # 클라이언트가 "힌트 0개 봤다"고 위조(=구 쿠키 replay 시나리오)해도 서버 카운트(DB)가 권위.
+    answers = correct_answers(quiz)
+    post games_attempts_path, params: {
+      quiz_id: quiz.id, game: "whoami", attempt_id: attempt.id, answers: answers,
+      hints_used: 0, hint_reveals: { q1.id.to_s => 0 } # 위조 파라미터 — 서버가 무시해야 한다
+    }
+
+    forged_score = attempt.reload.points_awarded
+    honest = (Games::QuestionScorer::POINTS_PER_CORRECT - 2) + 2 * Games::QuestionScorer::POINTS_PER_CORRECT
+    assert_equal honest, forged_score, "위조/stale 힌트수를 보내도 서버 DB 카운트 기준이라 점수가 바뀌지 않는다"
+    refute_equal 3 * Games::QuestionScorer::POINTS_PER_CORRECT, forged_score, "위조로 만점을 받을 수 없다"
+  end
+
+  # H1: attempt_id 를 **생략**하면 hints_used=0 인 새 attempt 로 채점돼 힌트 페널티를 우회할 수 있었다.
+  # 이제 hint_reveal 제출은 선생성 attempt 를 강제(없으면 거부) + server_hints_used fail-safe 로 이중 차단한다.
+  test "omitting attempt_id on a whoami submit cannot bypass the hint penalty (H1)" do
+    quiz, attempt = start_whoami
+    q1 = quiz.quiz_questions.first
+    2.times { reveal_hint(attempt, q1) } # 서버 카운터 = 2
+
+    max_award = 3 * Games::QuestionScorer::POINTS_PER_CORRECT
+    post games_attempts_path, params: {
+      quiz_id: quiz.id, game: "whoami", answers: correct_answers(quiz) # attempt_id 생략(우회 시도)
+    }
+
+    assert_redirected_to games_whoami_play_path(book_id: quiz.book_id), "선생성 attempt 없는 hint_reveal 제출은 거부·재시작"
+    refute @student.quiz_attempts.where("points_awarded >= ?", max_award).exists?,
+           "attempt_id 를 빼고 제출해도 힌트 페널티를 우회해 만점받을 수 없다(H1)"
+  end
+
+  # 제출 후 결과 안내(flash)가 새 판 show 까지 살아남는다(play→show 이중 리다이렉트에도 keep).
+  test "whoami result notice survives to the fresh game page after submit" do
+    quiz, attempt = start_whoami
+    submit_whoami_all_correct(quiz, attempt)
+    follow_redirect! # attempts → whoami play
+    follow_redirect! # play → show
+    assert_response :success
+    assert_match "정답", flash[:notice]
+  end
+
+  # ── 재롤(§3.4): 새 content_version, 추가 포인트 0 ─────────────────────────
+  test "re-roll makes a new content_version and awards zero extra points" do
+    get games_quiz_play_path(book_id: @book.id)
+    original = Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).last
+    play_all_correct(original, "quiz")
+    best = @student.reload.points
+    assert_operator best, :>, 0
+
+    post games_regenerate_path, params: { book_id: @book.id, surface: "quiz" }
+    rerolled = Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).order(:content_version).last
+    assert_operator rerolled.content_version, :>, original.content_version, "재롤은 새 content_version 을 만든다"
+    assert_not_equal original.id, rerolled.id
+    assert_redirected_to games_quiz_play_path(book_id: @book.id)
+
+    play_all_correct(rerolled, "quiz")
+    assert_equal best, @student.reload.points, "재롤 후 만점도 콘텐츠축 상한으로 추가 포인트 0"
+  end
+
+  # ── whoami play 미확정 attempt 재사용(TODO 후속 정밀화) ─────────────────────
+  # play 재진입은 아직 제출하지 않은(played_at nil) 선생성 attempt 를 재사용한다 — ① 0점 빈 attempt
+  # 누적 방지, ② 힌트 공개 후 재진입으로 힌트 카운터 0 새 판을 얻는 페널티 우회(H2) 차단.
+  test "re-entering whoami play reuses the in-progress attempt (no pile-up, no hint-reset bypass)" do
+    get games_whoami_play_path(book_id: @book.id)
+    first = @student.quiz_attempts.order(:id).last
+    quiz = first.quiz
+    q1 = quiz.quiz_questions.first
+
+    reveal_hint(first, q1) # 서버 힌트 카운터 = 1 (제출은 안 함)
+    assert_equal 1, first.reload.revealed_count(q1)
+
+    assert_no_difference -> { @student.quiz_attempts.count } do
+      get games_whoami_play_path(book_id: @book.id) # 미확정 재진입
+    end
+    reused = @student.quiz_attempts.order(:id).last
+    assert_equal first.id, reused.id, "같은 미확정 attempt 로 돌아온다"
+    assert_redirected_to games_whoami_path(first)
+    assert_equal 1, reused.revealed_count(q1), "공개한 힌트가 그대로 남아 페널티 우회가 불가하다"
+  end
+
+  test "after submitting, whoami play starts a fresh attempt (finalized rows are not reused)" do
+    quiz, attempt = start_whoami
+    submit_whoami_all_correct(quiz, attempt) # played_at 세팅(확정)
+    assert_predicate attempt.reload.played_at, :present?
+
+    assert_difference -> { @student.quiz_attempts.count }, 1 do
+      get games_whoami_play_path(book_id: @book.id)
+    end
+  end
+
+  # ── item 2: 학급/학년 미상 학생도 최저 밴드로 무대기 플레이(리졸버·정책 밴드 일치, 403 없음) ──
+  test "a classroom-less student plays on-demand at the lowest band without a 403" do
+    orphan = User.create!(school: @school, name: "무학급", role: :student, password: "password")
+    login_as orphan
+    get games_quiz_play_path(book_id: @book.id)
+    assert_response :success
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+    assert_equal "g12", quiz.band, "학년 미상 학생은 최저 밴드로 생성·인가가 일치해 플레이된다"
+  end
+
+  # ── 무게이트 롤아웃: 콘텐츠 신고(서로 다른 2명 → 자동 숨김) ─────────────────
+  test "reporting on-demand content hides it only after two distinct students report" do
+    get games_quiz_play_path(book_id: @book.id)
+    quiz = Quiz.where(origin: :system, book_id: @book.id).order(:id).last
+
+    post games_content_reports_path, params: { quiz_id: quiz.id }
+    assert_response :redirect
+    assert_not quiz.reload.reported?, "1명 신고로는 숨기지 않는다"
+    assert_equal 1, quiz.reports_count
+
+    other = User.create!(school: @school, classroom: @classroom, name: "신고짝꿍", password: "password")
+    login_as other
+    post games_content_reports_path, params: { quiz_id: quiz.id }
+    assert quiz.reload.reported?, "서로 다른 2명 신고 시 자동 숨김"
+  end
+
+  private
+
+  def start_whoami
+    get games_whoami_play_path(book_id: @book.id)
+    attempt = @student.quiz_attempts.order(:id).last
+    [ attempt.quiz, attempt ]
+  end
+
+  def reveal_hint(attempt, question)
+    post games_whoami_reveal_hint_path(attempt: attempt.id), params: { question_id: question.id }
+  end
+
+  def correct_answers(quiz)
+    quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer }
+  end
+
+  def submit_whoami_all_correct(quiz, attempt)
+    post games_attempts_path, params: {
+      quiz_id: quiz.id, game: "whoami", attempt_id: attempt.id, answers: correct_answers(quiz)
+    }
+  end
+
+  def play_all_correct(quiz, game)
+    answers = quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
+    post games_attempts_path, params: { quiz_id: quiz.id, game: game, answers: answers }
+  end
+end

@@ -1,0 +1,99 @@
+<% content_for :title, "문제 내기 · 책갈피" %>
+
+<div class="page-shell page-shell-form space-y-4">
+  <%= link_to icon_text(:arrow_left, "독서활동"), reading_activity_path(book_id: @book.id), class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+  <header class="page-header">
+    <h1 class="page-title flex items-center gap-2"><%= ui_icon :writing, class_name: "h-7 w-7" %> 이 책 문제 내기</h1>
+  </header>
+
+  <section class="card flex items-center gap-3">
+    <% if @book.cover_url.present? %>
+      <%= image_tag @book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover" %>
+    <% else %>
+      <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
+    <% end %>
+    <div class="min-w-0">
+      <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
+      <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+    </div>
+  </section>
+
+  <% if @contribution.errors.any? %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <span><%= @contribution.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <% if @content_axis.nil? %>
+    <%# 유형 선택 — 객관식 / 나는 누구게? %>
+    <section class="card space-y-3">
+      <p class="text-sm text-steel">어떤 문제를 낼까요? 유형을 골라 주세요.</p>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <%= link_to new_quiz_contribution_path(book_id: @book.id, content_axis: "mcq"),
+              class: "card card-muted block space-y-1 hover:border-primary/40" do %>
+          <span class="flex items-center gap-1.5 text-lg font-semibold text-ink"><%= ui_icon :quiz %> 객관식 퀴즈</span>
+          <span class="block text-sm text-steel">질문과 보기 4개, 정답을 골라 만들어요.</span>
+        <% end %>
+        <%= link_to new_quiz_contribution_path(book_id: @book.id, content_axis: "hint_reveal"),
+              class: "card card-muted block space-y-1 hover:border-primary/40" do %>
+          <span class="flex items-center gap-1.5 text-lg font-semibold text-ink"><%= ui_icon :detective %> 나는 누구게?</span>
+          <span class="block text-sm text-steel">정답 하나와 힌트를 여러 개 만들어요.</span>
+        <% end %>
+      </div>
+    </section>
+  <% else %>
+    <%= form_with model: @contribution, url: quiz_contributions_path, method: :post, class: "card space-y-4" do |f| %>
+      <%= hidden_field_tag "quiz_contribution[book_id]", @book.id %>
+      <%= hidden_field_tag "quiz_contribution[content_axis]", @content_axis %>
+
+      <% if @content_axis == "mcq" %>
+        <div>
+          <%= label_tag "quiz_contribution[prompt]", "질문", class: "form-label" %>
+          <%= text_field_tag "quiz_contribution[prompt]", @contribution.payload_hash[:prompt],
+                class: "form-input", placeholder: "예) 주인공이 처음 만난 친구는 누구인가요?" %>
+        </div>
+        <fieldset class="space-y-2">
+          <legend class="form-label">보기 4개 · 정답 번호를 함께 골라 주세요</legend>
+          <% choices = Array(@contribution.payload_hash[:choices]) %>
+          <% answer_number = @contribution.payload_hash[:answer_index].to_i + 1 %>
+          <% 4.times do |i| %>
+            <label class="flex items-center gap-2 text-sm text-ink">
+              <input type="radio" name="quiz_contribution[answer_number]" value="<%= i + 1 %>"
+                     <%= "checked" if answer_number == i + 1 %> />
+              <span class="w-5 text-muted"><%= i + 1 %></span>
+              <%= text_field_tag "quiz_contribution[choices][]", choices[i], class: "form-input flex-1" %>
+            </label>
+          <% end %>
+        </fieldset>
+      <% else %>
+        <div>
+          <%= label_tag "quiz_contribution[answer]", "정답", class: "form-label" %>
+          <%= text_field_tag "quiz_contribution[answer]", @contribution.payload_hash[:answer],
+                class: "form-input", placeholder: "예) 잎싹" %>
+        </div>
+        <fieldset class="space-y-2">
+          <legend class="form-label">힌트(2개 이상, 어려운 힌트부터)</legend>
+          <% hints = Array(@contribution.payload_hash[:hints]) %>
+          <% 3.times do |i| %>
+            <%= text_field_tag "quiz_contribution[hints][]", hints[i], class: "form-input",
+                  placeholder: "힌트 #{i + 1}" %>
+          <% end %>
+        </fieldset>
+      <% end %>
+
+      <div>
+        <%= label_tag "quiz_contribution[explanation]", "해설(선택)", class: "form-label" %>
+        <%= text_field_tag "quiz_contribution[explanation]", @contribution.payload_hash[:explanation],
+              class: "form-input", placeholder: "왜 그 답이 맞는지 알려 주세요." %>
+      </div>
+
+      <p class="text-xs text-steel">선생님이 내용을 확인한 뒤 친구들에게 보여 줄 거예요.</p>
+
+      <div class="page-actions">
+        <%= f.submit "문제 내기", class: "btn btn-primary" %>
+        <%= link_to "유형 다시 고르기", new_quiz_contribution_path(book_id: @book.id), class: "btn btn-secondary" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

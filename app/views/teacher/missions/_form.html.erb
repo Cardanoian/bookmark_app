@@ -1,0 +1,89 @@
+<%# 미션 draft 폼(menu_refactor 심화 PR4). locals: mission, classrooms.
+    목표는 초기 2종(승인 독후감·게임) 고정 — target 양수면 목표로 저장(mission[goals][<type>]).
+    종류별로 특정 책(mission[goal_books][<type>])을 지정하면 그 책의 활동만 인정, 비우면 아무 책이나 인정. %>
+<% report_goal = mission.mission_goals.detect { |g| g.goal_type == "approved_reports" } %>
+<% game_goal = mission.mission_goals.detect { |g| g.goal_type == "game_plays" } %>
+<% report_target = report_goal&.target_count %>
+<% game_target = game_goal&.target_count %>
+<%= form_with model: mission, url: (mission.persisted? ? teacher_mission_path(mission) : teacher_missions_path),
+      class: "card space-y-4" do |f| %>
+  <% if mission.errors.any? %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <span><%= mission.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, "미션 제목", class: "form-label" %>
+    <%= f.text_field :title, class: "form-input", maxlength: 80 %>
+  </div>
+
+  <div>
+    <%= f.label :description, "설명(선택)", class: "form-label" %>
+    <%= f.text_area :description, rows: 2, class: "form-input", placeholder: "학생에게 보여줄 안내 문구" %>
+  </div>
+
+  <% if classrooms.size > 1 %>
+    <div>
+      <%= f.label :classroom_id, "학급", class: "form-label" %>
+      <%= f.collection_select :classroom_id, classrooms, :id, :label, {}, class: "form-select" %>
+    </div>
+  <% end %>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :start_date, "시작일", class: "form-label" %>
+      <%= f.date_field :start_date, class: "form-input" %>
+    </div>
+    <div>
+      <%= f.label :end_date, "종료일", class: "form-label" %>
+      <%= f.date_field :end_date, class: "form-input" %>
+    </div>
+  </div>
+
+  <fieldset class="space-y-4 rounded-card border border-hairline p-4">
+    <legend class="px-1 text-sm font-semibold text-ink">목표 <span class="text-steel">(하나 이상, 0이면 제외)</span></legend>
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
+      <label class="block">
+        <span class="form-label">승인 독후감 수</span>
+        <%= number_field_tag "mission[goals][approved_reports]", report_target, min: 0, max: 20, class: "form-input", placeholder: "예: 3" %>
+      </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "mission[goal_books][approved_reports][ids][]",
+              isbns_name: "mission[goal_books][approved_reports][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (report_goal&.books || []) %>
+      </div>
+    </div>
+
+    <div class="space-y-2 rounded-card bg-surface-soft p-3">
+      <label class="block">
+        <span class="form-label">독서 게임 완료 수</span>
+        <%= number_field_tag "mission[goals][game_plays]", game_target, min: 0, max: 50, class: "form-input", placeholder: "예: 2" %>
+      </label>
+      <div>
+        <span class="form-label">특정 책 지정 <span class="font-normal text-steel">(선택 · 여러 권 추가 가능 · 비우면 아무 책이나 인정)</span></span>
+        <%= render "books/multi_autocomplete_field",
+              ids_name: "mission[goal_books][game_plays][ids][]",
+              isbns_name: "mission[goal_books][game_plays][isbns][]",
+              autocomplete_url: autocomplete_books_path, remote_search_url: remote_search_books_path,
+              selected_books: (game_goal&.books || []) %>
+      </div>
+    </div>
+  </fieldset>
+
+  <div>
+    <%= f.label :reward_points, "완료 보상 포인트", class: "form-label" %>
+    <%= f.number_field :reward_points, min: 0, max: Mission.reward_max_points, class: "form-input" %>
+    <p class="mt-1 text-xs text-steel">모든 목표를 달성하면 같은 양의 포인트와 경험치가 한 번 지급돼요(최대 <%= Mission.reward_max_points %>P + XP).</p>
+  </div>
+
+  <div class="page-actions">
+    <%= f.submit(mission.persisted? ? "저장" : "초안 만들기", class: "btn btn-primary") %>
+    <%= link_to "취소", teacher_missions_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

@@ -1,0 +1,81 @@
+<% content_for :title, "책 소개 대결 · 책갈피" %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <header class="page-header">
+    <div class="flex items-start gap-3">
+      <span class="<%= game_accent("book") %> inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><%= ui_icon :book_open, class_name: "h-7 w-7" %></span>
+      <div>
+        <h1 class="page-title">책 소개 대결</h1>
+        <p class="page-subtitle"><%= @book.title %> · 친구들에게 이 책을 소개하고, 마음에 드는 소개에 투표하세요!</p>
+      </div>
+    </div>
+    <div class="page-actions">
+      <%= link_to icon_text(:arrow_left, "게임 고르기"), games_catalog_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+    </div>
+  </header>
+
+  <% if flash[:notice] %>
+    <div class="state-banner state-banner--success"><%= flash[:notice] %></div>
+  <% end %>
+
+  <%# ── 소개 작성 폼 ── %>
+  <section class="card">
+    <h2 class="text-sm font-semibold text-ink">내 소개 쓰기</h2>
+    <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-xs text-steel">
+      <% @tips.each do |tip| %><li><%= tip %></li><% end %>
+    </ul>
+
+    <% if @intro.errors.any? %>
+      <div class="state-banner state-banner--error mb-3">
+        <%= @intro.errors.full_messages.to_sentence %>
+      </div>
+    <% end %>
+
+    <%= form_with url: games_book_intros_path, method: :post, scope: :book_intro, class: "space-y-3" do |f| %>
+      <%= f.hidden_field :book_id, value: @book.id %>
+      <%= f.text_area :body, rows: 4, value: @intro.body,
+            placeholder: "이 책을 친구에게 소개해 보세요. (10자 이상)",
+            class: "form-textarea" %>
+      <%= f.submit "소개 올리기", class: "btn btn-primary" %>
+    <% end %>
+  </section>
+
+  <%# ── 또래 소개 목록(득표순) ── %>
+  <section>
+    <h2 class="mb-3 text-sm font-semibold text-ink">우리 반 친구들의 소개</h2>
+    <% if @intros.any? %>
+      <div class="space-y-3">
+        <% @intros.each do |intro| %>
+          <% mine = intro.user_id == current_user.id %>
+          <% voted = @voted_ids.include?(intro.id) %>
+          <article class="card">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-sm text-ink whitespace-pre-line break-words"><%= intro.body %></p>
+                <p class="mt-2 text-xs text-muted">
+                  <%= intro.user.name %><% if mine %> · <span class="text-brand-blue">내 소개</span><% end %>
+                </p>
+              </div>
+              <div class="shrink-0 text-center">
+                <p class="text-sm font-semibold text-brand-blue"><%= ui_icon :like, class_name: "h-4 w-4" %> <%= intro.votes_count %></p>
+                <% if mine %>
+                  <span class="mt-1 block text-xs text-muted">투표 불가</span>
+                <% elsif voted %>
+                  <%= button_to "투표 취소", games_book_vote_path(intro), method: :delete,
+                        class: "btn btn-yellow btn-sm mt-1" %>
+                <% else %>
+                  <%= button_to "투표", games_book_vote_path(intro), method: :post,
+                        class: "btn btn-secondary btn-sm mt-1" %>
+                <% end %>
+              </div>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state",
+            message: "아직 소개가 없어요. 첫 소개를 남겨 보세요!",
+            image: "empty_states/sequel-writing.png" %>
+    <% end %>
+  </section>
+</div>

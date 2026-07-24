@@ -1,0 +1,506 @@
+[
+  {
+    "dex": 1,
+    "step": 1,
+    "name": "갈피멍",
+    "spec": "A tiny fluffy cream puppy with floppy ears and a little lavender bookmark-ribbon tail. Big round sparkly eyes, a tiny nose, soft stubby paws. Adorable, wobbly and playful — a newborn pup.",
+    "bg": "green"
+  },
+  {
+    "dex": 1,
+    "step": 2,
+    "name": "이야기멍",
+    "spec": "A cream puppy grown a bit bigger and braver, standing on all four legs like a real dog, a lavender ribbon scarf around its neck and a small storybook held proudly in its mouth. Alert bright eyes, a confident four-legged stance. Cheerful and a touch stronger.",
+    "bg": "green"
+  },
+  {
+    "dex": 1,
+    "step": 3,
+    "name": "전설멍",
+    "spec": "A magnificent guardian dog standing tall and proud in a grand violet cape woven from glowing bookpages, a radiant lavender bookmark ribbon streaming behind it like a banner. Cream fur with golden trim, a small crown, noble determined eyes. Cool, powerful and heroic yet kind.",
+    "bg": "green"
+  },
+  {
+    "dex": 2,
+    "step": 1,
+    "name": "쫑알이",
+    "spec": "A tiny round baby parrot with soft sunny-yellow down and little teal wing-tips, one small feather patterned like a bookpage. Big shiny eyes, a tiny curved beak, stubby wings. Chubby, chirpy and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 2,
+    "step": 2,
+    "name": "수다앵무",
+    "spec": "A lively young parrot with bright sunny-yellow-and-teal plumage and a small crest, perched boldly on an open book mid-story. Sharp expressive eyes, wings half-spread with growing confidence. Spirited and a bit stronger.",
+    "bg": "green"
+  },
+  {
+    "dex": 2,
+    "step": 3,
+    "name": "이야기봉황",
+    "spec": "A majestic phoenix-like parrot with grand wings that spread like glowing open storybook pages, radiant sunny-yellow-and-teal feathers with shimmering gold accents, a long flowing tail and a splendid crest crowned with light. Regal fierce-kind eyes. Gorgeous, powerful and awe-inspiring.",
+    "bg": "green"
+  },
+  {
+    "dex": 3,
+    "step": 1,
+    "name": "뾰족이",
+    "spec": "A tiny pencil sprite with a short lavender wooden body and a round graphite nub, two big curious eyes and tiny stubby arms. Bouncy, eager and cute.",
+    "bg": "green"
+  },
+  {
+    "dex": 3,
+    "step": 2,
+    "name": "또각연필",
+    "spec": "A taller, sturdier lavender pencil with a freshly sharpened tip and a cream eraser cap, holding a notebook and a small ruler with confident little arms. Focused determined eyes. Diligent and growing capable.",
+    "bg": "green"
+  },
+  {
+    "dex": 3,
+    "step": 3,
+    "name": "글씨봉",
+    "spec": "A grand pencil wizard with a tall lavender body, a brilliant glowing golden tip and a flowing cloak of shimmering letters swirling around it. A star-topped wizard cap, wise commanding eyes. Dazzling, cool and powerful.",
+    "bg": "green"
+  },
+  {
+    "dex": 4,
+    "step": 1,
+    "name": "도담여우",
+    "spec": "A tiny baby fox with warm orange fur and a soft cream muzzle and belly, hugging a little old-story scroll almost as big as itself. Big gentle eyes, oversized ears, a fluffy tail tied with a small lavender ribbon. Shy, round and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 4,
+    "step": 2,
+    "name": "이야기여우",
+    "spec": "A clever young fox standing upright on two legs in an anthropomorphic pose, with sleek warm orange fur and a cream chest, wearing a traditional Korean gat hat and a short hanbok vest, a lavender ribbon tied on its fuller bushy tail, holding a scroll in one paw. Bright knowing eyes, a poised confident stance. Witty and more refined.",
+    "bg": "green"
+  },
+  {
+    "dex": 4,
+    "step": 3,
+    "name": "만담여우",
+    "spec": "A magnificent fox sage with rich orange-and-cream fur draped in a flowing violet dopo robe with golden embroidery, holding aloft a glowing ancient book, its many elegant tails fanned out like a storyteller's crown. Radiant calm eyes, a gentle luminous aura. Elegant, striking and powerful yet warm.",
+    "bg": "green"
+  },
+  {
+    "dex": 5,
+    "step": 1,
+    "name": "아롱냥",
+    "spec": "A tiny curious kitten with soft silver-grey fur and an oversized blue scarf, big round inquisitive eyes, perky little ears and a small twitching tail. Round, wobbly and irresistibly cute.",
+    "bg": "green"
+  },
+  {
+    "dex": 5,
+    "step": 2,
+    "name": "안경냥",
+    "spec": "A smart young cat with tidy silver-grey fur, round blue glasses and a neat blue scarf, sitting upright with a book. Clever focused eyes, a composed confident posture. Studious and a bit more dignified.",
+    "bg": "green"
+  },
+  {
+    "dex": 5,
+    "step": 3,
+    "name": "지혜냥",
+    "spec": "A regal sage cat wrapped in a deep-blue cape embroidered with a glowing constellation star-map, a gleaming silver crown hovering with soft light above its head. Silver fur, wise piercing eyes, a commanding poised stance and a starlit aura. Noble, cool and powerful.",
+    "bg": "green"
+  },
+  {
+    "dex": 6,
+    "step": 1,
+    "name": "동글부엉",
+    "spec": "A tiny round baby owl, all fluff in soft blue and silver, with huge round eyes taking up half its face, a stubby beak and little ear tufts. Perfectly round and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 6,
+    "step": 2,
+    "name": "반짝부엉",
+    "spec": "A young owl with neater blue feathers and a small glowing lightbulb hovering above its head, wings ready to flap. Big bright clever eyes, an alert eager posture. Inventive and growing bolder.",
+    "bg": "green"
+  },
+  {
+    "dex": 6,
+    "step": 3,
+    "name": "아이디어부엉",
+    "spec": "A majestic wisdom owl with deep-blue plumage streaked like shooting stars, broad spread wings and a radiant crown holding a brilliant glowing lightbulb. Large luminous all-seeing eyes, a commanding aura of light. Brilliant, striking and powerful.",
+    "bg": "green"
+  },
+  {
+    "dex": 7,
+    "step": 1,
+    "name": "도르리",
+    "spec": "A tiny round baby robot with a light-blue and silver body built around one little gear, big glowing round eyes on a cute screen face and short stubby arms. Beeps happily; small and charming.",
+    "bg": "green"
+  },
+  {
+    "dex": 7,
+    "step": 2,
+    "name": "째깍로봇",
+    "spec": "A sturdier inventor robot with a blue-and-silver chassis showing wind-up springs and a small gauge dial on its chest, jointed arms and a bobbing antenna. Bright focused lens eyes. Clever, busy and more capable.",
+    "bg": "green"
+  },
+  {
+    "dex": 7,
+    "step": 3,
+    "name": "발명로봇",
+    "spec": "A towering invention-king robot with a sleek blue-and-silver armored body, great mechanical folding wings, glowing thrusters and a brilliant beacon antenna. Powerful glowing lens eyes, a commanding heroic stance, small sparks of energy. Epic, cool and mighty.",
+    "bg": "green"
+  },
+  {
+    "dex": 8,
+    "step": 1,
+    "name": "조각등",
+    "spec": "A tiny baby turtle with pale mint skin and a small rounded teal shell etched with a single little crystal facet. Big gentle eyes, stubby legs, a shy tucked head. Round, slow and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 8,
+    "step": 2,
+    "name": "지식거북",
+    "spec": "A wise young turtle with a larger teal shell engraved with softly glowing book patterns, a small mossy beard and pale green skin. Half-closed knowing eyes, a calm steady stance. Studious and more venerable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 8,
+    "step": 3,
+    "name": "만물거북",
+    "spec": "A grand ancient sage-turtle with an enormous teal shell blazing with glowing knowledge runes and drifting mossy vines, a long flowing beard and small tomes orbiting it. Deep all-knowing eyes, a serene commanding aura. Majestic, powerful and awe-inspiring.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 9,
+    "step": 1,
+    "name": "콩닥이",
+    "spec": "A tiny baby hamster with soft pink-and-cream fur, big rosy cheeks and a little heart mark on each cheek. Huge shiny eyes, teeny paws. Squishy, warm and irresistibly cute.",
+    "bg": "green"
+  },
+  {
+    "dex": 9,
+    "step": 2,
+    "name": "두근이",
+    "spec": "A young hamster with fluffier pink-and-cream fur and a small glowing heart floating over its paws pressed to its chest. Big sparkling emotive eyes, a hopeful stance. Tender and a bit braver.",
+    "bg": "green"
+  },
+  {
+    "dex": 9,
+    "step": 3,
+    "name": "사랑햄둥이",
+    "spec": "A radiant love-hamster with soft pink fur, large heart-shaped ears, tiny feathered wings and a big fluffy heart-tipped tail, wearing a dainty crown of blooming pink blossoms with little hearts floating around it. Loving luminous eyes, a warm heartfelt expression. Adorable yet splendid and heartwarming.",
+    "bg": "green"
+  },
+  {
+    "dex": 10,
+    "step": 1,
+    "name": "또르고래",
+    "spec": "A tiny round baby whale with soft rose-pink skin, balancing a single clear water droplet on its head, big gentle eyes, tiny fins and a little heart-shaped spout. Chubby, calm and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 10,
+    "step": 2,
+    "name": "촉촉고래",
+    "spec": "A young rose-pink whale wearing a shimmering necklace of teardrop beads, with larger fins and a graceful tail. Big glistening emotional eyes, a gentle gliding pose. Sensitive and more graceful.",
+    "bg": "green"
+  },
+  {
+    "dex": 10,
+    "step": 3,
+    "name": "무지개고래",
+    "spec": "A magnificent great whale with luminous rose-pink skin, spouting a grand soft pastel-rainbow arc of water high above, trailing sparkling droplets and a gentle glow. Warm radiant eyes, sweeping majestic fins. Breathtaking, moving and powerful.",
+    "bg": "green"
+  },
+  {
+    "dex": 11,
+    "step": 1,
+    "name": "몽실토끼",
+    "spec": "A tiny fluffy pink baby rabbit whose soft long ears wobble and change shape with its mood, big round expressive eyes and a little cotton tail. Round, bouncy and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 11,
+    "step": 2,
+    "name": "뭉게토끼",
+    "spec": "A fluffier pink rabbit with long ears tied with soft pastel-rainbow ribbons and cloud-like fluffy cheeks. Big bright emotive eyes, a lively confident hop. Cheerful and a touch more magical.",
+    "bg": "green"
+  },
+  {
+    "dex": 11,
+    "step": 3,
+    "name": "노을토끼",
+    "spec": "A graceful large rabbit with soft rose-pink fur, its long flowing ears glowing with peach-and-gold sunset light and dusted with sparkling stars. Warm tender radiant eyes, an elegant serene pose. Beautiful, dreamy and majestic.",
+    "bg": "green"
+  },
+  {
+    "dex": 12,
+    "step": 1,
+    "name": "새싹사슴",
+    "spec": "A tiny baby deer with soft cream-and-tan fur, rosy cheeks and two little green leaf-sprouts just budding on its head. Big gentle eyes, thin wobbly legs. Delicate, shy and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 12,
+    "step": 2,
+    "name": "꽃봉사슴",
+    "spec": "A young deer with cream-and-tan fur and antlers of half-opened pale flower buds among small green leaves. Rosy cheeks, warm curious eyes, a graceful growing stance. Gentle and blossoming.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 12,
+    "step": 3,
+    "name": "만개사슴",
+    "spec": "An elegant majestic deer with cream-and-tan fur and grand branching antlers crowned with fully bloomed pale-pink and cream blossoms among lush green leaves, petals drifting on a soft breeze. Calm graceful radiant eyes, a gentle glow. Beautiful, regal and serene.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 13,
+    "step": 1,
+    "name": "방향곰",
+    "spec": "A tiny round baby bear with warm orange-brown fur and a little compass on a cord around its neck. Big eager eyes, round ears, soft stubby paws. Roly-poly and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 13,
+    "step": 2,
+    "name": "탐험곰",
+    "spec": "A young orange-brown bear in a tan explorer hat with a small backpack and a rolled map, standing ready for adventure. Bright determined eyes, a sturdy confident build. Bold and more rugged.",
+    "bg": "green"
+  },
+  {
+    "dex": 13,
+    "step": 3,
+    "name": "곰선장",
+    "spec": "A mighty explorer-captain bear in a billowing red-orange cape planting a tall flag with one paw atop a rock, a compass medallion gleaming on its chest. Warm orange-brown fur, fearless commanding eyes, a triumphant heroic stance. Cool, strong and daring.",
+    "bg": "green"
+  },
+  {
+    "dex": 14,
+    "step": 1,
+    "name": "반디병아리",
+    "spec": "A tiny fluffy yellow baby chick with a soft firefly-like ember glowing on its tiny crest. Big round eyes, little wings, orange feet. Downy, bouncy and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 14,
+    "step": 2,
+    "name": "활활닭",
+    "spec": "A brave young chicken with golden-yellow feathers, a flickering flame crest and a small blazing tail. Bright bold eyes, a puffed-out chest, a spirited stance. Courageous and fired-up.",
+    "bg": "green"
+  },
+  {
+    "dex": 14,
+    "step": 3,
+    "name": "불꽃장닭",
+    "spec": "A valiant blazing rooster with golden-yellow-and-orange plumage, a towering roaring flame crest and a magnificent sweeping tail of fire and gold. Fierce proud eyes, a commanding stance, radiant heat. Splendid, cool and powerful.",
+    "bg": "green"
+  },
+  {
+    "dex": 15,
+    "step": 1,
+    "name": "붕붕펭",
+    "spec": "A tiny baby penguin with a blue-black back and round white belly, wearing a little star-topped helmet slightly too big. Big excited eyes, tiny flippers, orange feet. Waddly and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 15,
+    "step": 2,
+    "name": "슝슝펭",
+    "spec": "A young penguin astronaut in a sleek blue-and-white suit with a small rocket backpack trailing orange flames. Bright brave eyes, a ready-for-launch pose. Daring and energetic.",
+    "bg": "green"
+  },
+  {
+    "dex": 15,
+    "step": 3,
+    "name": "은하펭선장",
+    "spec": "A heroic space-captain penguin in a deep-blue galaxy cape swirling with stars, a glowing helmet and an orange comet-scarf, hovering on bright jet-boosters. Confident sparkling eyes, a bold cosmic aura. Epic, cool and adventurous.",
+    "bg": "green"
+  },
+  {
+    "dex": 16,
+    "step": 1,
+    "name": "알록공",
+    "spec": "A cute baby dinosaur with orange-and-amber scales peeking halfway out of a cream egg with colorful spots, big innocent eyes and tiny arms. Wobbly, curious and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 16,
+    "step": 2,
+    "name": "티라돌",
+    "spec": "A young orange T-rex with amber scales and small bony ridges, wearing an explorer bandana and standing on strong little legs. Big spirited eyes, an eager brave posture. Bold and toughening up.",
+    "bg": "green"
+  },
+  {
+    "dex": 16,
+    "step": 3,
+    "name": "모험왕티라노",
+    "spec": "A mighty adventure-king T-rex clad in gleaming light armor and a bold shoulder-cape, with orange-and-amber scales and fiery red highlights, small horns and a confident roar. Fierce brave eyes, a powerful commanding stance. Heroic, cool and strong yet friendly.",
+    "bg": "green"
+  },
+  {
+    "dex": 17,
+    "step": 1,
+    "name": "새싹도치",
+    "spec": "A tiny baby hedgehog with soft brown fur and gentle little spines, a single small green sprout growing from its back. Big round eyes, a twitchy tiny nose. Round, timid and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 17,
+    "step": 2,
+    "name": "잎사귀도치",
+    "spec": "A young brown hedgehog whose spines have grown into a cape of overlapping green leaves, a small acorn tucked among them. Bright diligent eyes, a sturdier stance. Hardworking and lively.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 17,
+    "step": 3,
+    "name": "숲지기도치",
+    "spec": "A grand forest-guardian hedgehog with a lush mossy back where a small living tree grows tall, glowing fireflies and tiny flowers nestled among green leaves. Calm wise eyes, a steady mighty stance. Majestic, cool and nurturing.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 18,
+    "step": 1,
+    "name": "퐁당올챙",
+    "spec": "A tiny round tadpole shaped like a bright green water droplet with a little wiggly tail and big shiny eyes. Squishy, splashy and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 18,
+    "step": 2,
+    "name": "시냇개구리",
+    "spec": "A young green frog with smooth mint-green skin and small webbed hands, mid-hop over a splashing stream. Big round eyes, lively springy legs. Fresh, playful and quicker.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 18,
+    "step": 3,
+    "name": "개굴대왕",
+    "spec": "A great river-god frog with radiant deep-green skin, a majestic lotus-leaf crown and flowing water-whisker robes, enthroned on a giant lily pad with water swirling around it. Wise glowing eyes, a serene commanding aura. Powerful, dignified and awe-inspiring.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 19,
+    "step": 1,
+    "name": "도토리",
+    "spec": "A tiny brown baby squirrel hugging a round acorn nearly its own size, a big fluffy tail curled behind and rosy cheeks. Big bright eyes. Round, busy and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 19,
+    "step": 2,
+    "name": "볼록이",
+    "spec": "A young brown squirrel with soft round rosy cheeks and a big bushy tail, cradling a couple of shiny acorns in its paws with a little leaf pouch full of acorns at its side. Sparkling happy eyes, a nimble stance. Cheerful and diligent.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 19,
+    "step": 3,
+    "name": "숲요정다래",
+    "spec": "A radiant squirrel forest-fairy with warm brown fur, tiny leaf-shaped wings, a crown of green leaves and pale blossoms, and a grand glowing bushy tail trailing sparkles. Gentle sparkling eyes, a graceful magical aura. Whimsical, splendid and enchanting.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 20,
+    "step": 1,
+    "name": "몽글버섯",
+    "spec": "A tiny mushroom sprite with a soft mint-green cap dotted with cream spots and a chubby little cream stem, big round eyes and stubby arms. Squishy, shy and adorable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 20,
+    "step": 2,
+    "name": "우산버섯",
+    "spec": "A young mushroom with a wide mint-green cap held up like an umbrella and a sturdy cream stem, small leafy details around its base. Bright cheerful eyes, a helpful stance. Calm and dependable.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 20,
+    "step": 3,
+    "name": "신비버섯",
+    "spec": "A mystical elder mushroom with a grand glowing green cap releasing swirling luminous spores, a radiant cream stem etched with soft runes, ringed by floating motes of light. Serene wise eyes, a tranquil magical aura. Enchanting, mysterious and powerful.",
+    "bg": "magenta"
+  },
+  {
+    "dex": 21,
+    "step": 1,
+    "name": "꼬마유니콘",
+    "spec": "A tiny baby unicorn with soft white fur, a fluffy pastel pink-and-lavender mane and a little golden star sparkling on its forehead. Big dreamy eyes, wobbly little hooves. Round, gentle and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 21,
+    "step": 2,
+    "name": "꿈별유니콘",
+    "spec": "A young unicorn with flowing white fur, a mane sprinkled with tiny twinkling stars and a small growing golden horn. Big shining eyes, a graceful confident step, a faint sparkle trail. Dreamy and more magical.",
+    "bg": "green"
+  },
+  {
+    "dex": 21,
+    "step": 3,
+    "name": "별자리유니콘",
+    "spec": "A majestic unicorn with luminous white fur, a grand flowing mane swirling like a living constellation and a radiant soft pastel-rainbow horn, tiny galaxies shimmering around its hooves. Radiant kind eyes, an elegant powerful stance. Breathtaking, splendid and majestic.",
+    "bg": "green"
+  },
+  {
+    "dex": 22,
+    "step": 1,
+    "name": "물감애벌레",
+    "spec": "A plump tiny caterpillar with a soft cream body dabbed with playful pastel-rainbow paint spots, big cheerful eyes and stubby little legs. Wiggly, colorful and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 22,
+    "step": 2,
+    "name": "무지개고치",
+    "spec": "A rounded chrysalis shimmering with soft iridescent pastel-rainbow and golden light, hanging from a glowing thread with a hint of dreaming eyes visible through the glow. Quiet, mysterious and transforming.",
+    "bg": "green"
+  },
+  {
+    "dex": 22,
+    "step": 3,
+    "name": "무지개나비",
+    "spec": "A magnificent grand butterfly with sweeping wings painted in luminous soft pastel-rainbow watercolor patterns edged in shimmering gold, a slender graceful body and a trail of glowing color-dust. Gentle radiant eyes, an elegant soaring pose. Gorgeous, dazzling and majestic.",
+    "bg": "green"
+  },
+  {
+    "dex": 23,
+    "step": 1,
+    "name": "방울깨비",
+    "spec": "A tiny friendly baby dokkaebi (Korean goblin) with warm reddish-brown skin, two little nub horns and a small wooden club with a jingling bell. Big round mischievous eyes, chubby cheeks. Playful and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 23,
+    "step": 2,
+    "name": "뿔깨비",
+    "spec": "A young mischievous dokkaebi with reddish-brown skin, larger curved horns and a sturdy studded club, a tiger-stripe wrap around its waist. Grinning bright eyes, tiny fangs, a bold spirited pose. Cheeky and tougher.",
+    "bg": "green"
+  },
+  {
+    "dex": 23,
+    "step": 3,
+    "name": "무쌍깨비",
+    "spec": "A mighty dokkaebi chieftain with strong reddish-brown skin, grand branching horns and a great glowing golden magic club raised high, a tiger-stripe cloak and traditional beads. Confident fierce-but-friendly eyes, a commanding stance, sparks of gold. Cool, powerful and imposing.",
+    "bg": "green"
+  },
+  {
+    "dex": 24,
+    "step": 1,
+    "name": "알드래",
+    "spec": "A cute baby dragon with soft pastel iridescent scales peeking halfway out of a cracked rainbow-patterned egg, tiny stubby wings and little horn nubs. Big innocent eyes. Wobbly, precious and adorable.",
+    "bg": "green"
+  },
+  {
+    "dex": 24,
+    "step": 2,
+    "name": "뭉치용",
+    "spec": "A young dragon with a soft cloud-like fluffy pastel body, small growing wings and short horns, a coiling fluffy tail. Big gentle eyes with a spark of courage, a hovering playful pose. Dreamy and gaining strength.",
+    "bg": "green"
+  },
+  {
+    "dex": 24,
+    "step": 3,
+    "name": "상상용",
+    "spec": "A magnificent imagination-dragon with luminous soft pastel-rainbow iridescent scales, grand sweeping wings like star-filled clouds, golden horns and claws, soaring amid swirling stardust. Regal yet kind eyes, a powerful majestic pose. Awe-inspiring, splendid and mighty.",
+    "bg": "green"
+  }
+]

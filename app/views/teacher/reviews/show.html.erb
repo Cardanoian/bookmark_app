@@ -1,0 +1,107 @@
+<% content_for :title, "독후감 검토 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :reviews %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <div class="min-w-0">
+          <h1 class="page-title">
+            <%= @report.book&.title.presence || @report.book_title %>
+          </h1>
+          <p class="page-subtitle">
+            <%= @report.user.name %> ·
+            유사도 <%= @report.similarity.present? ? "#{(@report.similarity * 100).round}%" : "-" %>
+          </p>
+        </div>
+        <%= level_badge(@report.level) %>
+      </header>
+
+      <section class="card">
+        <h2 class="mb-2 text-sm font-semibold text-steel">학생이 쓴 글</h2>
+        <p class="whitespace-pre-wrap text-ink"><%= @report.body %></p>
+      </section>
+
+      <section class="card">
+        <h2 class="mb-3 text-lg font-semibold text-ink">AI 첨삭</h2>
+        <%= render "reports/rubric", report: @report %>
+      </section>
+
+      <% if @verify.present? %>
+        <section class="card border-brand-red-dark bg-brand-red">
+          <h2 class="mb-1 text-sm font-semibold text-coral-dark">진위·표절 보조 결과</h2>
+          <p class="text-sm text-coral-dark">
+            의심 정도: <%= @verify[:suspicion].present? ? @verify[:suspicion] : "판단 보류" %> ·
+            학급 내 최대 유사도: <%= (@verify[:similarity].to_f * 100).round %>%
+          </p>
+          <% if @verify[:reasons].present? %>
+            <ul class="mt-1 list-inside list-disc text-sm text-coral-dark">
+              <% @verify[:reasons].each do |reason| %><li><%= reason %></li><% end %>
+            </ul>
+          <% end %>
+        </section>
+      <% end %>
+
+      <%= form_with model: @report, url: teacher_review_path(@report), method: :patch, class: "card space-y-4 bg-surface-featured" do |f| %>
+        <h2 class="text-lg font-semibold text-brand-blue">5축 조정 · 코멘트</h2>
+        <% teacher_scores = @report.teacher_rubric_scores %>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <% @report.rubric_scores.each do |axis, score| %>
+            <label class="flex items-center justify-between gap-2 text-sm">
+              <span class="text-slate"><%= axis_label(axis) %> (AI <%= score %>)</span>
+              <%= number_field_tag "report[teacher_rubric][#{axis}]", teacher_scores[axis] || score,
+                    in: 0..5, class: "form-input w-20 text-center" %>
+            </label>
+          <% end %>
+        </div>
+
+        <div>
+          <%= label_tag "report_teacher_comment", "교사 코멘트", class: "form-label" %>
+          <%= text_area_tag "report[teacher_comment]", @report.teacher_comment, rows: 3, class: "form-textarea" %>
+        </div>
+
+        <%# AI 첨삭 텍스트 편집(승인 후 학생이 볼 최종본). 현재값은 teacher_feedback 있으면 그것,
+            없으면 AI 프리필(student_feedback). 칭찬/보완=줄 단위, 성장=항목별 고정 text(성취기준 읽기전용). %>
+        <% student_feedback = @report.student_feedback %>
+        <div class="space-y-4 border-t border-hairline-soft pt-4">
+          <div>
+            <h3 class="text-base font-semibold text-brand-blue">첨삭 내용 편집</h3>
+            <p class="mt-1 text-xs text-steel">칭찬·보완은 한 줄에 하나씩 적어요. 성장 제안은 문장만 고칠 수 있고, 성취기준 코드는 그대로 유지돼요.</p>
+          </div>
+
+          <div>
+            <%= label_tag "report_teacher_feedback_praise", "잘한 점 (한 줄에 하나)", class: "form-label" %>
+            <%= text_area_tag "report[teacher_feedback][praise]", student_feedback[:praise].join("\n"), rows: 3, class: "form-textarea" %>
+          </div>
+
+          <div>
+            <%= label_tag "report_teacher_feedback_fix", "보완할 점 (한 줄에 하나)", class: "form-label" %>
+            <%= text_area_tag "report[teacher_feedback][fix]", student_feedback[:fix].join("\n"), rows: 3, class: "form-textarea" %>
+          </div>
+
+          <% if student_feedback[:grow].any? %>
+            <div class="space-y-3">
+              <span class="form-label">성장 제안</span>
+              <% student_feedback[:grow].each_with_index do |grow, i| %>
+                <div class="rounded-md border border-hairline-soft p-3">
+                  <%= text_area_tag "report[teacher_feedback][grow][#{i}][text]", grow[:text], rows: 2, class: "form-textarea" %>
+                  <%= hidden_field_tag "report[teacher_feedback][grow][#{i}][standard_code]", grow[:standard_code] %>
+                  <p class="mt-1 text-xs text-stone">성취기준: <%= grow[:standard_code].presence || "-" %></p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <%= f.submit "저장", class: "btn btn-primary" %>
+      <% end %>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
+        <%= button_to "진위 확인", verify_teacher_review_path(@report), method: :post, class: "btn btn-secondary" %>
+        <%= link_to "큐로 돌아가기", teacher_reviews_path, class: "text-sm text-steel" %>
+      </div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<%# 5축 루브릭 막대 표시(+교사 조정치). local: report %>
+<div class="space-y-2">
+  <% teacher_scores = report.teacher_rubric_scores %>
+  <% report.rubric_scores.each do |axis, score| %>
+    <% adjusted = teacher_scores[axis] %>
+    <div class="flex items-center gap-3">
+      <span class="w-20 shrink-0 text-sm text-steel"><%= axis_label(axis) %></span>
+      <div class="progress-bar flex-1">
+        <div class="progress-bar__fill" style="width: <%= (score.to_i * 20) %>%"></div>
+      </div>
+      <span class="w-16 shrink-0 text-right text-sm font-medium text-ink">
+        <%= score %>/5
+        <% if adjusted.present? %>
+          <span class="inline-flex items-center gap-1 text-brand-blue"><%= ui_icon :arrow_right, class_name: "h-4 w-4" %> <%= adjusted %></span>
+        <% end %>
+      </span>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,46 @@
+<%# 학교 폼. local: school %>
+<%= form_with model: school, url: (school.persisted? ? admin_school_path(school) : admin_schools_path),
+      class: "max-w-lg space-y-4 card" do |f| %>
+  <% if school.errors.any? %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <span><%= school.errors.full_messages.to_sentence %></span>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :name, "학교명", class: "form-label" %>
+    <%= f.text_field :name, class: "form-input" %>
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :region, "지역(시도교육청)", class: "form-label" %>
+      <%= f.text_field :region, class: "form-input" %>
+    </div>
+    <div>
+      <%= f.label :gu, "시군구", class: "form-label" %>
+      <%= f.text_field :gu, class: "form-input" %>
+    </div>
+    <div>
+      <%= f.label :neis_code, "NEIS 코드", class: "form-label" %>
+      <%= f.text_field :neis_code, class: "form-input" %>
+    </div>
+    <div>
+      <%= f.label :office_code, "교육청 코드", class: "form-label" %>
+      <%= f.text_field :office_code, class: "form-input" %>
+    </div>
+  </div>
+  <div>
+    <%= f.label :address, "도로명주소", class: "form-label" %>
+    <%= f.text_field :address, class: "form-input" %>
+  </div>
+  <label class="flex items-center gap-2 text-sm text-ink">
+    <%= f.check_box :active %>
+    가입·로그인 학교 검색에 표시
+  </label>
+
+  <div class="flex items-center gap-3">
+    <%= f.submit "저장", class: "btn btn-primary" %>
+    <%= link_to "취소", admin_schools_path, class: "text-sm text-steel hover:underline" %>
+  </div>
+<% end %>

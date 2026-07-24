@@ -1,0 +1,65 @@
+<%# 교사 콘솔 네비(반응형). local: active (심볼). 데스크톱=좌측 사이드바, 모바일=상단 펼침 목록 %>
+<% nav_items = [
+     [ :dashboard, "대시보드", :home, teacher_dashboard_path ],
+     [ :reviews, "검토", :document, teacher_reviews_path ],
+     [ :students, "학생관리", :students, teacher_students_path ],
+     [ :account_links, "계정 연동", :link, teacher_account_links_path ],
+     [ :missions, "미션", :target, teacher_missions_path ],
+     [ :quizzes, "퀴즈", :quiz, teacher_quizzes_path ],
+     [ :challenges, "챌린지", :flame, challenges_path ],
+     [ :rubric, "루브릭", :chart, edit_teacher_rubric_config_path ]
+   ] %>
+<% current_label = (nav_items.find { |item| item.first == active } || []).at(1) || "메뉴" %>
+
+<%# 모바일(<lg): 현재 섹션 + 펼침 목록 %>
+<details class="lg:hidden">
+  <summary class="card flex cursor-pointer list-none items-center justify-between gap-2 py-3">
+    <span class="flex items-center gap-2 text-sm font-semibold text-ink">
+      <span class="text-xs font-medium text-brand-blue">교사</span>
+      <%= current_label %>
+    </span>
+    <%= ui_icon :chevron_down, class_name: "h-4 w-4 text-steel" %>
+  </summary>
+  <nav class="mt-2">
+    <ul class="grid grid-cols-2 gap-2 text-sm font-medium">
+      <% nav_items.each do |key, label, icon, path| %>
+        <li>
+          <%= link_to path, aria: (active == key ? { current: "page" } : {}),
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border px-3 py-2 #{active == key ? "border-transparent bg-brand-blue text-white" : "border-hairline-soft text-slate"}" do %>
+            <%= ui_icon icon, class_name: "h-4 w-4" %> <%= label %>
+          <% end %>
+        </li>
+      <% end %>
+      <li>
+        <%= link_to teacher_exports_reports_csv_path,
+              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-hairline-soft px-3 py-2 text-slate" do %>
+          <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+</details>
+
+<%# 데스크톱(lg+): 좌측 사이드바 %>
+<aside class="hidden w-56 shrink-0 lg:block">
+  <p class="mb-1 text-sm font-medium text-brand-blue">교사</p>
+  <p class="mb-4 text-lg font-bold text-ink"><%= current_user.name %></p>
+  <nav>
+    <ul class="space-y-1 text-sm font-medium">
+      <% nav_items.each do |key, label, icon, path| %>
+        <li>
+          <%= link_to path, aria: (active == key ? { current: "page" } : {}),
+                class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 #{active == key ? "bg-brand-blue text-white" : "text-slate hover:bg-surface"}" do %>
+            <%= ui_icon icon, class_name: "h-4 w-4" %> <%= label %>
+          <% end %>
+        </li>
+      <% end %>
+      <li>
+        <%= link_to teacher_exports_reports_csv_path,
+              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 text-slate hover:bg-surface" do %>
+          <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+</aside>

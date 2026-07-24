@@ -1,0 +1,33 @@
+<% content_for :title, "도서관 대시보드 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-moss-dark">도서관 담당</p>
+      <h1 class="page-title"><%= current_user.name %></h1>
+      <% if current_user.school %>
+        <p class="page-subtitle"><%= current_user.school.name %></p>
+      <% end %>
+    </div>
+    <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
+  </header>
+
+  <nav class="mb-8 flex gap-4 text-sm font-medium text-steel">
+    <span class="text-ink">도서관</span>
+    <span>인기 대출</span>
+  </nav>
+
+  <%= link_to challenges_path, class: "card mb-6 flex items-center justify-between gap-3 hover:border-primary/40" do %>
+    <span class="flex min-w-0 items-center gap-3">
+      <%= ui_icon :flame, class_name: "h-7 w-7" %>
+      <span class="min-w-0">
+        <span class="block font-semibold text-ink">챌린지 관리</span>
+        <span class="block text-xs text-steel">우리 학교 챌린지를 만들고 관리해요.</span>
+      </span>
+    </span>
+    <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
+  <% end %>
+
+  <%= render "shared/empty_state",
+        message: "이달의 책과 행사를 등록해 보세요.", icon: :book_open %>
+</div>

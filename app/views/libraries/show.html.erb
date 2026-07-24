@@ -1,0 +1,69 @@
+<% content_for :title, "내 서재 · 책갈피" %>
+
+<div class="page-shell page-shell-wide space-y-6">
+  <h1 class="sr-only">내 서재</h1>
+  <%= render "shared/student_nav", active: :library %>
+
+  <header class="page-header">
+    <h2 class="page-title flex items-center gap-2"><%= ui_icon :books, class_name: "h-7 w-7" %> 내 서재</h2>
+  </header>
+
+  <%# kind 필터 %>
+  <nav class="flex flex-wrap gap-1.5" aria-label="활동 종류 필터">
+    <% [ [ nil, "전체" ], [ "reports", "독후감 있음" ], [ "games", "게임 기록 있음" ] ].each do |value, label| %>
+      <%= link_to label, library_path(kind: value),
+            aria: { current: (@kind == value ? "page" : nil) },
+            class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@kind == value ? "bg-primary text-white" : "text-steel hover:bg-surface"}" %>
+    <% end %>
+  </nav>
+
+  <% if @entries.any? %>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <% @entries.each do |entry| %>
+        <div class="card space-y-2">
+          <div class="flex gap-3">
+            <% if entry.book.cover_url.present? %>
+              <%= image_tag entry.book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover", loading: "lazy" %>
+            <% else %>
+              <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
+            <% end %>
+            <div class="min-w-0">
+              <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
+                    class: "block truncate font-semibold text-ink hover:underline" %>
+              <span class="block truncate text-xs text-steel"><%= entry.book.author %></span>
+              <%= book_meta_badges(entry.book) %>
+              <div class="mt-1 flex flex-wrap gap-1.5 text-xs">
+                <% if entry.report_approved.positive? %><span class="badge badge-success">승인 독후감 <%= entry.report_approved %></span><% end %>
+                <% if entry.report_pending.positive? %><span class="badge badge-yellow">검토 중 <%= entry.report_pending %></span><% end %>
+                <% if entry.game_count.positive? %><span class="badge badge-info">게임 <%= entry.game_count %></span><% end %>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-steel"><%= "최근 #{entry.last_activity_at.strftime('%Y.%m.%d')}" if entry.last_activity_at %></span>
+            <%= link_to "이 책으로 활동하기", reading_activity_path(book_id: entry.book.id), class: "btn btn-secondary btn-sm" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 활동한 책이 없어요. 첫 독서활동을 시작해 볼까요?", icon: :books %>
+    <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-primary btn-sm" %>
+  <% end %>
+
+  <%# 책 미연결(레거시) 독후감 %>
+  <% if @legacy_groups.any? %>
+    <section class="space-y-2">
+      <h3 class="text-sm font-semibold text-steel">책 정보가 없는 독후감</h3>
+      <div class="space-y-2">
+        <% @legacy_groups.each do |group| %>
+          <div class="card flex items-center justify-between gap-3 text-sm">
+            <%= link_to group.title, reports_path(book_title: group.title),
+                  class: "min-w-0 truncate text-ink hover:underline" %>
+            <span class="shrink-0 text-xs text-steel">독후감 <%= group.report_total %>(승인 <%= group.report_approved %>)</span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

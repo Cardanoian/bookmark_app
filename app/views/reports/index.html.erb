@@ -1,0 +1,71 @@
+<% content_for :title, "독후감 · 책갈피" %>
+
+<div class="page-shell page-shell-content">
+  <%= render "shared/student_nav", active: :reports %>
+
+  <% if policy(Report).create? %>
+    <%# 활성 책 필터(@book/@book_title_filter)를 새 독후감 링크에 실어, book_chooser 재선택 스텝을
+        건너뛴다. reading_activities/show.html.erb 의 report:{book_id,book_title} 프리필 관례를 따름. %>
+    <% new_report_link =
+         if @book
+           new_report_path(report: { book_id: @book.id, book_title: @book.title })
+         elsif @book_title_filter
+           new_report_path(report: { book_title: @book_title_filter })
+         else
+           new_report_path
+         end %>
+    <div class="mb-6 flex justify-end sm:mb-8" data-page-action="new-report">
+      <%= link_to "새 독후감 쓰기", new_report_link, class: "btn btn-primary" %>
+    </div>
+  <% end %>
+
+  <% if current_user.student? %>
+    <%= turbo_stream_from current_user, :reports %>
+  <% end %>
+
+  <% if @book || @reviewed_filter || @book_title_filter %>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-soft px-4 py-3">
+      <h2 class="text-base font-bold text-ink">
+        <% if @book %>
+          <%= ui_icon :book_open %> 『<%= @book.title %>』 독후감
+        <% elsif @reviewed_filter %>
+          <span class="badge badge-success"><%= ui_icon :check, class_name: "h-4 w-4" %> 선생님 확인 독후감</span>
+        <% elsif @book_title_filter %>
+          <%= ui_icon :book_open %> 『<%= @book_title_filter %>』 독후감 <span class="text-sm font-normal text-ink-soft">(책 정보 없음)</span>
+        <% end %>
+      </h2>
+      <%= link_to "전체 보기", reports_path, class: "btn btn-secondary btn-sm" %>
+    </div>
+  <% end %>
+
+  <% if @reports.any? %>
+    <div id="reports" class="space-y-4">
+      <%= render partial: "reports/report", collection: @reports,
+            locals: { show_delete: current_user.student? } %>
+    </div>
+  <% elsif @book || @reviewed_filter || @book_title_filter %>
+    <%= render "shared/empty_state",
+          message: "아직 독후감이 없어요.", icon: :books %>
+    <div class="mt-4 text-center">
+      <%= link_to "전체 보기", reports_path, class: "btn btn-secondary btn-sm" %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state",
+          message: "아직 독후감이 없어요. 첫 독후감을 써 볼까요?", icon: :books %>
+  <% end %>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="mt-6 flex items-center justify-between text-sm">
+      <% if @page > 1 %>
+        <%= link_to icon_text(:arrow_left, "이전"), reports_path(request.query_parameters.merge("page" => @page - 1)), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to text_icon("다음", :arrow_right), reports_path(request.query_parameters.merge("page" => @page + 1)), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
+  <% end %>
+</div>

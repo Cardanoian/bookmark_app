@@ -1,0 +1,27 @@
+<%# 학생 로그인 — 시도·시군구·학교·학급·이름·비밀번호(튜플 신원). post → login/student. %>
+<div class="w-full max-w-md mx-auto">
+  <h1 class="mb-6 flex items-center justify-center gap-2 text-center text-2xl font-bold text-ink"><%= ui_icon :student, class_name: "h-8 w-8" %> 학생 로그인</h1>
+
+  <div class="card">
+    <%# flash 오류는 공통 상단 토스트(shared/_flash)가 담당 — 여기서 중복 렌더하지 않음. %>
+    <%= form_with url: student_login_path, method: :post, local: true, class: "space-y-4" do |f| %>
+      <%= render "schools/picker", regions: @regions, with_classroom: true, current_academic_year: @current_academic_year %>
+
+      <div>
+        <%= label_tag :name, "이름", class: "form-label" %>
+        <%= text_field_tag :name, nil, class: "form-input" %>
+      </div>
+
+      <div>
+        <%= label_tag :password, "비밀번호", class: "form-label" %>
+        <%= password_field_tag :password, nil, class: "form-input" %>
+      </div>
+
+      <%= submit_tag "로그인", class: "btn btn-primary btn-block" %>
+    <% end %>
+  </div>
+
+  <p class="mt-4 text-center text-sm">
+    <%= link_to icon_text(:arrow_left, "로그인 선택으로 돌아가기"), new_session_path, class: "inline-flex items-center gap-1 text-steel underline" %>
+  </p>
+</div>

@@ -1,0 +1,42 @@
+<%# 게임 콘텐츠 에스컬레이션(게임 재구성 Phase 3 §4.5). 전국 노출 system 풀 퀴즈의 신고 콘텐츠를
+    총괄이 영구 숨김/복원/삭제한다. 담임 대시보드(자기 학급 신호)와 별개의 전국 관점 중앙 큐. %>
+<div class="space-y-6">
+  <div class="page-header">
+    <h1 class="page-title">신고된 게임 콘텐츠 (전국)</h1>
+  </div>
+
+  <p class="text-sm text-steel">
+    전국에 노출되는 온디맨드/기여 게임 문제 중 학생 신고가 있는 콘텐츠예요.
+    서로 다른 <%= Games::ContentProvider::REPORT_HIDE_THRESHOLD %>명이 신고하면 자동으로 숨겨지지만,
+    총괄은 여기서 직접 숨기거나 복원·삭제할 수 있어요.
+  </p>
+
+  <% if @quizzes.any? %>
+    <ul class="space-y-2">
+      <% @quizzes.each do |quiz| %>
+        <li class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3 text-sm">
+          <span class="min-w-0">
+            <span class="<%= "line-through text-muted" if quiz.reported? %>">
+              「<%= quiz.book&.title.presence || "책 미상" %>」 ·
+              <span class="text-steel"><%= quiz.content_axis %> · <%= quiz.band %> · v<%= quiz.content_version %></span>
+            </span>
+            <span class="badge badge-danger ml-1">신고 <%= quiz.reports_count %></span>
+            <% if quiz.reported? %><span class="badge badge-neutral ml-1">숨김</span><% end %>
+          </span>
+          <span class="flex shrink-0 items-center gap-2">
+            <% if quiz.reported? %>
+              <%= button_to "복원", restore_admin_game_content_path(quiz), class: "btn btn-secondary btn-sm" %>
+            <% else %>
+              <%= button_to "숨기기", hide_admin_game_content_path(quiz), class: "btn btn-danger btn-sm" %>
+            <% end %>
+            <%= button_to "삭제", admin_game_content_path(quiz), method: :delete, class: "btn btn-danger btn-sm",
+                  form: { data: { turbo_confirm: "이 게임 콘텐츠를 영구 삭제할까요?" } } %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+    <%= render "admin/shared/pager", page: @page, has_next: @has_next %>
+  <% else %>
+    <%= render "shared/empty_state", message: "신고된 게임 콘텐츠가 없어요." %>
+  <% end %>
+</div>

@@ -1,0 +1,21 @@
+<div class="max-w-lg space-y-6">
+  <div class="page-header">
+    <h1 class="page-title"><%= @book.title %></h1>
+    <div class="page-actions">
+      <%= link_to "수정", edit_admin_book_path(@book), class: "btn btn-secondary btn-sm" %>
+      <%= button_to "삭제", admin_book_path(@book), method: :delete,
+            form: { data: { turbo_confirm: "정말 삭제할까요?" } },
+            class: "btn btn-danger btn-sm" %>
+    </div>
+  </div>
+  <dl class="card text-sm">
+    <div class="flex justify-between py-1"><dt class="text-steel">저자</dt><dd class="text-ink"><%= @book.author %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">출판사</dt><dd class="text-ink"><%= @book.publisher %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">ISBN</dt><dd class="text-ink"><%= @book.isbn %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">분류</dt><dd class="text-ink"><%= @book.category %></dd></div>
+    <div class="flex justify-between py-1"><dt class="text-steel">장르</dt><dd class="text-ink"><%= book_genre_label(@book) || "—" %></dd></div>
+  </dl>
+  <% if @book.summary.present? %>
+    <p class="card text-sm text-slate"><%= @book.summary %></p>
+  <% end %>
+</div>

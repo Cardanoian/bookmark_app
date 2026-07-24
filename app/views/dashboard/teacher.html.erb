@@ -1,0 +1,33 @@
+<% content_for :title, "교사 콘솔 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :dashboard %>
+
+    <section class="min-w-0 flex-1">
+      <header class="page-header">
+        <h1 class="page-title">교사 대시보드</h1>
+        <%= button_to "로그아웃", session_path, method: :delete, class: "btn btn-secondary btn-sm" %>
+      </header>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <%= link_to teacher_dashboard_path, class: "card transition-colors hover:border-brand-blue" do %>
+          <p class="text-lg font-semibold text-ink">학급 인사이트 &rarr;</p>
+          <p class="mt-1 text-sm text-steel">5축 평균·방사형·약점 인사이트·검토 큐</p>
+        <% end %>
+        <%= link_to teacher_students_path, class: "card transition-colors hover:border-brand-blue" do %>
+          <p class="text-lg font-semibold text-ink">학생관리 &rarr;</p>
+          <p class="mt-1 text-sm text-steel">학생 추가·비밀번호 초기화·포인트와 경험치 지급</p>
+        <% end %>
+        <%= link_to teacher_missions_path, class: "card transition-colors hover:border-brand-blue" do %>
+          <p class="text-lg font-semibold text-ink">미션·퀴즈 &rarr;</p>
+          <p class="mt-1 text-sm text-steel">독서 미션과 퀴즈를 만들어요</p>
+        <% end %>
+        <%= link_to teacher_exports_reports_csv_path, class: "card transition-colors hover:border-brand-blue" do %>
+          <p class="text-lg font-semibold text-ink">문서 출력 &rarr;</p>
+          <p class="mt-1 text-sm text-steel">사전·사후 5축 CSV·표창장·포트폴리오</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+</div>

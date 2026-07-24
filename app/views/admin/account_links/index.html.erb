@@ -1,0 +1,62 @@
+<% content_for :title, "계정 연동 감사 · 책갈피" %>
+
+<div class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-ink">계정 연동 감사</h1>
+    <p class="mt-1 text-sm text-steel">
+      작년 계정과 현재 계정을 병합한 원장이에요. 아동 안전을 위해 요약만 보여 주며(비밀번호·이름 원본은
+      노출하지 않아요), 되돌리기는 총괄이 시간 제한 없이 할 수 있어요.
+    </p>
+  </header>
+
+  <%= form_with url: admin_account_links_path, method: :get, class: "flex flex-wrap gap-2" do %>
+    <%= text_field_tag :q, params[:q], class: "form-input flex-1", placeholder: "생존자 이름 검색", autocomplete: "off" %>
+    <%= submit_tag "검색", class: "btn btn-secondary" %>
+  <% end %>
+
+  <% if @merges.any? %>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-steel">
+            <th class="p-2">생존자</th>
+            <th class="p-2">이동 요약</th>
+            <th class="p-2"><span class="inline-flex items-center gap-1">from <%= ui_icon :arrow_right, class_name: "h-4 w-4" %> to 학급</span></th>
+            <th class="p-2">수행자</th>
+            <th class="p-2">시각</th>
+            <th class="p-2">상태</th>
+            <th class="p-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @merges.each do |merge| %>
+            <tr class="border-t border-hairline">
+              <td class="p-2 font-medium text-ink"><%= merge.surviving_user&.name || "(삭제)" %></td>
+              <td class="p-2">독후감 <%= merge.moved_counts&.dig("reports") || 0 %> · 몬스터 <%= merge.moved_counts&.dig("monsters") || 0 %></td>
+              <td class="p-2"><span class="inline-flex items-center gap-1"><%= merge.from_classroom_id %> <%= ui_icon :arrow_right, class_name: "h-4 w-4" %> <%= merge.to_classroom_id %></span></td>
+              <td class="p-2"><%= merge.performed_by&.name || "학생 본인" %></td>
+              <td class="p-2 whitespace-nowrap"><%= merge.created_at.strftime("%Y-%m-%d %H:%M") %></td>
+              <td class="p-2">
+                <% if merge.reversed_at %>
+                  <span class="badge badge-neutral">되돌림</span>
+                <% else %>
+                  <span class="badge badge-yellow">활성</span>
+                <% end %>
+              </td>
+              <td class="p-2">
+                <% unless merge.reversed_at %>
+                  <%= button_to "되돌리기", reverse_admin_account_link_path(merge), class: "btn btn-secondary btn-sm",
+                        data: { turbo_confirm: "이 연동을 되돌릴까요?" } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render "admin/shared/pager", page: @page, has_next: @has_next %>
+  <% else %>
+    <p class="card text-steel">연동 기록이 없어요.</p>
+  <% end %>
+</div>
