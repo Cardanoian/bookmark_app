@@ -115,7 +115,7 @@ module Schools
     end
 
     def normalize(raw_rows)
-      raw_rows.filter_map do |row|
+      rows = raw_rows.filter_map do |row|
         # 서버 필터(SCHUL_KND_SC_NM)를 방어적으로 재확인 — 초등학교만 적재한다.
         next unless row["SCHUL_KND_SC_NM"].to_s.strip == KIND
         # 국내 17개 시도교육청만 적재하고 재외한국학교교육청(V10)은 제외한다.
@@ -134,9 +134,44 @@ module Schools
           region: region,
           gu: Schools::GuParser.parse(address, region: region),
           office_code: office_code,
-          address: address.presence
+          address: address.presence,
+          ju_org_nm: row["JU_ORG_NM"].to_s.strip
         }
       end
+
+      backfill_gu_from_ju_org(rows)
+      rows.each { |row| row.delete(:ju_org_nm) }
+      rows
+    end
+
+    # NEIS 가 도로명주소(ORG_RDNMA)를 비워 보내 gu 가 nil 인 행을 관할 교육지원청명
+    # (JU_ORG_NM, 예 "충청남도아산교육지원청")에서 도출한 시군구로 보완한다. 도출값은 같은
+    # 시도에서 주소로 정상 파싱된 시군구 정본에 **유일하게** 일치할 때만 채택하고(다지역
+    # 관할·모호·미매칭이면 nil 유지 — fail-safe), 주소로 이미 gu 를 얻은 행은 건드리지 않는다.
+    # 세종처럼 시군구 자체가 없는 시도는 정본이 비어 자연히 nil 로 남는다.
+    def backfill_gu_from_ju_org(rows)
+      canonical = Hash.new { |hash, key| hash[key] = [] }
+      rows.each { |row| canonical[row[:region]] << row[:gu] if row[:gu].present? }
+      canonical.each_value(&:uniq!)
+
+      rows.each do |row|
+        next if row[:gu].present?
+
+        core = ju_org_core(row[:ju_org_nm], region: row[:region])
+        next if core.blank?
+
+        matches = canonical[row[:region]].select { |gu| gu.start_with?(core) }
+        row[:gu] = matches.first if matches.size == 1
+      end
+    end
+
+    # "충청남도아산교육지원청" → "아산"(시도 접두·"교육지원청" 접미 제거). 비정형이면 "".
+    def ju_org_core(ju_org_nm, region:)
+      core = ju_org_nm.to_s.strip
+      return "" if core.blank?
+
+      sido = region.to_s.sub(/교육청\z/, "")
+      core.sub(/교육지원청\z/, "").sub(/\A#{Regexp.escape(sido)}/, "").strip
     end
 
     def connection

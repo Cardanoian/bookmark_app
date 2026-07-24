@@ -18,8 +18,12 @@ export default class extends Controller {
       return
     }
     this.fetchJson(`/schools/gus?region=${encodeURIComponent(region)}`).then((list) => {
-      this.setOptions(this.guTarget, (list || []).map((gu) => ({ value: gu, label: gu })), "시군구 선택")
-      this.guTarget.disabled = false
+      const gus = list || []
+      // 세종처럼 시군구가 없는 단층제 시도는 목록이 비어 온다 → 드롭다운을 비활성화하고
+      // "시군구 없음"을 표시해 고를 게 없음을 알린다(다른 시도로 바꾸면 목록이 채워지며 재활성화).
+      const hasGus = gus.length > 0
+      this.setOptions(this.guTarget, gus.map((gu) => ({ value: gu, label: gu })), hasGus ? "시군구 선택" : "시군구 없음")
+      this.guTarget.disabled = !hasGus
     })
   }
 
@@ -46,7 +50,15 @@ export default class extends Controller {
       return
     }
 
-    this.fetchJson(`/schools/search?q=${encodeURIComponent(query)}`).then((schools) => this.fillSchools(schools))
+    // 이미 고른 시도/시군구가 있으면 이름검색을 그 지역으로 좁힌다(선택 안 하면 전국 — 기존 동작).
+    // region 은 항상, gu 는 값이 있을 때만 붙여, gu 가 빈 학교(약 1%)도 시도만 골랐을 땐 도달 가능.
+    let url = `/schools/search?q=${encodeURIComponent(query)}`
+    const region = this.hasRegionTarget ? this.regionTarget.value : ""
+    const gu = this.hasGuTarget ? this.guTarget.value : ""
+    if (region) url += `&region=${encodeURIComponent(region)}`
+    if (gu) url += `&gu=${encodeURIComponent(gu)}`
+
+    this.fetchJson(url).then((schools) => this.fillSchools(schools))
   }
 
   // <li> 버튼 클릭 = 학교 선택. hidden school 값·선택 표시를 세팅하고, 목록을 닫은 뒤

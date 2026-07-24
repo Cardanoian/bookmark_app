@@ -17,11 +17,13 @@ class Schools::NeisFetcherTest < ActiveSupport::TestCase
     }.to_json
   end
 
-  def neis_row(code:, name:, kind: "초등학교", region: "서울특별시교육청", office: "B10", addr: "서울특별시 강남구 언주로 3")
-    {
+  def neis_row(code:, name:, kind: "초등학교", region: "서울특별시교육청", office: "B10", addr: "서울특별시 강남구 언주로 3", ju_org: nil)
+    row = {
       "SD_SCHUL_CODE" => code, "SCHUL_NM" => name, "SCHUL_KND_SC_NM" => kind,
       "ATPT_OFCDC_SC_NM" => region, "ATPT_OFCDC_SC_CODE" => office, "ORG_RDNMA" => addr
     }
+    row["JU_ORG_NM"] = ju_org if ju_org
+    row
   end
 
   test "available? is false when the NEIS key is blank" do
@@ -79,6 +81,30 @@ class Schools::NeisFetcherTest < ActiveSupport::TestCase
     fetcher = Schools::NeisFetcher.new(api_key: "K", connection: connection)
 
     assert_nil fetcher.fetch_all.first[:gu]
+  end
+
+  test "빈 도로명주소 행의 gu 를 관할 교육지원청명(JU_ORG_NM)에서 보완한다" do
+    connection = stub_connection do |stub|
+      stub.get("/hub/schoolInfo") do
+        [ 200, {}, neis_body([
+          # 정본 확립: 주소로 아산시가 파싱되는 정상 행
+          neis_row(code: "C1", name: "충남아산초", region: "충청남도교육청", office: "N10", addr: "충청남도 아산시 시민로 456"),
+          # 사각지대: NEIS 가 도로명주소를 비워 보냄 → JU_ORG_NM 으로 아산시 도출
+          neis_row(code: "C2", name: "석곡초", region: "충청남도교육청", office: "N10", addr: "", ju_org: "충청남도아산교육지원청"),
+          # fail-safe: 정본에 없는 관할명은 도출 실패 → nil 유지
+          neis_row(code: "C3", name: "무매칭초", region: "충청남도교육청", office: "N10", addr: "", ju_org: "충청남도딴곳교육지원청")
+        ]) ]
+      end
+    end
+    fetcher = Schools::NeisFetcher.new(api_key: "K", connection: connection)
+
+    rows = fetcher.fetch_all.index_by { |row| row[:neis_code] }
+
+    assert_equal "아산시", rows["C1"][:gu]
+    assert_equal "아산시", rows["C2"][:gu]
+    assert_nil rows["C2"][:address]
+    assert_nil rows["C3"][:gu]
+    assert_not rows["C2"].key?(:ju_org_nm)
   end
 
   test "paginates until the API total count is collected" do
