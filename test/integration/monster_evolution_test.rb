@@ -60,6 +60,7 @@ class MonsterEvolutionTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "#monster_detail [data-monster-care-target='sprite'] img.mx-auto", count: 1
+    assert_select "#monster_detail img[src*='monsters/pup_1'][src$='.webp']", count: 1
   end
 
   test "evolve deducts points for a non-active monster too" do

@@ -1,4 +1,6 @@
 require "fileutils"
+require "open3"
+require "tempfile"
 require "yaml"
 
 # 몬스터 도감 시드와 이미지 에셋 설치 진입점.
@@ -30,7 +32,7 @@ namespace :monsters do
     puts "Backfilled monster unlocks: #{students} students evaluated, #{discovered} monsters newly discovered."
   end
 
-  desc "Install all monster WebP assets under app/assets/images/monsters"
+  desc "Install 256px static PNG and animated WebP monster assets under app/assets/images/monsters"
   task install_assets: :environment do
     seed_path = Rails.root.join("db/seeds/monsters.yml")
     source_root = Rails.root.join("script/output")
@@ -47,9 +49,10 @@ namespace :monsters do
 
         {
           key: key,
-          source: source_root.join("webp", format("%02d_%02d.webp", dex_no, stage)),
+          animated_source: source_root.join("webp", format("%02d_%02d.webp", dex_no, stage)),
           reference_directory: source_root.join(format("%02d", dex_no), format("%02d_%s", stage, name)),
-          destination: destination_root.join("#{key}.webp")
+          static_destination: destination_root.join("#{key}.png"),
+          animated_destination: destination_root.join("#{key}.webp")
         }
       end
     end
@@ -62,25 +65,46 @@ namespace :monsters do
 
     assets.each do |asset|
       errors << "invalid image key: #{asset[:key].inspect}" unless asset[:key].match?(/\A[a-z0-9_]+\z/)
-      errors << "missing source: #{asset[:source]}" unless asset[:source].file?
+      errors << "missing animated source: #{asset[:animated_source]}" unless asset[:animated_source].file?
       errors << "name mapping mismatch: missing #{asset[:reference_directory]}" unless asset[:reference_directory].directory?
+      errors << "missing static source: #{asset[:reference_directory].join("sprite.png")}" unless asset[:reference_directory].join("sprite.png").file?
     end
 
     abort "Monster asset validation failed:\n- #{errors.join("\n- ")}" if errors.any?
+    abort "Monster asset installation requires ffmpeg" unless system("ffmpeg", "-version", out: File::NULL, err: File::NULL)
 
     FileUtils.mkdir_p(destination_root)
     copied = 0
     skipped = 0
 
     assets.each do |asset|
-      if asset[:destination].file? && FileUtils.compare_file(asset[:source], asset[:destination])
+      animated_destination = asset[:animated_destination]
+      if animated_destination.file? && FileUtils.compare_file(asset[:animated_source], animated_destination)
         skipped += 1
       else
-        FileUtils.cp(asset[:source], asset[:destination])
+        FileUtils.cp(asset[:animated_source], animated_destination)
         copied += 1
       end
+
+      static_temp = Tempfile.new([ "monster-static-", ".png" ], destination_root)
+      static_temp.close
+      _stdout, stderr, status = Open3.capture3(
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", asset[:reference_directory].join("sprite.png").to_s,
+        "-filter_complex", "[0:v]scale=230:224:force_original_aspect_ratio=decrease:flags=lanczos,pad=256:256:(ow-iw)/2:256-ih-6:color=black@0",
+        "-frames:v", "1", "-c:v", "png", static_temp.path
+      )
+      abort "Could not create static PNG for #{asset[:key]}: #{stderr}" unless status.success?
+
+      static_destination = asset[:static_destination]
+      if static_destination.file? && FileUtils.compare_file(static_temp.path, static_destination)
+        skipped += 1
+      else
+        FileUtils.mv(static_temp.path, static_destination)
+        copied += 1
+      end
+      static_temp.unlink if File.exist?(static_temp.path)
     end
 
-    puts "Installed monster assets: copied #{copied}, skipped #{skipped}, total #{assets.size}."
+    puts "Installed monster assets: copied #{copied}, skipped #{skipped}, total #{assets.size} static PNG + #{assets.size} animated WebP."
   end
 end

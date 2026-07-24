@@ -75,7 +75,7 @@ class RankingsTest < ActionDispatch::IntegrationTest
     images = css_select("img[alt='#{species.name}']")
     assert_equal 2, images.size, "대표 몬스터가 포디움과 랭킹 행에 각각 이미지로 표시되어야 한다"
     images.each do |image|
-      assert_match %r{/(?:assets|images)/monsters/pup_1(?:-[^/.]+)?\.webp}, image["src"]
+      assert_match %r{/(?:assets|images)/monsters/pup_1(?:-[^/.]+)?\.png}, image["src"]
     end
     assert_select "svg use[href$='#mystery']", count: 0
   end

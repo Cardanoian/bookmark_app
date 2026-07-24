@@ -1,74 +1,81 @@
 <%# locals: (user_monster:, current_species:, line:, stats:, evolvable:, dex_no:, awaiting_review_count: 0, celebrate: false) %>
 <div id="monster_detail" class="card">
-  <div class="mb-6 text-center"
+  <div class="flex flex-col items-center gap-6 sm:flex-row sm:items-start"
        data-controller="monster-care"
        data-monster-care-celebrate-value="<%= celebrate %>">
-    <div class="text-6xl" aria-hidden="true" data-monster-care-target="sprite">
-      <%= user_monster ? monster_sprite(current_species, img_class: "mx-auto h-20 w-20 object-contain") : ui_icon(:mystery, class_name: "mx-auto h-20 w-20") %>
+    <%# 좌: 큰 일러스트 (진화·먹이 연출 시 bounce 하는 스프라이트 target, 상세 상단은 애니메이션 WebP) %>
+    <div class="shrink-0" data-monster-care-target="sprite" aria-hidden="true">
+      <%= user_monster ? monster_sprite(current_species, animated: true, img_class: "mx-auto h-40 w-40 object-contain sm:h-52 sm:w-52") : ui_icon(:mystery, class_name: "mx-auto h-40 w-40 sm:h-52 sm:w-52") %>
     </div>
-    <p class="mt-2 text-xs text-muted">No.<%= format("%02d", dex_no) %></p>
-    <h1 class="text-2xl font-bold text-ink"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>
-    <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium <%= element_badge_classes(current_species.element) %>">
-      <%= element_label(current_species.element) %> · <%= current_species.stage %>단계
-    </span>
+
+    <%# 우: 번호·이름·속성 등 글 설명 + 조건 + 액션 버튼 %>
+    <div class="w-full min-w-0 flex-1">
+      <div class="mb-5 text-center sm:text-left">
+        <p class="text-xs text-muted">No.<%= format("%02d", dex_no) %></p>
+        <h1 class="text-2xl font-bold text-ink"><%= user_monster ? current_species.name : "미발견 몬스터" %></h1>
+        <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium <%= element_badge_classes(current_species.element) %>">
+          <%= element_label(current_species.element) %> · <%= current_species.stage %>단계
+        </span>
+      </div>
+
+      <% if user_monster %>
+        <% condition = current_species.evolve_condition %>
+        <% if condition.present? %>
+          <div class="card-muted mb-6 p-4">
+            <p class="mb-2 text-sm font-semibold text-ink">다음 진화 조건</p>
+            <ul class="space-y-1">
+              <% condition.each do |key, target| %>
+                <% current_value = condition_progress(stats, key, target) %>
+                <% met = current_value >= target.to_i %>
+                <li class="flex items-center justify-between text-sm">
+                  <span class="text-slate"><%= condition_label(key) %></span>
+                  <span class="<%= met ? "font-semibold text-success-accent" : "text-steel" %>">
+                    <span class="inline-flex items-center gap-1"><%= current_value %> / <%= target %><%= ui_icon(:check, class_name: "h-4 w-4") if met %></span>
+                  </span>
+                </li>
+              <% end %>
+            </ul>
+            <% if condition.keys.map(&:to_s).include?("reports") && awaiting_review_count.positive? %>
+              <p class="mt-3 state-banner text-xs">
+                <%= ui_icon :writing, class_name: "h-4 w-4" %> AI 첨삭을 마친 독후감 <%= awaiting_review_count %>개가 선생님의 승인을 기다리고 있어요.
+                선생님이 승인하면 '독후감 수' 진화 조건에 반영돼요.
+              </p>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="mb-6 text-center text-sm font-medium text-yellow-dark sm:text-left"><%= ui_icon :sparkle, class_name: "h-4 w-4" %> 완전형에 도달했어요!</p>
+        <% end %>
+
+        <div class="mb-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+          <% if evolvable %>
+            <%= button_to evolve_monster_path(dex_no), method: :post, class: "btn btn-yellow" do %>
+              <span><%= user_monster.evolution_cost %>P로 진화하기</span> <%= ui_icon :sparkle, class_name: "h-4 w-4" %>
+            <% end %>
+          <% end %>
+          <% unless current_user.active_monster_id == user_monster.id %>
+            <%= button_to "대표로 지정", set_active_monster_path(dex_no), method: :post,
+                  class: "btn btn-secondary" %>
+          <% end %>
+        </div>
+      <% else %>
+        <% unlock_condition = line.first&.unlock_condition %>
+        <% if unlock_condition.present? %>
+          <div class="card-muted mb-4 p-4">
+            <p class="mb-2 text-sm font-semibold text-ink">해금 조건</p>
+            <ul class="space-y-1">
+              <% unlock_progress_items(stats, unlock_condition).each do |item| %>
+                <li class="flex items-center justify-between text-sm">
+                  <span class="text-slate"><%= item[:label] %></span>
+                  <span class="<%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
+                    <span class="inline-flex items-center gap-1"><%= item[:current] %> / <%= item[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if item[:met] %></span>
+                  </span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+        <p class="text-center text-sm text-steel sm:text-left">아직 발견하지 못한 몬스터예요. 독후감을 쓰고 미션·게임에 참여하며 만나 보세요!</p>
+      <% end %>
+    </div>
   </div>
-
-  <% if user_monster %>
-    <% condition = current_species.evolve_condition %>
-    <% if condition.present? %>
-      <div class="card-muted mb-6 p-4">
-        <p class="mb-2 text-sm font-semibold text-ink">다음 진화 조건</p>
-        <ul class="space-y-1">
-          <% condition.each do |key, target| %>
-            <% current_value = condition_progress(stats, key, target) %>
-            <% met = current_value >= target.to_i %>
-            <li class="flex items-center justify-between text-sm">
-              <span class="text-slate"><%= condition_label(key) %></span>
-              <span class="<%= met ? "font-semibold text-success-accent" : "text-steel" %>">
-                <span class="inline-flex items-center gap-1"><%= current_value %> / <%= target %><%= ui_icon(:check, class_name: "h-4 w-4") if met %></span>
-              </span>
-            </li>
-          <% end %>
-        </ul>
-        <% if condition.keys.map(&:to_s).include?("reports") && awaiting_review_count.positive? %>
-          <p class="mt-3 state-banner text-xs">
-            <%= ui_icon :writing, class_name: "h-4 w-4" %> AI 첨삭을 마친 독후감 <%= awaiting_review_count %>개가 선생님의 승인을 기다리고 있어요.
-            선생님이 승인하면 '독후감 수' 진화 조건에 반영돼요.
-          </p>
-        <% end %>
-      </div>
-    <% else %>
-      <p class="mb-6 text-center text-sm font-medium text-yellow-dark"><%= ui_icon :sparkle, class_name: "h-4 w-4" %> 완전형에 도달했어요!</p>
-    <% end %>
-
-    <div class="mb-4 flex flex-wrap justify-center gap-2">
-      <% if evolvable %>
-        <%= button_to evolve_monster_path(dex_no), method: :post, class: "btn btn-yellow" do %>
-          <span><%= user_monster.evolution_cost %>P로 진화하기</span> <%= ui_icon :sparkle, class_name: "h-4 w-4" %>
-        <% end %>
-      <% end %>
-      <% unless current_user.active_monster_id == user_monster.id %>
-        <%= button_to "대표로 지정", set_active_monster_path(dex_no), method: :post,
-              class: "btn btn-secondary" %>
-      <% end %>
-    </div>
-  <% else %>
-    <% unlock_condition = line.first&.unlock_condition %>
-    <% if unlock_condition.present? %>
-      <div class="card-muted mb-4 p-4">
-        <p class="mb-2 text-sm font-semibold text-ink">해금 조건</p>
-        <ul class="space-y-1">
-          <% unlock_progress_items(stats, unlock_condition).each do |item| %>
-            <li class="flex items-center justify-between text-sm">
-              <span class="text-slate"><%= item[:label] %></span>
-              <span class="<%= item[:met] ? "font-semibold text-success-accent" : "text-steel" %>">
-                <span class="inline-flex items-center gap-1"><%= item[:current] %> / <%= item[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if item[:met] %></span>
-              </span>
-            </li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
-    <p class="text-center text-sm text-steel">아직 발견하지 못한 몬스터예요. 독후감을 쓰고 미션·게임에 참여하며 만나 보세요!</p>
-  <% end %>
 </div>

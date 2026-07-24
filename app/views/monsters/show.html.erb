@@ -13,18 +13,11 @@
     <div class="state-banner state-banner--error"><%= flash[:alert] %></div>
   <% end %>
 
-  <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-    <%= render "monsters/detail",
-          user_monster: @user_monster, current_species: @current_species, line: @line,
-          stats: @stats, evolvable: @evolvable, dex_no: @dex_no,
-          awaiting_review_count: @awaiting_review_count,
-          celebrate: flash[:celebrate].present? %>
-
-    <div class="card">
-      <p class="mb-2 text-center text-xs font-medium text-steel">진화 로드맵</p>
-      <%= render "monsters/evolution_roadmap", line: @line, current: @user_monster %>
-    </div>
-  </div>
+  <%= render "monsters/detail",
+        user_monster: @user_monster, current_species: @current_species, line: @line,
+        stats: @stats, evolvable: @evolvable, dex_no: @dex_no,
+        awaiting_review_count: @awaiting_review_count,
+        celebrate: flash[:celebrate].present? %>
 
   <% if @story %>
     <%= render "monsters/story", story: @story, line: @line, reached_stage: @reached_stage,

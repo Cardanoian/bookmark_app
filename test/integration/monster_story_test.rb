@@ -38,6 +38,7 @@ class MonsterStoryTest < ActionDispatch::IntegrationTest
     assert_includes response.body, ERB::Util.html_escape(story.scene_for(3).body)
     assert_includes response.body, ERB::Util.html_escape(story.growth_message)
     assert_not_includes response.body, MonsterLore.completion_finale.heading
+    assert_no_match(/>\s*(?:기·승|전|결)\s*</, response.body)
   end
 
   test "undiscovered monster shows only the locked teaser" do

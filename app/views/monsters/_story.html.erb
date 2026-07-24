@@ -1,6 +1,6 @@
 <%# locals: (story:, line:, reached_stage:, owned:, current_species:) %>
 <%# P2-3 몬스터 성장 서사. 보유 몬스터는 도달한 단계(reached_stage)까지 장면을 공개하고, %>
-<%# 이후 장면은 진화 로드맵처럼 잠가 동기를 준다. 완전 성장 시 성장 메시지를 보상처럼 공개한다. %>
+<%# 이후 장면은 잠금 티저로 남겨 진화 동기를 준다. 완전 성장 시 성장 메시지를 보상처럼 공개한다. %>
 <section class="card" aria-labelledby="monster-story-heading">
   <div class="mb-4 flex items-center gap-2">
     <%= ui_icon :book_open, class_name: "h-5 w-5 text-primary" %>
@@ -10,7 +10,21 @@
   </div>
 
   <% unless owned %>
-    <p class="text-sm text-steel">아직 만나지 못한 몬스터예요. 함께하게 되면 이 몬스터의 이야기가 한 장면씩 열려요.</p>
+    <p class="mb-4 text-sm text-steel">아직 만나지 못한 몬스터예요. 함께하게 되면 이 몬스터의 이야기가 한 장면씩 열려요.</p>
+    <%# 잠긴 진화 단계 티저: 이 라인이 몇 단계로 이뤄지는지 실루엣으로 보여 수집 동기를 준다(구 _evolution_roadmap 이관). %>
+    <div class="flex items-center justify-center gap-1" aria-hidden="true">
+      <% line.each_with_index do |species, index| %>
+        <div class="flex flex-col items-center gap-1 opacity-40">
+          <span class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed border-hairline-strong text-[11px] font-bold text-muted"><%= index + 1 %></span>
+          <%= ui_icon(:lock, class_name: "h-10 w-10") %>
+          <p class="text-xs font-medium text-ink">???</p>
+          <p class="text-[10px] text-muted"><%= species.stage %>단계</p>
+        </div>
+        <% unless index == line.size - 1 %>
+          <div class="progress-bar mx-1 w-6 sm:w-10"><div class="progress-bar__fill" style="width: 0%"></div></div>
+        <% end %>
+      <% end %>
+    </div>
   <% else %>
     <ol class="space-y-4">
       <% line.each do |species| %>
@@ -26,7 +40,7 @@
           </div>
           <div class="min-w-0 flex-1 border-l-2 <%= revealed ? "border-hairline-strong" : "border-hairline" %> pl-3">
             <p class="mb-1 text-sm font-semibold <%= revealed ? "text-ink" : "text-muted" %>">
-              <%= scene.title %><% if revealed %><span class="ml-1 font-normal text-steel">· <%= species.name %></span><% end %>
+              <%= revealed ? species.name : "아직 열리지 않은 이야기" %>
             </p>
             <% if revealed %>
               <p class="whitespace-pre-line text-sm leading-relaxed text-slate"><%= scene.body %></p>

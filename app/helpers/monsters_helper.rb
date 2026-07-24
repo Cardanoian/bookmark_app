@@ -1,4 +1,4 @@
-# 몬스터 도감 표시 헬퍼(WebP 스프라이트·SVG 폴백·속성 라벨/색).
+# 몬스터 도감 표시 헬퍼(정적 PNG·상세용 애니메이션 WebP·SVG 폴백·속성 라벨/색).
 module MonstersHelper
   include ApplicationHelper
 
@@ -16,8 +16,10 @@ module MonstersHelper
     "imagination" => "bg-amber-100 text-amber-700"
   }.freeze
 
-  # image_key 에 해당하는 WebP가 있으면 이미지 태그, 없으면 미발견 SVG를 반환한다.
-  def monster_sprite(species_or_key, img_class: "h-full w-full object-contain", **html_options)
+  # 기본은 정적 PNG를 렌더한다. 상세 상단처럼 한 번에 한 마리만 보여 주는 곳은
+  # animated: true로 기존 애니메이션 WebP를 명시적으로 선택한다.
+  # 에셋이 없으면 미발견 SVG를 반환한다.
+  def monster_sprite(species_or_key, img_class: "h-full w-full object-contain", animated: false, **html_options)
     key = if species_or_key.respond_to?(:image_key) && species_or_key.image_key.present?
       species_or_key.image_key
     elsif species_or_key.respond_to?(:key)
@@ -25,7 +27,7 @@ module MonstersHelper
     else
       species_or_key.to_s
     end
-    logical_path = "monsters/#{key}.webp"
+    logical_path = "monsters/#{key}.#{animated ? "webp" : "png"}"
 
     default_alt = species_or_key.respond_to?(:name) ? species_or_key.name : ""
     return ui_icon(:mystery, label: default_alt.presence || "몬스터 이미지 없음", class_name: img_class) unless monster_asset_exists?(logical_path)
