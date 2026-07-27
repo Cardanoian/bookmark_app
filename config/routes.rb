@@ -160,7 +160,7 @@ Rails.application.routes.draw do
     member { post :join }
   end
 
-  # 담임교사 — 검토 큐·5축 조정·승인·진위 확인 + 대시보드·학생관리·미션·퀴즈·루브릭·문서출력
+  # 담임교사 — 검토 목록·5축 조정·승인·진위 확인 + 대시보드·학생관리·미션·퀴즈·루브릭·문서출력
   namespace :teacher do
     resource  :dashboard, only: [ :show ]
 

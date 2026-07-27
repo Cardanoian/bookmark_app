@@ -14,7 +14,7 @@ module Challenges
       challenge = participation.challenge
       # 목표-0 챌린지 오지급 가드(호출부가 아니라 여기 둬 어떤 경로에도 성립).
       return nil if challenge.challenge_goals.empty?
-      return nil unless ProgressCalculator.new(challenge, participation.user).completed?
+      return nil unless ProgressCalculator.new(challenge, participation.user, participation: participation).completed?
 
       now = Time.current
       amount = challenge.reward_points.to_i

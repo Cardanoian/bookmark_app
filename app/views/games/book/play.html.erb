@@ -21,7 +21,7 @@
   <%# ── 소개 작성 폼 ── %>
   <section class="card">
     <h2 class="text-sm font-semibold text-ink">내 소개 쓰기</h2>
-    <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-xs text-steel">
+    <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-sm text-steel">
       <% @tips.each do |tip| %><li><%= tip %></li><% end %>
     </ul>
 
@@ -59,7 +59,7 @@
               <div class="shrink-0 text-center">
                 <p class="text-sm font-semibold text-brand-blue"><%= ui_icon :like, class_name: "h-4 w-4" %> <%= intro.votes_count %></p>
                 <% if mine %>
-                  <span class="mt-1 block text-xs text-muted">투표 불가</span>
+                  <span class="mt-1 block text-sm text-muted">투표 불가</span>
                 <% elsif voted %>
                   <%= button_to "투표 취소", games_book_vote_path(intro), method: :delete,
                         class: "btn btn-yellow btn-sm mt-1" %>

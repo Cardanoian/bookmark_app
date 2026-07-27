@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Chaekgalpi-design-system
-description: 「책갈피」는 초등학교 전학년 독후감·독서 습관 플랫폼으로, 자신감 있고 다정한 브랜드 보이스를 가진다 — 흰 캔버스 위 시그니처 카나리아 옐로({colors.brand-yellow}) 워드마크가 중심을 잡고, 실제 반려 몬스터 도감의 6속성 색을 반영한 파스텔 피처 틴트(로즈·틸·코랄·옐로·민트·라벤더)가 게이미피케이션 화면에 리듬을 준다. 마케팅·학생 화면에는 블랙 필 프라이머리 버튼이 지배적이고, 5역할(학생·담임·교무·사서·총괄) 표면을 하나의 토큰 체계로 지원한다. 모든 타이포는 한국어 폰트 Pretendard 기반(self-host).
+description: 「책갈피」는 초등학교 전학년 독후감·독서 습관 플랫폼으로, 자신감 있고 다정한 브랜드 보이스를 가진다 — 따뜻한 중립 페이지 위 흰 카드와 시그니처 카나리아 옐로({colors.brand-yellow}) 워드마크가 중심을 잡고, 실제 반려 몬스터 도감의 6속성 색을 반영한 파스텔 피처 틴트(로즈·틸·코랄·옐로·민트·라벤더)가 게이미피케이션 화면에 리듬을 준다. 학생의 시작·참여 행동은 옐로, 저장·제출과 교직원 주요 행동은 블랙, 정보성 도구 행동은 블루로 구분하며, 5역할(학생·담임·교무·사서·총괄) 표면을 하나의 토큰 체계로 지원한다. 모든 타이포는 한국어 폰트 Pretendard 기반(self-host).
 
 colors:
   primary: "#1c1c1e"
@@ -30,11 +30,14 @@ colors:
   error-text: "#be123c"
   success-surface: "#ecfdf5"
   success-ink: "#05603a"
+  page: "#f7f7f3"
   canvas: "#ffffff"
   surface: "#f7f8fa"
   surface-soft: "#fafbfc"
   surface-yellow: "#fff8e0"
   surface-featured: "#f5f3ff"
+  surface-coral: "#fff3e8"
+  surface-mint: "#ecfaf7"
   hairline: "#e0e2e8"
   hairline-soft: "#eef0f3"
   hairline-strong: "#c7cad5"
@@ -198,7 +201,7 @@ components:
     rounded: "{rounded.full}"
     padding: "12px 24px"
   button-secondary:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink}"
     typography: "{typography.button-md}"
     rounded: "{rounded.full}"
@@ -232,11 +235,13 @@ components:
     rounded: "{rounded.xl}"
     padding: "{spacing.xl}"
     border: "1px solid {colors.hairline-soft}"
+    shadow: "0 1px 2px rgba(5, 0, 56, 0.035), 0 6px 18px rgba(5, 0, 56, 0.025)"
   card-feature:
     backgroundColor: "{colors.canvas}"
     rounded: "{rounded.feature}"
     padding: "{spacing.xxl}"
     border: "1px solid {colors.hairline-soft}"
+    shadow: "0 1px 2px rgba(5, 0, 56, 0.035), 0 6px 18px rgba(5, 0, 56, 0.025)"
   card-feature-yellow:
     backgroundColor: "{colors.brand-yellow}"
     textColor: "{colors.primary}"
@@ -591,7 +596,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 - 교사 콘솔은 좌측 사이드바 + 우측 콘텐츠 2분할
 
 ### Whitespace Philosophy
-학생·마케팅 표면은 넉넉한 여백(`{spacing.hero}` 120px 히어로 패딩)으로 작은 워드마크에 숨 쉴 공간을 준다. 교사 검토 큐·비교표 등 밀도가 필요한 화면은 리듬을 크게 조인다.
+학생·마케팅 표면은 넉넉한 여백(`{spacing.hero}` 120px 히어로 패딩)으로 작은 워드마크에 숨 쉴 공간을 준다. 교사 검토 목록·비교표 등 밀도가 필요한 화면은 리듬을 크게 조인다.
 
 ## Elevation & Depth
 
@@ -736,7 +741,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 **`app-wordmark`** — 헤더 밴드 좌측 책갈피 워드마크. 앱 아이콘(`/icon.png`, 32px rounded) + 텍스트 `{colors.ink}` 700 웨이트, `root` 링크. 옐로 위 대비 ≈ 10.5:1.
 
-**`teacher-sidebar`** — 담임 콘솔 좌측 사이드바(그룹형 메뉴). 배경 `{colors.surface}`, 타이포 `{typography.body-sm-medium}`, 우측 보더 `1px solid {colors.hairline}`. 검토 큐·학생 관리·미션/퀴즈·루브릭·리포트 그룹.
+**`teacher-sidebar`** — 담임 콘솔 좌측 사이드바(그룹형 메뉴). 배경 `{colors.surface}`, 타이포 `{typography.body-sm-medium}`, 우측 보더 `1px solid {colors.hairline}`. 검토 목록·학생 관리·미션/퀴즈·루브릭·리포트 그룹.
 
 ### Signature Layout
 
@@ -824,24 +829,30 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 ### 토큰 & 폰트
 - **색·폰트 토큰** → `app/assets/tailwind/application.css`의 `@theme`에 DESIGN.md 값과 1:1 매핑(`--color-brand-yellow: #ffd02f`, `--color-ink`, `--color-surface`, `--color-hairline`, `--color-brand-blue`, 6속성 파스텔 등). 색만 신규 도입 없이 이식하고, Tailwind 기본 팔레트(gray/amber/rose…)는 유지(기존 뷰 회귀 방지). 생성 유틸 예: `bg-brand-yellow`·`text-ink`·`border-hairline`·`bg-surface-featured`. **rounded/spacing/typography 스케일은 Tailwind 기본 스케일에 의존**(`rounded-xxxl`·`text-hero-display` 같은 DESIGN.md 토큰명 그대로의 유틸은 생성되지 않으며, `.card-feature` 등 일부 컴포넌트 클래스에서만 `--radius-card`/`--radius-feature` 전용 토큰을 별도로 사용한다).
 - **Pretendard 자체호스팅**: `app/assets/fonts/pretendard/PretendardVariable.woff2`(가변, 전 웨이트) + `app/assets/stylesheets/application.css`의 `@font-face`. `--font-sans`를 Pretendard 스택으로 덮어 전역 기본 폰트 지정. CSP `font_src :self`(외부 CDN 미사용).
-- **전역 base**: 본문 배경(canvas), `:focus-visible` 브랜드 블루 링(제거 금지), `::selection`(yellow-light), `@media (prefers-reduced-motion: reduce)`.
+- **전역 base**: 본문 배경(page=`#f7f7f3`) 위에 흰 canvas 카드를 올려 표면을 분리하고, `:focus-visible` 브랜드 블루 링(제거 금지), `::selection`(yellow-light), `@media (prefers-reduced-motion: reduce)`를 적용한다. 관리자 레이아웃은 유틸리티로 중립 surface 배경을 유지한다.
 
 ### 공통 컴포넌트 클래스 (`@layer components`)
 반복 빈도 높은 패턴만 클래스화(모든 조합 추상화하지 않음). HTML의 Tailwind 유틸이 항상 덮어쓸 수 있음.
 - **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide`(1536) / `-content`(1280) / `-reading`(840) / `-form`(960). **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`(`.page-title`은 좌측 3px `{colors.brand-yellow}` 악센트 바로 강조 지점을 표시).
-- **버튼**: `.btn` + `.btn-primary`(검은 필=표준 CTA)/`-secondary`(아웃라인)/`-yellow`/`-blue`/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치.
-- **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`).
+- **버튼**: `.btn` + `.btn-primary`(검은 필=저장·제출·확정 및 교직원 주요 행동)/`-yellow`(학생 시작·참여)/`-blue`(동기화·검토 등 정보성 도구)/`-secondary`(흰 캔버스 아웃라인=취소·뒤로·보조 탐색)/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치이며 hover/active/disabled 상태를 모두 제공한다. 한 행동 묶음의 컬러 필 버튼은 1개를 원칙으로 한다.
+- **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`). 기본 카드에는 따뜻한 페이지 배경에서 흰 표면을 구분하는 2단계 저강도 그림자를 적용하고, 학생 핵심 진입 카드만 yellow/lavender/coral/mint 표면 유틸로 강조한다.
 - **폼**: `.form-label`/`.form-input`/`.form-select`/`.form-textarea`/`.form-hint`/`.form-error`(포커스 시 브랜드 블루 보더).
-- **배지**: `.badge` + `-neutral`/`-yellow`/`-success`/`-info`/`-warning`/`-danger`.
+- **배지**: `.badge` + `-neutral`/`-yellow`/`-success`/`-info`/`-warning`/`-danger` + 크기 변형 `.badge-sm`(여백만 좁힌 컴팩트 — 글자는 기본과 같은 13px, 좁은 도서 카드용)/`.badge-lg`(15px, 도서 상세 메타). 초등 전학년 가독성 하한 때문에 배지 글자는 13px 아래로 내리지 않는다.
 - **진행바**: `.progress-bar` > `.progress-bar__fill`(brand-yellow). **상태배너/알림**: `.state-banner` + `--success`/`--error`/`--info`(flash·빈/로딩/오류 공용).
 
 ### 레이아웃 & 반응형(구현)
-- `layouts/application`: 고정 `mt-28`·브레이크포인트 컨테이너 제거 → `<main>`이 `max-w-[96rem] mx-auto` + 유동 거터(`px-4 sm:px-6 lg:px-8`) + `py-6`. flash=`shared/_flash`(state-banner 토스트).
-- `layouts/admin`: 반응형 오프캔버스 사이드바(lg↑ 고정 / lg↓ 햄버거 패널 = `admin-sidebar` Stimulus, backdrop·Escape), 본문 `max-w-[96rem]`, `overflow-x-hidden` 가로스크롤 가드.
+- **데스크톱 루트 폰트 확대(2단계)**: `screen` 한정으로 `min-width:1024px`→`106.25%`(17px), `min-width:1280px`→`112.5%`(18px). 모바일/태블릿(<1024px)은 기존 16px 유지. 토큰·유틸이 거의 전부 rem 이라 글자뿐 아니라 간격·아이콘·최소 터치 영역까지 함께 비례 확대되어 넓은 화면이 "PC 확대판"이 된다(초등 전학년 대상 — 본문에 흔한 12~14px 는 데스크톱에서 특히 작다). **2단계인 이유**: 미디어쿼리 길이는 루트 폰트와 무관하게 초기값(16px) 기준이라 1024px 뷰포트는 `lg:` 다단 레이아웃을 쓰면서 실효 공간만 배율만큼 줄어든다 — 그 구간을 17px 로 완만하게 두고 여유가 실제로 있는 xl 부터 18px 로 올린다. **뷰별 반응형 분기(`text-xs sm:text-base`)를 뿌리지 않고 이 한 곳에서만 조절한다.** 인쇄 레이아웃은 영향 없음.
+- **셸 상한은 px 고정**: 위 확대에 폭까지 딸려 넓어지면(1536→1728px) 콘텐츠가 좌우로 더 벌어지므로 `--shell-max-*`는 rem 이 아닌 px 로 못박는다. 폭은 그대로, 안쪽 글자·간격만 커진다.
+- **`text-xs`(12px)는 메타 전용 — 본문 하한은 `text-sm`(14px)**: 초등 전학년 대상이라 읽어야 하는 텍스트를 12px 로 두지 않는다.
+  - `text-sm` 이상: 완결된 안내·설명 문장, 사용자 생성 본문(미션·챌린지 `description`, AI 코멘트), 섹션 헤딩, 조작부 라벨(버튼·링크). 폼의 `.form-hint`/`.form-error`도 "읽어야 하는 문장"이라 같은 하한(14px)을 따른다.
+  - `text-xs` 유지: 저자·출판사·날짜·도감 번호·XP/P/Lv·카운트 같은 **메타**, 배지 내부, 진행바 수치, `font-mono` 설정값·코드.
+  - 판단 기준은 "학생이 읽고 이해해야 하는 문장인가" — 그렇다면 메타가 아니다.
+- `layouts/application`: 고정 `mt-28`·브레이크포인트 컨테이너 제거 → `<main>`이 `max-w-[1536px] mx-auto` + 유동 거터(`px-4 sm:px-6 lg:px-8`) + `py-6`. flash=`shared/_flash`(state-banner 토스트).
+- `layouts/admin`: 반응형 오프캔버스 사이드바(lg↑ 고정 / lg↓ 햄버거 패널 = `admin-sidebar` Stimulus, backdrop·Escape), 본문 `max-w-[1536px]`, `overflow-x-hidden` 가로스크롤 가드.
 - 학생 내비(`shared/_student_nav`): 반응형 필 탭(데스크톱 줄바꿈/모바일 disclosure), 활성=라벤더 파스텔 필+짙은 브랜드 블루 텍스트+`aria-current="page"`.
 
 ### 역할 톤(적용 현황)
-학생(대시보드·로그인 선택 카드)=밝은 파스텔+옐로 강조; 교직원·관리자(admin 콘솔·교직원 로그인)=차분한 흰 카드+헤어라인. 표준 CTA는 전 역할 공통 검은 필(`.btn-primary`), 옐로는 워드마크·레벨/포인트·태그 강조 한정.
+학생(대시보드·로그인 선택 카드)=밝은 파스텔 표면+옐로 시작·참여 CTA; 교직원·관리자(admin 콘솔·교직원 로그인)=차분한 흰 카드+헤어라인, 검은 주요 CTA와 필요한 블루 도구 행동. 옐로는 워드마크·레벨/포인트·학생의 긍정적 진입 행동에 한정하고, 최종 저장·제출은 검은 필(`.btn-primary`)로 구분한다.
 
 ### 이월(후속 묶음)
 게임/도감/상점/미션/랭킹(Phase 4)·커뮤니티(Phase 5)·교사/사서/교무 심화(Phase 6)·관리자 CRUD 전면(Phase 7)·인쇄/메일/PWA/turbo 정리(Phase 8)는 이 공통 시스템을 화면군 단위로 확장 적용.

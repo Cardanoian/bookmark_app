@@ -189,7 +189,7 @@ class ReportsController < ApplicationController
 
   # 제출/재제출: 검토 상태를 완전히 리셋(미검토로 되돌리고 교사 편집본 클리어)한 뒤 AiReviewJob 을 예약한다.
   # 승인본(reviewed=true)을 학생이 직접 편집·재제출하면 reviewed 를 false 로 되돌려 첨삭 비공개 게이트
-  # (feedback_visible?)에 재진입시키고, 담임 재검토 큐(pending_scope, reviewed:false)로 복귀시킨다.
+  # (feedback_visible?)에 재진입시키고, 담임 재검토 목록(pending_scope, reviewed:false)으로 복귀시킨다.
   # 본문이 바뀌어 새 AI 첨삭이 생성되므로, 옛 본문을 대상으로 한 교사 편집본
   # (teacher_feedback/teacher_rubric/teacher_comment)은 스테일이라 함께 클리어한다
   # (클리어하지 않으면 재승인 후 student_feedback 이 스테일 teacher_feedback 을 우선 노출하는 2차 버그).

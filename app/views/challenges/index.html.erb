@@ -31,12 +31,13 @@
               </div>
 
               <% if challenge.description.present? %>
-                <p class="mt-1 line-clamp-1 text-xs text-steel"><%= challenge.description %></p>
+                <p class="mt-1 line-clamp-1 text-sm text-steel"><%= challenge.description %></p>
               <% end %>
 
+              <% participation = @participations_by_challenge_id&.[](challenge.id) %>
               <% progress = @progress_by_challenge&.[](challenge) %>
               <% if progress %>
-                <%# 학생 본인 진행상황(활성·목표 있는 챌린지만 세팅됨). %>
+                <%# 학생 본인 진행상황(참여·활성·목표 있는 챌린지만 세팅됨 — 참여 후 활동만 집계). %>
                 <div class="mt-2 space-y-1.5">
                   <% progress[:goals].each do |g| %>
                     <div>
@@ -52,7 +53,7 @@
                   <% end %>
                 </div>
               <% elsif challenge.challenge_goals.any? %>
-                <%# 교직원·비활성·목표 요약: 목표 배지. %>
+                <%# 교직원·비활성·미참여 학생: 목표 배지만(진행상황은 참여 후에 생긴다). %>
                 <div class="mt-2 flex flex-wrap gap-1">
                   <% challenge.challenge_goals.each do |goal| %>
                     <span class="badge badge-neutral"><%= ui_icon(goal.approved_reports? ? :writing : :game, class_name: "h-4 w-4") %> <%= goal.approved_reports? ? "독후감" : "게임" %> <%= goal.target_count %></span>
@@ -61,6 +62,9 @@
                     <span class="badge badge-yellow"><%= ui_icon :gift, class_name: "h-4 w-4" %> <%= challenge.reward_points %>P</span>
                   <% end %>
                 </div>
+                <% if current_user.student? && participation.nil? && challenge.active? %>
+                  <p class="mt-2 text-sm text-muted">참여한 뒤에 쓴 독후감·게임만 집계돼요.</p>
+                <% end %>
               <% end %>
 
               <% if challenge.starts_on || challenge.ends_on %>
@@ -70,7 +74,11 @@
               <% if current_user.student? || policy(challenge).edit? || policy(challenge).destroy? %>
                 <div class="relative z-10 mt-4 flex flex-wrap gap-2">
                   <% if current_user.student? %>
-                    <%= button_to "참여하기", join_challenge_path(challenge), method: :post, class: "btn btn-yellow btn-sm" %>
+                    <% if participation %>
+                      <span class="badge badge-success"><%= ui_icon :check, class_name: "h-4 w-4" %> 참여 중</span>
+                    <% else %>
+                      <%= button_to "참여하기", join_challenge_path(challenge), method: :post, class: "btn btn-yellow btn-sm" %>
+                    <% end %>
                   <% end %>
                   <% if policy(challenge).edit? %>
                     <%= link_to "수정", edit_challenge_path(challenge), class: "btn btn-secondary btn-sm" %>

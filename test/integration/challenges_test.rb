@@ -39,11 +39,16 @@ class ChallengesTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_challenge_path, count: 0  # 학생에겐 만들기 버튼 없음
   end
 
-  test "student can join a challenge which sets the session flag" do
+  test "student can join a challenge which records participation and sets the session flag" do
     login_as @student
-    post join_challenge_path(@global)
+    assert_difference -> { ChallengeParticipation.count }, 1 do
+      post join_challenge_path(@global)
+    end
     assert_redirected_to new_report_path
     assert_equal @global.id, session[:active_challenge_id]
+
+    participation = ChallengeParticipation.find_by(challenge: @global, user: @student)
+    assert participation.joined_at.present?, "참여 시각이 진행 집계의 시작점이다"
   end
 
   test "student cannot reach new or create" do
@@ -218,16 +223,34 @@ class ChallengesTest < ActionDispatch::IntegrationTest
 
   # ---- 목록 카드: 학생 진행상황 + stretched-link + 버튼 동작 ----
 
-  test "student challenge index shows own progress on active goaled challenges" do
+  test "student challenge index shows own progress on joined active goaled challenges" do
     goaled = Challenge.create!(title: "진행 챌린지", scope: :global)
     goaled.challenge_goals.create!(goal_type: :approved_reports, target_count: 2)
-    @student.reports.create!(classroom: @room_a, book_title: "읽은 책", reviewed: true)
 
     login_as @student
+    post join_challenge_path(goaled)
+    # 참여 이후 활동만 집계되므로 참여 시각을 확실히 앞당겨 두고 독후감을 쓴다.
+    ChallengeParticipation.find_by(challenge: goaled, user: @student).update_columns(joined_at: 1.minute.ago)
+    @student.reports.create!(classroom: @room_a, book_title: "읽은 책", reviewed: true)
+
     get challenges_path
     assert_response :success
     assert_select ".progress-bar"
     assert_match "1/2", response.body
+  end
+
+  test "student challenge index hides progress until the student joins" do
+    goaled = Challenge.create!(title: "미참여 챌린지", scope: :global)
+    goaled.challenge_goals.create!(goal_type: :approved_reports, target_count: 2)
+    @student.reports.create!(classroom: @room_a, book_title: "참여 전에 읽은 책", reviewed: true)
+
+    login_as @student
+    get challenges_path
+    assert_response :success
+    assert_select ".progress-bar", count: 0        # 미참여 = 진행률 없음
+    assert_no_match "1/2", response.body           # 참여 전 독후감은 집계되지 않는다
+    assert_match "참여한 뒤에 쓴 독후감·게임만 집계돼요", response.body
+    assert_select "form[action=?]", join_challenge_path(goaled)
   end
 
   test "challenge index cards use a stretched title link while the join button stays operable" do

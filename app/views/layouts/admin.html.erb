@@ -17,8 +17,9 @@
 
     <%# 총괄관리자 콘솔 셸. 데스크톱(lg 이상)은 좌측 사이드바 고정, 태블릿/모바일은
         사이드바를 오프캔버스(fixed + translate)로 숨기고 상단 햄버거로 열고 닫는다.
-        가로 폭은 사이트 전역 셸 상한(--shell-max-wide=96rem)까지 활용한다. %>
-    <div class="mx-auto flex w-full max-w-[96rem] flex-1 min-h-0" data-controller="admin-sidebar" data-action="keydown.esc@window->admin-sidebar#close">
+        가로 폭은 사이트 전역 셸 상한(--shell-max-wide=1536px)까지 활용한다.
+        rem 이 아닌 px — 데스크톱 루트 폰트 확대에 상한이 딸려 넓어지지 않게 한다. %>
+    <div class="mx-auto flex w-full max-w-[1536px] flex-1 min-h-0" data-controller="admin-sidebar" data-action="keydown.esc@window->admin-sidebar#close">
       <%# 모바일/태블릿 전용 반투명 backdrop — 오프캔버스 열림 시에만 표시, lg 이상에서는 항상 숨김 %>
       <div data-admin-sidebar-target="backdrop" data-action="click->admin-sidebar#close"
             class="fixed inset-0 z-40 hidden bg-ink/40 lg:hidden" aria-hidden="true"></div>

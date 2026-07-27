@@ -2,7 +2,8 @@
 # find_or_initialize_by 하고 목표는 goal_type 당 1개를 upsert 한다(유니크 [challenge_id, goal_type]).
 #
 # 참여·보상 행(challenge_participations)은 만들지 않는다 — 챌린지는 전국/학교 스코프라 전원 배정이
-# 비현실적이어서, Challenges::EvaluateProgress 가 활동 트리거·상세 조회 시점에 지연 생성한다.
+# 비현실적이어서, 학생이 '참여하기'를 누를 때(ChallengesController#join) 참여 행이 생기고 그
+# 시점(joined_at) 이후의 활동만 진행에 집계된다.
 namespace :challenges do
   desc "Seed initial global/school challenges from db/seeds/challenges.yml"
   task seed: :environment do

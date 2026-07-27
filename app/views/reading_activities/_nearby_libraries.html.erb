@@ -19,7 +19,7 @@
               <% if lib[:homepage].present? %>
                 <% if lib[:homepage].match?(%r{\Ahttps?://}i) %>
                   <%= link_to "홈페이지", lib[:homepage], target: "_blank", rel: "noopener noreferrer",
-                        class: "text-xs text-brand-blue underline" %>
+                        class: "text-sm text-brand-blue underline" %>
                 <% else %>
                   <span class="text-xs text-steel"><%= lib[:homepage] %></span>
                 <% end %>

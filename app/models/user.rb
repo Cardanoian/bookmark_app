@@ -21,6 +21,7 @@ class User < ApplicationRecord
   has_many :quiz_contributions, dependent: :destroy
   has_many :game_plays, dependent: :destroy
   has_many :mission_participations, dependent: :destroy
+  has_many :challenge_participations, dependent: :destroy
   has_many :audit_logs, foreign_key: :actor_id, dependent: :nullify, inverse_of: :actor
   has_many :recommendation_imports, foreign_key: :imported_by_id, dependent: :nullify,
                                     inverse_of: :imported_by

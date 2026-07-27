@@ -75,16 +75,16 @@
           <% end %>
           <div class="grid gap-3 md:grid-cols-2">
             <div>
-              <h3 class="mb-1 text-xs font-semibold text-steel">이전 글</h3>
+              <h3 class="mb-1 text-sm font-semibold text-steel">이전 글</h3>
               <p class="whitespace-pre-wrap rounded-md bg-surface p-2 text-sm text-slate"><%= diff[:original_body] %></p>
             </div>
             <div>
-              <h3 class="mb-1 text-xs font-semibold text-steel">고쳐 쓴 글</h3>
+              <h3 class="mb-1 text-sm font-semibold text-steel">고쳐 쓴 글</h3>
               <p class="whitespace-pre-wrap rounded-md bg-surface-featured p-2 text-sm text-ink"><%= diff[:revised_body] %></p>
             </div>
           </div>
           <% if diff[:added].any? %>
-            <p class="mt-2 text-xs text-success-accent">새로 넣은 표현: <%= diff[:added].first(12).join(", ") %></p>
+            <p class="mt-2 text-sm text-success-accent">새로 넣은 표현: <%= diff[:added].first(12).join(", ") %></p>
           <% end %>
         </section>
       <% end %>

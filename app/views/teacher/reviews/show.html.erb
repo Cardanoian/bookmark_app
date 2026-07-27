@@ -70,7 +70,7 @@
         <div class="space-y-4 border-t border-hairline-soft pt-4">
           <div>
             <h3 class="text-base font-semibold text-brand-blue">첨삭 내용 편집</h3>
-            <p class="mt-1 text-xs text-steel">칭찬·보완은 한 줄에 하나씩 적어요. 성장 제안은 문장만 고칠 수 있고, 성취기준 코드는 그대로 유지돼요.</p>
+            <p class="mt-1 text-sm text-steel">칭찬·보완은 한 줄에 하나씩 적어요. 성장 제안은 문장만 고칠 수 있고, 성취기준 코드는 그대로 유지돼요.</p>
           </div>
 
           <div>
@@ -100,10 +100,22 @@
         <%= f.submit "저장", class: "btn btn-primary" %>
       <% end %>
 
+      <%# 승인은 reviewed_at 을 덮어쓰고 뱃지·진화·미션·챌린지·몬스터 해금 캐스케이드를 통째로
+          재실행하므로, 검토완료 글에는 노출하지 않는다(목록 검토완료 탭에서 이 화면에 도달 가능).
+          저장·진위 확인은 그대로 — 승인 후 정정은 의도된 기능이고 update 가 학생 화면에 라이브 반영한다. %>
+      <% if @report.reviewed? %>
+        <div class="state-banner state-banner--success">
+          이미 승인한 독후감이에요<% if @report.reviewed_at %> (<%= @report.reviewed_at.strftime("%Y.%m.%d") %> 승인)<% end %>.
+          내용을 고쳐 저장하면 학생 화면에 바로 반영돼요.
+        </div>
+      <% end %>
+
       <div class="flex flex-wrap items-center gap-3">
-        <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
+        <% unless @report.reviewed? %>
+          <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
+        <% end %>
         <%= button_to "진위 확인", verify_teacher_review_path(@report), method: :post, class: "btn btn-secondary" %>
-        <%= link_to "큐로 돌아가기", teacher_reviews_path, class: "text-sm text-steel" %>
+        <%= link_to "목록으로 돌아가기", teacher_reviews_path, class: "text-sm text-steel" %>
       </div>
     </section>
   </div>

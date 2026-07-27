@@ -24,7 +24,7 @@
             <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP</span>
           </div>
           <% if mission.description.present? %>
-            <p class="text-xs text-steel"><%= mission.description %></p>
+            <p class="text-sm text-steel"><%= mission.description %></p>
           <% end %>
           <% item[:progress][:goals].each do |g| %>
             <div>

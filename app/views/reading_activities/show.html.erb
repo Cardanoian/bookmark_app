@@ -18,19 +18,19 @@
               url: autocomplete_books_path, mode: "strict", show_cover: true %>
         <%= f.submit "다음", class: "btn btn-primary btn-sm" %>
       <% end %>
-      <p class="text-xs text-steel">찾는 책이 없으면 <%= link_to "책 검색하기", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
+      <p class="text-sm text-steel">찾는 책이 없으면 <%= link_to "책 검색하기", new_report_path, class: "text-brand-blue underline" %>에서 검색해 등록할 수 있어요.</p>
     </section>
   <% else %>
     <%# 선택 도서 카드 + 책 바꾸기 %>
     <section class="card flex items-center gap-3">
       <% if @book.cover_url.present? %>
-        <%= image_tag @book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover" %>
+        <%= image_tag @book.cover_url, alt: "", class: "h-24 w-16 shrink-0 rounded object-cover" %>
       <% else %>
-        <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
+        <span class="flex h-24 w-16 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-12 w-12" %></span>
       <% end %>
       <div class="min-w-0 flex-1">
         <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
-        <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+        <span class="block truncate text-sm text-steel"><%= @book.author %></span>
         <%= book_meta_badges(@book) %>
       </div>
       <%= link_to "책 바꾸기", reading_activity_path, class: "btn btn-secondary btn-sm shrink-0" %>
@@ -55,9 +55,9 @@
         <h3 class="flex items-center gap-1.5 font-semibold text-ink"><%= ui_icon :writing %> 독후감 쓰기</h3>
         <p class="text-sm text-steel">이 책으로 독후감을 쓰고 AI 첨삭을 받아요.</p>
         <%= link_to "독후감 쓰기", new_report_path(report: { book_id: @book.id, book_title: @book.title }),
-              class: "btn btn-primary btn-sm" %>
+              class: "btn btn-yellow btn-sm" %>
         <% if @recent_reports.any? %>
-          <p class="text-xs text-steel">최근 독후감 <%= @recent_reports.size %>편 · <%= link_to "내 서재에서 보기", library_path, class: "text-brand-blue underline" %></p>
+          <p class="text-sm text-steel">최근 독후감 <%= @recent_reports.size %>편 · <%= link_to "내 서재에서 보기", library_path, class: "text-brand-blue underline" %></p>
         <% end %>
       </section>
 
@@ -76,7 +76,7 @@
           <% end %>
         </div>
         <% unless @quiz_available && @whoami_available %>
-          <p class="text-xs text-steel">아직 퀴즈·나는 누구게?를 만들 수 없는 책이에요. 직접 문제를 내거나 책 소개·뒷이야기로 즐겨 보세요!</p>
+          <p class="text-sm text-steel">아직 퀴즈·나는 누구게?를 만들 수 없는 책이에요. 직접 문제를 내거나 책 소개·뒷이야기로 즐겨 보세요!</p>
         <% end %>
         <%# 학생 출제 기여(전국 공유 문제은행 §4.1) — 이 책 문제를 직접 낸다. 승인 후 전국 풀 편입. %>
         <div class="border-t border-hairline-soft pt-2">
@@ -84,7 +84,7 @@
                 class: "inline-flex items-center gap-1 text-sm font-medium text-brand-blue underline" do %>
             <%= ui_icon :writing, class_name: "h-4 w-4" %> <span>이 책 문제 내기</span>
           <% end %>
-          <p class="text-xs text-steel">내가 낸 문제는 선생님이 확인한 뒤 친구들에게 보여 줘요.</p>
+          <p class="text-sm text-steel">내가 낸 문제는 선생님이 확인한 뒤 친구들에게 보여 줘요.</p>
         </div>
       </section>
     </div>

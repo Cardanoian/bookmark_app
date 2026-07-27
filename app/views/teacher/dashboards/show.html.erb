@@ -43,7 +43,7 @@
             </h2>
             <%= link_to "검토하러 가기", teacher_quiz_contributions_path, class: "btn btn-primary btn-sm" %>
           </div>
-          <p class="mt-1 text-xs text-slate">
+          <p class="mt-1 text-sm text-slate">
             학생이 낸 문제예요. 내용을 확인·수정하고 승인하면 전국 친구들의 문제은행에 들어가요.
           </p>
         </div>
@@ -55,7 +55,7 @@
           <h2 class="mb-1 text-lg font-semibold text-coral-dark">
             <%= ui_icon :flag %> 신고된 게임 콘텐츠 (<%= @reported_content.size %>)
           </h2>
-          <p class="mb-3 text-xs text-coral-dark">
+          <p class="mb-3 text-sm text-coral-dark">
             학생이 온디맨드 게임에서 신고한 문제예요. 서로 다른
             <%= Games::ContentProvider::REPORT_HIDE_THRESHOLD %>명이 신고하면 자동으로 숨겨지고 새로 만들어져요. 내용을 확인해 주세요.
           </p>
@@ -81,7 +81,7 @@
           <h2 class="mb-1 text-lg font-semibold text-coral-dark">
             <%= ui_icon :flag %> 신고된 토론 글 (<%= @reported_forum_posts.size %>)
           </h2>
-          <p class="mb-3 text-xs text-coral-dark">
+          <p class="mb-3 text-sm text-coral-dark">
             우리 반 학생의 토론 글이 신고됐어요. 내용을 확인하고, 문제가 있으면 숨겨 주세요.
           </p>
           <ul class="divide-y divide-brand-red-dark">
@@ -152,7 +152,7 @@
 
       <div class="card">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-ink">검토 큐</h2>
+          <h2 class="text-lg font-semibold text-ink">검토 목록</h2>
           <%= link_to "전체 보기", teacher_reviews_path, class: "text-sm font-medium text-brand-blue" %>
         </div>
         <% if @review_queue.any? %>

@@ -54,11 +54,11 @@
 
     <% if reached_stage >= MonsterSpecies::MAX_STAGE %>
       <div class="mt-5 rounded-lg border border-brand-yellow bg-surface-soft p-4 text-center">
-        <p class="text-xs font-medium text-yellow-dark"><%= ui_icon :sparkle, class_name: "mr-1 inline h-4 w-4" %>이 몬스터가 너에게 건네는 한마디</p>
+        <p class="text-sm font-medium text-yellow-dark"><%= ui_icon :sparkle, class_name: "mr-1 inline h-4 w-4" %>이 몬스터가 너에게 건네는 한마디</p>
         <p class="mt-1 text-base font-semibold text-ink">“<%= story.growth_message %>”</p>
       </div>
     <% else %>
-      <p class="card-muted mt-5 p-3 text-center text-xs text-muted">완전 성장하면 이 몬스터가 너에게 건네는 한마디가 열려요.</p>
+      <p class="card-muted mt-5 p-3 text-center text-sm text-muted">완전 성장하면 이 몬스터가 너에게 건네는 한마디가 열려요.</p>
     <% end %>
   <% end %>
 </section>

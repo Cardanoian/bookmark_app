@@ -1,9 +1,12 @@
-<%# 검토 큐 행. AiReviewJob 방송 대상이므로 current_user 미사용. local: report %>
+<%# 검토 목록 행. AiReviewJob 방송 대상이므로 current_user 미사용. local: report
+    검토완료(reviewed) 행은 열람 전용 — 체크박스·승인 버튼을 렌더하지 않는다. %>
 <article id="<%= dom_id(report) %>" class="card flex items-center justify-between gap-3 p-3">
   <label class="flex min-w-0 items-center gap-3">
-    <%= check_box_tag "report_ids[]", report.id, false,
-          form: "batch_approve_reports",
-          class: "shrink-0 rounded border-hairline-strong" %>
+    <% unless report.reviewed? %>
+      <%= check_box_tag "report_ids[]", report.id, false,
+            form: "batch_approve_reports",
+            class: "shrink-0 rounded border-hairline-strong" %>
+    <% end %>
     <span class="min-w-0">
       <span class="flex min-w-0 items-center gap-1.5 font-medium text-ink">
         <span class="truncate"><%= report.user.name %> · <%= report.book&.title.presence || report.book_title %></span>
@@ -17,13 +20,21 @@
       <span class="block text-xs text-steel">
         평균 <%= report.avg %> ·
         유사도 <%= report.similarity.present? ? "#{(report.similarity * 100).round}%" : "-" %>
+        <% if report.reviewed? && report.reviewed_at %>
+          · <%= report.reviewed_at.strftime("%Y.%m.%d") %> 승인
+        <% end %>
       </span>
     </span>
   </label>
 
   <div class="flex shrink-0 items-center gap-2">
     <%= level_badge(report.level) %>
-    <%= link_to "검토", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
-    <%= button_to "승인", approve_teacher_review_path(report), method: :post, class: "btn btn-blue btn-sm" %>
+    <% if report.reviewed? %>
+      <span class="badge badge-success">검토완료</span>
+      <%= link_to "검토 내용 보기", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
+    <% else %>
+      <%= link_to "검토", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
+      <%= button_to "승인", approve_teacher_review_path(report), method: :post, class: "btn btn-blue btn-sm" %>
+    <% end %>
   </div>
 </article>

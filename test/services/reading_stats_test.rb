@@ -237,7 +237,7 @@ class ReadingStatsTest < ActiveSupport::TestCase
   end
 
   # [PR2 전환] missions 는 완료 participation(completed_at) 을 센다(reports.mission_id 아님).
-  test "missions counts completed participations; challenges count distinct report ids" do
+  test "missions counts completed participations; challenges count legacy report links" do
     completed = Mission.create!(classroom: @classroom, title: "완료미션", start_date: Date.current, end_date: Date.current + 7)
     MissionParticipation.create!(mission: completed, user: @user, completed_at: Time.current)
     # 미완료 참여는 세지 않는다.
@@ -249,6 +249,25 @@ class ReadingStatsTest < ActiveSupport::TestCase
 
     assert_equal 1, @stats.missions
     assert_equal 1, @stats.challenges
+  end
+
+  # 참여 원장만 있고 독후감 연결이 없어도 참여 챌린지로 센다(dex 15·18 해금 조건이 안 걸리던 원인).
+  test "challenges counts participations without any linked report" do
+    challenge = Challenge.create!(title: "참여만 한 챌린지")
+    ChallengeParticipation.create!(challenge: challenge, user: @user, joined_at: Time.current)
+
+    assert_equal 1, @stats.challenges
+  end
+
+  # 같은 챌린지가 참여 원장과 레거시 독후감 연결 양쪽에 있어도 1 로 센다(합집합).
+  test "challenges de-duplicates a challenge recorded in both paths" do
+    both = Challenge.create!(title: "양쪽 기록 챌린지")
+    ChallengeParticipation.create!(challenge: both, user: @user, joined_at: Time.current)
+    report(challenge_id: both.id)
+    legacy_only = Challenge.create!(title: "레거시 연결만 있는 챌린지")
+    report(challenge_id: legacy_only.id)
+
+    assert_equal 2, @stats.challenges
   end
 
   test "cheers_received sums cheers_count" do

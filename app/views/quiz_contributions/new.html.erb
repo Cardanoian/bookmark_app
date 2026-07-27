@@ -8,13 +8,13 @@
 
   <section class="card flex items-center gap-3">
     <% if @book.cover_url.present? %>
-      <%= image_tag @book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover" %>
+      <%= image_tag @book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover" %>
     <% else %>
-      <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
+      <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
     <% end %>
     <div class="min-w-0">
       <span class="block truncate font-semibold text-ink"><%= @book.title %></span>
-      <span class="block truncate text-xs text-steel"><%= @book.author %></span>
+      <span class="block truncate text-sm text-steel"><%= @book.author %></span>
     </div>
   </section>
 
@@ -88,7 +88,7 @@
               class: "form-input", placeholder: "왜 그 답이 맞는지 알려 주세요." %>
       </div>
 
-      <p class="text-xs text-steel">선생님이 내용을 확인한 뒤 친구들에게 보여 줄 거예요.</p>
+      <p class="text-sm text-steel">선생님이 내용을 확인한 뒤 친구들에게 보여 줄 거예요.</p>
 
       <div class="page-actions">
         <%= f.submit "문제 내기", class: "btn btn-primary" %>

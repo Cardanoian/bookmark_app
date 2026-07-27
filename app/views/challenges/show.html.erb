@@ -65,9 +65,16 @@
         </section>
       <% end %>
 
+      <%# 참여 전/후 분기: 진행상황은 참여(joined_at) 이후 활동만 집계하므로 참여 여부를 분명히 알린다. %>
       <% if current_user.student? %>
-        <div class="card">
-          <%= button_to "이 챌린지에 참여하고 독후감 쓰기", join_challenge_path(@challenge), method: :post, class: "btn btn-primary" %>
+        <div class="card space-y-2">
+          <% if @participation %>
+            <p class="text-sm text-steel"><%= ui_icon :check, class_name: "h-4 w-4" %> <%= @participation.joined_at.to_date %>에 참여했어요. 참여한 뒤에 쓴 독후감·게임이 집계돼요.</p>
+            <%= link_to "독후감 쓰기", new_report_path, class: "btn btn-yellow" %>
+          <% else %>
+            <%= button_to "이 챌린지에 참여하고 독후감 쓰기", join_challenge_path(@challenge), method: :post, class: "btn btn-yellow" %>
+            <p class="text-sm text-muted">참여한 뒤에 쓴 독후감·게임만 진행상황에 집계돼요.</p>
+          <% end %>
         </div>
       <% end %>
 

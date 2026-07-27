@@ -79,7 +79,7 @@
   <div>
     <%= f.label :reward_points, "완료 보상 포인트", class: "form-label" %>
     <%= f.number_field :reward_points, min: 0, max: Mission.reward_max_points, class: "form-input" %>
-    <p class="mt-1 text-xs text-steel">모든 목표를 달성하면 같은 양의 포인트와 경험치가 한 번 지급돼요(최대 <%= Mission.reward_max_points %>P + XP).</p>
+    <p class="mt-1 text-sm text-steel">모든 목표를 달성하면 같은 양의 포인트와 경험치가 한 번 지급돼요(최대 <%= Mission.reward_max_points %>P + XP).</p>
   </div>
 
   <div class="page-actions">

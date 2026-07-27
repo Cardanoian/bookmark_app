@@ -148,7 +148,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
 
   # H1(게이트 우회 차단): 이미 승인된(reviewed=true) 리포트를 학생이 직접 본문 수정·재제출하면
   # 검토 상태가 완전히 리셋된다 — reviewed→false 로 게이트(feedback_visible?)에 재진입하고,
-  # 담임 재검토 큐(pending_scope, reviewed:false)로 복귀하며, 옛 본문 대상 교사 편집본은
+  # 담임 재검토 목록(pending_scope, reviewed:false)으로 복귀하며, 옛 본문 대상 교사 편집본은
   # 스테일이라 클리어된다. (수정 전에는 reviewed 가 true 로 유지돼 미검수 새 첨삭이 즉시 노출됐다.)
   test "승인본을 학생이 직접 본문 수정·재제출하면 검토 게이트에 재진입하고 담임 큐로 복귀한다" do
     report = Report.create!(user: @student, classroom: @classroom, book_title: "책",
@@ -186,13 +186,13 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
     assert_no_match "향상도", response.body
     assert_select "span.rounded-full.font-bold", count: 0
 
-    # 3. 담임 재검토 큐(pending_scope, reviewed:false)로 복귀한다.
+    # 3. 담임 재검토 목록(pending_scope, reviewed:false)으로 복귀한다.
     delete session_path
     login_as @teacher
     get teacher_reviews_path
     assert_response :success
     assert_select "##{ActionView::RecordIdentifier.dom_id(report)}", 1,
-      "재제출된 승인본이 담임 검토 큐로 복귀해야 한다"
+      "재제출된 승인본이 담임 검토 목록으로 복귀해야 한다"
   end
 
   private

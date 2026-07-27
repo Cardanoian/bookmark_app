@@ -6,19 +6,21 @@
   <% visible = Array(books).reject(&:searched?) %>
   <% if visible.empty? %>
     <p class="text-sm text-steel">이 미션·챌린지는 자유 독서예요. 원하는 책으로 활동을 시작하세요.</p>
-    <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-primary btn-sm" %>
+    <%= link_to "독서활동 시작하기", reading_activity_path,
+          class: "btn #{current_user.student? ? "btn-yellow" : "btn-primary"} btn-sm" %>
   <% else %>
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <% visible.each do |book| %>
-        <%= link_to reading_activity_path(book_id: book.id), class: "card flex gap-3 hover:border-primary/40" do %>
+        <%# 표지 확대에 맞춰 좁은 2단 그리드 카드는 p-4 로 안쪽 여백을 좁힌다(`dashboard/_home_book_grid` 동일). %>
+        <%= link_to reading_activity_path(book_id: book.id), class: "card flex gap-3 p-4 hover:border-primary/40" do %>
           <% if book.cover_url.present? %>
-            <%= image_tag book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover", loading: "lazy" %>
+            <%= image_tag book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover", loading: "lazy" %>
           <% else %>
-            <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
+            <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
           <% end %>
           <span class="min-w-0">
             <span class="block truncate text-sm font-semibold text-ink"><%= book.title %></span>
-            <span class="block truncate text-xs text-steel"><%= book.author %></span>
+            <span class="block truncate text-sm text-steel"><%= book.author %></span>
             <%= book_meta_badges(book) %>
           </span>
         <% end %>

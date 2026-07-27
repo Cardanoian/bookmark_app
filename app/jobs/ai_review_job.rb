@@ -62,7 +62,8 @@ class AiReviewJob < ApplicationJob
     end
   end
 
-  # 첨삭 완료 → 교사 검토 큐에 행을 추가한다(제출→검토 큐 실시간, §10, P3.9).
+  # 첨삭 완료 → 교사 검토 목록에 행을 추가한다(제출→검토 목록 실시간, §10, P3.9).
+  # 스트림·타깃 이름 `review_queue` 는 방송·구독·테스트가 결합된 내부 식별자라 그대로 둔다.
   def broadcast_review_ready(report)
     report.broadcast_append_to(
       [ report.classroom, :review_queue ],

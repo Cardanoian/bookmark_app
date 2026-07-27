@@ -16,7 +16,7 @@
       <div>
         <%= label_tag :academic_year, "학년도", class: "form-label" %>
         <%= number_field_tag :academic_year, params[:academic_year].presence || @current_academic_year, min: 2001, max: 2999, class: "form-input" %>
-        <p class="mt-1 text-xs text-steel">예: 2026 — 3월부터 다음 해 2월까지가 한 학년도예요.</p>
+        <p class="mt-1 text-sm text-steel">예: 2026 — 3월부터 다음 해 2월까지가 한 학년도예요.</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">

@@ -15,11 +15,13 @@ module BooksHelper
   #   - 고전: category enum(classic) 로 판정 — 장르와 독립된 축이라 함께 노출.
   #   - 장르: book_genre_label (미분류·공란 숨김).
   # 둘 다 없으면 빈 문자열을 반환해 호출부가 그대로 삽입해도 안전하다.
-  # size: :sm(좁은 카드 — badge-sm 컴팩트) | :md(상세 — 기본 크기).
+  # size: :sm(좁은 카드 — badge-sm 컴팩트) | :md(기본 크기) | :lg(도서 상세 — badge-lg).
+  BADGE_SIZE_CLASSES = { sm: "badge-sm", md: nil, lg: "badge-lg" }.freeze
+
   def book_meta_badges(book, size: :sm, wrapper_class: "mt-1")
     return "".html_safe if book.nil?
 
-    size_class = (size.to_sym == :sm ? "badge-sm" : nil)
+    size_class = BADGE_SIZE_CLASSES.fetch(size.to_sym, nil)
     badges = []
     badges << tag.span("고전", class: class_names("badge", size_class, "badge-yellow")) if book.classic?
     if (genre = book_genre_label(book))

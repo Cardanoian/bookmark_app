@@ -18,13 +18,112 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
       user: @student, classroom: @classroom, book_title: "책", body: "본문",
       ai_status: :done, avg: 3.0, level: "B", reviewed: false
     )
+    @reviewed_report = Report.create!(
+      user: @student, classroom: @classroom, book_title: "이미검토한책", body: "검토완료 본문",
+      ai_status: :done, avg: 4.0, level: "A", reviewed: true, reviewed_at: 1.day.ago
+    )
   end
 
-  test "queue lists the담임's pending classroom reports" do
+  test "list shows the담임's pending classroom reports" do
     login_as @teacher
     get teacher_reviews_path
     assert_response :success
     assert_match @student.name, response.body
+  end
+
+  # --- 검토 상태 필터(모두/미검토/검토완료) ---
+
+  # 필터 미지정 기본값은 미검토다(교사의 '할 일 목록' 워크플로 유지).
+  test "the list defaults to unreviewed reports and hides reviewed ones" do
+    login_as @teacher
+    get teacher_reviews_path
+
+    assert_response :success
+    assert_select "article#report_#{@report.id}"
+    assert_select "article#report_#{@reviewed_report.id}", count: 0
+  end
+
+  test "status=reviewed shows only reviewed reports without approval controls" do
+    login_as @teacher
+    get teacher_reviews_path(status: "reviewed")
+
+    assert_response :success
+    assert_select "article#report_#{@reviewed_report.id}"
+    assert_select "article#report_#{@report.id}", count: 0
+    assert_select "input[name='report_ids[]']", { count: 0 },
+      "검토완료 행에는 일괄 승인 체크박스가 없어야 한다"
+    assert_select "form#batch_approve_reports", { count: 0 },
+      "검토완료 탭에는 승인할 대상이 없으므로 일괄 승인 폼도 렌더하지 않는다"
+    assert_select "form[action=?]", approve_teacher_review_path(@reviewed_report), count: 0
+  end
+
+  test "status=all shows both reviewed and unreviewed reports" do
+    login_as @teacher
+    get teacher_reviews_path(status: "all")
+
+    assert_response :success
+    assert_select "article#report_#{@report.id}"
+    assert_select "article#report_#{@reviewed_report.id}"
+  end
+
+  # 위조·오타 status 는 조용히 기본값(미검토)으로 폴백해야 한다.
+  test "an unknown status falls back to the pending filter" do
+    login_as @teacher
+    get teacher_reviews_path(status: "hacked")
+
+    assert_response :success
+    assert_select "article#report_#{@report.id}"
+    assert_select "article#report_#{@reviewed_report.id}", count: 0
+  end
+
+  test "the list renders all three status filter links" do
+    login_as @teacher
+    get teacher_reviews_path
+
+    assert_select "a[href=?]", teacher_reviews_path(status: "all")
+    assert_select "a[href=?]", teacher_reviews_path(status: "pending")
+    assert_select "a[href=?]", teacher_reviews_path(status: "reviewed")
+  end
+
+  # 검토완료 글이 목록에 노출되면서 id 를 알아내기 쉬워졌다. batch_approve 는 pending_scope
+  # 게이트로 이미 승인된 글을 다시 finalize_approval 캐스케이드에 태우지 않아야 한다.
+  test "batch_approve ignores already reviewed reports" do
+    original_reviewed_at = @reviewed_report.reviewed_at
+    login_as @teacher
+
+    post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id, @reviewed_report.id ] }
+
+    assert @report.reload.reviewed?
+    assert_equal original_reviewed_at.to_i, @reviewed_report.reload.reviewed_at.to_i,
+      "이미 승인한 독후감은 batch_approve 로 재승인되지 않아야 한다"
+  end
+
+  test "the list paginates and carries the status filter to the next page" do
+    login_as @teacher
+    21.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "검토완료#{i}", ai_status: :done, reviewed: true, reviewed_at: i.hours.ago) }
+
+    get teacher_reviews_path(status: "reviewed")
+    assert_response :success
+    assert_select "article.card", count: Teacher::ReviewsController::PER_PAGE
+    assert_select "a[href=?]", teacher_reviews_path(status: "reviewed", page: 2)
+
+    get teacher_reviews_path(status: "reviewed", page: 2)
+    assert_response :success
+    assert_select "article.card", count: 2 # 22건 중 나머지(@reviewed_report 포함)
+  end
+
+  # 승인은 reviewed_at 을 덮어쓰고 뱃지·진화·미션·챌린지·몬스터 해금 캐스케이드를 재실행하므로,
+  # 목록에서 도달 가능해진 검토완료 상세에는 노출하지 않는다(저장·진위 확인은 유지).
+  test "the show page hides the approve button once the report is reviewed" do
+    login_as @teacher
+
+    get teacher_review_path(@report)
+    assert_select "form[action=?]", approve_teacher_review_path(@report)
+
+    get teacher_review_path(@reviewed_report)
+    assert_select "form[action=?]", approve_teacher_review_path(@reviewed_report), count: 0
+    assert_select "form[action=?]", verify_teacher_review_path(@reviewed_report)
+    assert_match "이미 승인한 독후감이에요", response.body
   end
 
   test "individual and batch approval controls submit to separate endpoints" do

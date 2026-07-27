@@ -1,15 +1,16 @@
 <%# 홈 도서 그리드. locals: books. 각 책은 독서활동 허브(book_id)로 진입. %>
 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
   <% books.each do |book| %>
-    <%= link_to reading_activity_path(book_id: book.id), class: "card flex gap-3 hover:border-primary/40" do %>
+    <%# 좁은 2단 그리드라 표지를 키운 만큼 카드 안쪽 여백을 p-4 로 좁혀 제목·저자 폭을 확보한다. %>
+    <%= link_to reading_activity_path(book_id: book.id), class: "card flex gap-3 p-4 hover:border-primary/40" do %>
       <% if book.cover_url.present? %>
-        <%= image_tag book.cover_url, alt: "", class: "h-16 w-12 shrink-0 rounded object-cover", loading: "lazy" %>
+        <%= image_tag book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover", loading: "lazy" %>
       <% else %>
-        <span class="flex h-16 w-12 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-9 w-9" %></span>
+        <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
       <% end %>
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold text-ink"><%= book.title %></span>
-        <span class="block truncate text-xs text-steel"><%= book.author %></span>
+        <span class="block truncate text-sm text-steel"><%= book.author %></span>
         <%= book_meta_badges(book) %>
       </span>
     <% end %>

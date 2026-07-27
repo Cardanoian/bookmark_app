@@ -1,14 +1,28 @@
 class Teacher::ReviewsController < ApplicationController
   before_action :set_report, only: [ :show, :update, :approve, :verify ]
-  # index·batch_approve 는 ensure_reviewer! 역할 게이트로 담임 큐를 스코프한다(개별 리소스 authorize 없음).
+  # index·batch_approve 는 ensure_reviewer! 역할 게이트로 담임 목록을 스코프한다(개별 리소스 authorize 없음).
   skip_after_action :verify_authorized, only: [ :index, :batch_approve ]
 
-  # 담임 학급의 미검토 큐(첨삭 완료된 독후감).
+  PER_PAGE = 20
+  # 목록 상단 필터. 미지정·위조값은 pending(미검토)으로 폴백해 교사의 기본 워크플로를 유지한다.
+  STATUS_FILTERS = %w[all pending reviewed].freeze
+
+  # 담임 학급의 검토 목록. 기본은 미검토지만 status 로 검토완료·전체도 열람한다.
+  # 검토완료가 합류하면 1년치가 수백 행이 되므로 페이지네이션한다(reports#index 관용구).
   def index
     ensure_reviewer!
-    @reports = pending_scope
+    @status = STATUS_FILTERS.include?(params[:status]) ? params[:status] : "pending"
+    @page = [ params[:page].to_i, 1 ].max
+
+    @pending_count = classroom_scope.where(reviewed: false).count
+    @reviewed_count = classroom_scope.where(reviewed: true).count
+    @total_count = @pending_count + @reviewed_count
+
+    records = status_scope(@status)
       .includes(:user, :book, photo_attachment: :blob, revision_of: { photo_attachment: :blob })
-      .order(created_at: :asc)
+      .limit(PER_PAGE + 1).offset((@page - 1) * PER_PAGE).to_a
+    @has_next_page = records.size > PER_PAGE
+    @reports = records.first(PER_PAGE)
   end
 
   def show
@@ -133,9 +147,26 @@ class Teacher::ReviewsController < ApplicationController
     text.to_s.split("\n").map(&:strip).reject(&:blank?)
   end
 
-  # 담임 학급의 미검토 독후감(첨삭 완료분).
+  # 담임 학급의 전체 독후감(검토 상태 무관). 목록 필터·카운트의 기반.
+  def classroom_scope
+    Report.where(classroom_id: Classroom.where(teacher_id: Current.user.id).select(:id))
+  end
+
+  # 담임 학급의 미검토 독후감. index 기본 필터이자 **batch_approve 의 승인 대상 게이트**로,
+  # 이미 승인한 글이 다시 finalize_approval 캐스케이드를 타지 않게 막는다(의미를 넓히지 말 것).
   def pending_scope
-    Report.where(classroom_id: Classroom.where(teacher_id: Current.user.id).select(:id), reviewed: false)
+    classroom_scope.where(reviewed: false)
+  end
+
+  # 필터별 스코프·정렬. 미검토는 오래 기다린 것 먼저(대기 목록 의미 유지), 검토완료는 최근 승인
+  # 먼저(SQLite 는 DESC 에서 NULL 이 뒤로 가므로 레거시 reviewed_at nil 행은 자연히 맨 아래),
+  # 전체는 미검토를 위로 올린다.
+  def status_scope(status)
+    case status
+    when "reviewed" then classroom_scope.where(reviewed: true).order(reviewed_at: :desc, created_at: :desc)
+    when "all"      then classroom_scope.order(reviewed: :asc, created_at: :asc)
+    else                 pending_scope.order(created_at: :asc)
+    end
   end
 
   def ensure_reviewer!

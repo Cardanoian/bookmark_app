@@ -21,7 +21,7 @@
   <%# ── 뒷이야기 작성 폼 ── %>
   <section class="card">
     <h2 class="text-sm font-semibold text-ink">내 뒷이야기 쓰기</h2>
-    <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-xs text-steel">
+    <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-sm text-steel">
       <% @tips.each do |tip| %><li><%= tip %></li><% end %>
     </ul>
 
@@ -36,7 +36,7 @@
       <%= f.text_area :body, rows: 6, value: @sequel.body,
             placeholder: "책이 끝난 다음, 어떤 이야기가 이어질까요? 자유롭게 상상해서 써 보세요. (10자 이상)",
             class: "form-textarea" %>
-      <p class="text-xs text-steel">이야기를 올리면 책갈피 도우미가 네 글을 읽고 따뜻한 코멘트를 달아 줘요(나만 볼 수 있어요).</p>
+      <p class="text-sm text-steel">이야기를 올리면 책갈피 도우미가 네 글을 읽고 따뜻한 코멘트를 달아 줘요(나만 볼 수 있어요).</p>
       <%= f.submit "뒷이야기 올리기", class: "btn btn-primary" %>
     <% end %>
   </section>
@@ -64,7 +64,7 @@
               <div class="shrink-0 text-center">
                 <p class="text-sm font-semibold text-brand-blue"><%= ui_icon :like, class_name: "h-4 w-4" %> <%= sequel.votes_count %></p>
                 <% if mine %>
-                  <span class="mt-1 block text-xs text-muted">공감 불가</span>
+                  <span class="mt-1 block text-sm text-muted">공감 불가</span>
                 <% elsif voted %>
                   <%= button_to "공감 취소", games_sequel_vote_path(sequel), method: :delete,
                         class: "btn btn-yellow btn-sm mt-1" %>

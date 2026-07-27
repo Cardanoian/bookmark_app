@@ -34,7 +34,7 @@
               <% end %>
             </ul>
             <% if condition.keys.map(&:to_s).include?("reports") && awaiting_review_count.positive? %>
-              <p class="mt-3 state-banner text-xs">
+              <p class="mt-3 state-banner text-sm">
                 <%= ui_icon :writing, class_name: "h-4 w-4" %> AI 첨삭을 마친 독후감 <%= awaiting_review_count %>개가 선생님의 승인을 기다리고 있어요.
                 선생님이 승인하면 '독후감 수' 진화 조건에 반영돼요.
               </p>

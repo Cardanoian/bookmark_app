@@ -7,7 +7,7 @@
   <section id="student-overview" class="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
     <div class="h-full *:h-full">
       <% if current_user.active_monster.nil? %>
-        <div class="card-feature h-full">
+        <div class="card-feature h-full border-brand-blue/15 bg-surface-featured">
           <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :egg %> 첫 반려 몬스터를 골라 볼까요?</h2>
           <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <% MonsterSpecies.where(key: MonsterAcquisition::STARTERS).order(:dex_no).each do |starter| %>
@@ -22,7 +22,7 @@
         <%= render "monsters/active_monster", monster: current_user.active_monster, user: current_user %>
       <% end %>
     </div>
-    <div id="student-growth-summary" class="stat-card h-full">
+    <div id="student-growth-summary" class="stat-card h-full border-brand-yellow/30 bg-surface-yellow">
       <div class="flex w-full items-start gap-4">
         <div class="flex min-w-0 flex-1 flex-col gap-2" data-growth-stat="experience">
           <span class="text-xs font-medium text-steel">경험치</span>
@@ -38,12 +38,14 @@
   </section>
   <%# 2) 미션 진입점(우리 반 미션). 챌린지 카드와 대칭으로 개수만 보여주고 상세는 missions#index 에서. %>
   <section aria-labelledby="mission-entry-title">
-    <%= link_to missions_path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>
+    <%= link_to missions_path, class: "card flex items-center justify-between gap-3 border-brand-teal/20 bg-surface-mint hover:border-brand-teal/50" do %>
       <span class="flex min-w-0 items-center gap-3">
-        <%= ui_icon :target, class_name: "h-7 w-7" %>
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-light text-moss-dark">
+          <%= ui_icon :target, class_name: "h-6 w-6" %>
+        </span>
         <span class="min-w-0">
           <span id="mission-entry-title" class="block font-semibold text-ink">우리 반 미션</span>
-          <span class="block text-xs text-steel">
+          <span class="block text-sm text-steel">
             <% if @active_mission_count.to_i.positive? %>
               진행 중인 미션이 <%= @active_mission_count %>개 있어요.
             <% else %>
@@ -52,17 +54,19 @@
           </span>
         </span>
       </span>
-      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
+      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-moss-dark" %>
     <% end %>
   </section>
   <%# 3) 챌린지 진입점(전국 + 우리 학교 챌린지). %>
   <section aria-labelledby="challenge-entry-title">
-    <%= link_to challenges_path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>
+    <%= link_to challenges_path, class: "card flex items-center justify-between gap-3 border-brand-coral/30 bg-surface-coral hover:border-brand-coral/60" do %>
       <span class="flex min-w-0 items-center gap-3">
-        <%= ui_icon :flame, class_name: "h-7 w-7" %>
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-orange-light text-coral-dark">
+          <%= ui_icon :flame, class_name: "h-6 w-6" %>
+        </span>
         <span class="min-w-0">
           <span id="challenge-entry-title" class="block font-semibold text-ink">챌린지</span>
-          <span class="block text-xs text-steel">
+          <span class="block text-sm text-steel">
             <% if @joinable_challenge_count.to_i.positive? %>
               참여할 수 있는 챌린지가 <%= @joinable_challenge_count %>개 있어요.
             <% else %>
@@ -71,7 +75,7 @@
           </span>
         </span>
       </span>
-      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
+      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-coral-dark" %>
     <% end %>
   </section>
   <%# 4) 총괄관리자 업로드 기반 공식 추천도서 %>
@@ -79,7 +83,10 @@
   <% if recommended.any? %>
     <section id="recommended-books" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :book_open %> 추천도서</h2>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-ink">
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-yellow text-yellow-dark"><%= ui_icon :book_open, class_name: "h-4 w-4" %></span>
+          추천도서
+        </h2>
         <% if @home.more_recommended_books? %>
           <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(recommend: @home.next_recommend_cycle, anchor: "recommended-books"),
@@ -94,7 +101,10 @@
   <% if popular.any? %>
     <section id="popular-books" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :flame %> 우리 반 인기 도서</h2>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-ink">
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-coral text-coral-dark"><%= ui_icon :flame, class_name: "h-4 w-4" %></span>
+          우리 반 인기 도서
+        </h2>
         <% if @home.more_popular_books? %>
           <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(popular: @home.next_popular_cycle, anchor: "popular-books"),
@@ -110,7 +120,10 @@
     <% if topics.any? %>
       <section class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :discussion %> 우리 반 책 이야기</h2>
+          <h2 class="flex items-center gap-2 text-lg font-bold text-ink">
+            <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-mint text-moss-dark"><%= ui_icon :discussion, class_name: "h-4 w-4" %></span>
+            우리 반 책 이야기
+          </h2>
           <%= link_to text_icon("토론방 가기", :arrow_right), topics_path, class: "inline-flex items-center gap-1 text-sm text-brand-blue underline" %>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -134,7 +147,10 @@
   <% if discovery.any? %>
     <section id="book-discovery" class="space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :sparkle %> 이 책은 어때요?</h2>
+        <h2 class="flex items-center gap-2 text-lg font-bold text-ink">
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-featured text-blue-pressed"><%= ui_icon :sparkle, class_name: "h-4 w-4" %></span>
+          이 책은 어때요?
+        </h2>
         <% if @home.more_discovery_books? %>
           <%= link_to icon_text(:refresh, "다른 책 보기"),
                 root_path(discovery: @home.next_discovery_cycle, anchor: "book-discovery"),

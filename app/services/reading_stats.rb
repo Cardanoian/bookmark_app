@@ -91,9 +91,18 @@ class ReadingStats
     @missions ||= @user.mission_participations.where.not(completed_at: nil).count
   end
 
-  # 참여 챌린지 수(challenge_id distinct).
+  # 참여 챌린지 수(서로 다른 챌린지). **두 기록 경로의 합집합**이다:
+  #   - `challenge_participations`(참여 원장 — '참여하기'가 joined_at 과 함께 만드는 단일 진실)
+  #   - 레거시 `reports.challenge_id`(참여 세션 플래그가 다음 독후감에 붙이던 옛 연결)
+  # 참여 원장만 세면 옛 연결만 있는 학생이 퇴행하고, 옛 연결만 세면 참여했지만 아직 독후감을 쓰지
+  # 않은 학생이 0 이 된다(dex 15·18 해금 조건 `challenges` 가 안 걸리던 원인). 합집합이라 같은
+  # 챌린지가 양쪽에 있어도 1 로 센다.
   def challenges
-    @challenges ||= @user.reports.where.not(challenge_id: nil).distinct.count(:challenge_id)
+    @challenges ||= begin
+      ids = @user.challenge_participations.pluck(:challenge_id)
+      ids |= @user.reports.where.not(challenge_id: nil).distinct.pluck(:challenge_id)
+      ids.size
+    end
   end
 
   # 퀴즈/게임 플레이 수(P5.6). 학생의 quiz_attempts 누적(독서게임 → 진화 조건 quizzes: 연동).

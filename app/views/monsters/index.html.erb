@@ -21,11 +21,11 @@
   <div class="flex flex-wrap justify-center gap-2">
     <button type="button" data-dex-target="filter" data-element="all"
             data-action="dex#filter"
-            class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-xs font-medium text-slate">전체</button>
+            class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-sm font-medium text-slate">전체</button>
     <% MonsterSpecies.elements.keys.each do |element| %>
       <button type="button" data-dex-target="filter" data-element="<%= element %>"
               data-action="dex#filter"
-              class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-xs font-medium <%= element_badge_classes(element) %>">
+              class="inline-flex items-center justify-center rounded-full border border-hairline px-3 min-h-[2.25rem] text-sm font-medium <%= element_badge_classes(element) %>">
         <%= element_label(element) %>
       </button>
     <% end %>

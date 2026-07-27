@@ -21,7 +21,7 @@
         <p class="rounded-md bg-surface-featured p-3 text-sm font-medium text-ink"><%= @guided[:ratio_hint] %></p>
       <% end %>
 
-      <p class="rounded-md bg-surface-featured p-3 text-xs font-medium text-ink">
+      <p class="rounded-md bg-surface-featured p-3 text-sm font-medium text-ink">
         사진에 <strong>이름·학교·반</strong>이 보이지 않게 찍어 주세요. (개인정보 보호)
       </p>
 
@@ -35,7 +35,7 @@
               <%= q[:question] %>
             </p>
             <% if q[:example].present? %>
-              <p class="mt-1 text-xs text-steel">예시: <%= q[:example] %></p>
+              <p class="mt-1 text-sm text-steel">예시: <%= q[:example] %></p>
             <% end %>
           </li>
         <% end %>
@@ -52,7 +52,7 @@
         </button>
       </div>
 
-      <p class="text-xs text-steel">
+      <p class="text-sm text-steel">
         손으로 쓴 글을 다시 읽고, 줄거리만 길게 쓰지 않았는지·생각을 충분히 썼는지 살펴본 뒤 사진을 찍어요.
       </p>
     </div>

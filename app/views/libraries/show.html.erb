@@ -23,14 +23,14 @@
         <div class="card space-y-2">
           <div class="flex gap-3">
             <% if entry.book.cover_url.present? %>
-              <%= image_tag entry.book.cover_url, alt: "", class: "h-20 w-14 shrink-0 rounded object-cover", loading: "lazy" %>
+              <%= image_tag entry.book.cover_url, alt: "", class: "h-24 w-16 shrink-0 rounded object-cover", loading: "lazy" %>
             <% else %>
-              <span class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-10 w-10" %></span>
+              <span class="flex h-24 w-16 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-12 w-12" %></span>
             <% end %>
             <div class="min-w-0">
               <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
                     class: "block truncate font-semibold text-ink hover:underline" %>
-              <span class="block truncate text-xs text-steel"><%= entry.book.author %></span>
+              <span class="block truncate text-sm text-steel"><%= entry.book.author %></span>
               <%= book_meta_badges(entry.book) %>
               <div class="mt-1 flex flex-wrap gap-1.5 text-xs">
                 <% if entry.report_approved.positive? %><span class="badge badge-success">승인 독후감 <%= entry.report_approved %></span><% end %>
@@ -48,7 +48,7 @@
     </div>
   <% else %>
     <%= render "shared/empty_state", message: "아직 활동한 책이 없어요. 첫 독서활동을 시작해 볼까요?", icon: :books %>
-    <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-primary btn-sm" %>
+    <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-yellow btn-sm" %>
   <% end %>
 
   <%# 책 미연결(레거시) 독후감 %>
