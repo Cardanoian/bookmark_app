@@ -106,7 +106,8 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "홈은 진행 중 미션 카드를 표시한다" do
+  # 홈은 챌린지와 대칭으로 미션 '개수'만 노출하고, 미션별 상세 내역은 missions#index 목록이 맡는다.
+  test "홈은 진행 중 미션 개수 카드만 표시하고 상세 내역은 미션 목록이 맡는다" do
     mission = Mission.new(classroom: @classroom, title: "홈미션", reward_points: 20,
                           start_date: Date.current - 1, end_date: Date.current + 5)
     mission.mission_goals.build(goal_type: :approved_reports, target_count: 2)
@@ -114,8 +115,24 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     mission.publish!  # @student 자동 배정
     get root_path
     assert_response :success
+    assert_match "진행 중인 미션이 1개 있어요", response.body
+    assert_no_match "홈미션", response.body
+    assert_select "a[href=?]", missions_path
+
+    get missions_path
+    assert_response :success
     assert_match "홈미션", response.body
-    assert_match "진행 중인 우리 반 미션", response.body
+    assert_match "승인 독후감", response.body
+  end
+
+  test "진행 중 미션이 없으면 홈 카드와 목록이 함께 빈 상태를 안내한다" do
+    get root_path
+    assert_response :success
+    assert_match "지금은 진행 중인 미션이 없어요", response.body
+
+    get missions_path
+    assert_response :success
+    assert_match "지금은 진행 중인 미션이 없어요", response.body
   end
 
   test "내 서재는 책별 활동을 집계한다" do

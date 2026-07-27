@@ -2,8 +2,10 @@
 # 학생용 미션 상세를 최상위(resources :missions)로 노출하므로, 임의 학생이 타 학급/타 학교 미션을
 # 열람하지 못하게 show? 를 report_policy.rb 미러의 role-case 로 강화한다(라우트 신설의 필수전제).
 class MissionPolicy < ApplicationPolicy
+  # 학생 미션 목록(missions#index) 전용. 목록 자체가 본인 participation 기반이라 학생만 연다
+  # (교직원 미션 화면은 관리 CRUD 인 Teacher::MissionsController 로 분리돼 있다).
   def index?
-    user.present?
+    user&.student?
   end
 
   def show?

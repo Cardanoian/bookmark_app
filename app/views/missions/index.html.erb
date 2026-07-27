@@ -1,0 +1,49 @@
+<% content_for :title, "우리 반 미션 · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
+
+<div class="page-shell page-shell-content space-y-4">
+  <header>
+    <%= link_to icon_text(:arrow_left, "홈"), root_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+  </header>
+
+  <div class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">우리 반 미션</p>
+      <h1 class="page-title flex items-center gap-2"><%= ui_icon :target, class_name: "h-7 w-7" %> 진행 중인 미션</h1>
+    </div>
+  </div>
+
+  <% if @missions.any? %>
+    <div class="space-y-3">
+      <% @missions.each do |item| %>
+        <% mission = item[:mission] %>
+        <%# 카드 전체를 미션 상세로 링크(카드 안엔 인터랙티브 요소 없어 중첩 안전 — 구 홈 카드 관용구 이관). %>
+        <%= link_to mission_path(mission), class: "card block space-y-2 hover:border-primary/40" do %>
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-ink"><%= mission.title %></span>
+            <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP</span>
+          </div>
+          <% if mission.description.present? %>
+            <p class="text-xs text-steel"><%= mission.description %></p>
+          <% end %>
+          <% item[:progress][:goals].each do |g| %>
+            <div>
+              <div class="flex justify-between text-xs">
+                <span class="text-steel"><%= goal_label[g[:type]] %></span>
+                <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
+              </div>
+              <div class="progress-bar mt-1">
+                <div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div>
+              </div>
+            </div>
+          <% end %>
+          <% if item[:participation].rewarded_at? %>
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-green-700"><%= ui_icon :celebrate %> 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state", message: "지금은 진행 중인 미션이 없어요. 선생님이 미션을 내면 여기에 보여요.", icon: :target %>
+  <% end %>
+</div>

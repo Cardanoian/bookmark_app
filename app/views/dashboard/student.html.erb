@@ -1,5 +1,4 @@
 <% content_for :title, "홈 · 책갈피" %>
-<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 <div class="page-shell page-shell-wide space-y-6">
   <%= turbo_stream_from current_user, :active_monster %>
   <h1 class="sr-only">홈</h1>
@@ -37,40 +36,25 @@
       </div>
     </div>
   </section>
-  <%# 2) 진행 중인 우리 반 미션 %>
-  <% missions = @home.active_missions %>
-  <% if missions.any? %>
-    <section class="space-y-3">
-      <h2 class="flex items-center gap-1.5 text-lg font-bold text-ink"><%= ui_icon :target %> 진행 중인 우리 반 미션</h2>
-      <% missions.each do |item| %>
-        <% mission = item[:mission] %>
-        <%# 카드 전체를 미션 상세로 링크(카드 안엔 인터랙티브 요소 없어 중첩 안전). %>
-        <%= link_to mission_path(mission), class: "card block space-y-2 hover:border-primary/40" do %>
-          <div class="flex items-center justify-between gap-2">
-            <span class="font-semibold text-ink"><%= mission.title %></span>
-            <span class="text-xs text-steel"><%= mission.end_date %>까지 · <%= mission.reward_points %>P + <%= mission.reward_points %>XP</span>
-          </div>
-          <% if mission.description.present? %>
-            <p class="text-xs text-steel"><%= mission.description %></p>
-          <% end %>
-          <% item[:progress][:goals].each do |g| %>
-            <div>
-              <div class="flex justify-between text-xs">
-                <span class="text-steel"><%= goal_label[g[:type]] %></span>
-                <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
-              </div>
-              <div class="progress-bar mt-1">
-                <div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div>
-              </div>
-            </div>
-          <% end %>
-          <% if item[:participation].rewarded_at? %>
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-green-700"><%= ui_icon :celebrate %> 완료! <%= item[:participation].reward_points_awarded %>P + <%= item[:participation].reward_points_awarded %>XP 받았어요</p>
-          <% end %>
-        <% end %>
-      <% end %>
-    </section>
-  <% end %>
+  <%# 2) 미션 진입점(우리 반 미션). 챌린지 카드와 대칭으로 개수만 보여주고 상세는 missions#index 에서. %>
+  <section aria-labelledby="mission-entry-title">
+    <%= link_to missions_path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>
+      <span class="flex min-w-0 items-center gap-3">
+        <%= ui_icon :target, class_name: "h-7 w-7" %>
+        <span class="min-w-0">
+          <span id="mission-entry-title" class="block font-semibold text-ink">우리 반 미션</span>
+          <span class="block text-xs text-steel">
+            <% if @active_mission_count.to_i.positive? %>
+              진행 중인 미션이 <%= @active_mission_count %>개 있어요.
+            <% else %>
+              지금은 진행 중인 미션이 없어요.
+            <% end %>
+          </span>
+        </span>
+      </span>
+      <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
+    <% end %>
+  </section>
   <%# 3) 챌린지 진입점(전국 + 우리 학교 챌린지). %>
   <section aria-labelledby="challenge-entry-title">
     <%= link_to challenges_path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>

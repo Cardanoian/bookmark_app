@@ -147,11 +147,11 @@ Rails.application.routes.draw do
     end
   end
   resources :rankings, only: [ :index ]
-  # 미션 상세는 학생 열람 전용 show 만 최상위 노출한다(challenge-mission-detail-pages — 사유=사용자
-  # 요구: 미션 카드→세부 페이지 이동). 관리 CRUD 는 teacher 네임스페이스에 유지(발행·수정·삭제).
-  # PR6 의 "미션 독립 화면 없음" 원칙은 이 열람 전용 상세에 한해 의식적으로 번복하되, MissionPolicy#show?
-  # 학급 경계 강화를 필수전제로 결속해 타 학급/타 학교 열람 유출을 막는다.
-  resources :missions, only: [ :show ]
+  # 미션은 학생 열람 전용 index·show 만 최상위 노출한다(challenge-mission-detail-pages — 사유=사용자
+  # 요구: 홈은 개수 카드만, 상세 내역은 별도 목록·상세 화면). 관리 CRUD 는 teacher 네임스페이스에
+  # 유지(발행·수정·삭제). PR6 의 "미션 독립 화면 없음" 원칙은 이 열람 전용 화면에 한해 의식적으로
+  # 번복하되, MissionPolicy#index?(학생 전용)·#show?(학급 경계)를 필수전제로 결속해 유출을 막는다.
+  resources :missions, only: [ :index, :show ]
   # 챌린지: 조회·참여(학생 join → 세션 플래그) + 관리 CRUD(교직원 — 총괄=전국, 교사·사서·교무=우리 학교).
   # scope·school_id 는 폼이 아니라 역할에서 파생(ChallengesController#apply_scope_from_role), 접근은 ChallengePolicy.
   resources :challenges do

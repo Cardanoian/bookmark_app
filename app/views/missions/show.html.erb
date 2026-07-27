@@ -2,8 +2,11 @@
 <% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 
 <div class="page-shell page-shell-content space-y-4">
+  <%# 진입 경로(홈 → 미션 목록 → 상세)의 한 단계 위로 돌아간다. 미션 목록은 학생 전용이라
+      교직원 뷰어(MissionPolicy#show? 로 열람 가능)에겐 홈으로 되돌린다. %>
+  <% back_path, back_label = current_user.student? ? [ missions_path, "미션 목록" ] : [ root_path, "홈" ] %>
   <header>
-    <%= link_to icon_text(:arrow_left, "홈"), root_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+    <%= link_to icon_text(:arrow_left, back_label), back_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
   </header>
 
   <div class="card-feature space-y-3">

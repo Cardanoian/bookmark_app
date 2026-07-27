@@ -92,10 +92,7 @@ class StudentHomeQuery
   # 진행 중(active·published) 미션과 목표 진행도. 현재 학생 한 명이라 단건 계산 허용(§11.3).
   # [{ mission:, progress: { completed:, goals: [...] }, participation: }]
   def active_missions
-    participations = @user.mission_participations
-                          .joins(:mission).merge(Mission.published)
-                          .where("missions.start_date <= :d AND missions.end_date >= :d", d: Date.current)
-                          .includes(mission: { mission_goals: :books })
+    participations = active_mission_participations.includes(mission: { mission_goals: :books })
     participations.map do |participation|
       mission = participation.mission
       {
@@ -104,6 +101,12 @@ class StudentHomeQuery
         progress: Missions::ProgressCalculator.new(mission, @user, participation: participation).call
       }
     end
+  end
+
+  # 홈 미션 진입 카드용 개수(챌린지 홈 카드 대칭). 목록·진행률 렌더는 missions#index 가 맡으므로
+  # 홈에서는 ProgressCalculator 를 미션 수만큼 돌리지 않고 개수만 센다.
+  def active_mission_count
+    active_mission_participations.count
   end
 
   # 우리 반·우리 학교 최근 토론방(홈 진입점). TopicPolicy::Scope 의 학생 규칙을 그대로 미러해
@@ -116,6 +119,14 @@ class StudentHomeQuery
   end
 
   private
+
+  # 진행 중(published·기간 내) 미션의 본인 participation 스코프. active_missions(목록·진행률)와
+  # active_mission_count(홈 카드 개수)가 공유해 두 화면의 집합이 어긋나지 않는다.
+  def active_mission_participations
+    @user.mission_participations
+         .joins(:mission).merge(Mission.published)
+         .where("missions.start_date <= :d AND missions.end_date >= :d", d: Date.current)
+  end
 
   # 활성 XLSX 추천 중 아직 활동하지 않은 book_id(position 순). recommended_books·more_recommended_books? 공용.
   def recommended_book_ids
