@@ -7,17 +7,18 @@ image: bookmark_app
 # Deploy to these servers.
 servers:
   web:
-    - 164.90.xxx.xxx   # TODO: DigitalOcean Droplet 공인 IP로 교체
+    - 133.186.251.153
 
 # Enable SSL auto certification via Let's Encrypt (requires config.assume_ssl + config.force_ssl in production.rb).
 proxy:
   ssl: true
-  host: chaekgalpi.example.com   # TODO: 실제 도메인으로 교체. 배포 전 A 레코드를 Droplet IP에 연결
+  host: book.gbeai.net
 
 # Where you keep your container images.
 registry:
-  server: localhost:5555   # Kamal 2.8+ 로컬 레지스트리. username/password 불필요
-
+  username: superiorz1
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 env:
   secret:
@@ -43,6 +44,11 @@ volumes:
 # Bridge fingerprinted assets between versions to avoid 404 on in-flight requests.
 asset_path: /rails/public/assets
 
-# Configure the image builder.
 builder:
-  arch: amd64   # DO 일반 Droplet은 amd64
+  arch: amd64
+ssh:
+  user: ubuntu
+  keys:
+    - ~/.ssh/gbe-debate.pem
+  keys_only: true
+
