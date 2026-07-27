@@ -1,0 +1,20 @@
+<%# 토큰이 만료·위조됐거나 이미 비밀번호가 바뀌어 무효가 된 경우(재설정 성공 시 이전 토큰은 %>
+<%# 모두 무효가 된다 — User 의 generates_token_for 주석 참조). 재요청 경로만 안내한다. %>
+<div class="w-full max-w-md mx-auto">
+  <h1 class="mb-6 text-center text-2xl font-bold text-ink">링크를 쓸 수 없어요</h1>
+  <div class="card space-y-3 text-sm">
+    <p>이 링크는 더 이상 사용할 수 없습니다. 다음 중 하나일 수 있어요.</p>
+    <ul class="list-disc space-y-1 pl-5 text-steel">
+      <li>보내 드린 뒤 <%= duration_ko(User::PASSWORD_RESET_EXPIRY) %>가 지났습니다.</li>
+      <li>이미 이 링크로 비밀번호를 바꾸셨습니다.</li>
+      <li>그 사이 비밀번호가 다른 방법으로 변경됐습니다.</li>
+    </ul>
+    <p>아래에서 재설정을 다시 요청해 주세요.</p>
+  </div>
+
+  <%= link_to "재설정 다시 요청하기", new_password_reset_path, class: "btn btn-primary btn-block mt-4" %>
+
+  <p class="mt-4 text-center text-sm">
+    <%= link_to icon_text(:arrow_left, "선생님 로그인으로"), staff_login_path, class: "inline-flex items-center gap-1 text-steel underline" %>
+  </p>
+</div>

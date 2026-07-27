@@ -38,13 +38,30 @@ class RegistrationsController < ApplicationController
       assign_classroom(user)
     end
 
-    # 승인 게이트가 없으므로 가입 즉시 로그인시켜 바로 활동하게 한다.
+    # 승인 게이트가 없으므로 가입 즉시 로그인시켜 바로 활동하게 한다. **이메일 인증도 이 흐름을
+    # 바꾸지 않는다** — 인증은 로그인을 막지 않고, 유예(User::EMAIL_VERIFICATION_GRACE)가 지난 뒤
+    # 학생 계정 생성·비번 초기화만 제한한다(User#email_verification_gate_active?).
     reset_session
     session[:user_id] = user.id
+
+    # **트랜잭션 바깥에서** 발송한다. 이 앱은 `enqueue_after_transaction_commit` 이 false 라
+    # 트랜잭션 안에서 deliver_later 를 부르면 커밋 전에 잡이 실행돼 사용자를 못 찾을 수 있다.
+    deliver_verification_mail(user)
+
     redirect_to root_path, notice: "가입이 완료됐어요. 책갈피에 오신 걸 환영해요!"
   end
 
   private
+
+  # 인증 메일 발송은 **가입을 실패시키지 않는다**. 메일 인프라 문제로 계정 생성 자체가 막히면
+  # 아무도 가입하지 못하는 잠금이 되므로, 발송 실패는 삼키고 로그로만 남긴다(사용자는 로그인
+  # 상태로 진입해 배너의 '다시 보내기'로 재시도할 수 있다). 발송 실패의 감사 기록은 잡
+  # (MailDeliveryJob)이 남기고, 여기서 잡히는 것은 enqueue 자체가 실패하는 드문 경우다.
+  def deliver_verification_mail(user)
+    EmailVerifications.deliver(user)
+  rescue StandardError => e
+    Rails.logger.error("[registration] verification mail enqueue failed: #{e.class} #{e.message}")
+  end
 
   def assign_classroom(user)
     return if params[:grade].blank? || params[:class_no].blank?

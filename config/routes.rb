@@ -15,6 +15,20 @@ Rails.application.routes.draw do
   # 체험 계정 원클릭 로그인 — role(student|teacher)만 받고 계정은 서버가 확정(비밀번호 미전송).
   post "login/demo",    to: "sessions#demo_create",    as: :demo_login
 
+  # 교직원 비밀번호 재설정(이메일 링크). **학생은 대상이 아니다** — 학생은 이메일 로그인 대상이
+  # 아니고(튜플 로그인) 담임이 teacher/students#reset_password 로 직접 초기화한다. 컨트롤러가
+  # `User#password_reset_eligible?`(staff? && email? && !suspended?)로 fail-closed 판정하며,
+  # 계정 존재 여부는 응답으로 누설하지 않는다(존재·미존재·학생·정지 전부 동일 안내 화면).
+  # 토큰은 DB 무저장 서명 토큰(`generates_token_for :password_reset`)이라 param 으로 받는다.
+  resources :password_resets, only: [ :new, :create, :edit, :update ], param: :token
+
+  # 교사 가입 이메일 인증. show=메일 링크(토큰, 비로그인 허용), create=재발송(로그인 필요).
+  # 인증 미완료가 로그인을 막지는 않는다(가입 즉시 로그인 흐름 보존) — 유예 24시간이 지난 뒤
+  # 학생 계정 생성·학생 비번 초기화만 제한한다(`User#email_verification_gate_active?`).
+  # 리터럴 경로(resend)를 :token 보다 먼저 선언해 "resend" 가 토큰으로 오인되지 않게 한다.
+  post "email_verification/resend", to: "email_verifications#create", as: :resend_email_verification
+  get  "email_verification/:token", to: "email_verifications#show",   as: :email_verification
+
   resources :registrations, only: [ :new, :create ]
   resource :profile, only: [ :show ]
   resource :growth, only: [ :show ]

@@ -72,21 +72,24 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Ignore bad email addresses and do not raise email delivery errors.
-  # Set this to true and configure the email server for immediate delivery to raise delivery errors.
-  # config.action_mailer.raise_delivery_errors = false
+  # 메일 발송은 Resend API 로 한다(SMTP 미사용). 젬의 Railtie 가 `:resend` delivery_method 를
+  # 자동 등록하고, API 키는 config/initializers/resend.rb 가 lazy 프록으로 배선한다.
+  config.action_mailer.delivery_method = :resend
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  # 발송 실패를 **예외로 표면화**한다. 메일은 잡(deliver_later)에서 보내므로 이 예외를 잡이
+  # rescue 해 감사 로그(mail.delivery_failed / mail.domain_unverified)로 남긴다. false 로 두면
+  # 도메인 미검증·쿼터 초과가 조용히 삼켜져 "메일이 안 오는데 아무 흔적도 없는" 상태가 된다.
+  config.action_mailer.raise_delivery_errors = true
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # 메일 링크(비밀번호 재설정·이메일 인증)가 가리킬 앱 호스트. config/deploy.yml 의
+  # `proxy.host` 와 일치해야 한다(현재 book.gbeai.net). force_ssl 환경이므로 protocol 을
+  # 명시해 링크가 http 로 생성되지 않게 한다.
+  # ※ 발신 도메인(gbeai.net)과 앱 호스트(book.gbeai.net)가 다른 것은 정상이다 — Resend 도메인
+  #   검증은 발신 주소 기준이라 링크 호스트와 무관하다.
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("APP_HOST", "book.gbeai.net"),
+    protocol: "https"
+  }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

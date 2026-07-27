@@ -28,6 +28,31 @@ class User < ApplicationRecord
 
   enum :role, { student: 0, teacher: 1, school_admin: 2, librarian: 3, superadmin: 4 }, default: :student
 
+  # 비밀번호 재설정 링크 유효시간. 메일 문안의 "15분"은 이 상수에서 파생되므로(AccountMailer 가
+  # `@expires_in_text` 로 주입) 값을 바꾸면 문안도 자동으로 따라온다(문서-코드 드리프트 차단).
+  PASSWORD_RESET_EXPIRY = 15.minutes
+  # 가입 인증 링크 유효시간.
+  EMAIL_VERIFICATION_EXPIRY = 24.hours
+  # 가입 후 인증 게이트가 유예되는 시간. 메일 지연·스팸함 유입·발송 실패가 실제로 발생하고,
+  # 가입 직후가 담임이 학생 계정을 만드는 시점이라 유예 없이 즉시 제한하면 **정상 교사가 첫
+  # 사용에서 막히는 확률**이 미인증 악용 확률보다 높다.
+  EMAIL_VERIFICATION_GRACE = 24.hours
+
+  # 비밀번호 재설정 토큰. `password_salt`(bcrypt 다이제스트의 salt 부분)에 바인딩해 **비밀번호가
+  # 바뀌면 이전에 발급된 모든 토큰이 즉시 무효**가 된다 — 재설정 성공이 곧 그 토큰의 소비이므로
+  # DB 컬럼 없이 1회용에 준하는 성질을 얻는다(Rails 8 인증 제너레이터와 동일한 관용구).
+  # salt 조각은 비밀이 아니라 "비번이 바뀌었는지"를 판별하는 지문이고, 토큰 자체의 위조 방지는
+  # secret_key_base 서명이 담당한다.
+  generates_token_for :password_reset, expires_in: PASSWORD_RESET_EXPIRY do
+    password_salt&.last(10)
+  end
+
+  # 가입 이메일 인증 토큰. 이메일에 바인딩해 **주소가 바뀌면 이전 토큰이 무효**가 된다(오타를
+  # 고친 뒤 옛 주소로 온 링크가 새 주소를 인증해 버리는 일을 막는다).
+  generates_token_for :email_verification, expires_in: EMAIL_VERIFICATION_EXPIRY do
+    email
+  end
+
   # 이메일은 저장 전 정규화(앞뒤 공백 제거 + 소문자화, 빈 값이면 NULL)한다. 이로써 DB 유니크
   # 인덱스만으로 대소문자 무관 유일성이 보장되고, 로그인 조회(sessions_controller#find_staff)도
   # 같은 규칙(소문자)으로 일치시킨다.
@@ -55,6 +80,43 @@ class User < ApplicationRecord
   # 학생을 제외한 역할(교사·교무관리자·사서·총괄관리자) = 이메일 로그인 대상.
   def staff?
     !student?
+  end
+
+  # 이메일 비밀번호 재설정 대상 판정(**fail-closed**). 학생은 이메일 로그인 대상이 아니고
+  # (튜플 로그인) 담임이 `Teacher::StudentsController#reset_password` 로 직접 초기화하므로,
+  # 학생 계정에 어쩌다 이메일이 들어 있어도 이 경로로는 절대 재설정되지 않아야 한다.
+  # 정지 계정도 제외한다 — 어차피 로그인이 막히므로 재설정 메일을 보낼 이유가 없다.
+  def password_reset_eligible?
+    staff? && email.present? && !suspended?
+  end
+
+  def email_verified?
+    email_verified_at.present?
+  end
+
+  # 미인증 배너 노출 조건. 공개 가입 경로는 교사뿐이지만(RegistrationsController), 총괄이 만든
+  # 교직원 계정도 미인증이면 배너로 안내하고 재발송할 수 있게 한다(staff? 로 넓게 잡는다).
+  def email_verification_pending?
+    staff? && email.present? && !email_verified?
+  end
+
+  # 인증 게이트 발동 조건(**fail-open** — 셋을 모두 만족할 때만 잠긴다).
+  #   ① 메일 발송이 실제로 가능한 환경일 것 — 무키 개발·CI·오프라인 시연에서는 게이트가 통째로
+  #      꺼져 기존 흐름이 100% 보존되고, 운영 중 메일 장애가 길어지면 운영자가 credentials 에서
+  #      키를 비워 게이트를 즉시 전면 해제할 수 있다(비상 킬 스위치).
+  #   ② 교사이고 미인증일 것 — 게이트가 막는 것은 '학생 계정을 만들고 조작하는 행위'뿐이고,
+  #      그 권한을 가진 역할은 교사다.
+  #   ③ 가입 유예(EMAIL_VERIFICATION_GRACE)가 지났을 것.
+  #
+  # 게이트의 목적은 침입자 차단이 아니라 **복구 가능성 보장**이다. 이메일이 오타·가짜면 그 교사는
+  # 비밀번호 재설정을 영원히 할 수 없는데(교직원에겐 대신 초기화해 줄 담임이 없다), 인증에 아무
+  # 결과가 따르지 않으면 인증률이 0에 수렴해 재설정 기능 자체가 무의미해진다. 남의 계정을 책임지기
+  # 시작하는 시점이 곧 자기 계정 복구 수단부터 확보해야 하는 시점이라, 제한 대상을 거기에 맞췄다.
+  def email_verification_gate_active?
+    return false unless Mail::ResendGateway.available?
+    return false unless teacher? && email_verification_pending?
+
+    created_at.present? && created_at <= EMAIL_VERIFICATION_GRACE.ago
   end
 
   # AI 활용 동의(P1-1, fail-closed). §1 개인정보 필수동의(privacy_consent_at)와 §2 AI 동의(ai_consent)가

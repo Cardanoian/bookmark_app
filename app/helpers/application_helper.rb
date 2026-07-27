@@ -82,4 +82,14 @@ module ApplicationHelper
   def empty_state_image(icon)
     EMPTY_STATE_IMAGES.fetch(icon.to_sym, EMPTY_STATE_IMAGES.fetch(:inbox))
   end
+
+  # ActiveSupport::Duration → 한국어 표기("15분" / "24시간"). 인증 메일 본문과 안내 화면이
+  # 같은 상수(`User::PASSWORD_RESET_EXPIRY` 등)에서 문구를 파생하도록 공유한다 — 상수를 바꾸면
+  # 메일과 화면의 "○분" 표기가 함께 따라오므로 문서-코드 드리프트가 생기지 않는다.
+  def duration_ko(duration)
+    seconds = duration.to_i
+    return "#{seconds / 3600}시간" if (seconds % 3600).zero?
+
+    "#{seconds / 60}분"
+  end
 end

@@ -13,7 +13,8 @@ class ApplicationController < ActionController::Base
   before_action :require_login
   before_action :require_student_ranking_profile
 
-  helper_method :current_user, :logged_in?, :ocr_available?, :reading_discussion_enabled?
+  helper_method :current_user, :logged_in?, :ocr_available?, :reading_discussion_enabled?,
+                :email_verification_banner?
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
@@ -45,6 +46,23 @@ class ApplicationController < ActionController::Base
     return if logged_in?
 
     redirect_to new_session_path
+  end
+
+  # 미인증 이메일 배너 노출 여부. 발송이 불가능한 환경(무키 개발·CI·오프라인 시연)에서는
+  # '다시 보내기'가 아무 일도 못 하므로 배너 자체를 띄우지 않는다(죽은 버튼 방지 —
+  # sessions#new 의 체험 계정 섹션이 계정 존재 여부로 게이트하는 것과 같은 규약).
+  def email_verification_banner?
+    Mail::ResendGateway.available? && current_user&.email_verification_pending?
+  end
+
+  # 이메일 인증 게이트. **남의 계정을 만들고 조작하는 액션에만** 건다(학생 계정 생성·비번 초기화).
+  # 읽기·검토는 계속 허용해 "잠기는 실패"를 만들지 않는다(User#email_verification_gate_active?
+  # 주석 참조 — 목적은 침입자 차단이 아니라 본인 계정의 복구 가능성 확보).
+  def require_verified_email!
+    return unless current_user&.email_verification_gate_active?
+
+    redirect_back fallback_location: root_path,
+                  alert: "이메일 주소를 먼저 확인해 주세요. 확인해야 비밀번호를 잊으셨을 때 되찾을 수 있어요."
   end
 
   # 세션 도중 계정이 정지되면 즉시 로그아웃한다(P7.2).

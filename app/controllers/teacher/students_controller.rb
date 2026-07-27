@@ -1,5 +1,11 @@
 # 교사 학생 관리(P6.2). 담임 학급 학생 추가·삭제·비밀번호 초기화·수동 포인트 지급.
 class Teacher::StudentsController < Teacher::BaseController
+  # 이메일 인증 게이트는 **남의 계정을 만들고 조작하는 두 액션에만** 건다(학생 계정 생성·비번
+  # 초기화). 목록·삭제·포인트·동의 기록은 이미 존재하는 학생을 다루므로 대상이 아니고, 검토·통계
+  # 같은 읽기 경로도 계속 열려 있어 "잠기는 실패"가 되지 않는다.
+  # 게이트 발동 조건은 `User#email_verification_gate_active?` 참조(무키 환경·가입 24시간 유예 내에는
+  # 발동하지 않는다).
+  before_action :require_verified_email!, only: [ :create, :reset_password ]
   before_action :set_student, only: [ :destroy, :reset_password, :give_points, :set_ai_consent ]
 
   def index

@@ -40,6 +40,11 @@ Rails.application.configure do
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
 
+  # 로컬 개발은 **실제 메일을 보내지 않는다**(`:test` = ActionMailer::Base.deliveries 에만 적재).
+  # credentials 에 실 Resend 키가 있으므로 명시하지 않으면 개발 중 조작이 실제 수신자에게
+  # 발송되는 사고가 난다. 실물 발송 확인이 필요하면 이 줄을 일시적으로 `:resend` 로 바꾼다.
+  config.action_mailer.delivery_method = :test
+
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 

@@ -31,6 +31,11 @@ gem "bcrypt", "~> 3.1.7"
 # Authorization — role-based policies [https://github.com/varvet/pundit]
 gem "pundit"
 
+# 트랜잭셔널 메일 발송(교직원 비밀번호 재설정 · 교사 가입 이메일 인증) [https://github.com/resend/resend-ruby]
+# ActionMailer delivery_method `:resend` 를 Railtie 가 자동 등록한다. 내부 HTTP 는 Faraday 가
+# 아니라 HTTParty(젬 의존)를 쓰므로, 앱에 HTTP 스택이 하나 더 들어오는 점을 감수한 선택이다.
+gem "resend", "~> 1.6"
+
 # HTTP client for external APIs (Gemini / Kakao / Naver / data4library) [https://github.com/lostisland/faraday]
 gem "faraday"
 # Retry middleware for Faraday (transient 429/503/timeout backoff) [https://github.com/lostisland/faraday-retry]

@@ -1,0 +1,14 @@
+<%# 미인증 이메일 안내 배너(교직원). 노출 판단은 컨트롤러 헬퍼 `email_verification_banner?` 가 %>
+<%# 하며, 발송 불가 환경(무키 개발·CI)에서는 '다시 보내기'가 아무 일도 못 하므로 렌더하지 않는다. %>
+<% if email_verification_banner? %>
+  <div class="mx-auto w-full max-w-[1536px] px-4 pt-4 sm:px-6 lg:px-8">
+    <div class="state-banner state-banner--info flex flex-wrap items-center justify-between gap-3 text-sm">
+      <span>
+        이메일 주소(<%= current_user.email %>)를 아직 확인하지 않았어요.
+        확인해 두시면 비밀번호를 잊으셨을 때 되찾을 수 있어요.
+      </span>
+      <%= button_to "인증 메일 다시 보내기", resend_email_verification_path,
+            method: :post, class: "btn btn-secondary btn-sm shrink-0" %>
+    </div>
+  </div>
+<% end %>

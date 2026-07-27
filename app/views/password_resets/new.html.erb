@@ -1,0 +1,25 @@
+<%# 교직원 비밀번호 재설정 요청 — 이메일만 받는다. post → password_resets. %>
+<div class="w-full max-w-md mx-auto">
+  <h1 class="mb-6 text-center text-2xl font-bold text-ink">비밀번호 재설정</h1>
+  <div class="card">
+    <p class="mb-4 text-sm text-steel">
+      가입하신 이메일 주소를 입력해 주세요. 비밀번호를 다시 설정할 수 있는 링크를 보내 드립니다.
+    </p>
+    <%= form_with url: password_resets_path, method: :post, local: true, class: "space-y-4" do |f| %>
+      <div>
+        <%= label_tag :email, "이메일", class: "form-label" %>
+        <%= email_field_tag :email, nil, autocomplete: "email", autofocus: true, required: true,
+              class: "form-input" %>
+      </div>
+      <%= submit_tag "재설정 링크 받기", class: "btn btn-primary btn-block" %>
+    <% end %>
+  </div>
+
+  <div class="state-banner state-banner--info mt-4 text-sm">
+    학생은 이 방법을 쓰지 않아요. 학생 비밀번호는 담임 선생님이 직접 새로 정해 줍니다.
+  </div>
+
+  <p class="mt-4 text-center text-sm">
+    <%= link_to icon_text(:arrow_left, "선생님 로그인으로"), staff_login_path, class: "inline-flex items-center gap-1 text-steel underline" %>
+  </p>
+</div>

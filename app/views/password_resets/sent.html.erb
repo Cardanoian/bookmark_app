@@ -1,0 +1,19 @@
+<%# 요청 접수 안내. **계정 존재 여부와 무관하게 항상 이 화면**이 나온다(계정 열거 방지) — %>
+<%# 존재하는 교직원·없는 주소·학생·정지 계정·한도 초과가 모두 구분되지 않아야 한다. %>
+<div class="w-full max-w-md mx-auto">
+  <h1 class="mb-6 text-center text-2xl font-bold text-ink">메일을 확인해 주세요</h1>
+  <div class="card space-y-3 text-sm">
+    <p>
+      입력하신 주소가 「책갈피」에 등록된 선생님 계정이라면, 비밀번호를 다시 설정할 수 있는
+      링크를 보내 드렸습니다.
+    </p>
+    <p class="text-steel">
+      링크는 <%= duration_ko(User::PASSWORD_RESET_EXPIRY) %> 동안만 쓸 수 있어요.
+      메일이 보이지 않으면 스팸함도 확인해 주세요.
+    </p>
+  </div>
+
+  <p class="mt-4 text-center text-sm">
+    <%= link_to icon_text(:arrow_left, "선생님 로그인으로"), staff_login_path, class: "inline-flex items-center gap-1 text-steel underline" %>
+  </p>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_28_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_28_000002) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -665,6 +665,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_28_000001) do
     t.integer "classroom_id"
     t.datetime "created_at", null: false
     t.string "email"
+    t.datetime "email_verified_at"
     t.integer "experience", default: 0, null: false
     t.string "name", null: false
     t.string "nickname"

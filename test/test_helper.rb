@@ -12,7 +12,8 @@ Rails.application.credentials.tap do |creds|
     gemini: { api_key: "" },
     naver: { client_id: "", client_secret: "" },
     data4library: { api_key: "" },
-    neis: { api_key: "" }
+    neis: { api_key: "" },
+    resend: { api_key: "" }
   ))
   creds.instance_variable_set(:@options, nil)
 end
@@ -80,6 +81,22 @@ module ActiveSupport
       Book.find(result.rows.first.first)
     ensure
       connection&.execute("PRAGMA ignore_check_constraints = OFF")
+    end
+
+    # 메일 발송이 가능한 환경을 블록 안에서만 흉내낸다. 위 credentials 스텁이 resend 키를 비워
+    # 두므로 기본값은 "발송 불가"(= 이메일 인증 게이트 비활성)이고, 게이트가 **작동하는** 경로를
+    # 검증하려는 테스트만 이 헬퍼로 감싼다.
+    #
+    # 모듈 함수 스텁 대신 ENV 를 쓰는 이유: minitest 6 에서 `minitest/mock`(Object#stub)이 빠졌고,
+    # `ResendGateway.api_key` 가 **ENV 우선 → credentials 폴백**이라 ENV 주입이 곧 실제 코드
+    # 경로 검증이 된다(리포의 키 소스 규약 자체를 함께 검증). 병렬 테스트는 프로세스 단위로
+    # 갈라지고 프로세스 안에서는 테스트가 순차 실행되므로 ensure 복원으로 격리가 충분하다.
+    def with_mail_delivery_available
+      original = ENV["RESEND_API_KEY"]
+      ENV["RESEND_API_KEY"] = "re_test_only_not_a_real_key"
+      yield
+    ensure
+      ENV["RESEND_API_KEY"] = original
     end
 
     # 역할별 로그인 헬퍼(통합 테스트 공용). 로그인 표면이 둘로 나뉘었다(sessions_controller):

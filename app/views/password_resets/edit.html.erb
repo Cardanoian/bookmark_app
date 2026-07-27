@@ -1,0 +1,21 @@
+<%# 토큰이 유효할 때만 도달하는 새 비밀번호 입력 폼. patch → password_reset(token). %>
+<div class="w-full max-w-md mx-auto">
+  <h1 class="mb-6 text-center text-2xl font-bold text-ink">새 비밀번호 정하기</h1>
+  <div class="card">
+    <%# 오류 flash 는 공통 상단 토스트(shared/_flash)가 담당 — 여기서 중복 렌더하지 않음. %>
+    <%= form_with url: password_reset_path(token: params[:token]), method: :patch, local: true, class: "space-y-4" do |f| %>
+      <div>
+        <%= label_tag :password, "새 비밀번호", class: "form-label" %>
+        <%= password_field_tag :password, nil, autocomplete: "new-password", autofocus: true,
+              required: true, minlength: 6, class: "form-input" %>
+        <p class="mt-1 text-sm text-steel">6자 이상으로 정해 주세요.</p>
+      </div>
+      <div>
+        <%= label_tag :password_confirmation, "새 비밀번호 확인", class: "form-label" %>
+        <%= password_field_tag :password_confirmation, nil, autocomplete: "new-password",
+              required: true, minlength: 6, class: "form-input" %>
+      </div>
+      <%= submit_tag "비밀번호 변경", class: "btn btn-primary btn-block" %>
+    <% end %>
+  </div>
+</div>
