@@ -53,8 +53,9 @@
 | 역할 | 이메일 | 비밀번호 | 비고 |
 |------|--------|----------|------|
 | **담임교사** | `teacher.wondong61@chaekgalpi.demo` | `teacher1234` | 포항원동초 6-1 담임(학생·독후감 검토 큐가 가득 참) |
-| **교무관리자** | `schooladmin@example.com` | `schooladmin1234` | 포항원동초 전교 통계·NEIS 요약 |
-| **사서** | `librarian@example.com` | `librarian1234` | 도서관 대시보드·인기대출 |
+| **담임교사(3-1)** | `jieun@gbeai.net` | `jieun11!` | 김지은 — 포항원동초 3-1 담임(학생 21명, 손글씨 OCR 독후감 포함) |
+| **교무관리자** | `eunsu@gbeai.net` | `eunsu11!` | 박은수 — 포항원동초 전교 통계·NEIS 요약 |
+| **사서** | `jihye@gbeai.net` | `jihye11!` | 최지혜 — 도서관 대시보드·인기대출 |
 | **총괄관리자** | `admin@example.com` | `__________` | *(운영자 기입: 배포 시 설정한 데모 비밀번호)* |
 
 ---

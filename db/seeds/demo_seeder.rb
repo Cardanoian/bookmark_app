@@ -80,6 +80,10 @@ class DemoSeeder
   # student_names 는 템플릿의 20명보다 적거나 많아도 된다(현재 18~22명 지원). 인원이
   # 많을 때는 활동 프로필을 순환 재사용하되 학생 이름은 항상 별개로 검증한다. activity_level
   # (high/balanced/low)은 학생 활동과 미션 완료율을 함께 조절해 학급별 사용량 차이를 만든다.
+  #
+  # student_names 항목은 문자열(이름만) 또는 해시를 쓸 수 있다. 해시는 name 외에
+  # nickname(랭킹 별칭 고정 — 전역 닉네임 카운터를 소비하지 않아 기존 학급 닉네임이 밀리지 않는다),
+  # activity_level(그 학생만의 활동량), 그 밖의 학생 키(reports·game_plays 등 직접 지정)를 받는다.
   def load_seed_data(path)
     data = YAML.safe_load_file(path, aliases: false)
     return data unless data["template"].present?
@@ -90,10 +94,11 @@ class DemoSeeder
     end
 
     template = YAML.safe_load_file(@root.join(template_name), aliases: false)
-    names = Array(data.fetch("student_names")).map(&:to_s)
+    entries = Array(data.fetch("student_names"))
+    names = entries.map { |entry| entry.is_a?(Hash) ? entry.fetch("name").to_s : entry.to_s }
+    overrides = entries.map { |entry| entry.is_a?(Hash) ? entry.except("name") : {} }
     source_students = template.fetch("students")
     activity_level = data["activity_level"].presence || "high"
-    activity_scale = activity_scale_for(activity_level)
 
     unless names.size.between?(18, 22)
       raise ArgumentError, "student_names는 18명에서 22명 사이여야 합니다"
@@ -104,9 +109,13 @@ class DemoSeeder
 
     seed_data = template.merge(data.except("template", "student_names", "activity_level"))
     seed_data.merge(
-      "missions" => scale_missions(Array(seed_data["missions"]), activity_scale),
-      "students" => source_students.cycle.take(names.size).zip(names).map do |student, name|
-        scale_student_activity(student, activity_scale).merge("name" => name)
+      "missions" => scale_missions(Array(seed_data["missions"]), activity_scale_for(activity_level)),
+      "students" => source_students.cycle.take(names.size).zip(names, overrides)
+                                   .map do |student, name, override|
+        level = override["activity_level"].presence || activity_level
+        scale_student_activity(student, activity_scale_for(level))
+          .merge("name" => name)
+          .merge(override.except("activity_level"))
       end
     )
   end
@@ -147,6 +156,10 @@ class DemoSeeder
   # 랭킹 프로필은 실명과 분리된 데모 전용 독서 별칭으로 일괄 생성한다. 파일명 순서 + 학생
   # 순서로 조합을 골라 모든 데모 학급을 통틀어 안정적으로 고유하며, 실제 학생 이름을 노출하지
   # 않는다. 인원이 홀수인 학급은 절반 미만(내림)만 랭킹 공개에 참여시킨다.
+  #
+  # YAML 에 nickname 을 직접 적은 학생은 **전역 카운터를 소비하지 않는다**. 카운터는 파일명 정렬
+  # 순서를 따르는 위치 기반이라, 소비하면 뒤 학급의 닉네임이 통째로 밀려 같은 학교 안에서
+  # [school_id, nickname] UNIQUE 에 걸린다. 명시 닉네임은 754개 상한도 쓰지 않는다.
   def assign_student_profiles!(data_sources)
     nickname_sequence = 0
 
@@ -155,9 +168,11 @@ class DemoSeeder
       ranking_participant_count = students.size / 2
 
       students.each_with_index do |student, index|
-        nickname_sequence += 1
-        student["nickname"] = demo_nickname_for(nickname_sequence)
-        student["ranking_opted_in"] = index < ranking_participant_count
+        if student["nickname"].blank?
+          nickname_sequence += 1
+          student["nickname"] = demo_nickname_for(nickname_sequence)
+        end
+        student["ranking_opted_in"] = index < ranking_participant_count if student["ranking_opted_in"].nil?
       end
     end
   end
@@ -209,10 +224,17 @@ class DemoSeeder
     class_no = cr.fetch("class_no").to_i
     label = cr["school_label"] || school.name
 
+    students_data = data.fetch("students")
     classroom = Classroom.find_by(school_id: school.id, academic_year:, grade:, class_no:)
     if classroom&.reports&.exists?
-      sync_existing_student_profiles!(data.fetch("students"), school:, classroom:, teacher_data: data.fetch("teacher"))
-      @io.puts "  [demo] #{filename}: #{label} #{grade}-#{class_no} 활동은 이미 시드됨 — 학생 프로필 동기화."
+      sync_existing_student_profiles!(students_data, school:, classroom:, teacher_data: data.fetch("teacher"))
+      pending = pending_students(students_data, classroom:)
+      if pending.empty?
+        @io.puts "  [demo] #{filename}: #{label} #{grade}-#{class_no} 활동은 이미 시드됨 — 학생 프로필 동기화."
+        return
+      end
+
+      top_up_classroom(data, pending, school:, classroom:, label:)
       return
     end
 
@@ -223,7 +245,7 @@ class DemoSeeder
       classroom ||= Classroom.create!(school:, academic_year:, grade:, class_no:, teacher:)
       classroom.update!(teacher:) if classroom.teacher_id.nil?
 
-      students = data.fetch("students").map { |sd| seed_student(sd, school, classroom, teacher) }
+      students = students_data.map { |sd| seed_student(sd, school, classroom, teacher) }
 
       seed_missions(Array(data["missions"]), classroom, teacher, students)
       seed_topics_and_forum(Array(data["topics"]), classroom, students)
@@ -235,6 +257,38 @@ class DemoSeeder
       @totals[:classrooms] += 1
       @totals[:students] += students.size
       @io.puts "  [demo] #{label} #{grade}-#{class_no}: 학생 #{students.size}명 + 활동 생성"
+    end
+  end
+
+  def pending_students(students_data, classroom:)
+    existing = classroom.users.where(role: :student).pluck(:name).to_set
+    students_data.reject { |sd| existing.include?(sd.fetch("name").to_s) }
+  end
+
+  # 이미 활동이 있는 학급에 **명단에 없던 학생만** 채운다(샘플 3-1 을 21명으로 확장하는 경로).
+  # 기존 학생의 독후감·포인트·경험치·시즌점수·뱃지는 손대지 않고, 새 학생만 활동을 생성한다.
+  # 학급 단위 콘텐츠(토론방·미션)는 아직 없을 때만 만들어 재실행에 안전하다. 또래 상호작용
+  # (좋아요·응원·투표)의 풀은 기존 학생까지 포함한 학급 전원이라 학급이 자연스럽게 보인다.
+  def top_up_classroom(data, pending, school:, classroom:, label:)
+    @rng = Random.new(Zlib.crc32("#{school.neis_code}-#{classroom.grade}-#{classroom.class_no}"))
+
+    ActiveRecord::Base.transaction do
+      teacher = seed_teacher(data.fetch("teacher"), school)
+      classroom.update!(teacher:) if classroom.teacher_id.nil?
+
+      students = pending.map { |sd| seed_student(sd, school, classroom, teacher) }
+      peers = classroom.users.where(role: :student).order(:id).to_a
+
+      top_up_missions(Array(data["missions"]), classroom, teacher, students)
+      seed_topics_and_forum(Array(data["topics"]), classroom, students, peers:)
+      seed_board_and_cheers(students, classroom, peers:)
+      seed_social_games(students, classroom, peers:)
+
+      students.each { |st| finalize_student(st) }
+
+      @totals[:classrooms_topped_up] += 1
+      @totals[:students] += students.size
+      @io.puts "  [demo] #{label} #{classroom.grade}-#{classroom.class_no}: 기존 활동 보존 + 학생 #{students.size}명 추가"
     end
   end
 
@@ -288,13 +342,15 @@ class DemoSeeder
     @totals[:students_profiles_synced] += synced
   end
 
+  # 닉네임·랭킹 공개는 학생이 앱에서 직접 정하는 값이라, 이미 값이 있는 계정은 시드가 덮어쓰지
+  # 않는다(실사용 계정의 선택을 재시드가 되돌리지 않게 하는 안전장치).
   def apply_student_profile!(user, student_data, teacher)
     consent_already_recorded = user.ai_consent? && user.ai_consent_at.present?
     recorder_already_set = user.ai_consent? && user.ai_consent_recorded_by_id.present?
 
     user.assign_attributes(
-      nickname: student_data.fetch("nickname"),
-      ranking_opted_in: student_data.fetch("ranking_opted_in"),
+      nickname: (user.nickname.presence || student_data.fetch("nickname")),
+      ranking_opted_in: (user.new_record? ? student_data.fetch("ranking_opted_in") : user.ranking_opted_in),
       ai_consent: true,
       ai_consent_at: (consent_already_recorded ? user.ai_consent_at : Time.current),
       ai_consent_recorded_by_id: (recorder_already_set ? user.ai_consent_recorded_by_id : teacher.id),
@@ -401,7 +457,35 @@ class DemoSeeder
 
   # ── 미션 ────────────────────────────────────────────────────────────────
   def seed_missions(missions, classroom, teacher, students)
-    missions.each do |md|
+    build_missions(missions, classroom, teacher).each do |mission, rate|
+      assign_mission(mission, rate, students)
+    end
+  end
+
+  # 이미 발행 미션이 있는 학급(교사가 직접 만든 미션이 도는 학급)에는 템플릿 미션을 새로 만들지 않고
+  # 그 미션에 신규 학생만 배정한다. 학급 미션 수가 부풀지 않고 참여자 수도 학급 전원으로 맞는다.
+  #
+  # 기존 학생의 participation 은 만들지 않는다 — 배정만 하고 미보상(rewarded_at: nil)으로 두면
+  # production 의 Missions::ReevaluateJob(config/recurring.yml, 매시 27분)이 목표 달성을 재평가해
+  # 나중에 포인트를 지급하므로, "기존 학생 포인트 불변" 이 깨진다(실측: 이도현 +150점).
+  def top_up_missions(mission_defs, classroom, teacher, students)
+    existing = classroom.missions.published.where(id: MissionGoal.select(:mission_id))
+                        .order(:start_date, :id).to_a
+    pairs =
+      if existing.any?
+        existing.map.with_index { |mission, i| [ mission, (mission_defs.dig(i, "completion_rate") || 0.5).to_f ] }
+      else
+        build_missions(mission_defs, classroom, teacher)
+      end
+
+    pairs.each { |mission, rate| assign_mission(mission, rate, students) }
+  end
+
+  # Mission + goals 생성만 담당하고 [[mission, completion_rate], …] 를 돌려준다.
+  def build_missions(missions, classroom, teacher)
+    missions.filter_map do |md|
+      next if classroom.missions.exists?(title: md.fetch("title"))
+
       start_date = Date.current - (md["start_days_ago"] || 21).to_i
       end_date = Date.current + (md["end_days_ahead"] || 14).to_i
       end_date = start_date + 14 if end_date < start_date
@@ -420,31 +504,46 @@ class DemoSeeder
       mission.save!
       @totals[:missions] += 1
 
-      rate = (md["completion_rate"] || 0.5).to_f
-      cutoff = (students.size * rate).round
-      students.each_with_index do |st, idx|
-        completed = idx < cutoff
-        assigned_at = start_date.to_time + rand_int(0, 24).hours
-        mp = MissionParticipation.create!(
-          mission:, user: st[:user], assigned_at:,
-          completed_at: (completed ? assigned_at + rand_int(1, 10).days : nil),
-          rewarded_at: (completed ? assigned_at + rand_int(1, 10).days : nil),
-          reward_points_awarded: (completed ? reward : 0)
-        )
-        st[:mission_points] += reward if completed
-        @totals[:mission_participations] += 1
-      end
+      [ mission, (md["completion_rate"] || 0.5).to_f ]
+    end
+  end
+
+  # 완료 시각은 미션 기간 안으로 클램프한다(짧은 미션에 종료일 넘는 완료가 찍히지 않게).
+  # 완료분은 rewarded_at 을 함께 채워 ReevaluateJob 재평가 대상에서 빠진다.
+  def assign_mission(mission, rate, students)
+    reward = mission.reward_points.to_i
+    cutoff = (students.size * rate).round
+    window_end = mission.end_date.to_time.end_of_day
+
+    students.each_with_index do |st, idx|
+      next if MissionParticipation.exists?(mission_id: mission.id, user_id: st[:user].id)
+
+      completed = idx < cutoff
+      assigned_at = mission.start_date.to_time + rand_int(0, 24).hours
+      done_at = completed ? [ assigned_at + rand_int(1, 10).days, window_end ].min : nil
+      MissionParticipation.create!(
+        mission:, user: st[:user], assigned_at:,
+        completed_at: done_at, rewarded_at: done_at,
+        reward_points_awarded: (completed ? reward : 0)
+      )
+      st[:mission_points] += reward if completed
+      @totals[:mission_participations] += 1
     end
   end
 
   # ── 토론방 + 토론 글 + 좋아요 ───────────────────────────────────────────
-  def seed_topics_and_forum(topic_titles, classroom, students)
-    return if topic_titles.empty?
+  # peers 를 주면 좋아요 풀을 그 학급 전원으로 넓힌다(top-up 시 기존 학생도 또래로 참여).
+  # 토론방은 학급에 이미 있으면 재사용하고 없을 때만 만든다(멱등).
+  def seed_topics_and_forum(topic_titles, classroom, students, peers: nil)
+    topics = Topic.where(classroom:).order(:id).to_a
+    if topics.empty?
+      return if topic_titles.empty?
 
-    topics = topic_titles.map.with_index do |title, i|
-      Topic.create!(classroom:, scope: :classroom, title: title.to_s, book: pool_book(i + 3))
+      topics = topic_titles.map.with_index do |title, i|
+        Topic.create!(classroom:, scope: :classroom, title: title.to_s, book: pool_book(i + 3))
+      end
+      @totals[:topics] += topics.size
     end
-    @totals[:topics] += topics.size
 
     posts = []
     students.each do |st|
@@ -460,7 +559,7 @@ class DemoSeeder
     end
 
     # 또래 좋아요: 각 글에 저자 외 학생 몇 명이 좋아요.
-    users = students.map { |st| st[:user] }
+    users = Array(peers).presence || students.map { |st| st[:user] }
     posts.each do |fp|
       likers = users.reject { |u| u.id == fp.user_id }.shuffle(random: @rng).first(rand_int(0, 6))
       likers.each { |u| ForumPostLike.create!(forum_post: fp, user: u); @totals[:forum_post_likes] += 1 }
@@ -468,8 +567,8 @@ class DemoSeeder
   end
 
   # ── 우수작 게시판 + 응원 ─────────────────────────────────────────────────
-  def seed_board_and_cheers(students, classroom)
-    users = students.map { |st| st[:user] }
+  def seed_board_and_cheers(students, classroom, peers: nil)
+    users = Array(peers).presence || students.map { |st| st[:user] }
     students.each do |st|
       report = st[:shareable].max_by { |r| r.avg.to_f }
       next unless report
@@ -488,8 +587,8 @@ class DemoSeeder
   end
 
   # ── 책 소개 대결 / 뒷이야기 이어쓰기 + 투표 ─────────────────────────────
-  def seed_social_games(students, classroom)
-    users = students.map { |st| st[:user] }
+  def seed_social_games(students, classroom, peers: nil)
+    users = Array(peers).presence || students.map { |st| st[:user] }
 
     students.each_with_index do |st, i|
       if (intro = st[:sd]["book_intro"]).present? && intro.to_s.strip.length >= 10

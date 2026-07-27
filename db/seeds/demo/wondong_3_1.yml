@@ -1,0 +1,47 @@
+# 포항원동초 3-1 — accounts.yml 의 역할 샘플 학급을 21명 규모의 정상 학급으로 채운다.
+# 이 파일은 기존 학급(이미 실사용 독후감이 있는 classrooms 행)에 붙으므로 DemoSeeder 의 top-up
+# 경로를 탄다: 명단에 없던 학생만 활동과 함께 새로 만들고, 기존 학생(이도현·홍수아)의 독후감·
+# 포인트·경험치·시즌점수·뱃지는 손대지 않는다.
+#
+# teacher 는 accounts.yml 의 homeroom_teacher 와 **같은 이메일**이어야 한다. seed_teacher 가
+# 이메일로 기존 행을 찾으므로, 다르면 담임이 둘이 된다.
+#
+# 활동량은 template(mundeok_3_1.yml)의 학생별 편차를 그대로 쓴다(activity_level: high = 스케일 1.0).
+# 신규 19명을 명단 앞에 두어 활발한 프로필(#1~#19)을 받게 하고, 기존 2명은 맨 뒤에 둔다
+# (기존 학생은 활동을 만들지 않으므로 그 자리의 프로필은 쓰이지 않는다).
+# nickname 을 명시하면 전역 닉네임 카운터를 소비하지 않아 기존 학급 745명의 별칭이 밀리지 않는다.
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 3
+  class_no: 1
+  academic_year: 2026
+teacher:
+  name: 김지은
+  email: jieun@gbeai.net
+template: mundeok_3_1.yml
+activity_level: high
+student_names:
+  # ── 신규 19명 (남 10 / 여 9) — 프로필 #1~#19: 독후감 5~1건, 게임 8~0회로 편차가 크다
+  - { name: 강태오, nickname: 씩씩한책돛대 }
+  - { name: 곽서연, nickname: 소롯한책정원 }
+  - { name: 권민재, nickname: 파랑책나침반 }
+  - { name: 김나윤, nickname: 나풀책나비 }
+  - { name: 김선우, nickname: 우렁찬책피리 }
+  - { name: 노아린, nickname: 아린책노래 }
+  - { name: 문규현, nickname: 튼튼한책수레 }
+  - { name: 민서율, nickname: 도담한책바구니 }
+  - { name: 박시우, nickname: 반디책등대 }
+  - { name: 배지안, nickname: 지그시책이불 }
+  - { name: 백승호, nickname: 넓은책마루 }
+  - { name: 서다인, nickname: 다솜책창가 }
+  - { name: 손태현, nickname: 새벽책나룻배 }
+  - { name: 송채아, nickname: 채롱책열매 }
+  - { name: 안재현, nickname: 단단한책방패 }
+  - { name: 신하람, nickname: 하람책모루 }
+  - { name: 오현우, nickname: 맑은책우물 }
+  - { name: 양수빈, nickname: 수북한책탑 }
+  - { name: 윤성민, nickname: 곧은책기둥 }
+  # ── 기존 2명 (개명됨) — 활동은 실사용 기록을 그대로 유지한다
+  - { name: 이도현, nickname: 독서왕유망주 }
+  - { name: 홍수아, nickname: 햇살가득책숲 }

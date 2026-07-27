@@ -126,6 +126,49 @@ exit
 ```
 (원하는 비밀번호로 바꿔도 됩니다. 이 값을 [`JUDGE_GUIDE.md`](JUDGE_GUIDE.md) 총괄관리자 칸에 기입하세요.)
 
+### 4-2. (대안) 개발 DB 스냅샷을 그대로 올리기
+
+`db:seed` 는 `db/seeds/**` 자산만 재현합니다. **실제로 앱을 써 가며 쌓인 데이터**(손글씨 OCR 사진이
+붙은 독후감, 감사 로그, 온디맨드 퀴즈 캐시, 교사가 직접 만든 미션 등)는 시드에 없으므로 재현되지
+않습니다. 개발 환경에서 쌓은 상태를 **그대로** 심사 인스턴스에 옮기려면 SQLite 파일을 이관합니다.
+
+> ⚠️ 운영 볼륨의 기존 데이터를 **덮어씁니다**. 3단계의 볼륨 백업을 생략하지 마세요.
+
+```bash
+# 0) 이미지가 스냅샷과 같은 마이그레이션을 갖도록 먼저 배포
+bin/kamal deploy
+
+# 1) 로컬 쓰기 정지 후 정합 스냅샷 (WAL 때문에 cp 금지 — VACUUM INTO 가 트랜잭션으로 읽는다)
+pkill -f "puma|bin/jobs" || true
+SNAP=/tmp/production.sqlite3; rm -f "$SNAP"      # VACUUM INTO 는 대상 파일이 있으면 실패
+sqlite3 storage/development.sqlite3 "PRAGMA wal_checkpoint(TRUNCATE); VACUUM INTO '$SNAP';"
+sqlite3 "$SNAP" "UPDATE ar_internal_metadata SET value='production' WHERE key='environment';"
+sqlite3 "$SNAP" "PRAGMA integrity_check;" "PRAGMA foreign_key_check;" \
+                "SELECT COUNT(*) FROM schema_migrations;"     # 마이그레이션 개수가 이미지와 같아야 함
+tar -czf /tmp/blobs.tgz -C storage 9v ee          # Active Storage 실파일(OCR 사진) — 있는 샤드만
+
+# 2) 전송
+SRV=ubuntu@133.186.251.153; KEY=~/.ssh/gbe-debate.pem
+scp -i $KEY "$SNAP" /tmp/blobs.tgz $SRV:/tmp/
+
+# 3) 볼륨 백업 → 앱 정지 → 교체 → 부팅
+ssh -i $KEY $SRV 'V=$(docker volume inspect bookmark_app_storage --format "{{.Mountpoint}}"); \
+  sudo tar -czf ~/bookmark_app_storage-$(date +%Y%m%d%H%M).tgz -C $V . && ls -la ~/*.tgz'
+bin/kamal app stop                                # SOLID_QUEUE_IN_PUMA=true → 잡 워커도 함께 정지
+ssh -i $KEY $SRV 'set -e; V=$(docker volume inspect bookmark_app_storage --format "{{.Mountpoint}}"); \
+  sudo rm -f $V/production.sqlite3-wal $V/production.sqlite3-shm; \
+  sudo install -o 1000 -g 1000 -m 644 /tmp/production.sqlite3 $V/production.sqlite3; \
+  sudo tar -xzf /tmp/blobs.tgz -C $V; sudo chown -R 1000:1000 $V; rm -f /tmp/production.sqlite3 /tmp/blobs.tgz'
+bin/kamal app boot
+```
+
+- `production_cache/queue/cable.sqlite3` 는 **건드리지 않습니다**(개발 DB에 `solid_*` 테이블이 없어 대체 불필요).
+- `-wal`/`-shm` 을 먼저 지우는 것이 **필수**입니다 — 옛 DB의 WAL이 새 파일에 붙으면 손상됩니다.
+- `ar_internal_metadata` 를 `production` 으로 고쳐야 6절의 `db:reset` 이 정상 동작합니다.
+- 부팅 후 `db:prepare` 는 pending 마이그레이션이 없으면 no-op 이라 시드가 다시 돌지 않습니다.
+- **되돌리기**: `bin/kamal app stop` → `sudo tar -xzf ~/bookmark_app_storage-<타임스탬프>.tgz -C $V` → `bin/kamal app boot`.
+- 스냅샷이 손상됐으면 4절(`DEMO_DEPLOYMENT=1 bin/rails db:seed`)로 깨끗한 데모 상태를 재구축할 수 있습니다.
+
 ---
 
 ## 5. 접속 확인

@@ -24,26 +24,30 @@ sample_accounts:
       teacher: homeroom_teacher
 
   users:
+    # 3-1 샘플 담임. 이미 존재하는 계정의 개명·비밀번호 갱신은 시드가 하지 않으므로
+    # 마이그레이션 20260727000001(RenameSampleAccounts)이 담당한다.
     - id: homeroom_teacher
-      name: 김담임
+      name: 김지은
       role: teacher
-      email: teacher@example.com
-      password: teacher1234
+      email: jieun@gbeai.net
+      password: jieun11!
 
     - id: school_admin
-      name: 박교무
+      name: 박은수
       role: school_admin
-      email: schooladmin@example.com
-      password: schooladmin1234
+      email: eunsu@gbeai.net
+      password: eunsu11!
 
     - id: librarian
-      name: 최사서
+      name: 최지혜
       role: librarian
-      email: librarian@example.com
-      password: librarian1234
+      email: jihye@gbeai.net
+      password: jihye11!
 
+    # 3-1 대표 학생. 나머지 학급 구성원(총 21명)과 활동 내역은 db/seeds/demo/wondong_3_1.yml 이
+    # 단일 진실이며 DemoSeeder 의 top-up 경로가 명단에 없는 학생만 추가한다.
     - id: student
-      name: 이학생
+      name: 이도현
       role: student
       classroom: grade_3_class_1
       password: student1234
