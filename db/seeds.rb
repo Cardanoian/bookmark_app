@@ -196,6 +196,10 @@ Rake::Task["books:seed_quizzes"].invoke
 # Sample published quiz so 독서게임(quiz) is playable in development (P5.6).
 Rake::Task["quizzes:seed"].invoke
 
+# 초기 챌린지(전국 1 + 학교 1). 학교 스코프는 실학교를 neis_code 로 찾으므로 schools 적재 뒤에 둔다.
+# 참여·보상 행은 만들지 않고 Challenges::EvaluateProgress 가 지연 생성한다.
+Rake::Task["challenges:seed"].invoke
+
 # System settings (P7.4). YAML 문서의 기본값은 최초 생성 때만 적용해 관리자 변경을 보존한다.
 app_settings_data.fetch("app_settings").each do |setting_data|
   setting = AppSetting.find_or_create_by!(key: setting_data.fetch("key")) do |new_setting|

@@ -1,0 +1,35 @@
+# 초기 챌린지. scope 는 Challenge enum(global=전국 / school=우리 학교)이고, school 스코프는
+# school_neis_code 로 실학교를 찾아 school_id 를 붙인다(학교를 못 찾으면 그 챌린지만 건너뜀).
+#
+# starts_on 을 과거로 두면 그 시점 이후의 활동이 소급 집계된다(Challenge#window_start 는
+# `starts_on || created_at.to_date` — starts_on 미지정일 때만 생성일을 바닥으로 삼는다).
+# 여기서는 이미 쌓인 활동이 진행률에 반영돼 챌린지가 "살아 있는" 상태로 보이도록 의도적으로
+# 과거 시작일을 쓴다. 학생이 상세를 열면 Challenges::EvaluateProgress 가 지연 참여를 만들고
+# 목표를 모두 채운 학생에게 정확히-1회 보상을 지급한다.
+#
+# goals 는 종류당 최대 1개(유니크 [challenge_id, goal_type])이고 target 은 1 이상이어야 한다.
+# reward_points 는 Challenge.reward_max_points(AppSetting `challenge_reward_max_points`,
+# 미설정 시 300) 이하여야 한다.
+challenges:
+  - key: wondong_summer_reading
+    scope: school
+    school_neis_code: "8761159"
+    title: 원동 여름 독서 한마당
+    description: 우리 학교 친구들과 함께 책을 읽어요. 독후감 2편과 독서게임 3번을 채우면 완성이에요!
+    starts_on: "2026-06-12"
+    ends_on: "2026-08-31"
+    reward_points: 100
+    goals:
+      - { type: approved_reports, target: 2 }
+      - { type: game_plays, target: 3 }
+
+  - key: national_reading_relay
+    scope: global
+    title: 전국 어린이 독서 릴레이
+    description: 전국 친구들과 함께 달리는 독서 릴레이! 독후감 3편과 독서게임 4번에 도전해 보세요.
+    starts_on: "2026-06-12"
+    ends_on: "2026-09-30"
+    reward_points: 200
+    goals:
+      - { type: approved_reports, target: 3 }
+      - { type: game_plays, target: 4 }
