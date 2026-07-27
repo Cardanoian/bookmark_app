@@ -29,9 +29,15 @@ class SessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "an unauthenticated request redirects to the landing index" do
+  test "an unauthenticated request redirects to the landing index without an alert" do
     get root_path
+
     assert_redirected_to new_session_path
+    assert_nil flash[:alert]
+
+    follow_redirect!
+    assert_response :success
+    assert_not_includes response.body, "로그인이 필요합니다."
   end
 
   # ── 학생 로그인(튜플) ─────────────────────────────────────────────────

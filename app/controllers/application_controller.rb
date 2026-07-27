@@ -44,7 +44,7 @@ class ApplicationController < ActionController::Base
   def require_login
     return if logged_in?
 
-    redirect_to new_session_path, alert: "로그인이 필요합니다."
+    redirect_to new_session_path
   end
 
   # 세션 도중 계정이 정지되면 즉시 로그아웃한다(P7.2).
