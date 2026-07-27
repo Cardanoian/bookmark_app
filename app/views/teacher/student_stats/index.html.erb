@@ -1,0 +1,145 @@
+<% content_for :title, "학생별 통계 · 책갈피" %>
+<%# 정렬 헤더: [키, 라벨]. 현재 정렬 컬럼은 화살표로 표시하고, 링크는 학급 선택을 이월한다. %>
+<% sort_link = ->(key, label) do
+     current = @sort == key
+     link_to teacher_student_stats_path(classroom_id: @classroom&.id, sort: key),
+             class: "inline-flex items-center gap-1 #{current ? "font-semibold text-brand-blue" : "text-steel hover:text-ink"}" do
+       safe_join([ label, (ui_icon(:arrow_right, class_name: "h-3 w-3 rotate-90") if current) ].compact)
+     end
+   end %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :student_stats %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">학생별 통계</h1>
+          <p class="mt-1 text-sm text-slate">
+            학생 한 명 한 명이 독후감·게임·미션·챌린지에 얼마나 참여했는지 한눈에 볼 수 있어요.
+            이름을 누르면 그 학생의 상세 기록이 열려요.
+          </p>
+        </div>
+      </header>
+
+      <% if @classrooms.size > 1 %>
+        <%= form_with url: teacher_student_stats_path, method: :get, class: "card flex flex-wrap items-end gap-3" do %>
+          <div>
+            <%= label_tag :classroom_id, "학급", class: "form-label" %>
+            <%= select_tag :classroom_id,
+                  options_for_select(@classrooms.map { |c| [ c.label_with_year, c.id ] }, @classroom&.id),
+                  class: "form-select" %>
+          </div>
+          <%= hidden_field_tag :sort, @sort %>
+          <%= submit_tag "보기", class: "btn btn-secondary" %>
+        <% end %>
+      <% end %>
+
+      <% if @classroom.nil? %>
+        <%= render "shared/empty_state",
+              message: "담당 학급이 아직 없어요. 학급이 만들어지면 학생별 통계를 볼 수 있어요.", icon: :school %>
+      <% elsif @rows.empty? %>
+        <%= render "shared/empty_state",
+              message: "#{@classroom.label} 학생이 아직 없어요. 학생 관리에서 추가해 주세요.", icon: :students %>
+      <% else %>
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div class="stat-card">
+            <span class="stat-card__label">학생 수</span>
+            <span class="stat-card__value"><%= @summary[:students] %></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__label">활동 참여율</span>
+            <span class="stat-card__value text-brand-blue"><%= @summary[:participation] %>%</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__label">1인 평균 승인 독후감</span>
+            <span class="stat-card__value"><%= @summary[:avg_reports] %></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__label">1인 평균 게임 완료</span>
+            <span class="stat-card__value"><%= @summary[:avg_games] %></span>
+          </div>
+        </div>
+
+        <%# 아직 아무 활동도 시작하지 않은 학생 — 담임이 가장 먼저 챙겨야 할 명단이라 표 위에 둔다. %>
+        <% if @summary[:unstarted].any? %>
+          <div class="card border-hairline bg-surface-yellow">
+            <h2 class="text-sm font-semibold text-yellow-dark">아직 시작하지 않은 학생 (<%= @summary[:unstarted].size %>명)</h2>
+            <p class="mt-1 text-sm text-yellow-dark">
+              <%= @summary[:unstarted].map(&:name).join(", ") %> — 독후감도 게임 기록도 아직 없어요.
+            </p>
+          </div>
+        <% end %>
+
+        <div class="card">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[52rem] text-sm">
+              <thead>
+                <tr class="border-b border-hairline text-left">
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("name", "학생") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("approved", "승인 독후감") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("reports", "쓴 독후감") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("avg", "5축 평균") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("games", "게임 완료") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("missions", "미션") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("challenges", "챌린지") %></th>
+                  <th class="py-2 pr-3 font-medium"><%= sort_link.call("points", "포인트") %></th>
+                  <th class="py-2 font-medium"><%= sort_link.call("recent", "최근 활동") %></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @rows.each do |row| %>
+                  <tr class="border-b border-hairline-soft">
+                    <td class="py-2 pr-3">
+                      <%= link_to row.student.name, teacher_student_stat_path(row.student),
+                            class: "font-medium text-brand-blue hover:underline" %>
+                      <span class="block text-xs text-steel">Lv.<%= row.student.trainer_level %> · <%= row.badges %>뱃지 · 도감 <%= row.monsters %></span>
+                    </td>
+                    <td class="py-2 pr-3 text-ink">
+                      <%= row.approved %>편
+                      <% if row.pending.positive? %>
+                        <span class="block text-xs text-yellow-dark">검토 대기 <%= row.pending %></span>
+                      <% end %>
+                    </td>
+                    <td class="py-2 pr-3 text-slate">
+                      <%= row.reports %>편
+                      <% if row.revisions.positive? %>
+                        <span class="block text-xs text-steel">고쳐쓰기 <%= row.revisions %></span>
+                      <% end %>
+                    </td>
+                    <td class="py-2 pr-3">
+                      <% if row.scored.positive? %>
+                        <span class="font-semibold text-brand-blue"><%= row.avg_score %></span>
+                        <span class="block text-xs text-steel">A등급 <%= row.a_grades %></span>
+                      <% else %>
+                        <span class="text-steel">–</span>
+                      <% end %>
+                    </td>
+                    <td class="py-2 pr-3 text-slate">
+                      <%= row.game_plays %>회
+                      <span class="block text-xs text-steel"><%= row.distinct_games %>종 · 퀴즈 <%= row.quiz_attempts %></span>
+                    </td>
+                    <td class="py-2 pr-3 text-slate"><%= row.missions_completed %>/<%= row.missions_assigned %></td>
+                    <td class="py-2 pr-3 text-slate"><%= row.challenges_completed %>/<%= row.challenges_joined %></td>
+                    <td class="py-2 pr-3 text-slate">
+                      <%= row.student.points %>P
+                      <span class="block text-xs text-steel"><%= row.student.experience %>XP</span>
+                    </td>
+                    <td class="py-2 text-slate">
+                      <%= row.last_activity_on ? row.last_activity_on.strftime("%-m/%-d") : "–" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3 text-sm text-steel">
+            5축 평균은 <strong>승인한 독후감</strong>만 집계하며 선생님이 조정한 점수를 우선 반영해요.
+            미션·챌린지는 <strong>완료/참여</strong> 수예요.
+          </p>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</div>

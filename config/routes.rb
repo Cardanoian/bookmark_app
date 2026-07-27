@@ -182,6 +182,11 @@ Rails.application.routes.draw do
       end
     end
 
+    # 학생별 통계(student-stats) — 읽기 전용. index=선택 학급(`?classroom_id=`) 학생 전원의
+    # 독후감·게임·미션·챌린지 지표 표(`?sort=`), show=학생 1명 상세. 학생 '관리'(추가·삭제·비번)와
+    # 축이 달라 students 와 분리한다(management vs analytics).
+    resources :student_stats, only: [ :index, :show ]
+
     resources :missions do
       member { post :publish }
     end

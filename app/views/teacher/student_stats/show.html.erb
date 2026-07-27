@@ -1,0 +1,247 @@
+<% content_for :title, "#{@student.name} 학생 기록 · 책갈피" %>
+<% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
+<% game_label = { "quiz" => "독서 퀴즈", "classic" => "고전 퀴즈", "whoami" => "나는 누구게?",
+                  "book" => "책 소개 대결", "sequel" => "뒷이야기 이어쓰기" } %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :student_stats %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <%= link_to icon_text(:arrow_left, "학생별 통계"),
+            teacher_student_stats_path(classroom_id: @student.classroom_id),
+            class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+
+      <header class="page-header">
+        <div>
+          <h1 class="page-title"><%= @student.name %></h1>
+          <p class="mt-1 text-sm text-slate">
+            <%= @student.classroom&.label %> · Lv.<%= @student.trainer_level %> <%= @student.trainer_title %>
+            · <%= @student.points %>P · <%= @student.experience %>XP
+            <% if @row.last_activity_on %>
+              · 최근 활동 <%= @row.last_activity_on.strftime("%-m월 %-d일") %>
+            <% else %>
+              · 아직 활동 기록이 없어요
+            <% end %>
+          </p>
+        </div>
+        <%= link_to "학생 관리", teacher_students_path, class: "btn btn-secondary btn-sm" %>
+      </header>
+
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="stat-card">
+          <span class="stat-card__label">승인 독후감</span>
+          <span class="stat-card__value"><%= @row.approved %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">검토 대기</span>
+          <span class="stat-card__value text-yellow-dark"><%= @row.pending %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">5축 평균</span>
+          <span class="stat-card__value text-brand-blue"><%= @row.scored.positive? ? @row.avg_score : "–" %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">A등급</span>
+          <span class="stat-card__value"><%= @row.a_grades %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">게임 완료</span>
+          <span class="stat-card__value"><%= @row.game_plays %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">미션 완료</span>
+          <span class="stat-card__value"><%= @row.missions_completed %>/<%= @row.missions_assigned %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">챌린지 완료</span>
+          <span class="stat-card__value"><%= @row.challenges_completed %>/<%= @row.challenges_joined %></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">도감 · 뱃지</span>
+          <span class="stat-card__value"><%= @row.monsters %> · <%= @row.badges %></span>
+        </div>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card">
+          <h2 class="mb-3 text-lg font-semibold text-ink">5축 평균</h2>
+          <% if @row.scored.positive? %>
+            <div class="flex justify-center">
+              <%= radar_chart_svg(@row.axis_averages, labels: @axis_labels) %>
+            </div>
+            <dl class="mt-3 grid grid-cols-5 gap-1 text-center text-sm">
+              <% @row.axis_averages.each do |axis, value| %>
+                <div>
+                  <dt class="text-steel"><%= axis_label(axis) %></dt>
+                  <dd class="font-semibold text-brand-blue"><%= value %></dd>
+                </div>
+              <% end %>
+            </dl>
+            <p class="mt-3 text-sm text-steel">승인한 독후감 <%= @row.scored %>편 기준(선생님 조정 점수 우선).</p>
+          <% else %>
+            <p class="text-sm text-steel">아직 승인한 독후감이 없어서 점수를 낼 수 없어요. 검토를 마치면 여기에 보여요.</p>
+          <% end %>
+        </div>
+
+        <div class="space-y-4">
+          <% if @weakness %>
+            <div class="card border-hairline bg-surface-yellow">
+              <h2 class="text-sm font-semibold text-yellow-dark">이 학생의 약점</h2>
+              <p class="mt-1 text-sm text-yellow-dark">
+                가장 낮은 축은 <strong><%= @weakness[:label] %></strong>
+                (<%= @weakness[:score] %>점, <%= @weakness[:standard] %>) 이에요.
+              </p>
+              <p class="mt-2 text-sm text-yellow-dark"><%= @weakness[:activity] %></p>
+            </div>
+          <% end %>
+
+          <div class="card">
+            <h2 class="mb-2 text-sm font-semibold text-ink">독서 습관</h2>
+            <dl class="grid grid-cols-2 gap-2 text-sm text-slate">
+              <div><dt class="text-steel">최장 연속 제출</dt><dd class="font-semibold text-ink"><%= @stats.streak_days %>일</dd></div>
+              <div><dt class="text-steel">읽은 고전</dt><dd class="font-semibold text-ink"><%= @stats.classics %>권</dd></div>
+              <div><dt class="text-steel">읽은 분야</dt><dd class="font-semibold text-ink"><%= @stats.distinct_genres %>종</dd></div>
+              <div><dt class="text-steel">고쳐쓰기</dt><dd class="font-semibold text-ink"><%= @row.revisions %>편</dd></div>
+              <div><dt class="text-steel">토론 글</dt><dd class="font-semibold text-ink"><%= @row.forum_posts %>개</dd></div>
+              <div><dt class="text-steel">받은 응원</dt><dd class="font-semibold text-ink"><%= @row.cheers_received %>회</dd></div>
+            </dl>
+          </div>
+
+          <div class="card">
+            <h2 class="mb-2 text-sm font-semibold text-ink">게임 참여</h2>
+            <% if @row.game_type_counts.any? %>
+              <ul class="space-y-1 text-sm text-slate">
+                <% @row.game_type_counts.sort_by { |_type, count| -count }.each do |type, count| %>
+                  <li class="flex items-center justify-between">
+                    <span><%= game_label[type] || type %></span>
+                    <span class="font-semibold text-ink"><%= count %>회</span>
+                  </li>
+                <% end %>
+              </ul>
+              <p class="mt-2 text-sm text-steel">
+                <%= @row.distinct_games %>종 · 게임으로 만난 책 <%= @stats.game_books %>권 · 퀴즈 <%= @row.quiz_attempts %>판
+              </p>
+            <% else %>
+              <p class="text-sm text-steel">아직 완료한 독서 게임이 없어요.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="mb-3 text-lg font-semibold text-ink">최근 독후감</h2>
+        <% if @recent_reports.any? %>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[32rem] text-sm">
+              <thead>
+                <tr class="border-b border-hairline text-left text-steel">
+                  <th class="py-2 pr-3 font-medium">책</th>
+                  <th class="py-2 pr-3 font-medium">등급</th>
+                  <th class="py-2 pr-3 font-medium">상태</th>
+                  <th class="py-2 font-medium">제출일</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @recent_reports.each do |report| %>
+                  <tr class="border-b border-hairline-soft">
+                    <td class="py-2 pr-3">
+                      <%= link_to (report.book&.title.presence || report.book_title.presence || "책 미상"),
+                            teacher_review_path(report), class: "text-brand-blue hover:underline" %>
+                      <% if report.revision? %><span class="badge badge-neutral ml-1">고쳐쓰기</span><% end %>
+                    </td>
+                    <td class="py-2 pr-3"><%= report.reviewed? ? level_badge(report.level) : "–" %></td>
+                    <td class="py-2 pr-3">
+                      <% if report.reviewed? %>
+                        <span class="badge badge-success">검토완료</span>
+                      <% else %>
+                        <span class="badge badge-neutral">검토 대기</span>
+                      <% end %>
+                    </td>
+                    <td class="py-2 text-slate"><%= report.created_at.strftime("%-m/%-d") %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <p class="text-sm text-steel">아직 쓴 독후감이 없어요.</p>
+        <% end %>
+      </div>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card">
+          <h2 class="mb-3 text-lg font-semibold text-ink">미션 진행</h2>
+          <% if @missions.any? %>
+            <ul class="space-y-3">
+              <% @missions.each do |item| %>
+                <li class="space-y-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <%= link_to item[:mission].title, teacher_mission_path(item[:mission]),
+                          class: "text-sm font-medium text-brand-blue hover:underline" %>
+                    <% if item[:participation].completed_at? %>
+                      <span class="badge badge-success">완료</span>
+                    <% else %>
+                      <span class="text-xs text-steel">진행 중</span>
+                    <% end %>
+                  </div>
+                  <% item[:progress][:goals].each do |goal| %>
+                    <div>
+                      <div class="flex justify-between text-xs">
+                        <span class="text-steel"><%= goal_label[goal[:type]] %></span>
+                        <span class="<%= goal[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= goal[:current] %>/<%= goal[:target] %></span>
+                      </div>
+                      <div class="progress-bar mt-1">
+                        <div class="progress-bar__fill" style="width: <%= goal[:target].positive? ? [ 100 * goal[:current] / goal[:target], 100 ].min : 0 %>%"></div>
+                      </div>
+                    </div>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="text-sm text-steel">배정된 미션이 없어요.</p>
+          <% end %>
+        </div>
+
+        <div class="card">
+          <h2 class="mb-3 text-lg font-semibold text-ink">챌린지 참여</h2>
+          <% if @challenges.any? %>
+            <ul class="space-y-3">
+              <% @challenges.each do |item| %>
+                <li class="space-y-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <%= link_to item[:challenge].title, challenge_path(item[:challenge]),
+                          class: "text-sm font-medium text-brand-blue hover:underline" %>
+                    <% if item[:participation].completed_at? %>
+                      <span class="badge badge-success">완료</span>
+                    <% else %>
+                      <span class="text-xs text-steel"><%= item[:participation].joined_at.strftime("%-m/%-d") %> 참여</span>
+                    <% end %>
+                  </div>
+                  <% if item[:progress] %>
+                    <% item[:progress][:goals].each do |goal| %>
+                      <div>
+                        <div class="flex justify-between text-xs">
+                          <span class="text-steel"><%= goal_label[goal[:type]] %></span>
+                          <span class="<%= goal[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= goal[:current] %>/<%= goal[:target] %></span>
+                        </div>
+                        <div class="progress-bar mt-1">
+                          <div class="progress-bar__fill" style="width: <%= goal[:target].positive? ? [ 100 * goal[:current] / goal[:target], 100 ].min : 0 %>%"></div>
+                        </div>
+                      </div>
+                    <% end %>
+                  <% else %>
+                    <p class="text-xs text-steel">목표 없는 챌린지예요.</p>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="text-sm text-steel">참여한 챌린지가 없어요.</p>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
