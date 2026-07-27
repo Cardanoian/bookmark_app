@@ -22,4 +22,28 @@
       <span class="mt-1 block text-sm text-steel">가입 후 바로 활동할 수 있어요</span>
     <% end %>
   </div>
+
+  <%# 체험 계정 원클릭 로그인. 계정이 DB 에 있을 때만(시드 적재 인스턴스) 섹션이 뜬다. %>
+  <% if @demo_student || @demo_teacher %>
+    <div class="mt-10 border-t border-hairline pt-8">
+      <p class="text-sm font-bold text-ink">🚀 바로 체험해 보기</p>
+      <p class="mt-1 mb-4 text-xs text-steel">계정 없이 샘플 학급(포항원동초 3-1)을 둘러볼 수 있어요</p>
+      <div class="space-y-3">
+        <% if @demo_student %>
+          <%= button_to demo_login_path, params: { role: "student" },
+                class: "btn btn-secondary btn-block" do %>
+            <span class="block">학생으로 체험하기</span>
+            <span class="mt-0.5 block text-xs font-normal text-steel">3-1 이도현 학생</span>
+          <% end %>
+        <% end %>
+        <% if @demo_teacher %>
+          <%= button_to demo_login_path, params: { role: "teacher" },
+                class: "btn btn-secondary btn-block" do %>
+            <span class="block">선생님으로 체험하기</span>
+            <span class="mt-0.5 block text-xs font-normal text-steel">3-1 담임 김지은 선생님</span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 </div>

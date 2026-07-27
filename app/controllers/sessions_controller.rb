@@ -20,13 +20,15 @@ class SessionsController < ApplicationController
   include LoginThrottling
 
   skip_before_action :require_login,
-    only: [ :new, :student_new, :student_create, :staff_new, :staff_create ]
+    only: [ :new, :student_new, :student_create, :staff_new, :staff_create, :demo_create ]
   skip_before_action :require_student_ranking_profile
   # 로그인/로그아웃·안내 진입점 — 인가할 리소스가 없다(공개·인증 흐름).
   skip_after_action :verify_authorized
 
   # 처음 접속 시 안내 인덱스 — 학생 로그인 / 교직원 로그인 선택 화면(폼 없음).
+  # 체험 계정이 DB 에 있을 때만 "바로 체험해 보기" 섹션을 렌더하도록 두 계정을 조회한다.
   def new
+    load_demo_accounts
   end
 
   # 학생 로그인 폼(시도·시군구·학교·학급·이름·비밀번호).
@@ -54,6 +56,18 @@ class SessionsController < ApplicationController
       failure_message: "이메일 또는 비밀번호를 다시 확인해 주세요.",
       form: :staff_new
     )
+  end
+
+  # 체험 계정 원클릭 로그인(시연·심사·개발 진입 단축). 학생 로그인은 시도→시군구→학교→학년도→학급
+  # →이름→비밀번호 7단계라 앱을 한 번 열어 보기가 무겁다. 비밀번호를 클라이언트로 내려보내지 않고
+  # **role 만 받아 서버가 계정을 확정**하므로(DemoAccounts) 페이지 소스에 자격증명이 남지 않는다.
+  # 자격증명을 받지 않으니 추측할 것도 없어 로그인 스로틀(LoginThrottling) 대상이 아니고,
+  # 정지 계정 게이트만 기존 handle_authenticated 로 공유한다.
+  def demo_create
+    user = DemoAccounts.find(params[:role])
+    return redirect_to new_session_path, alert: "체험 계정을 찾을 수 없어요." if user.nil?
+
+    handle_authenticated(user, :new)
   end
 
   def destroy
@@ -95,9 +109,11 @@ class SessionsController < ApplicationController
     end
   end
 
-  # 실패·차단 시 해당 로그인 폼을 flash 와 함께 재렌더. 학생 폼만 학교 피커 컬렉션이 필요하다.
+  # 실패·차단 시 해당 로그인 폼을 flash 와 함께 재렌더. 학생 폼만 학교 피커 컬렉션이 필요하고,
+  # 안내 인덱스(demo_create 의 정지 계정 경로)는 체험 계정 조회가 필요하다.
   def rerender_form(form, message, status)
     load_form_collections if form == :student_new
+    load_demo_accounts if form == :new
     flash.now[:alert] = message
     render form, status: status
   end
@@ -151,5 +167,12 @@ class SessionsController < ApplicationController
   def load_form_collections
     @regions = School.form_regions
     @current_academic_year = Classroom.current_academic_year
+  end
+
+  # 안내 인덱스의 "바로 체험해 보기" 섹션 노출 판단용. 시드가 돌지 않은 DB 에서는 둘 다 nil 이라
+  # 섹션이 통째로 숨겨진다(죽은 버튼 방지 — 환경 분기 대신 계정 존재 여부로 판단).
+  def load_demo_accounts
+    @demo_student = DemoAccounts.student
+    @demo_teacher = DemoAccounts.teacher
   end
 end

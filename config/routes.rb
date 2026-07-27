@@ -12,6 +12,8 @@ Rails.application.routes.draw do
   # 교직원(교사·교무관리자·사서·총괄관리자) 로그인 — 이메일/비밀번호.
   get  "login/staff",   to: "sessions#staff_new",      as: :staff_login
   post "login/staff",   to: "sessions#staff_create"
+  # 체험 계정 원클릭 로그인 — role(student|teacher)만 받고 계정은 서버가 확정(비밀번호 미전송).
+  post "login/demo",    to: "sessions#demo_create",    as: :demo_login
 
   resources :registrations, only: [ :new, :create ]
   resource :profile, only: [ :show ]

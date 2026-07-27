@@ -131,6 +131,87 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
   end
 
+  # ── 체험 계정 원클릭 로그인 ───────────────────────────────────────────
+  # role 만 받고 계정은 서버(DemoAccounts)가 확정한다 — 페이지 소스에 자격증명이 남지 않는다.
+  test "the landing index hides the demo section when the sample accounts are absent" do
+    get new_session_path
+
+    assert_response :success
+    assert_not_includes response.body, "바로 체험해 보기"
+    assert_select "form[action=?]", demo_login_path, count: 0
+  end
+
+  test "the landing index offers demo buttons when the sample accounts exist" do
+    create_demo_accounts!
+
+    get new_session_path
+
+    assert_response :success
+    assert_includes response.body, "바로 체험해 보기"
+    assert_select "form[action=?]", demo_login_path, count: 2
+    assert_select "button", text: /학생으로 체험하기/
+    assert_select "button", text: /선생님으로 체험하기/
+    # 비밀번호는 서버가 확정하므로 마크업에 새지 않는다.
+    assert_not_includes response.body, "student1234"
+    assert_not_includes response.body, "jieun11!"
+  end
+
+  test "the student demo button logs in as the sample student without a password" do
+    student, = create_demo_accounts!
+
+    post demo_login_path, params: { role: "student" }
+
+    assert_redirected_to root_path
+    assert_equal student.id, session[:user_id]
+  end
+
+  test "the teacher demo button logs in as the sample homeroom teacher" do
+    _student, teacher = create_demo_accounts!
+
+    post demo_login_path, params: { role: "teacher" }
+
+    assert_redirected_to root_path
+    assert_equal teacher.id, session[:user_id]
+  end
+
+  test "an unknown demo role grants no session" do
+    create_demo_accounts!
+
+    post demo_login_path, params: { role: "superadmin" }
+
+    assert_redirected_to new_session_path
+    assert_equal "체험 계정을 찾을 수 없어요.", flash[:alert]
+    assert_nil session[:user_id]
+  end
+
+  test "a missing demo role grants no session" do
+    create_demo_accounts!
+
+    post demo_login_path
+
+    assert_redirected_to new_session_path
+    assert_nil session[:user_id]
+  end
+
+  test "demo login grants no session when the sample accounts do not exist" do
+    post demo_login_path, params: { role: "student" }
+
+    assert_redirected_to new_session_path
+    assert_equal "체험 계정을 찾을 수 없어요.", flash[:alert]
+    assert_nil session[:user_id]
+  end
+
+  # 정지 계정 게이트는 일반 로그인과 공유한다(handle_authenticated).
+  test "a suspended demo account cannot log in" do
+    student, = create_demo_accounts!
+    student.update!(suspended: true)
+
+    post demo_login_path, params: { role: "student" }
+
+    assert_response :forbidden
+    assert_nil session[:user_id]
+  end
+
   # ── 로그아웃 ─────────────────────────────────────────────────────────
   test "logout resets the session" do
     post student_login_path, params: {
@@ -243,5 +324,23 @@ class SessionsTest < ActionDispatch::IntegrationTest
 
   def account_params(password:)
     { school_id: @school.id, classroom_id: @classroom.id, name: "로그인학생", password: password }
+  end
+
+  # db/seeds/accounts.yml 의 sample_accounts 와 같은 신원(포항원동초 3-1 이도현 / 담임 김지은)을
+  # 만든다. DemoAccounts 상수를 그대로 써서 시드 값이 바뀌면 테스트가 함께 따라간다.
+  def create_demo_accounts!
+    school = School.create!(name: "포항원동초등학교", neis_code: DemoAccounts::SCHOOL_NEIS_CODE)
+    classroom = Classroom.create!(
+      school: school, grade: DemoAccounts::GRADE, class_no: DemoAccounts::CLASS_NO
+    )
+    student = User.create!(
+      school: school, classroom: classroom, name: DemoAccounts::STUDENT_NAME,
+      nickname: "체험독서왕", password: "student1234"
+    )
+    teacher = User.create!(
+      school: school, name: "김지은", role: :teacher,
+      email: DemoAccounts::TEACHER_EMAIL, password: "jieun11!"
+    )
+    [ student, teacher ]
   end
 end
