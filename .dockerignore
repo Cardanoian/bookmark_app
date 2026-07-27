@@ -58,3 +58,6 @@
 # Ignore OMC/OMX 오퍼레이션 상태(앱과 무관)
 /.omc
 /.omx
+/script
+/docs
+/manual

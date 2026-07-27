@@ -6,7 +6,7 @@
   <%= render "shared/student_nav", active: :home %>
   <%# 1) 활성 몬스터·포인트 요약 (navbar 바로 아래) %>
   <section id="student-overview" class="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-    <div class="h-full [&>*]:h-full">
+    <div class="h-full *:h-full">
       <% if current_user.active_monster.nil? %>
         <div class="card-feature h-full">
           <h2 class="flex items-center gap-1.5 text-base font-bold text-ink"><%= ui_icon :egg %> 첫 반려 몬스터를 골라 볼까요?</h2>
@@ -59,7 +59,9 @@
                 <span class="text-steel"><%= goal_label[g[:type]] %></span>
                 <span class="inline-flex items-center gap-1 <%= g[:met] ? "font-semibold text-green-700" : "text-ink" %>"><%= g[:current] %>/<%= g[:target] %><%= ui_icon(:check, class_name: "h-4 w-4") if g[:met] %></span>
               </div>
-              <div class="progress-bar mt-1"><div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div></div>
+              <div class="progress-bar mt-1">
+                <div class="progress-bar__fill" style="width: <%= g[:target].positive? ? [ 100 * g[:current] / g[:target], 100 ].min : 0 %>%"></div>
+              </div>
             </div>
           <% end %>
           <% if item[:participation].rewarded_at? %>

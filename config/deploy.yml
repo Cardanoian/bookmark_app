@@ -2,7 +2,7 @@
 service: bookmark_app
 
 # Name of the container image.
-image: bookmark_app
+image: superiorz1/bookmark_app
 
 # Deploy to these servers.
 servers:
