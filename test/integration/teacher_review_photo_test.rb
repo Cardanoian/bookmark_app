@@ -26,6 +26,17 @@ class TeacherReviewPhotoTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", report_photo_path(report, size: :original)
   end
 
+  test "the review queue marks only reports with an OCR source photo" do
+    ocr_report = ocr_report_with_photo
+    keyboard_report = create_report(input_mode: :keyboard)
+    login_as @teacher
+
+    get teacher_reviews_path
+    assert_response :success
+    assert_select "#report_#{ocr_report.id} svg[aria-label='사진 원본 있음'][title='사진 원본 있음']", count: 1
+    assert_select "#report_#{keyboard_report.id} svg[aria-label='사진 원본 있음']", count: 0
+  end
+
   test "no photo section is rendered when reviewing a keyboard report" do
     report = create_report(input_mode: :keyboard)
     login_as @teacher

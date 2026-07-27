@@ -6,7 +6,9 @@ class Teacher::ReviewsController < ApplicationController
   # 담임 학급의 미검토 큐(첨삭 완료된 독후감).
   def index
     ensure_reviewer!
-    @reports = pending_scope.includes(:user, :book).order(created_at: :asc)
+    @reports = pending_scope
+      .includes(:user, :book, photo_attachment: :blob, revision_of: { photo_attachment: :blob })
+      .order(created_at: :asc)
   end
 
   def show

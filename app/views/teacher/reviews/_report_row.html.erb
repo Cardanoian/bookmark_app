@@ -5,8 +5,14 @@
           form: "batch_approve_reports",
           class: "shrink-0 rounded border-hairline-strong" %>
     <span class="min-w-0">
-      <span class="block truncate font-medium text-ink">
-        <%= report.user.name %> · <%= report.book&.title.presence || report.book_title %>
+      <span class="flex min-w-0 items-center gap-1.5 font-medium text-ink">
+        <span class="truncate"><%= report.user.name %> · <%= report.book&.title.presence || report.book_title %></span>
+        <% if report.display_photo? %>
+          <%= ui_icon :camera,
+                label: "사진 원본 있음",
+                class_name: "h-4 w-4",
+                title: "사진 원본 있음" %>
+        <% end %>
       </span>
       <span class="block text-xs text-steel">
         평균 <%= report.avg %> ·
