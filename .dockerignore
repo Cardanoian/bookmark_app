@@ -49,3 +49,12 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Ignore Python 몬스터 스프라이트 파이프라인 산출물(앱 런타임과 무관, 155M+)
+/script/.venv
+/script/output
+**/__pycache__
+
+# Ignore OMC/OMX 오퍼레이션 상태(앱과 무관)
+/.omc
+/.omx

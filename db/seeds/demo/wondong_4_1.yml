@@ -1,0 +1,34 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 4
+  class_no: 1
+  academic_year: 2026
+teacher:
+  name: 고은정
+  email: teacher.wondong41@chaekgalpi.demo
+template: yulha_4_2.yml
+activity_level: high
+student_names:
+  - 연노을
+  - 엄다름
+  - 안라움
+  - 신마음
+  - 손사랑
+  - 성아람
+  - 석여름
+  - 봉해든
+  - 변가람
+  - 배노을
+  - 민다름
+  - 모라움
+  - 류마음
+  - 도사랑
+  - 남아람
+  - 김여름
+  - 권해든
+  - 곽가람
+  - 강노을
+  - 이노을
+  - 유다름
+  - 원라움

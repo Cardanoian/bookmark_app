@@ -49,6 +49,11 @@ Rails.application.routes.draw do
   end
   resource :ocr, only: [ :create ], controller: "ocr"
 
+  # OCR 손글씨 사진(아동 PII) 인증 프록시. Active Storage 서명 URL(무인가) 대신 매 요청
+  # `ReportPolicy#show?` 를 강제해 페이지 인가와 동일한 경계로 바이트를 서빙한다.
+  # `?size=original` 은 확대용 1600px 유계 variant(원본 바이트는 서빙하지 않음).
+  get "reports/:id/photo", to: "report_photos#show", as: :report_photo
+
   # 도서 검색·카탈로그 (P5.1/P5.2)
   #   search    = 네이버+로컬 폴백 검색(무키 로컬 LIKE), 결과를 searched 로 캐시. 독후감 자동완성용(id 포함).
   #   autocomplete = 로컬 카탈로그(비-searched) 전용 자동완성(외부호출 0). 퀴즈·게임 도서 선택용.

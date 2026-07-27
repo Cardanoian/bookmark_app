@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+#
+# 심사·시연용 "한 방 실행" 개발 컨테이너.
+#   docker compose up   ← 이 한 줄로 빌드·시드·기동 (docs/JUDGE_RUN_LOCAL.md)
+#
+# 운영(production)용은 별도 파일 `Dockerfile` 을 쓰세요. 이 파일은 개발 모드로 돌려
+# 비밀키(RAILS_MASTER_KEY)·외부 API 키 없이도 폴백으로 완전 동작하게 합니다.
+
+ARG RUBY_VERSION=4.0.5
+FROM docker.io/library/ruby:$RUBY_VERSION-slim
+
+WORKDIR /rails
+
+# 시스템 패키지: 젬 빌드 도구 + SQLite + 이미지 처리(libvips) + curl
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential git pkg-config libyaml-dev \
+      sqlite3 libsqlite3-dev libvips curl && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# 개발 모드(모든 젬 그룹 설치). 비밀키가 필요 없도록 development 로 고정.
+ENV RAILS_ENV="development" \
+    BUNDLE_PATH="/usr/local/bundle"
+
+# 젬 먼저 설치해 레이어 캐시 활용
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+# 앱 소스 (.dockerignore 로 master.key·storage·log 등은 자동 제외됨)
+COPY . .
+
+# 진입점 실행권한 보장
+RUN chmod +x bin/docker-dev-entrypoint
+
+EXPOSE 3000
+ENTRYPOINT ["bin/docker-dev-entrypoint"]

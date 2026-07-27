@@ -1,0 +1,33 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 3
+  class_no: 5
+  academic_year: 2026
+teacher:
+  name: 윤서희
+  email: teacher.wondong35@chaekgalpi.demo
+template: mundeok_3_1.yml
+activity_level: low
+student_names:
+  - 성해든
+  - 석가람
+  - 봉노을
+  - 변다름
+  - 배라움
+  - 민마음
+  - 모사랑
+  - 류아람
+  - 도여름
+  - 남해든
+  - 김가람
+  - 권노을
+  - 곽다름
+  - 강라움
+  - 이라움
+  - 유마음
+  - 원사랑
+  - 오아람
+  - 여여름
+  - 양해든
+  - 심가람

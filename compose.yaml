@@ -1,0 +1,27 @@
+# 심사·시연용 "한 방 실행" 구성.
+#
+#   docker compose up          # 빌드 + 데모 데이터 적재 + 서버 실행 → http://localhost:3000
+#   docker compose down        # 정지 (데이터는 유지 → 다음 실행이 빠름)
+#   docker compose down -v      # 정지 + 데이터 삭제 (완전 초기화)
+#   docker compose up --build   # 소스 변경 후 다시 빌드
+#
+# 비밀키(RAILS_MASTER_KEY)·외부 API 키가 없어도 폴백으로 완전 동작합니다.
+# 자세한 안내는 docs/JUDGE_RUN_LOCAL.md 참고.
+
+name: chaekgalpi
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      RAILS_ENV: development
+    volumes:
+      # SQLite DB·업로드 파일을 컨테이너 밖에 보존해 재실행 시 재시드하지 않게 한다.
+      - chaekgalpi_storage:/rails/storage
+
+volumes:
+  chaekgalpi_storage:

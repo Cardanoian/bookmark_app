@@ -180,10 +180,86 @@ class ReportTest < ActiveSupport::TestCase
     assert report.reload.done?
   end
 
+  # --- OCR 사진 표시(display_photo / display_photo?) ---
+
+  test "display_photo returns the report's own attached photo" do
+    report = ocr_report_with_photo
+    assert report.display_photo.attached?
+    assert_equal report.photo.blob.id, report.display_photo.blob.id
+  end
+
+  test "display_photo climbs the revision chain to the root photo across generations" do
+    root = ocr_report_with_photo
+    first = revision_of(root)
+    second = revision_of(first)
+
+    assert_not second.photo.attached?
+    assert_equal root.photo.blob.id, second.display_photo.blob.id
+  end
+
+  test "display_photo is nil when neither the report nor its ancestors have a photo" do
+    report = revision_of(build_report(input_mode: :ocr, book_title: "사진없음").tap(&:save!))
+    assert_nil report.display_photo
+  end
+
+  test "display_photo stops at the depth cap instead of walking an unbounded chain" do
+    root = ocr_report_with_photo
+    leaf = 12.times.inject(root) { |parent, _| revision_of(parent) }
+
+    # 사진이 depth cap(10) 너머에 있으면 무한 순회 대신 nil 로 포기한다.
+    assert_nil leaf.display_photo
+  end
+
+  test "display_photo memoizes so repeated renders do not re-query the revision chain" do
+    revision = revision_of(ocr_report_with_photo)
+    revision.display_photo # warm
+
+    assert_equal 0, count_queries { 5.times { revision.display_photo } }
+  end
+
+  test "display_photo? requires both ocr input mode and a resolvable photo" do
+    assert ocr_report_with_photo.display_photo?
+
+    keyboard = build_report(input_mode: :keyboard, book_title: "키보드").tap(&:save!)
+    attach_photo(keyboard)
+    assert_not keyboard.display_photo?
+
+    assert_not build_report(input_mode: :ocr, book_title: "무사진").tap(&:save!).display_photo?
+  end
+
   private
 
   def build_report(attrs = {})
     Report.new({ user: @user, classroom: @classroom, book_title: "기본 제목" }.merge(attrs))
+  end
+
+  def ocr_report_with_photo
+    build_report(input_mode: :ocr, book_title: "사진 독후감").tap do |report|
+      report.save!
+      attach_photo(report)
+    end
+  end
+
+  def attach_photo(report)
+    report.photo.attach(io: StringIO.new(png_bytes), filename: "handwriting.png", content_type: "image/png")
+    report
+  end
+
+  # `ReportsController#revise` 와 동일하게 부모의 input_mode 만 승계하고 photo 는 복사하지 않는다.
+  def revision_of(parent)
+    Report.create!(user: parent.user, classroom: parent.classroom, book_title: parent.book_title,
+                   input_mode: parent.input_mode, revision_of: parent)
+  end
+
+  def count_queries
+    count = 0
+    subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |_, _, _, _, payload|
+      count += 1 unless %w[SCHEMA TRANSACTION].include?(payload[:name])
+    end
+    yield
+    count
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber)
   end
 
   # 실제 매직바이트를 가진 최소 미디어 페이로드.

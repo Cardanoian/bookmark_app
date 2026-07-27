@@ -6,6 +6,10 @@
 
   <%= render "reports/report_detail", report: @report %>
 
+  <%# 사진(OCR) 독후감의 원본은 상태와 무관한 불변 자원이라 라이브 교체 영역(_report_detail)
+      **밖**, show 스캐폴드에 둔다(방송 파티셜 표면 최소화). %>
+  <%= render "reports/ocr_photo", report: @report %>
+
   <div class="page-actions">
     <% if policy(@report).revise? %>
       <%= button_to "고쳐쓰기", revise_report_path(@report), method: :post,

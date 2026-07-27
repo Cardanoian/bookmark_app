@@ -138,6 +138,30 @@ class Report < ApplicationRecord
     revision_of_id.present?
   end
 
+  # 표시할 OCR 원본 사진(ActiveStorage::Attached::One 또는 nil). 고쳐쓰기(revise)는 부모의
+  # `input_mode` 는 복사하지만 photo 는 승계하지 않으므로, 사진이 없으면 `revision_of` 체인을
+  # 거슬러 올라가 최초 촬영본(root)을 찾는다 — 그래야 교사가 고쳐쓴 글도 원문 사진과 대조할 수 있다.
+  # revise 는 항상 더 오래된 부모(id 단조감소)를 가리켜 사이클이 불가능하지만, 손상 데이터에서도
+  # 뷰·바이트 서빙이 무한루프에 빠지지 않도록 depth cap(10)을 둔다. 렌더당 belongs_to 반복 쿼리를
+  # 막기 위해 결과를 memoize 한다(hot path).
+  def display_photo
+    return @display_photo if defined?(@display_photo)
+
+    node = self
+    10.times do
+      break if node.nil? || node.photo.attached?
+
+      node = node.revision_of
+    end
+    @display_photo = node&.photo&.attached? ? node.photo : nil
+  end
+
+  # 사진 표시 게이트. revise 가 `input_mode` 를 복사하므로 고쳐쓴 글도 `ocr?` 다
+  # (별도 `revision_of&.ocr?` 절이 필요 없다).
+  def display_photo?
+    ocr? && display_photo.present?
+  end
+
   # 고쳐쓰기 전/후 간단 비교. 원본과 겹치지 않는 표현을 추린다.
   def diff_against_original
     return nil unless revision? && revision_of

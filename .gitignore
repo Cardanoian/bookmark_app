@@ -44,6 +44,11 @@
 .venv
 __pycache__
 .env
-/db/seeds/*
-!/db/seeds/monster_stories.yml
-!/db/seeds/demo_seeder.rb
+
+# 로컬 전용 Docker 오버라이드(실제 API 키 주입용 — 실키가 들어갈 수 있어 커밋 금지)
+/compose.override.yaml
+/compose.override.yml
+
+# db/seeds 데이터(학교·도서·몬스터·데모 등)는 앱 구동·시연에 필수이므로 git 에 포함한다.
+# (과거 blanket 무시였으나, 소스 제출/클론 시 시드 누락으로 빈 앱이 되는 것을 막기 위해 추적 전환.
+#  비밀키가 아니며 총 ~12MB. master.key/credentials 키는 위 `/config/*.key` 규칙으로 계속 제외됨.)

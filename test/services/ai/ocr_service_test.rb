@@ -10,6 +10,8 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
   end
 
   class StubClient
+    attr_reader :generate_args
+
     def initialize(configured:, response: nil)
       @configured = configured
       @response = response
@@ -17,7 +19,10 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
 
     def configured? = @configured
 
-    def generate(**) = @response
+    def generate(**args)
+      @generate_args = args
+      @response
+    end
   end
 
   test "raises Unavailable when the client is unconfigured" do
@@ -32,6 +37,8 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
     service = Ai::OcrService.new(client: client)
 
     assert_equal "인식된 손글씨 본문", service.call(@report.photo.blob)
+    assert_not client.generate_args.fetch(:generation_config, {}).key?(:temperature),
+      "Gemini 3.5에서 폐기된 temperature 설정을 OCR 요청에 보내면 안 된다"
   end
 
   test "handles a String response from the client without crashing" do

@@ -72,7 +72,20 @@
 
 ## 빠른 시작
 
-### 요구사항
+### 가장 쉬운 실행 — Docker 한 줄 (권장, 비밀키 불필요)
+
+Ruby·Rails 설치 없이 **Docker Desktop만 있으면** 소스코드를 그대로 실행할 수 있습니다.
+개발 모드로 뜨며, 외부 API 키·`master.key` 가 없어도 폴백으로 완전 동작하고 데모 데이터까지 채워집니다.
+
+```bash
+docker compose up          # 빌드 + 데모 데이터 적재 + 서버 → http://localhost:3000
+```
+
+> Windows 심사위원용 단계별 안내는 [`docs/JUDGE_RUN_LOCAL.md`](docs/JUDGE_RUN_LOCAL.md),
+> 체험 계정·둘러보기는 [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md) 참고.
+> (운영 배포는 `Dockerfile`+Kamal, 심사용 로컬 실행은 `Dockerfile.dev`+`compose.yaml` 로 분리)
+
+### 로컬 개발 요구사항 (Docker 없이 직접 실행 시)
 - Ruby **4.0.5** (`.ruby-version` 참고)
 - SQLite 3 (2.1 이상)
 - (선택) 시스템 테스트용 Chrome/Chromedriver

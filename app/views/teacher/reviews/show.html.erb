@@ -23,6 +23,9 @@
         <p class="whitespace-pre-wrap text-ink"><%= @report.body %></p>
       </section>
 
+      <%# 사진(OCR) 독후감이면 원본 손글씨를 함께 놓아 교사가 본문과 대조하며 검토한다. %>
+      <%= render "reports/ocr_photo", report: @report %>
+
       <section class="card">
         <h2 class="mb-3 text-lg font-semibold text-ink">AI 첨삭</h2>
         <%= render "reports/rubric", report: @report %>

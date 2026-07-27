@@ -1,0 +1,16 @@
+<%# OCR(사진) 독후감의 원본 손글씨 사진. locals: report
+    HTTP 뷰 전용 — `_report_detail`(request 없는 방송에서도 렌더) 안에 넣지 않는다.
+    뷰는 URL 문자열(path 헬퍼)만 다루고 실제 variant 처리·폴백은 ReportPhotosController 가 맡아
+    렌더타임 크래시(InvariableError) 표면이 없다. %>
+<% if report.display_photo? %>
+  <section class="card">
+    <h2 class="mb-2 text-sm font-semibold text-steel">사진 원본</h2>
+    <%= link_to report_photo_path(report, size: :original), target: "_blank", rel: "noopener" do %>
+      <%= image_tag report_photo_path(report),
+            alt: "학생이 촬영한 손글씨 독후감 사진",
+            class: "max-w-full h-auto rounded-md border border-hairline-soft shadow-sm",
+            loading: "lazy" %>
+    <% end %>
+    <p class="mt-1 text-xs text-stone">이미지를 누르면 더 크게 볼 수 있어요.</p>
+  </section>
+<% end %>

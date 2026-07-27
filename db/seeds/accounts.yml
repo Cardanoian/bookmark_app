@@ -1,0 +1,49 @@
+# 운영 환경의 총괄관리자 값은 Rails credentials의 superadmin.name/email/password가 우선합니다.
+# 아래 값은 credentials가 없는 로컬 개발·테스트 환경의 기본값입니다.
+superadmin:
+  name: 총괄관리자
+  role: superadmin
+  email: admin@example.com
+  password: changeme1234
+
+# 로그인에 사용하지 않는 온디맨드 콘텐츠 소유자입니다. 비밀번호는 생성 시 무작위로 정합니다.
+system_user:
+  name: 시스템
+  role: superadmin
+
+sample_accounts:
+  excluded_environments:
+    - production
+  school:
+    neis_code: "8761159"
+
+  classrooms:
+    - id: grade_3_class_1
+      grade: 3
+      class_no: 1
+      teacher: homeroom_teacher
+
+  users:
+    - id: homeroom_teacher
+      name: 김담임
+      role: teacher
+      email: teacher@example.com
+      password: teacher1234
+
+    - id: school_admin
+      name: 박교무
+      role: school_admin
+      email: schooladmin@example.com
+      password: schooladmin1234
+
+    - id: librarian
+      name: 최사서
+      role: librarian
+      email: librarian@example.com
+      password: librarian1234
+
+    - id: student
+      name: 이학생
+      role: student
+      classroom: grade_3_class_1
+      password: student1234

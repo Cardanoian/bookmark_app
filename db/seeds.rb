@@ -17,6 +17,12 @@ end
 accounts_data = load_seed_data.call("accounts.yml")
 app_settings_data = load_seed_data.call("app_settings.yml")
 
+# 심사·시연용 배포 플래그. DEMO_DEPLOYMENT=1 이면 production 에서도 (평소 production 에서는
+# 제외되는) 역할별 샘플 계정과 데모 사용 데이터를 함께 적재해, 심사위원이 로그인해 "많이 써 본 앱"을
+# 바로 체험할 수 있게 한다. 실제 운영 배포는 이 플래그를 켜지 않으므로 가짜 아동 데이터가 운영 DB 로
+# 유입되지 않는다(SEED_DEMO 의 비-production 게이트와 동일한 안전 의도를 유지). docs/DEMO_DEPLOYMENT.md 참조.
+demo_deployment = ENV["DEMO_DEPLOYMENT"] == "1"
+
 # Schools. 검증된 전국 CSV가 있으면 모든 환경에서 전량을 오프라인 적재하고, 파일이 없는
 # 개발/테스트 체크아웃에서만 17개 축소 세트로 폴백한다.
 schools_csv = Rails.root.join("db/seeds/schools.csv")
@@ -54,8 +60,11 @@ else
 end
 
 # 역할별 개발 샘플 계정. accounts.yml 의 environment 제외 규칙, 학교, 학급, 사용자 관계를 읽는다.
+# 심사·시연 인스턴스(DEMO_DEPLOYMENT=1)에서는 production 이라도 이 계정들을 만들어 심사위원이
+# 담임·교무·사서 역할로 로그인할 수 있게 한다.
 sample_data = accounts_data.fetch("sample_accounts")
-unless sample_data.fetch("excluded_environments", []).include?(Rails.env)
+sample_excluded = sample_data.fetch("excluded_environments", []).include?(Rails.env)
+if demo_deployment || !sample_excluded
   sample_school_data = sample_data.fetch("school")
   sample_school = School.find_by(neis_code: sample_school_data.fetch("neis_code"))
 
@@ -198,12 +207,14 @@ end
 
 # 데모(가상 사용) 데이터. "이 앱을 많이 사용한 것처럼" 보이는 여러 학교·학급의 학생·독후감·
 # 게임·몬스터·커뮤니티·미션을 db/seeds/demo/*.yml 에서 읽어 멱등 생성한다.
-# **SEED_DEMO=1 + 비production** 게이트에서만 실행한다(운영에 가짜 아동 데이터 유입 차단).
-# 예) SEED_DEMO=1 bin/rails db:seed
-if ENV["SEED_DEMO"] == "1" && !Rails.env.production?
+# 개발/테스트는 **SEED_DEMO=1**, 심사·시연 인스턴스는 **DEMO_DEPLOYMENT=1** 로 실행한다.
+# 그 외 production 은 실행하지 않는다(운영에 가짜 아동 데이터 유입 차단).
+# 예) SEED_DEMO=1 bin/rails db:seed   /   DEMO_DEPLOYMENT=1 bin/rails db:seed
+seed_demo = ENV["SEED_DEMO"] == "1" || demo_deployment
+if seed_demo && (!Rails.env.production? || demo_deployment)
   require_relative "seeds/demo_seeder"
-  puts "Seeding demo usage data (SEED_DEMO=1)…"
+  puts "Seeding demo usage data (#{demo_deployment ? 'DEMO_DEPLOYMENT=1' : 'SEED_DEMO=1'})…"
   DemoSeeder.new.call
-elsif ENV["SEED_DEMO"] == "1"
-  puts "SEED_DEMO ignored in production."
+elsif seed_demo
+  puts "SEED_DEMO ignored in production (set DEMO_DEPLOYMENT=1 to allow demo data on a demo instance)."
 end

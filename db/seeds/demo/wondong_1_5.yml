@@ -1,0 +1,33 @@
+classroom:
+  school_neis_code: "8761159"
+  school_label: 포항원동초등학교
+  grade: 1
+  class_no: 5
+  academic_year: 2026
+teacher:
+  name: 서동희
+  email: teacher.wondong15@chaekgalpi.demo
+template: hyoja_1_4.yml
+activity_level: balanced
+student_names:
+  - 남라움
+  - 김마음
+  - 권사랑
+  - 곽아람
+  - 강여름
+  - 이여름
+  - 유해든
+  - 원가람
+  - 오노을
+  - 여다름
+  - 양라움
+  - 심마음
+  - 송사랑
+  - 소아람
+  - 선여름
+  - 서해든
+  - 복가람
+  - 백노을
+  - 박다름
+  - 문라움
+  - 맹마음

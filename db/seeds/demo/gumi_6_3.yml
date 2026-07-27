@@ -1,0 +1,31 @@
+classroom:
+  school_neis_code: "8801092"
+  school_label: 구미왕산초등학교
+  grade: 6
+  class_no: 3
+  academic_year: 2026
+teacher:
+  name: 송지은
+  email: teacher.gumi6_3@chaekgalpi.demo
+template: wondong_6_1.yml
+student_names:
+  - 김아윤
+  - 이아진
+  - 박연서
+  - 최연재
+  - 정영민
+  - 강예나
+  - 조예림
+  - 윤온유
+  - 장유나
+  - 임윤서
+  - 한은찬
+  - 오은유
+  - 서인서
+  - 신인우
+  - 권재이
+  - 황재현
+  - 안정원
+  - 송정원
+  - 류지민
+  - 홍지안

@@ -33,7 +33,7 @@ module Ai
 
     # contents: Gemini contents 배열. system_instruction: 선택.
     # response_json: true 면 responseMimeType 을 application/json 으로 강제.
-    # generation_config: temperature 등 추가 설정 병합용.
+    # generation_config: 지원되는 모델별 생성 설정 병합용.
     # 반환: 모델이 반환한 JSON 텍스트를 파싱한 Hash.
     def generate(contents:, system_instruction: nil, response_json: true, generation_config: {})
       raise NotConfigured, "gemini api_key is blank" unless configured?

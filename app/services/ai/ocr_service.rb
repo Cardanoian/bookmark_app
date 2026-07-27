@@ -18,8 +18,7 @@ module Ai
 
       response = @client.generate(
         contents: build_contents(image_blob),
-        response_json: true,
-        generation_config: { temperature: 0.1 }
+        response_json: true
       )
       # generate 는 JSON.parse 결과를 그대로 돌려주므로 Hash 가 아닐 수도 있다(String/Array).
       text = response.is_a?(Hash) ? response["text"].to_s : response.to_s
