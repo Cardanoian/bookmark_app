@@ -1,5 +1,8 @@
 class Classroom < ApplicationRecord
-  DEFAULT_RUBRIC_WEIGHTS = { content: 1, emotion: 1, life: 1, structure: 1, spelling: 1 }.freeze
+  # 가중치 기본값의 단일 진실은 ReadingDomain 이다(도메인 상수는 코드 한곳에 둔다는 규칙).
+  # 같은 해시를 여기서 다시 리터럴로 적어 두면 한쪽만 고쳐졌을 때 신규 학급의 rubric_config 와
+  # 가중치 미설정 학급의 채점 기준이 조용히 갈린다. 별칭으로만 둔다.
+  DEFAULT_RUBRIC_WEIGHTS = ReadingDomain::DEFAULT_RUBRIC_WEIGHTS
 
   belongs_to :school
   belongs_to :teacher, class_name: "User", optional: true

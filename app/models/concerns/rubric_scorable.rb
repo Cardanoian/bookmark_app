@@ -25,11 +25,13 @@ module RubricScorable
       { avg: avg, level: level, points: ReadingDomain::LEVEL_POINTS.fetch(level) }
     end
 
-    # A: 가중평균 4.0 이상 AND 삶 4 이상. B: 가중평균 2.5 이상. 그 외 C.
+    # A: 가중평균 LEVEL_A_MIN_AVG 이상 AND 삶 LEVEL_A_MIN_LIFE 이상. B: LEVEL_B_MIN_AVG 이상. 그 외 C.
+    # 임계값은 ReadingDomain 이 단일 진실이며 같은 상수를 ReadingDomain::LEVEL_RULE 이 프롬프트
+    # 문구로 렌더한다 — 여기 숫자를 직접 적으면 모델 안내와 실제 등급이 조용히 어긋난다.
     def level_for(avg, life)
-      if avg >= 4.0 && life >= 4
+      if avg >= ReadingDomain::LEVEL_A_MIN_AVG && life >= ReadingDomain::LEVEL_A_MIN_LIFE
         "A"
-      elsif avg >= 2.5
+      elsif avg >= ReadingDomain::LEVEL_B_MIN_AVG
         "B"
       else
         "C"

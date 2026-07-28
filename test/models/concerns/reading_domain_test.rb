@@ -109,6 +109,60 @@ class ReadingDomainTest < ActiveSupport::TestCase
     end
   end
 
+  # 등급 인플레이션 차단(핵심 회귀 가드): 앵커 없이 "0~5로 채점하라"만 주면 LLM 이 거의 모든
+  # 축에 4를 줘서 5축 평균이 A 문턱을 넘고 전원 A 가 된다(실측: Gemini 축평균 4.37·맞춤법 축
+  # 표준편차 0.00). 앵커 블록과 "기본값 3점" 지시가 세 밴드 프롬프트에 모두 살아 있어야 한다.
+  test "rubric_prompt injects per-axis score anchors and the 3점 기본값 rule for every band" do
+    ReadingDomain::BANDS.each do |band|
+      prompt = ReadingDomain.rubric_prompt(band)
+
+      assert_includes prompt, "[축별 점수 기준]", "#{band} 앵커 블록 누락"
+      assert_includes prompt, "3점이 이 학년군에서 기대하는 보통 수준", "#{band} 기본값 3점 지시 누락"
+      assert_includes prompt, "등급을 먼저 정한 뒤 축 점수를 거꾸로 맞추지 마세요", "#{band} 역산 금지 지시 누락"
+
+      ReadingDomain::RUBRIC_AXES.each do |axis|
+        anchors = ReadingDomain::RUBRIC_SCORE_ANCHORS.fetch(axis)
+        [ 5, 3, 1 ].each do |score|
+          assert_includes prompt, "#{score}점: #{anchors.fetch(score)}",
+            "#{band}/#{axis} #{score}점 앵커 누락"
+        end
+      end
+    end
+  end
+
+  # 앵커는 학년군 무관 상수라 성취기준 코드를 담으면 세 밴드 프롬프트 모두에 그 코드가 새어
+  # 들어가 "타학년군 코드 누출" 가드를 우회한다. 앵커 자체에 코드가 없어야 한다.
+  test "rubric score anchors never contain 성취기준 codes" do
+    ReadingDomain::RUBRIC_SCORE_ANCHORS.each do |axis, anchors|
+      anchors.each_value do |text|
+        refute_match(/\[\d국\d{2}-\d{2}\]/, text, "#{axis} 앵커에 성취기준 코드 포함")
+      end
+    end
+  end
+
+  # 임계값 드리프트 가드: 프롬프트가 안내하는 등급 규칙과 앱이 실제로 매기는 등급이 갈리면,
+  # 모델은 A 기준이라 믿은 점수를 줬는데 학생은 B 를 받는 상황이 조용히 생긴다.
+  test "LEVEL_RULE renders the same thresholds RubricScorable actually applies" do
+    assert_includes ReadingDomain::LEVEL_RULE, ReadingDomain::LEVEL_A_MIN_LIFE.to_s
+    assert_includes ReadingDomain::LEVEL_RULE, ReadingDomain::LEVEL_A_MIN_AVG.to_s
+    assert_includes ReadingDomain::LEVEL_RULE, ReadingDomain::LEVEL_B_MIN_AVG.to_s
+
+    a_min = ReadingDomain::LEVEL_A_MIN_AVG
+    life_min = ReadingDomain::LEVEL_A_MIN_LIFE
+    b_min = ReadingDomain::LEVEL_B_MIN_AVG
+
+    assert_equal "A", RubricScorable.level_for(a_min, life_min)
+    assert_equal "B", RubricScorable.level_for(a_min, life_min - 1), "life 게이트 미달인데 A"
+    assert_equal "B", RubricScorable.level_for(b_min, life_min)
+    assert_equal "C", RubricScorable.level_for(b_min - 0.1, life_min)
+  end
+
+  # 가중치 기본값은 ReadingDomain 단일 진실. Classroom 이 리터럴로 되돌아가면 신규 학급의
+  # rubric_config 와 가중치 미설정 학급의 채점 기준이 갈린다.
+  test "Classroom default rubric weights alias the ReadingDomain constant" do
+    assert_same ReadingDomain::DEFAULT_RUBRIC_WEIGHTS, Classroom::DEFAULT_RUBRIC_WEIGHTS
+  end
+
   test "quizgen_prompt reflects the band grade label" do
     assert_includes ReadingDomain.quizgen_prompt(:g12), "초등학교 1~2학년"
     assert_includes ReadingDomain.quizgen_prompt(:g34), "초등학교 3~4학년"
