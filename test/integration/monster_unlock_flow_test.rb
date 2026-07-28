@@ -25,7 +25,7 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "approving a report discovers a monster and announces it in the flash" do
-    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", ai_status: :done)
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", ai_status: :done, submitted_at: Time.current)
     login_as @teacher
 
     assert_difference -> { @student.user_monsters.count }, 1 do
@@ -90,7 +90,7 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
   def seed_stuck_b_or_better!
     3.times do
       Report.create!(user: @student, classroom: @classroom, book: @book, book_title: "책",
-                     ai_status: :done, level: "B", reviewed: true, reviewed_at: Time.current)
+                     ai_status: :done, level: "B", reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
     end
     refute @student.user_monsters.exists?(dex_no: 10), "사전 조건: 조건 충족 전이 아니라 '충족했으나 미해금(고착)' 상태여야 한다"
   end

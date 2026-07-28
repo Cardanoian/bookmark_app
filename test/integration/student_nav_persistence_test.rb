@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 학생 상단 navbar가 5개 메뉴 페이지(menu_refactor 심화 PR5)에서 모바일/데스크톱 형태로 유지되는지 확인.
+# 학생 상단 navbar가 6개 메뉴 페이지(menu_refactor 심화 PR5 + 사용방법 안내)에서 모바일/데스크톱 형태로 유지되는지 확인.
 class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
   setup do
     seed_monster_species!
@@ -11,10 +11,10 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "나의 성장" ].freeze
+  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "나의 성장", "사용방법" ].freeze
 
   def menu_paths
-    [ root_path, library_path, reading_activity_path, monsters_path, growth_path ]
+    [ root_path, library_path, reading_activity_path, monsters_path, growth_path, guide_path ]
   end
 
   def assert_full_navbar(path, active_label)
@@ -55,6 +55,7 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     assert_full_navbar reading_activity_path, "독서활동"
     assert_full_navbar monsters_path, "도감"
     assert_full_navbar growth_path, "나의 성장"
+    assert_full_navbar guide_path, "사용방법"
   end
 
   test "menu pages do not repeat the active menu as an h1 page heading" do

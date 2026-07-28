@@ -194,8 +194,16 @@ class ReportsController < ApplicationController
   # (teacher_feedback/teacher_rubric/teacher_comment)은 스테일이라 함께 클리어한다
   # (클리어하지 않으면 재승인 후 student_feedback 이 스테일 teacher_feedback 을 우선 노출하는 2차 버그).
   # create(신규)·OCR 초안·revise(새 레코드)는 이미 reviewed=false·교사필드 nil 이라 no-op(무해).
+  #
+  # `submitted_at` 은 **여기가 유일한 기록 지점**이다. OCR 초안은 사진 업로드 시점에 이미 영속화
+  # 되므로(OcrController#create) "레코드가 있다 = 제출했다"가 성립하지 않는다. 제출 사실을
+  # ai_status 로 추론하면 OcrJob 이 찍은 done 이 첨삭 완료로 오인돼 교사 큐에 초안이 새고,
+  # 그대로 승인되면 rubric 없는 독후감이 확정된다(Report#submitted? 주석 참조).
+  # 재제출은 시각을 갱신하지 않는다 — 술어(`submitted?`)에는 갱신이 불필요하고, 덮어쓰면
+  # "언제 처음 냈는가"라는 되살릴 수 없는 사실만 잃는다.
   def submit_for_review(report)
     report.update!(ai_status: :pending, reviewed: false, reviewed_at: nil,
+                   submitted_at: report.submitted_at || Time.current,
                    teacher_feedback: nil, teacher_rubric: nil, teacher_comment: nil)
     AiReviewJob.perform_later(report)
   end

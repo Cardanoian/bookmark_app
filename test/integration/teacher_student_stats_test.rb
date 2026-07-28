@@ -18,8 +18,9 @@ class TeacherStudentStatsTest < ActionDispatch::IntegrationTest
     @idle = User.create!(school: @school, classroom: @classroom, name: "가조용", password: "password")
 
     Report.create!(user: @active, classroom: @classroom, book: @book, body: "본문", reviewed: true, level: "A",
-                   rubric: { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4 })
-    Report.create!(user: @active, classroom: @classroom, book: @book, body: "검토 대기 글", reviewed: false)
+                   rubric: { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4 }, submitted_at: Time.current)
+    Report.create!(user: @active, classroom: @classroom, book: @book, body: "검토 대기 글", reviewed: false,
+                   submitted_at: Time.current)
     GamePlay.create!(user: @active, book: @book, game_type: :quiz, played_on: Date.current)
   end
 

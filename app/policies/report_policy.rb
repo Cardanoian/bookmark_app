@@ -62,8 +62,11 @@ class ReportPolicy < ApplicationPolicy
     teacher_of_classroom? || user.superadmin?
   end
 
+  # 승인은 **학생이 제출한 글**에만. 목록(`Teacher::ReviewsController#classroom_scope`)이 이미
+  # 초안을 거르지만, 승인은 되돌릴 수 없는 확정(포인트·뱃지·진화·미션 캐스케이드)이라 URL 직접
+  # 요청·batch_approve 의 id 배열 위조에 대해 정책에서도 fail-closed 로 막는다.
   def approve?
-    review?
+    review? && record.submitted?
   end
 
   def verify?

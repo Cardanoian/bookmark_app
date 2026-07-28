@@ -62,6 +62,21 @@ class OcrJobTest < ActiveJob::TestCase
     assert @report.done?
   end
 
+  # 판독 성공 방송은 본문 textarea 와 **상태 영역** 둘 다 교체해야 한다. 본문만 바꾸면 화면에
+  # "사진에서 글자를 읽고 있어요" 배너가 그대로 남아, 글자가 채워졌는데도 아직 처리 중이라고
+  # 말한다 — 학생이 제출하기를 누를 이유를 못 느끼고 떠나면 초안인 채로 남아 첨삭이 영영 안 붙는다.
+  test "broadcasts both the body and the submit prompt when OCR succeeds" do
+    assert_turbo_stream_broadcasts([ @user, :report_editor ], count: 2) do
+      stub_new(Ai::OcrService, OcrStub.new("인식된 손글씨 본문")) do
+        OcrJob.perform_now(@report)
+      end
+    end
+
+    status_html = OcrJob.new.send(:ocr_ready_status_html)
+    assert_includes status_html, 'id="ocr_reading_status"'
+    assert_includes status_html, "제출하기"
+  end
+
   test "does not run OCR (no Claude call) for a student without AI consent (P1-1)" do
     student = User.create!(school: @school, classroom: @classroom, name: "미동의OCR학생", password: "password")
     report = Report.create!(user: student, classroom: @classroom, book_title: "책", input_mode: :ocr)

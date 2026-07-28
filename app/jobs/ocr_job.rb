@@ -38,6 +38,10 @@ class OcrJob < ApplicationJob
   private
 
   # OCR 초안 → 작성자의 에디터 본문을 교체한다(사진→텍스트 실시간, P3.4).
+  # 본문만 바꾸면 compose 화면의 "읽고 있어요" 배너가 그대로 남아, 글자가 채워졌는데도 화면은
+  # 계속 처리 중이라고 말한다 — 학생이 제출하기를 누를 이유를 못 느끼고 떠나면 초안인 채로
+  # 남는다(첨삭이 영영 안 붙던 결함의 시작점). 그래서 상태 영역도 함께 교체해 남은 행동을
+  # 명시한다. 마크업은 edit 뷰의 done 분기와 동일하게 맞춘다.
   def broadcast_ocr_ready(report)
     report.broadcast_replace_to(
       [ report.user, :report_editor ],
@@ -45,6 +49,26 @@ class OcrJob < ApplicationJob
       partial: "reports/body_field",
       locals: { report: report }
     )
+    report.broadcast_replace_to(
+      [ report.user, :report_editor ],
+      target: "ocr_reading_status",
+      html: ocr_ready_status_html
+    )
+  rescue StandardError => e
+    # 본문 교체가 이미 성공했을 수 있으므로 방송 실패로 :done 커밋을 뒤집지 않는다
+    # (broadcast_ocr_failed 의 흡수 규약과 동일). 다음 로드에서 레코드 상태로 복원된다.
+    Rails.logger.error("OcrJob ready broadcast failed for report #{report&.id}: #{e.class}: #{e.message}")
+  end
+
+  def ocr_ready_status_html
+    <<~HTML.html_safe
+      <div id="ocr_reading_status" aria-live="polite" class="mb-4">
+        <div class="state-banner state-banner--success">
+          #{ApplicationController.helpers.ui_icon(:check)}
+          <span>사진을 다 읽었어요. 잘못 읽은 곳을 고친 뒤 <strong>제출하기</strong>를 눌러야 선생님 첨삭이 시작돼요.</span>
+        </div>
+      </div>
+    HTML
   end
 
   # OCR 실패 → compose 화면의 "읽는 중" 상태 영역(#ocr_reading_status)을 안내+재시도 링크로

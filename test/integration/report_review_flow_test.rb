@@ -48,7 +48,7 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
     searched = Book.create!(title: "검색으로 찾은 무명책", author: "공자장",
                             isbn: "9791112114198", category: :searched)
     report = Report.create!(user: @student, classroom: @classroom, book: searched,
-                            book_title: searched.title, body: "본문", ai_status: :done)
+                            book_title: searched.title, body: "본문", ai_status: :done, submitted_at: Time.current)
 
     login_as @teacher
     post approve_teacher_review_path(report)

@@ -147,7 +147,7 @@ class ReportsTest < ActionDispatch::IntegrationTest
 
   # 수정/고쳐쓰기 단일화(#misc): 상세 화면에는 고쳐쓰기만 노출하고 제자리 '수정' 링크는 제거한다.
   test "report show exposes 고쳐쓰기 but no longer the in-place 수정 link" do
-    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "본문", ai_status: :done)
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "본문", ai_status: :done, submitted_at: Time.current)
     login_as @student
 
     get report_path(report)

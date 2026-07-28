@@ -35,7 +35,9 @@ class MonstersController < ApplicationController
     # AI 첨삭은 끝났지만(done) 아직 교사 승인 전(reviewed: false)이라 진화 조건 '독후감 수'
     # (ReadingStats#reports = 승인 독후감)에 아직 안 잡힌 글 수. 조건에 reports 키가 있을 때
     # "승인되면 반영된다"는 안내를 띄워 첨삭 완료/승인 대기의 시점 차이를 학생에게 설명한다.
-    @awaiting_review_count = current_user.reports.done.where(reviewed: false).count
+    # `.submitted` 로 미제출 초안은 뺀다 — OCR 초안도 판독을 마치면 done 이라, 아직 내지도 않은
+    # 글을 "곧 반영된다"고 안내하면 거짓말이 된다.
+    @awaiting_review_count = current_user.reports.submitted.done.where(reviewed: false).count
     # P2-3 성장 서사(docs/monsters.md §5.8): 보유 학생이 도달한 단계까지 장면을 공개하고,
     # 이후 장면은 진화 동기로 잠가 둔다. 미보유 라인은 story 가 있어도 reached_stage 0 이라
     # 티저만 노출된다. 서사 정의가 없는 라인은 뷰가 @story nil 을 가드한다.

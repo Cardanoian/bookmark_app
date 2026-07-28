@@ -45,11 +45,11 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "재첨삭 향상도는 승인 전 학생 show 에 노출되지 않는다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 2.0, level: "B",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
     revision = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "고쳐 쓴 본문", revision_of: original, prev_avg: original.avg,
       ai_status: :done, avg: 4.5, level: "A", improvement: 2.5,
-      rubric: build_reviewed_rubric, reviewed: false)
+      rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current)
 
     login_as @student
     get report_path(revision)
@@ -60,14 +60,14 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "승인 후 학생은 교사 편집본 첨삭·등급·향상도를 본다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 2.0, level: "B",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
     revision = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "고쳐 쓴 본문", revision_of: original, prev_avg: original.avg,
       ai_status: :done, avg: 4.5, level: "A", improvement: 2.5,
       rubric: build_reviewed_rubric,
       teacher_feedback: { praise: [ "교사가 다듬은 칭찬" ], fix: [ "교사가 다듬은 보완" ],
                            grow: [ { text: "교사가 다듬은 성장", standard_code: "2국05-01" } ] },
-      reviewed: false)
+      reviewed: false, submitted_at: Time.current)
 
     login_as @teacher
     post approve_teacher_review_path(revision)
@@ -120,7 +120,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "재첨삭 실패 시 상속된 부모 첨삭이 노출되지 않고 크래시 없이 오류 배너를 보여준다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 4.5, level: "A",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
 
     login_as @student
     post revise_report_path(original)
@@ -158,7 +158,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
                            grow: [ { text: "교사가 다듬은 성장", standard_code: "2국05-01" } ] },
       teacher_rubric: { content: 3, emotion: 3, life: 3, structure: 3, spelling: 3 },
       teacher_comment: "교사가 남긴 코멘트",
-      reviewed: true, reviewed_at: Time.current)
+      reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
 
     login_as @student
     perform_enqueued_jobs do
@@ -203,11 +203,13 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
       praise: praise, fix: fix, grow: [ { text: grow_text, standard_code: standard_code } ] }
   end
 
+  # `submitted_at` 은 학생이 제출한 글임을 뜻한다(초안이면 교사 큐·승인에서 제외된다).
+  # 첨삭이 끝난(rubric 있는) 픽스처는 정의상 제출본이므로 항상 채운다.
   def unreviewed_report(**attrs)
     Report.create!(
       { user: @student, classroom: @classroom, book_title: "책",
         body: "본문 내용입니다.", ai_status: :done, avg: 4.5, level: "A",
-        rubric: build_reviewed_rubric, reviewed: false }.merge(attrs)
+        rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current }.merge(attrs)
     )
   end
 

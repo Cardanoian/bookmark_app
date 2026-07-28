@@ -16,7 +16,7 @@ class Teacher::StudentStatsQueryTest < ActiveSupport::TestCase
     approved = create_report(reviewed: true, level: "A")
     create_report(reviewed: false)
     Report.create!(user: @student, classroom: @classroom, book: @book, body: "고쳐쓴 글",
-                   revision_of: approved, reviewed: false)
+                   revision_of: approved, reviewed: false, submitted_at: Time.current)
 
     row = row_for(@student)
     assert_equal 2, row.reports, "원본만 센다(고쳐쓰기 제외)"
@@ -115,7 +115,9 @@ class Teacher::StudentStatsQueryTest < ActiveSupport::TestCase
   end
 
   def create_report(attributes = {})
-    Report.create!({ user: @student, classroom: @classroom, book: @book, body: "본문" }.merge(attributes))
+    # 통계는 제출된 글만 센다(미제출 초안은 교사 큐·집계 양쪽에서 빠진다).
+    Report.create!({ user: @student, classroom: @classroom, book: @book, body: "본문",
+                     submitted_at: Time.current }.merge(attributes))
   end
 
   def row_for(student)

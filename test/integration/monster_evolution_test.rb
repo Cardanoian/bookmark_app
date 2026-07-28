@@ -14,7 +14,7 @@ class MonsterEvolutionTest < ActionDispatch::IntegrationTest
 
   def meet_pup_condition!
     @student.update!(points: 100)
-    3.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "책#{i}", reviewed: true) }
+    3.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "책#{i}", reviewed: true, submitted_at: Time.current) }
   end
 
   test "evolve advances the species in place when conditions are met" do
@@ -106,7 +106,7 @@ class MonsterEvolutionTest < ActionDispatch::IntegrationTest
   # 첨삭 완료(done)됐지만 교사 승인 전(reviewed: false)인 독후감은 진화 조건 '독후감 수'
   # (승인 기준)에 안 잡힌다. 도감 상세가 그 시점 차이를 학생에게 안내하는지 검증.
   test "detail notes AI-reviewed reports awaiting teacher approval when reports is a condition" do
-    Report.create!(user: @student, classroom: @classroom, book_title: "대기책", ai_status: :done, reviewed: false)
+    Report.create!(user: @student, classroom: @classroom, book_title: "대기책", ai_status: :done, reviewed: false, submitted_at: Time.current)
     login_as @student
 
     get monster_path(@monster.dex_no)
@@ -117,7 +117,7 @@ class MonsterEvolutionTest < ActionDispatch::IntegrationTest
   end
 
   test "detail hides the approval notice when no reports await teacher approval" do
-    Report.create!(user: @student, classroom: @classroom, book_title: "승인책", ai_status: :done, reviewed: true)
+    Report.create!(user: @student, classroom: @classroom, book_title: "승인책", ai_status: :done, reviewed: true, submitted_at: Time.current)
     login_as @student
 
     get monster_path(@monster.dex_no)

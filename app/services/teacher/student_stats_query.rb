@@ -82,8 +82,11 @@ module Teacher
 
     # ---- 독후감 -------------------------------------------------------------
 
+    # 제출된 원본 글만. `.submitted` 가 없으면 미제출 초안(사진 판독 직후·고쳐쓰기 미편집)이
+    # `pending`(= reports - approved)에 섞여 "검토 대기 1건"이라고 표시되는데, 정작 검토 큐
+    # (Teacher::ReviewsController#classroom_scope)에는 아무것도 없어 교사가 찾을 수 없다.
     def original_reports
-      Report.where(user_id: ids, revision_of_id: nil)
+      Report.submitted.where(user_id: ids, revision_of_id: nil)
     end
 
     def original_counts

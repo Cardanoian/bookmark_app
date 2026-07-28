@@ -5,7 +5,9 @@ class Teacher::DashboardsController < Teacher::BaseController
     classroom_ids = @classrooms.map(&:id)
     # 전체 리포트 본문을 메모리에 적재하지 않는다. 단순 집계는 SQL COUNT/SUM 으로,
     # 5축 평균은 rubric 컬럼만 적재(본문 제외)해 계산한다(§3.4, 성능E).
-    reports = Report.where(classroom_id: classroom_ids)
+    # 제출된 글만 센다 — 미제출 초안(OCR 판독 직후·고쳐쓰기 미편집)은 교사 지표가 아니다
+    # (Teacher::ReviewsController#classroom_scope 와 동일한 경계).
+    reports = Report.submitted.where(classroom_id: classroom_ids)
     @students = User.where(classroom_id: classroom_ids, role: :student)
 
     @total_reports = reports.count

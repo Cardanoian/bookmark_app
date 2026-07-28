@@ -16,11 +16,11 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "검토학생", password: "password")
     @report = Report.create!(
       user: @student, classroom: @classroom, book_title: "책", body: "본문",
-      ai_status: :done, avg: 3.0, level: "B", reviewed: false
+      ai_status: :done, avg: 3.0, level: "B", reviewed: false, submitted_at: Time.current
     )
     @reviewed_report = Report.create!(
       user: @student, classroom: @classroom, book_title: "이미검토한책", body: "검토완료 본문",
-      ai_status: :done, avg: 4.0, level: "A", reviewed: true, reviewed_at: 1.day.ago
+      ai_status: :done, avg: 4.0, level: "A", reviewed: true, reviewed_at: 1.day.ago, submitted_at: Time.current
     )
   end
 
@@ -100,7 +100,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
 
   test "the list paginates and carries the status filter to the next page" do
     login_as @teacher
-    21.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "검토완료#{i}", ai_status: :done, reviewed: true, reviewed_at: i.hours.ago) }
+    21.times { |i| Report.create!(user: @student, classroom: @classroom, book_title: "검토완료#{i}", ai_status: :done, reviewed: true, reviewed_at: i.hours.ago, submitted_at: Time.current) }
 
     get teacher_reviews_path(status: "reviewed")
     assert_response :success
@@ -197,7 +197,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
   end
 
   test "batch_approve approves all selected reports" do
-    other = Report.create!(user: @student, classroom: @classroom, book_title: "책2", ai_status: :done, reviewed: false)
+    other = Report.create!(user: @student, classroom: @classroom, book_title: "책2", ai_status: :done, reviewed: false, submitted_at: Time.current)
     login_as @teacher
 
     post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id, other.id ] }

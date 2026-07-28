@@ -11,9 +11,9 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     @student.update!(points: 40, experience: 80)
 
     rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
-    @a1 = Report.create!(user: @student, classroom: @classroom, book_title: "책1", rubric: rubric, avg: 4.2, level: "A", ai_status: :done, reviewed: true)
-    @a2 = Report.create!(user: @student, classroom: @classroom, book_title: "책2", rubric: rubric, avg: 4.1, level: "A", ai_status: :done, reviewed: true)
-    @b1 = Report.create!(user: @student, classroom: @classroom, book_title: "책3", rubric: rubric, avg: 3.0, level: "B", ai_status: :done, reviewed: false)
+    @a1 = Report.create!(user: @student, classroom: @classroom, book_title: "책1", rubric: rubric, avg: 4.2, level: "A", ai_status: :done, reviewed: true, submitted_at: Time.current)
+    @a2 = Report.create!(user: @student, classroom: @classroom, book_title: "책2", rubric: rubric, avg: 4.1, level: "A", ai_status: :done, reviewed: true, submitted_at: Time.current)
+    @b1 = Report.create!(user: @student, classroom: @classroom, book_title: "책3", rubric: rubric, avg: 3.0, level: "B", ai_status: :done, reviewed: false, submitted_at: Time.current)
   end
 
   test "dashboard renders the radar svg and 5축 averages" do
@@ -54,7 +54,7 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     classroom.update!(teacher: teacher)
     student = User.create!(school: school, classroom: classroom, name: "3학생", password: "password")
     rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
-    Report.create!(user: student, classroom: classroom, book_title: "책", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true)
+    Report.create!(user: student, classroom: classroom, book_title: "책", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true, submitted_at: Time.current)
 
     login_as teacher
     get teacher_dashboard_path
@@ -77,7 +77,7 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
     rubric = { "content" => 5, "emotion" => 4, "life" => 4, "structure" => 3, "spelling" => 2 }
     [ c2, c5 ].each_with_index do |classroom, i|
       student = User.create!(school: school, classroom: classroom, name: "학생#{i}", password: "password")
-      Report.create!(user: student, classroom: classroom, book_title: "책#{i}", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true)
+      Report.create!(user: student, classroom: classroom, book_title: "책#{i}", rubric: rubric, avg: 3.6, level: "B", ai_status: :done, reviewed: true, submitted_at: Time.current)
     end
 
     login_as teacher
@@ -90,8 +90,8 @@ class TeacherDashboardTest < ActionDispatch::IntegrationTest
 
   test "dashboard improvement average matches the SQL aggregate" do
     # improvement 기록이 있는 리포트 2개 → 평균 향상도 = (0.5 + 1.5) / 2 = 1.0
-    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐1", improvement: 0.5, avg: 3.0, level: "B", ai_status: :done)
-    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐2", improvement: 1.5, avg: 3.0, level: "B", ai_status: :done)
+    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐1", improvement: 0.5, avg: 3.0, level: "B", ai_status: :done, submitted_at: Time.current)
+    Report.create!(user: @student, classroom: @classroom, book_title: "고쳐2", improvement: 1.5, avg: 3.0, level: "B", ai_status: :done, submitted_at: Time.current)
     login_as @teacher
 
     get teacher_dashboard_path

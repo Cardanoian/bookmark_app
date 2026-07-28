@@ -590,7 +590,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 - **카드 내부 패딩**: 컴팩트 카드 `{spacing.xl}`(24px); 피처 패널 `{spacing.xxl}`(32px)
 
 ### Grid & Container
-- 마케팅/콘텐츠 페이지 최대폭 1280px, 거터 32px
+- 마케팅/콘텐츠 페이지 최대폭 1536px, 거터 32px(구현 셸 상한과 일치 — 아래 "공통 컴포넌트 클래스 › 페이지 셸")
 - 랭킹 포디움은 3열(Top3), 몬스터 도감은 반응형 그리드(모바일 2열 → 데스크톱 4~6열)
 - 우수작·토론 목록은 필터 드롭다운을 둔 2열 그리드
 - 교사 콘솔은 좌측 사이드바 + 우측 콘텐츠 2분할
@@ -833,7 +833,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### 공통 컴포넌트 클래스 (`@layer components`)
 반복 빈도 높은 패턴만 클래스화(모든 조합 추상화하지 않음). HTML의 Tailwind 유틸이 항상 덮어쓸 수 있음.
-- **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide`(1536) / `-content`(1280) / `-reading`(840) / `-form`(960). **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`(`.page-title`은 좌측 3px `{colors.brand-yellow}` 악센트 바로 강조 지점을 표시).
+- **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide` / `-content` / `-reading` / `-form`. **상한은 4종 모두 1536px 로, 레이아웃 `<main>`(`max-w-[1536px]`)과 같다** — 좁은 상한(content 1280·form 960·reading 840)이 독후감·도서·폼 화면을 과도하게 조여 좌우 여백만 남기던 문제를 해소한 것(2026-07-28). 변형 클래스는 화면 성격의 의미 표식으로 남겨 두어, 개별 화면만 다시 좁힐 때 `--shell-max-*` 한 곳에서 되돌린다. **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`(`.page-title`은 좌측 3px `{colors.brand-yellow}` 악센트 바로 강조 지점을 표시).
 - **버튼**: `.btn` + `.btn-primary`(검은 필=저장·제출·확정 및 교직원 주요 행동)/`-yellow`(학생 시작·참여)/`-blue`(동기화·검토 등 정보성 도구)/`-secondary`(흰 캔버스 아웃라인=취소·뒤로·보조 탐색)/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치이며 hover/active/disabled 상태를 모두 제공한다. 한 행동 묶음의 컬러 필 버튼은 1개를 원칙으로 한다.
 - **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`). 기본 카드에는 따뜻한 페이지 배경에서 흰 표면을 구분하는 2단계 저강도 그림자를 적용하고, 학생 핵심 진입 카드만 yellow/lavender/coral/mint 표면 유틸로 강조한다.
 - **폼**: `.form-label`/`.form-input`/`.form-select`/`.form-textarea`/`.form-hint`/`.form-error`(포커스 시 브랜드 블루 보더).

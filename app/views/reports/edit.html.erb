@@ -26,6 +26,13 @@
           <%= ui_icon :search %>
           <span>사진에서 글자를 읽고 있어요.</span>
         </div>
+      <%# 판독은 끝났지만 아직 안 낸 초안. 여기서 멈추면 첨삭이 시작되지 않으므로 남은 행동을
+          못박는다. 마크업은 OcrJob#ocr_ready_status_html(방송판)과 동일하게 유지할 것. %>
+      <% elsif @report.draft? && @report.body.present? %>
+        <div class="state-banner state-banner--success">
+          <%= ui_icon :check %>
+          <span>사진을 다 읽었어요. 잘못 읽은 곳을 고친 뒤 <strong>제출하기</strong>를 눌러야 선생님 첨삭이 시작돼요.</span>
+        </div>
       <% end %>
     </div>
   <% end %>

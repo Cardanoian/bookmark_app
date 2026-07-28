@@ -147,9 +147,13 @@ class Teacher::ReviewsController < ApplicationController
     text.to_s.split("\n").map(&:strip).reject(&:blank?)
   end
 
-  # 담임 학급의 전체 독후감(검토 상태 무관). 목록 필터·카운트의 기반.
+  # 담임 학급의 **제출된** 독후감(검토 상태 무관). 목록 필터·카운트의 기반.
+  # `.submitted` 가 여기 있어야 하는 이유: OCR 사진 업로드는 학생이 제출하기 전에 Report 를
+  # 영속화하고 OcrJob 이 `ai_status: :done` 을 찍으므로, 이 스코프가 제출 여부를 보지 않으면
+  # 미제출 초안이 미검토 큐에 올라온다. 교사가 그걸 승인하면 `reviewed=true` 인데 rubric 은
+  # NULL → `feedback_visible?` 영구 false → 5축·첨삭·등급·포인트가 통째로 없는 독후감이 된다.
   def classroom_scope
-    Report.where(classroom_id: Classroom.where(teacher_id: Current.user.id).select(:id))
+    Report.submitted.where(classroom_id: Classroom.where(teacher_id: Current.user.id).select(:id))
   end
 
   # 담임 학급의 미검토 독후감. index 기본 필터이자 **batch_approve 의 승인 대상 게이트**로,

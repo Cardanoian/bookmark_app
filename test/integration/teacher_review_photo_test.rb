@@ -58,7 +58,7 @@ class TeacherReviewPhotoTest < ActionDispatch::IntegrationTest
 
   def create_report(attrs = {})
     Report.create!({ user: @student, classroom: @classroom, book_title: "책", body: "본문",
-                     ai_status: :done, avg: 3.0, level: "B", reviewed: false }.merge(attrs))
+                     ai_status: :done, avg: 3.0, level: "B", reviewed: false, submitted_at: Time.current }.merge(attrs))
   end
 
   def ocr_report_with_photo

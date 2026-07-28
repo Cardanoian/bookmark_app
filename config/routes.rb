@@ -32,6 +32,8 @@ Rails.application.routes.draw do
   resources :registrations, only: [ :new, :create ]
   resource :profile, only: [ :show ]
   resource :growth, only: [ :show ]
+  # 사용방법 안내(학생 도움말, 정적 화면). 상단 학생 메뉴 "사용방법"의 목적지.
+  resource :guide, only: [ :show ], controller: "guides"
   resource :ranking_preference, only: [ :edit, :update ]
   # 학생 정보구조(menu_refactor 심화 PR5): 내 서재(책별 활동 포트폴리오) + 독서활동(책 선택→독후감/게임 허브).
   resource :library, only: [ :show ], controller: "libraries"

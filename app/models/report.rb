@@ -16,6 +16,9 @@ class Report < ApplicationRecord
   enum :input_mode, { keyboard: 0, wongoji: 1, ocr: 2 }, default: :keyboard
   enum :ai_status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
+  # 제출된 글만. 교사 검토 큐·대시보드 집계처럼 "학생이 낸 글"을 세는 모든 지점의 진입 스코프다.
+  scope :submitted, -> { where.not(submitted_at: nil) }
+
   before_validation :normalize_book_title
 
   validates :level, inclusion: { in: %w[A B C], allow_nil: true }
@@ -136,6 +139,20 @@ class Report < ApplicationRecord
 
   def revision?
     revision_of_id.present?
+  end
+
+  # 학생이 "제출하기"를 눌러 첨삭·검토 흐름에 올린 글인지. **`ai_status` 로 추론하지 말 것** —
+  # OCR 초안은 학생이 제출하기 전에 이미 영속화되고 `OcrJob` 이 판독을 마치면 `ai_status: :done`
+  # 이 되므로, 그 컬럼만으로는 "첨삭까지 끝난 글"과 구별되지 않는다(교사 큐에 초안이 새어
+  # 들어가 rubric 없이 승인되던 결함의 원인). 고쳐쓰기(revise) 초안도 원본의 rubric·done 을
+  # 물려받으므로 같은 이유로 여기 걸린다.
+  def submitted?
+    submitted_at.present?
+  end
+
+  # 아직 제출하지 않은 초안(OCR 판독 대기·판독 완료 후 미제출, 고쳐쓰기 미편집).
+  def draft?
+    submitted_at.nil?
   end
 
   # 표시할 OCR 원본 사진(ActiveStorage::Attached::One 또는 nil). 고쳐쓰기(revise)는 부모의

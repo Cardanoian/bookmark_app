@@ -33,6 +33,16 @@
       <%= ui_icon :warning %>
       <span>첨삭에 실패했어요. 잠시 후 다시 시도해 주세요.</span>
     </div>
+  <%# 미제출 초안(사진 판독은 끝났지만 아직 안 낸 글)은 ai_status 가 done 이라 아래 분기에 걸리면
+      "선생님이 확인하고 있어요"라고 거짓말을 한다. 남은 행동은 학생의 제출뿐이므로 그것만 말한다.
+      이어서 쓰기 CTA 는 뷰어를 알아야 해서 여기 두지 않는다 — 이 파셜은 뷰어 없는 잡 방송에서도
+      렌더되므로 `current_user`·policy 를 쓸 수 없다(파일 상단 feedback_visible? 규칙과 동일).
+      CTA 는 HTTP 전용 셸인 show.html.erb 의 page-actions 가 담당한다. %>
+  <% elsif report.draft? %>
+    <div class="state-banner state-banner--info">
+      <%= ui_icon :writing %>
+      <span>아직 제출하지 않았어요. 제출해야 선생님 첨삭이 시작돼요.</span>
+    </div>
   <% elsif report.ai_status != "done" %>
     <div class="state-banner">
       <%= ui_icon :writing %>

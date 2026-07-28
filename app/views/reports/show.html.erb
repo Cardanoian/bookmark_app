@@ -11,7 +11,14 @@
   <%= render "reports/ocr_photo", report: @report %>
 
   <div class="page-actions">
-    <% if policy(@report).revise? %>
+    <%# 미제출 초안의 다음 행동은 "고쳐쓰기"가 아니라 "제출"이다. 작성자에게만 편집 화면으로
+        가는 CTA 를 주고(초안 상태에서 revise 는 무의미한 사본을 늘리므로 함께 숨긴다),
+        뷰어 판정이 필요한 분기라 방송 파셜(_report_detail)이 아닌 HTTP 셸인 여기에 둔다. %>
+    <% if @report.draft? %>
+      <% if policy(@report).edit? %>
+        <%= link_to "이어서 쓰고 제출하기", edit_report_path(@report), class: "btn btn-primary" %>
+      <% end %>
+    <% elsif policy(@report).revise? %>
       <%= button_to "고쳐쓰기", revise_report_path(@report), method: :post,
             class: "btn btn-primary" %>
     <% end %>

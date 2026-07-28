@@ -1,6 +1,6 @@
 <% content_for :title, "#{@book.title} · 책갈피" %>
 
-<div class="mx-auto w-full max-w-2xl space-y-6">
+<div class="page-shell page-shell-content space-y-6">
   <header class="flex gap-4">
     <div class="h-48 w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100">
       <% if @book.cover_url.present? %>
