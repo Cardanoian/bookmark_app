@@ -32,7 +32,7 @@ class ReportReviewGateSystemTest < ApplicationSystemTestCase
 
     # ai_status: done 이지만 reviewed: false 인 대기 상태 — 첨삭 텍스트는 아직 숨겨져 있어야 한다.
     assert_text "선생님 확인 중"
-    assert_no_text "AI 선생님의 5축 첨삭"
+    assert_no_text "선생님의 5축 첨삭"
 
     report = @student.reports.order(:created_at).last
     assert report.reload.done?, "AI 첨삭(규칙기반 폴백)이 완료돼야 승인 가능하다"
@@ -47,7 +47,7 @@ class ReportReviewGateSystemTest < ApplicationSystemTestCase
     visit report_path(report)
 
     assert_text "확인 완료"
-    assert_text "AI 선생님의 5축 첨삭"
+    assert_text "선생님의 5축 첨삭"
   rescue Selenium::WebDriver::Error::WebDriverError => e
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end

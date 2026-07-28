@@ -4,7 +4,7 @@
 <% feedback = report.student_feedback %>
 <div class="space-y-6">
   <section class="card">
-    <h2 class="mb-3 text-lg font-semibold text-ink">AI 선생님의 5축 첨삭</h2>
+    <h2 class="mb-3 text-lg font-semibold text-ink">선생님의 5축 첨삭</h2>
     <%= render "reports/rubric", report: report %>
 
     <% if feedback[:praise].any? %>
