@@ -44,8 +44,8 @@ class OcrJobTest < ActiveJob::TestCase
     assert @report.reload.failed?
   end
 
-  test "marks the report failed (not stuck pending) when OcrService raises a Claude API error" do
-    stub_new(Ai::OcrService, RaisingStub.new(Ai::ClaudeClient::ApiError.new("claude boom"))) do
+  test "marks the report failed (not stuck pending) when OcrService raises a Gemini API error" do
+    stub_new(Ai::OcrService, RaisingStub.new(Ai::GeminiClient::ApiError.new("gemini boom"))) do
       OcrJob.perform_now(@report)
     end
 

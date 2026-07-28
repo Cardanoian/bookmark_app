@@ -5,12 +5,12 @@ require_relative "xlsx_test_helper"
 
 # 테스트는 외부 API 를 절대 호출하지 않는다. credentials 에 실 키가 들어 있어도
 # 테스트 환경에서는 외부 서비스 키를 공란으로 강제해 모든 클라이언트가 오프라인
-# 폴백(도서검색→로컬 캐시, 정보나루→CSV, Claude→규칙기반)을 타도록 만든다.
-# 개별 테스트는 스텁 커넥션을 DI 로 주입해 원격 성공 경로를 검증한다.
+# 폴백(도서검색→로컬 캐시, 정보나루→CSV, Claude→규칙기반, Gemini/OCR→사진 모드 비활성)을
+# 타도록 만든다. 개별 테스트는 스텁 커넥션을 DI 로 주입해 원격 성공 경로를 검증한다.
 #
 # ⚠️ ENV 도 함께 비운다. 키 소스 규약이 **ENV 우선 → credentials 폴백**이라, credentials 만
-# 스텁하면 개발자 셸에 ANTHROPIC_API_KEY 가 export 돼 있을 때 테스트가 실제 API 를 때리고
-# 과금까지 발생한다(Gemini 시절에는 키가 credentials 에만 있어 우연히 안전했을 뿐이다).
+# 스텁하면 개발자 셸에 ANTHROPIC_API_KEY·GEMINI_API_KEY 가 export 돼 있을 때 테스트가 실제
+# API 를 때리고 과금까지 발생한다.
 %w[ANTHROPIC_API_KEY GEMINI_API_KEY NAVER_CLIENT_ID NAVER_CLIENT_SECRET DATA4LIBRARY_API_KEY NEIS_API_KEY].each do |name|
   ENV[name] = nil
 end
@@ -18,6 +18,7 @@ end
 Rails.application.credentials.tap do |creds|
   creds.instance_variable_set(:@config, creds.config.merge(
     anthropic: { api_key: "" },
+    gemini: { api_key: "" },
     naver: { client_id: "", client_secret: "" },
     data4library: { api_key: "" },
     neis: { api_key: "" },

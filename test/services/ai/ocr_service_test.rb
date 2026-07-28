@@ -38,7 +38,7 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
 
     assert_equal "인식된 손글씨 본문", service.call(@report.photo.blob)
     assert_not client.generate_args.fetch(:generation_config, {}).key?(:temperature),
-      "Claude 3.5에서 폐기된 temperature 설정을 OCR 요청에 보내면 안 된다"
+      "Gemini 3.5에서 폐기된 temperature 설정을 OCR 요청에 보내면 안 된다"
   end
 
   test "handles a String response from the client without crashing" do
@@ -56,11 +56,11 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
     assert_equal response.to_s, service.call(@report.photo.blob)
   end
 
-  test "raises ClaudeClient::ApiError instead of saving a blank OCR body" do
+  test "raises GeminiClient::ApiError instead of saving a blank OCR body" do
     client = StubClient.new(configured: true, response: { "text" => "" })
     service = Ai::OcrService.new(client: client)
 
-    assert_raises(Ai::ClaudeClient::ApiError) do
+    assert_raises(Ai::GeminiClient::ApiError) do
       service.call(@report.photo.blob)
     end
   end

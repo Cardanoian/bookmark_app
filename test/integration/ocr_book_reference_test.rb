@@ -17,7 +17,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   test "rejects an upload with no book reference before creating a draft" do
     login_as @student
 
-    with_claude_available do
+    with_gemini_available do
       assert_no_difference("Report.count") do
         assert_no_enqueued_jobs(only: OcrJob) do
           post ocr_path, params: { ocr: { book_id: "", book_title: "", photo: uploaded_photo } }
@@ -32,7 +32,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   test "a book title creates a draft with the real title, not a placeholder" do
     login_as @student
 
-    with_claude_available do
+    with_gemini_available do
       assert_enqueued_with(job: OcrJob) do
         post ocr_path, params: { ocr: { book_title: "어린왕자", photo: uploaded_photo } }
       end
@@ -50,7 +50,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
     login_as @student
 
     isbn = "9791111111112"
-    with_claude_available do
+    with_gemini_available do
       with_memory_cache do
         Rails.cache.write("book_meta:#{isbn}", {
           id: nil, title: "OCR 원격책", author: "원격저자", publisher: "원격출판",
@@ -75,7 +75,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   test "remote_isbn 등록 실패 시 Book 을 만들지 않고 book_title 로 통과한다" do
     login_as @student
 
-    with_claude_available do
+    with_gemini_available do
       assert_no_difference "Book.count" do
         assert_enqueued_with(job: OcrJob) do
           post ocr_path, params: { ocr: { remote_isbn: "9780000000002", book_title: "무키 폴백책", photo: uploaded_photo } }
@@ -93,7 +93,7 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   test "remote_isbn 등록 실패 + book_title 없음이면 draft 없이 거부한다" do
     login_as @student
 
-    with_claude_available do
+    with_gemini_available do
       assert_no_difference("Report.count") do
         assert_no_difference("Book.count") do
           assert_no_enqueued_jobs(only: OcrJob) do
@@ -122,11 +122,11 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
   end
 
   # Minitest 6 에는 minitest/mock 이 없다. 원본 메서드를 보관했다가 복원한다(ocr_test.rb 관례).
-  def with_claude_available
-    original = Ai::ClaudeClient.method(:available?)
-    Ai::ClaudeClient.define_singleton_method(:available?) { true }
+  def with_gemini_available
+    original = Ai::GeminiClient.method(:available?)
+    Ai::GeminiClient.define_singleton_method(:available?) { true }
     yield
   ensure
-    Ai::ClaudeClient.define_singleton_method(:available?, original)
+    Ai::GeminiClient.define_singleton_method(:available?, original)
   end
 end

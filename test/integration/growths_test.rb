@@ -38,6 +38,33 @@ class GrowthsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", report_path(newer)
   end
 
+  test "growth renders the radar chart, axis bars and change bars" do
+    create_report(book_title: "첫 책", rubric: scores(2), reviewed: true, created_at: 2.days.ago)
+    create_report(book_title: "둘째 책", rubric: scores(4), reviewed: true, created_at: 1.day.ago)
+
+    get growth_path
+
+    assert_response :success
+    # 방사형(오각형) 차트 — 데이터 폴리곤 + 지난 글 비교 점선 폴리곤
+    assert_select "svg.radar-chart-svg" do
+      assert_select "polygon[stroke-dasharray]", 1
+    end
+    # 축별 막대 + 시간 변화 막대(승인 글 수만큼)
+    assert_select ".progress-bar", ReadingDomain::RUBRIC_AXES.size + 2
+    assert_select ".progress-bar__fill"
+    assert_match "시간에 따른 변화", response.body
+  end
+
+  test "growth omits the comparison polygon when only one report exists" do
+    create_report(book_title: "첫 책", rubric: scores(3), reviewed: true, created_at: 1.day.ago)
+
+    get growth_path
+
+    assert_response :success
+    assert_select "svg.radar-chart-svg"
+    assert_select "polygon[stroke-dasharray]", 0
+  end
+
   test "growth has an empty state before an approved scored report exists" do
     get growth_path
 

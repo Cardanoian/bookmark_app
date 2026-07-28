@@ -9,7 +9,7 @@
 - `monsters_helper.rb` — 몬스터 도감 표시. `monster_sprite`는 기본으로 `image_key` 정적 PNG를 렌더하며, 상세 상단만 `animated: true`로 애니메이션 WebP를 선택한다(누락 시 공용 미발견 SVG 폴백). 그 외 `element_label`/`element_badge_classes`(속성 라벨·색)·`condition_label`·`condition_progress`(진화 조건 라벨·`ReadingStats` 대비 진행값)·**`unlock_condition_label`/`unlock_progress_items`**(잠긴 카드용 해금 조건 문장형 라벨 + `[{label:, current:, target:, met:}]` 진행도 배열, 현재값은 목표치를 넘지 않게 클램프).
 - `reports_helper.rb` — 독후감/첨삭 뱃지. `ai_status_badge`(교사 뷰 첨삭 상태 pill)·`student_status_badge`(학생 뷰 — 확인 완료/다시 시도/**작성 중**/선생님 확인 중/첨삭 준비 중)·`level_badge`(A/B/C 등급 배지)·`axis_label`(5축 라벨). **`student_status_badge` 의 `draft?`(미제출) 분기는 `ai_status == "done"` 판정보다 앞에 둔다** — OCR 초안은 판독을 마치면 done 이라, 제출 여부를 보지 않으면 아직 내지도 않은 글이 "선생님 확인 중"으로 표시되고 학생이 그 말을 믿어 제출하기를 누르지 않는다(첨삭이 영영 안 붙는 원인의 학생 쪽 절반).
 - `schools_helper.rb` — `school_region_label`: "서울특별시교육청" → "서울특별시" 처럼 교육청 접미를 떼어 표시(학교 선택 하이브리드 피커의 시도 라벨).
-- `teacher_helper.rb` — `radar_chart_svg`: 5축 방사형(오각형) 차트를 JS 없이 서버 렌더 인라인 SVG(격자·스포크·데이터 폴리곤·축 라벨)로 반환.
+- `teacher_helper.rb` — `radar_chart_svg`: 5축 방사형(오각형) 차트를 JS 없이 서버 렌더 인라인 SVG(격자·스포크·데이터 폴리곤·꼭짓점 점·축 라벨)로 반환. 선·면은 디자인 토큰 색(`--color-brand-blue`)을 하드코딩 hex 로 쓴다(인쇄물·메일러에서도 렌더되므로 `var()` 미사용). **`compare:`(선택)** 를 주면 같은 형식의 비교 계열을 회색 점선(`--color-stone`) 폴리곤으로 덧그려 "지난 기록과 겹쳐 보기"를 만든다 — 학생 화면 `growths/show`(나의 성장)가 최근 글 vs 지난 글 비교에 사용하고, 교사·교무 통계·인쇄물은 단일 계열로 쓴다(모듈명은 teacher 지만 전 역할 공용 차트).
 
 ---
 > ⚠️ **유지보수 규칙**: 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 CLAUDE.md도 함께 갱신하세요. 하위 폴더 구조가 바뀌면 관련 상·하위 CLAUDE.md 링크도 확인하세요.

@@ -5,7 +5,7 @@
 ## 하위 폴더
 - [`controllers/`](controllers/CLAUDE.md) — 요청 처리. 루트 리소스 컨트롤러 + 역할별 네임스페이스(`admin/`·`teacher/`·`librarian/`·`school_admin/`·`games/`)
 - [`models/`](models/CLAUDE.md) — ActiveRecord 도메인 모델 + 재사용 로직 `concerns/`(leveling·pointable·evolvable 등)
-- [`services/`](services/CLAUDE.md) — 도메인 서비스 객체(랭킹·독서통계·몬스터) + AI 연동 `ai/`(Claude·OCR·독후감 첨삭)
+- [`services/`](services/CLAUDE.md) — 도메인 서비스 객체(랭킹·독서통계·몬스터) + AI 연동 `ai/`(독후감 첨삭 등 Claude · OCR만 Gemini)
 - [`policies/`](policies/CLAUDE.md) — Pundit 인가 정책. 리소스별 접근 권한 규칙
 - [`views/`](views/CLAUDE.md) — ERB 뷰. 리소스별 화면 + 역할별 레이아웃 + turbo_stream 응답
 - [`javascript/`](javascript/CLAUDE.md) — Stimulus 컨트롤러(Import Maps). 검색 자동완성·사진 압축·도감 등 클라이언트 UI

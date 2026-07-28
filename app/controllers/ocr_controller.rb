@@ -1,18 +1,18 @@
 class OcrController < ApplicationController
-  # 사진 업로드 → 손글씨 OCR 초안. Claude 키가 없으면 사진 모드 자체가 없어야
+  # 사진 업로드 → 손글씨 OCR 초안. OCR 은 Gemini 를 쓰므로 Gemini 키가 없으면 사진 모드 자체가 없어야
   # 하므로 서버에서도 거부한다(P3.5). 거부 검사는 모두 draft 생성 이전에 배치해
   # book_reference_present 실패로 인한 500·빈 첨부 고아 draft 를 막고, 성공 시
   # OcrJob 예약 후 compose(edit) 화면으로 redirect 한다.
   def create
     unless ocr_available?
-      # 기능 플래그(Claude 키) 비활성 조기 거부 — 리소스에 도달하기 전이라 인가 대상이 없다.
+      # 기능 플래그(Gemini 키) 비활성 조기 거부 — 리소스에 도달하기 전이라 인가 대상이 없다.
       skip_authorization
       redirect_back fallback_location: new_report_path,
         alert: "사진 모드를 사용할 수 없어요. 키보드로 입력해 주세요."
       return
     end
 
-    # 보호자 AI 활용 동의 게이트(P1-1). 미동의 학생은 손글씨 사진(PII)을 Claude 로 보내지 않도록
+    # 보호자 AI 활용 동의 게이트(P1-1). 미동의 학생은 손글씨 사진(PII)을 Gemini 로 보내지 않도록
     # draft 생성 전에 조기 거부한다(_mode_chooser 의 사진 카드 은닉과 짝 — URL 직접 요청 방어).
     unless Current.user&.ai_consented?
       skip_authorization
