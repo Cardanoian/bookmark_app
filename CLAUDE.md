@@ -3,15 +3,15 @@
 초등학교 전학년을 위한 **AI 독후감 첨삭 + 반려 몬스터 게이미피케이션** 독서 교육 플랫폼입니다.
 Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자·사서·총괄관리자 **5개 역할**을 하나의 앱으로 지원합니다.
 
-핵심 가치는 ① Gemini 기반 **AI 5축 발전적 첨삭**(내용·감상·삶·구성·맞춤법), ② **24라인 72폼 반려 몬스터 도감·진화**, ③ 학교 현장 운영(검토·통계·도서관·관리자)입니다.
-외부 API(Gemini·네이버 도서검색·정보나루)는 **키가 없어도 폴백으로 완전 동작**하도록 설계되어 있습니다.
+핵심 가치는 ① Claude 기반 **AI 5축 발전적 첨삭**(내용·감상·삶·구성·맞춤법), ② **24라인 72폼 반려 몬스터 도감·진화**, ③ 학교 현장 운영(검토·통계·도서관·관리자)입니다.
+외부 API(Claude·네이버 도서검색·정보나루)는 **키가 없어도 폴백으로 완전 동작**하도록 설계되어 있습니다.
 
 ## 기술 스택 (요약)
 - **프레임워크/언어**: Rails 8.1 · Ruby 4.0.5
 - **DB**: SQLite 다중 DB (primary/cache/queue/cable) + Solid Queue·Cache·Cable
 - **프런트**: Hotwire(Turbo·Stimulus) · Import Maps · Propshaft · Tailwind CSS
-- **인가/인증**: Pundit(역할·학교 경계 격리) · `has_secure_password`(bcrypt)
-- **AI/외부**: Google Gemini · Faraday · 네이버 도서검색 · 정보나루(data4library)
+- **인가/인증**: Pundit(역할별 접근 권한) · `has_secure_password`(bcrypt)
+- **AI/외부**: Anthropic Claude · Faraday · 네이버 도서검색 · 정보나루(data4library)
 - **배포/품질**: Docker · Kamal 2 · Thruster / Minitest · RuboCop(omakase) · Brakeman
 
 전체 개요·실행법·역할표는 [`README.md`](README.md), 설계 문서는 [`docs/`](docs/CLAUDE.md) 참고.
@@ -23,6 +23,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 | 폴더 | 역할 | 문서 |
 |------|------|------|
 | `app/` | 애플리케이션 코드 (MVC + 서비스·정책·잡·프런트) | [app/CLAUDE.md](app/CLAUDE.md) |
+| `frontend/` | 심사 제출용 **오프라인 체험판** (React+Vite → 단일 `index.html`, 앱 런타임과 분리) | [frontend/CLAUDE.md](frontend/CLAUDE.md) |
 | `config/` | Rails 설정 · 라우트 · 환경 · credentials | [config/CLAUDE.md](config/CLAUDE.md) |
 | `db/` | 스키마 · 마이그레이션 · 시드 | [db/CLAUDE.md](db/CLAUDE.md) |
 | `lib/tasks/` | rake 시드 태스크 (몬스터·뱃지·도서·학교·퀴즈) | [lib/tasks/CLAUDE.md](lib/tasks/CLAUDE.md) |
