@@ -1,11 +1,11 @@
 module Ai
-  # Gemini 줄거리 생성(게임 재구성 Phase 4, §1·§3.1). review_service·sequel_feedback_service 미러.
-  # 키가 있으면 Gemini 에게 "이 책을 아는가? 알면 초등 눈높이 줄거리를 써라"를 물어, **확신 있는
+  # Claude 줄거리 생성(게임 재구성 Phase 4, §1·§3.1). review_service·sequel_feedback_service 미러.
+  # 키가 있으면 Claude 에게 "이 책을 아는가? 알면 초등 눈높이 줄거리를 써라"를 물어, **확신 있는
   # 경우에만** 줄거리 문자열을 반환한다. 무키/실패/저확신/모름/스키마이탈은 nil 로 폴백(크래시 0).
   #
   # 정직화(§3.1 잔여위험 완화):
   #   - **기존 summary 는 프롬프트에 넣지 않는다** — 자기참조를 최소화한 독립 인식 테스트라야
-  #     Gemini 가 진짜 아는 책인지 판별되고 자기 작화를 되먹이지 않는다(계획서 §3.1·P2-6).
+  #     Claude 가 진짜 아는 책인지 판별되고 자기 작화를 되먹이지 않는다(계획서 §3.1·P2-6).
   #   - 확신도(confidence) ≥ CONFIDENCE_THRESHOLD 이고 known=true 일 때만 저장 대상으로 반환한다.
   #   - "다른 책과 혼동/작화하지 마라"를 프롬프트로 명시해 confabulation 을 억제한다.
   class BookSummaryService
@@ -26,7 +26,7 @@ module Ai
       {"known": true, "confidence": 0.0, "summary": "<줄거리 4~6문장 또는 빈 문자열>"}
     PROMPT
 
-    def initialize(client: GeminiClient.new)
+    def initialize(client: ClaudeClient.new)
       @client = client
     end
 
@@ -40,7 +40,7 @@ module Ai
         response_json: true
       )
       confident_summary(response)
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       nil
     end
 

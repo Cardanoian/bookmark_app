@@ -1,6 +1,6 @@
 require "test_helper"
 
-# Gemini 줄거리 생성 백그라운드 잡(게임 재구성 Phase 4 §1c). BookEnrichmentJob 미러.
+# Claude 줄거리 생성 백그라운드 잡(게임 재구성 Phase 4 §1c). BookEnrichmentJob 미러.
 # 무키 no-op(checked_at 미세팅 → 키 생기면 재시도), 키+known=summary+checked_at, 키+모름=checked_at만
 # (재실행 skip), 이미 summary/checked_at=멱등 skip. 네트워크 0·크래시 0.
 class BookSummaryJobTest < ActiveJob::TestCase
@@ -77,16 +77,16 @@ class BookSummaryJobTest < ActiveJob::TestCase
 
   private
 
-  # GeminiClient.new 을 configured?=true 로, BookSummaryService.new 을 주입 서비스로 임시 교체한다
+  # ClaudeClient.new 을 configured?=true 로, BookSummaryService.new 을 주입 서비스로 임시 교체한다
   # (Minitest 6 은 minitest/mock 미제공 — sequel_feedback_job_test 의 stub_new 선례).
   def run_with_key(service)
     configured = Object.new
     def configured.configured? = true
-    Ai::GeminiClient.define_singleton_method(:new) { |*, **| configured }
+    Ai::ClaudeClient.define_singleton_method(:new) { |*, **| configured }
     Ai::BookSummaryService.define_singleton_method(:new) { |*, **| service }
     yield
   ensure
-    Ai::GeminiClient.singleton_class.send(:remove_method, :new)
+    Ai::ClaudeClient.singleton_class.send(:remove_method, :new)
     Ai::BookSummaryService.singleton_class.send(:remove_method, :new)
   end
 end

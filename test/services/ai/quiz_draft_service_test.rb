@@ -55,7 +55,7 @@ class Ai::QuizDraftServiceTest < ActiveSupport::TestCase
   end
 
   test "falls back to offline questions on ApiError" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("boom"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("boom"))
     questions = Ai::QuizDraftService.new(client: client).call(@book, count: 3)
     assert_equal 3, questions.size
   end

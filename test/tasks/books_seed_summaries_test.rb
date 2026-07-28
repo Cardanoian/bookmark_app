@@ -3,9 +3,9 @@ require "rake"
 require "tempfile"
 require "yaml"
 
-# books:seed_summaries + books:export_summaries 검증(Gemini 줄거리 YAML 시드 인프라).
+# books:seed_summaries + books:export_summaries 검증(Claude 줄거리 YAML 시드 인프라).
 # 소형 임시 YAML(ENV["BOOK_SUMMARIES_YML"] 주입)으로 무네트워크·멱등·매칭/미매칭·빈파일 크래시 0 을,
-# export 는 Gemini 생성분(checked_at present)만 나가고 네이버 blurb(checked_at nil)는 제외됨을 검증한다.
+# export 는 Claude 생성분(checked_at present)만 나가고 네이버 blurb(checked_at nil)는 제외됨을 검증한다.
 class BooksSeedSummariesTest < ActiveSupport::TestCase
   setup do
     Rails.application.load_tasks unless Rake::Task.task_defined?("books:seed_summaries")
@@ -102,7 +102,7 @@ class BooksSeedSummariesTest < ActiveSupport::TestCase
     end
   end
 
-  # ── 무네트워크: 스텁 없이도(test_helper 가 Gemini 키 공란 강제) 크래시 0 ──
+  # ── 무네트워크: 스텁 없이도(test_helper 가 Claude 키 공란 강제) 크래시 0 ──
   test "makes no network calls (offline)" do
     isbn = TestBookIsbn.next
     Book.create!(title: "책4", isbn: isbn, category: :classic)
@@ -111,11 +111,11 @@ class BooksSeedSummariesTest < ActiveSupport::TestCase
     assert_nothing_raised { seed_summaries! }
   end
 
-  # ── export: Gemini 생성분(checked_at present)만 나가고 네이버 blurb(checked_at nil)는 제외 ──
-  test "export writes only Gemini-generated summaries, excluding naver blurbs" do
-    gemini_isbn = TestBookIsbn.next
+  # ── export: Claude 생성분(checked_at present)만 나가고 네이버 blurb(checked_at nil)는 제외 ──
+  test "export writes only Claude-generated summaries, excluding naver blurbs" do
+    claude_isbn = TestBookIsbn.next
     naver_isbn = TestBookIsbn.next
-    Book.create!(title: "제미나이책", isbn: gemini_isbn, category: :classic,
+    Book.create!(title: "제미나이책", isbn: claude_isbn, category: :classic,
                  summary: "제미나이 줄거리", summary_checked_at: Time.current)
     Book.create!(title: "네이버책", isbn: naver_isbn, category: :recommended,
                  summary: "네이버 블러브") # summary 있음·checked_at nil
@@ -123,8 +123,8 @@ class BooksSeedSummariesTest < ActiveSupport::TestCase
     export_summaries!
 
     data = YAML.safe_load_file(@yml.path, aliases: false)
-    assert data.key?(gemini_isbn), "Gemini 생성분(checked_at present)은 export 된다"
-    assert_equal "제미나이 줄거리", data[gemini_isbn]["summary"]
+    assert data.key?(claude_isbn), "Claude 생성분(checked_at present)은 export 된다"
+    assert_equal "제미나이 줄거리", data[claude_isbn]["summary"]
     assert_not data.key?(naver_isbn), "네이버 blurb(checked_at nil)는 제외된다"
   end
 end

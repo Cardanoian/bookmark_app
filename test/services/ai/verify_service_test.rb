@@ -30,7 +30,7 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
     assert_equal [], result[:reasons]
   end
 
-  test "returns neutral without calling Gemini for a student without AI consent (P1-1)" do
+  test "returns neutral without calling Claude for a student without AI consent (P1-1)" do
     non_consenting = User.create!(school: @school, classroom: @classroom, name: "미동의검증학생", password: "password")
     report = Report.create!(user: non_consenting, classroom: @classroom, book_title: "책", body: "본문")
     called = false
@@ -39,7 +39,7 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
 
     result = Ai::VerifyService.new(client: client).call(report)
 
-    assert_not called, "미동의 학생 본문은 Gemini 로 보내지 않는다"
+    assert_not called, "미동의 학생 본문은 Claude 로 보내지 않는다"
     assert_nil result[:suspicion]
   end
 
@@ -52,7 +52,7 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
   end
 
   test "returns a neutral result on ApiError" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("boom"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("boom"))
     result = Ai::VerifyService.new(client: client).call(create_report(body: "본문"))
 
     assert_nil result[:suspicion]
@@ -60,7 +60,7 @@ class Ai::VerifyServiceTest < ActiveSupport::TestCase
   end
 
   test "logs a warning on ApiError so ops can see why authenticity came back neutral (no PII)" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("gemini responded with status 500"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("claude responded with status 500"))
     report = create_report(body: "민감한 학생 본문 내용")
 
     logged = capture_log_output { Ai::VerifyService.new(client: client).call(report) }

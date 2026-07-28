@@ -47,7 +47,7 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
     assert_valid_review(result)
   end
 
-  test "does not call Gemini and falls back for a student without AI consent (P1-1)" do
+  test "does not call Claude and falls back for a student without AI consent (P1-1)" do
     non_consenting = User.create!(school: @school, classroom: @classroom, name: "미동의리뷰학생", password: "password")
     report = Report.create!(user: non_consenting, classroom: @classroom, book_title: "책", body: "본문 내용입니다.")
     called = false
@@ -56,18 +56,18 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
 
     result = Ai::ReviewService.new(client: client).call(report)
 
-    assert_not called, "미동의 학생은 configured 클라이언트라도 Gemini 를 호출하지 않는다"
+    assert_not called, "미동의 학생은 configured 클라이언트라도 Claude 를 호출하지 않는다"
     assert_valid_review(result)
   end
 
   test "falls back to rule-based review on ApiError" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("boom"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("boom"))
     result = Ai::ReviewService.new(client: client).call(@report)
     assert_valid_review(result)
   end
 
   test "falls back to rule-based review on NotConfigured raised mid-call" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::NotConfigured.new("blank"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::NotConfigured.new("blank"))
     result = Ai::ReviewService.new(client: client).call(@report)
     assert_valid_review(result)
   end

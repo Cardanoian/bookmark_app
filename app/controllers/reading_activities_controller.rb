@@ -68,14 +68,14 @@ class ReadingActivitiesController < ApplicationController
   # 가용성 게이트 자가치유(게임 재구성 Phase 4 §1d 후속, code-review 지적사항). `ContentProvider#
   # maybe_enqueue_book_summary` 는 워밍이 도는 `resolve` 안에서만 걸리는데, 가용성 게이트
   # (`content_gate_allows?`)가 **비활성 책은 resolve 전에 리다이렉트**시켜 그 트리거에 절대
-  # 도달하지 못한다 — 즉 "Gemini가 알 수도 있는 무명 책"이 확인을 못 받아 영영 비활성으로
+  # 도달하지 못한다 — 즉 "Claude가 알 수도 있는 무명 책"이 확인을 못 받아 영영 비활성으로
   # 고착된다(Part 1 취지 무력화). 학생이 책을 고르는 이 화면(게이트 우회 지점)에서 직접
-  # Gemini 확인을 큐잉해, 아는 책이면 다음부터 가용해지는 온디맨드 자가치유 경로를 확보한다.
+  # Claude 확인을 큐잉해, 아는 책이면 다음부터 가용해지는 온디맨드 자가치유 경로를 확보한다.
   # 잡이 멱등이라 중복 안전(같은 책을 여러 번 봐도 최초 1회만 실질 확인), 무키면 큐잉 안 함
-  # (`Ai::GeminiClient.new.configured?` 가드 — 무의미한 큐잉 방지, 잡 자체도 무키 no-op).
+  # (`Ai::ClaudeClient.new.configured?` 가드 — 무의미한 큐잉 방지, 잡 자체도 무키 no-op).
   def bootstrap_book_summary(book)
     return unless book.summary.blank? && book.summary_checked_at.nil?
-    return unless Ai::GeminiClient.new.configured?
+    return unless Ai::ClaudeClient.new.configured?
 
     BookSummaryJob.perform_later(book.id)
   end

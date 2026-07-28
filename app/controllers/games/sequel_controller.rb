@@ -4,7 +4,7 @@ module Games
   # **콘텐츠 소스가 학생 상상이라 모든 책에서 항상 가능**(본문 불필요, 가용성 게이트 대상 아님).
   # 제출하면 SequelFeedbackJob 이 학생 글을 평가한 격려형 AI 코멘트를 비동기로 단다(정직한 AI).
   class SequelController < BaseController
-    # 창작을 돕는 정적 가이드(Gemini 호출 0 — 상수, 상상 유도). 표현용.
+    # 창작을 돕는 정적 가이드(Claude 호출 0 — 상수, 상상 유도). 표현용.
     WRITING_TIPS = [
       "책이 끝난 뒤, 주인공에게 어떤 일이 생길지 상상해 보세요.",
       "새로운 인물이나 사건을 등장시켜도 좋아요.",
@@ -20,7 +20,7 @@ module Games
     end
 
     # create — 본인·학급으로 뒷이야기 작성. 저장 성공 시 게임 완료 원장 + 미션·몬스터 재평가 +
-    # AI 코멘트 비동기 큐잉. Gemini/Quiz 미생성(창작 소셜 도메인).
+    # AI 코멘트 비동기 큐잉. Claude/Quiz 미생성(창작 소셜 도메인).
     def create
       attrs = sequel_params # require(:book_sequel) — 없으면 400(malformed 방어)
       @book = Book.find(attrs[:book_id])

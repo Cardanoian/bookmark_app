@@ -1,18 +1,18 @@
 # 사진 업로드 → 비동기 손글씨 OCR → report.body 초안. 키 없으면 Unavailable, API 호출
-# 실패·빈 응답이면 GeminiClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
+# 실패·빈 응답이면 ClaudeClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
 # 영구히 묶이지 않게 한다. (§9.3, P3.4)
 class OcrJob < ApplicationJob
   queue_as :default
 
   # AI 동의 재확인용 클라이언트 팩토리(테스트 seam, GenerateGameContentJob 선례). 잡 실행 시점에
   # 동의를 재평가해 "동의 후 사진 업로드 → 교사 철회 → 인플라이트 잡 실행" 레이스에서 미동의 학생의
-  # 손글씨 이미지가 Gemini 로 전송되지 않게 한다(P1-1). 테스트는 configured? 스텁을 주입해 무키가
+  # 손글씨 이미지가 Claude 로 전송되지 않게 한다(P1-1). 테스트는 configured? 스텁을 주입해 무키가
   # 아닌 미동의 사유로 차단됨을 검증한다.
   class << self
     attr_writer :gate_client_factory
 
     def gate_client_factory
-      @gate_client_factory ||= -> { Ai::GeminiClient.new }
+      @gate_client_factory ||= -> { Ai::ClaudeClient.new }
     end
 
     def reset_factories!
@@ -21,7 +21,7 @@ class OcrJob < ApplicationJob
   end
 
   def perform(report)
-    unless Ai::ConsentGate.gemini_allowed?(report.user, client: self.class.gate_client_factory.call)
+    unless Ai::ConsentGate.llm_allowed?(report.user, client: self.class.gate_client_factory.call)
       report.update(ai_status: :failed)
       return broadcast_ocr_failed(report)
     end
@@ -29,7 +29,7 @@ class OcrJob < ApplicationJob
     text = Ai::OcrService.new.call(report.photo.blob)
     report.update!(body: text, ai_status: :done)
     broadcast_ocr_ready(report)
-  rescue Ai::OcrService::Unavailable, Ai::GeminiClient::ApiError => e
+  rescue Ai::OcrService::Unavailable, Ai::ClaudeClient::ApiError => e
     Rails.logger.error("OcrJob failed for report #{report&.id}: #{e.class}: #{e.message}")
     report&.update(ai_status: :failed)
     broadcast_ocr_failed(report)

@@ -27,7 +27,7 @@ module Ai
       def fail? = !pass
     end
 
-    def initialize(client: GeminiClient.new)
+    def initialize(client: ClaudeClient.new)
       @client = client
     end
 
@@ -153,7 +153,7 @@ module Ai
       )
       score = response.is_a?(Hash) ? response["suspicion"].to_f : 0.0
       score >= LLM_REJECT_THRESHOLD ? [ "LLM 자가검토 부적절(#{score})" ] : []
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError
       # 자가검토 실패는 거부 사유로 삼지 않는다(구조·금칙어는 이미 통과) — 무키/실패 무중단.
       []
     end

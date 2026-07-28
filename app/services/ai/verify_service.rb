@@ -3,14 +3,14 @@ module Ai
   class VerifyService
     NEUTRAL = { suspicion: nil, reasons: [] }.freeze
 
-    def initialize(client: GeminiClient.new)
+    def initialize(client: ClaudeClient.new)
       @client = client
     end
 
     # 반환: { suspicion:, reasons: [] }. 키 없음/실패 시 중립값.
     def call(report)
-      # 학생 본문(PII)을 Gemini 로 보내므로 AI 동의 게이트를 탄다(P1-1). 미동의·무키 → 중립값.
-      return NEUTRAL.dup unless Ai::ConsentGate.gemini_allowed?(report.user, client: @client)
+      # 학생 본문(PII)을 Claude 로 보내므로 AI 동의 게이트를 탄다(P1-1). 미동의·무키 → 중립값.
+      return NEUTRAL.dup unless Ai::ConsentGate.llm_allowed?(report.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(report),
@@ -18,7 +18,7 @@ module Ai
         response_json: true
       )
       { suspicion: response["suspicion"], reasons: Array(response["reasons"]).map(&:to_s) }
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError => e
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError => e
       # report.body(개인정보 소지)는 로그에 남기지 않는다 — 예외 메시지는 상태코드/클래스 정보뿐이다.
       Rails.logger.warn("VerifyService API failure: #{e.class}: #{e.message}")
       NEUTRAL.dup

@@ -8,7 +8,7 @@ module Games
   #   ① surface → content_axis (SURFACE_MAP; quiz→mcq·whoami→hint_reveal, 콘텐츠축당 1생성).
   #   ② band = ReadingDomain.game_band_for(user.classroom&.grade) — **서버 결정**(사용자 입력 불신).
   #      게임 전용 밴드(학년 미상 → 최저 g12; 5~6학년 기본 매칭 금지). 정책(QuizPolicy#within_band?)과 동일.
-  #   ③ 캐시 HIT: origin=system·해당 축·최신 content_version·ready·미신고 → 즉시 반환(Gemini 0).
+  #   ③ 캐시 HIT: origin=system·해당 축·최신 content_version·ready·미신고 → 즉시 반환(Claude 0).
   #      단, 그 행이 AI 로 게시된 적 없이 **오프라인만으로 RETRY_GRACE 이상 지속**됐다면(첫 워밍이
   #      거부/실패했거나 무키였던 경우 영구 오프라인에 갇히지 않도록) 축 단위 쿨다운 하에 재워밍을
   #      시도한다(§2b 검증 후속 [LOW]). 방금 만든 오프라인(정상 워밍 진행 중일 수 있는 창)은
@@ -19,7 +19,7 @@ module Games
   #      백그라운드 워밍으로 1건 적재한다. 키가 없으면 오프라인만(잡 없음).
   #
   # ⚠️ MISS 즉시 반환에는 content_set(AI 경로)이 아니라 offline_set(네트워크 0·결정적)을 쓴다 —
-  #    content_set 은 키가 있으면 동기 Gemini 호출로 아동을 대기시키므로 "미스=오프라인 즉시"
+  #    content_set 은 키가 있으면 동기 Claude 호출로 아동을 대기시키므로 "미스=오프라인 즉시"
   #    불변식(A.1 P1)에 위배된다. AI 는 오직 워밍 잡에서만 붙는다.
   class ContentProvider
     # 표면 → 콘텐츠축(게임 재구성 Phase 1). classic(→quiz 통합)·vocab(matching, hard-delete) 표면 제거.
@@ -127,7 +127,7 @@ module Games
     # sampler: 준비된 후보 세트들(배열) 중 하나를 고르는 seam(Phase 3 문제은행 §3.5). 기본은 균등 랜덤
     # (`.sample`)이라 (책·밴드·축)에 여러 세트(오프라인·AI·기여)가 쌓이면 **매 플레이마다 다른 세트가
     # 출제**된다(세트 단위 랜덤 출제). 테스트는 결정적 sampler(예: `->(c){ c.first }`)를 주입해 검증한다.
-    def initialize(draft_service: Ai::QuizDraftService.new, rate_limiter: RateLimiter.new, client: Ai::GeminiClient.new,
+    def initialize(draft_service: Ai::QuizDraftService.new, rate_limiter: RateLimiter.new, client: Ai::ClaudeClient.new,
                    sampler: ->(candidates) { candidates.sample })
       @draft_service = draft_service
       @rate_limiter = rate_limiter
@@ -143,7 +143,7 @@ module Games
 
       cached = fetch_ready(book.id, band, content_axis)
       if cached
-        maybe_retry_warming(book, band, content_axis, user, cached) # HIT → 즉시(Gemini 0) + (오프라인만 오래 지속 시) 재시도
+        maybe_retry_warming(book, band, content_axis, user, cached) # HIT → 즉시(Claude 0) + (오프라인만 오래 지속 시) 재시도
         return cached
       end
 
@@ -341,14 +341,14 @@ module Games
     end
 
     # Phase 4 §1d 온디맨드 트리거. 워밍이 도는 시점(키 있음·예산 OK)에, 그 책이 아직 줄거리도
-    # 없고 Gemini 확인도 안 했으면 BookSummaryJob 을 함께 1회 큐잉한다(멱등·throttle 이라 중복 안전).
+    # 없고 Claude 확인도 안 했으면 BookSummaryJob 을 함께 1회 큐잉한다(멱등·throttle 이라 중복 안전).
     # 무키에서는 maybe_enqueue_warming 이 먼저 return 하므로 이 경로도 안 걸린다.
     #
     # ⚠️ 도달 범위(code-review 후속): 이 경로는 **`resolve` 가 실제로 호출된 책에만** 도달한다 —
     #   `Games::BaseController#content_gate_allows?`(§2c)가 **비활성 책은 resolve 전에 리다이렉트**
     #   시키므로, AI-부적격이고 기여/AI 콘텐츠도 없는 책은 여기 트리거가 절대 걸리지 않는다(영원히
     #   미확인으로 고착되는 것을 막기 위한 부트스트랩은 이 메서드의 책임이 아니다). 비활성 책의
-    #   Gemini 확인 부트스트랩은 ① `ReadingActivitiesController#bootstrap_book_summary`(학생이 책을
+    #   Claude 확인 부트스트랩은 ① `ReadingActivitiesController#bootstrap_book_summary`(학생이 책을
     #   선택하는 게이트 우회 지점, 온디맨드) ② `Recommendations::Importer`(신규 유입, BookEnrichmentJob
     #   미러) ③ `games:backfill_book_summaries` rake(벌크)가 담당한다. 여기 트리거는 **이미 가용한**
     #   책(고전·기여/AI 콘텐츠 보유)이 재생 중에 줄거리까지 채워지는 부가 경로일 뿐이다.

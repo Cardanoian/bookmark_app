@@ -23,7 +23,7 @@ class GamesSequelTest < ActionDispatch::IntegrationTest
     assert_equal "/games/sequel/entries/7/vote", games_sequel_vote_path(7)
   end
 
-  # ── 작성 → 목록 노출 + 게임 완료 원장 + AI 코멘트 잡 큐잉 + Gemini/Quiz 미생성 ─────
+  # ── 작성 → 목록 노출 + 게임 완료 원장 + AI 코멘트 잡 큐잉 + Claude/Quiz 미생성 ─────
   test "creating a sequel records a game_play, enqueues feedback, and lists it (no quiz/warming)" do
     login_as @student_a
 

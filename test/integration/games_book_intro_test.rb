@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 책 소개 대결(book) — 교육 다양성 5종의 소셜 도메인. 퀴즈 파이프라인 **밖**이라 Gemini/Quiz 를
+# 책 소개 대결(book) — 교육 다양성 5종의 소셜 도메인. 퀴즈 파이프라인 **밖**이라 Claude/Quiz 를
 # 만들지 않는다(assert). 소개 작성·또래 1인 1표·자기 소개 투표 불가·**크로스-학급 차단**을 검증한다.
 class GamesBookIntroTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
@@ -15,7 +15,7 @@ class GamesBookIntroTest < ActionDispatch::IntegrationTest
     @book = Book.create!(title: "소개책", author: "지은이", category: :recommended)
   end
 
-  # ── 소개 작성 → 목록 노출 + Gemini/Quiz 미생성 ─────────────────────────────
+  # ── 소개 작성 → 목록 노출 + Claude/Quiz 미생성 ─────────────────────────────
   test "creating an intro lists it on the play page without any quiz or warming job" do
     login_as @student_a
 

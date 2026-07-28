@@ -10,14 +10,14 @@ namespace :games do
     puts "Enqueued #{total} warming jobs across #{books.count} catalog books."
   end
 
-  # Gemini 줄거리 벌크 백필(Phase 4 §1d). 줄거리도 없고 Gemini 확인도 안 한 카탈로그 도서에
+  # Claude 줄거리 벌크 백필(Phase 4 §1d). 줄거리도 없고 Claude 확인도 안 한 카탈로그 도서에
   # BookSummaryJob 을 예산 하 페이싱해 큐잉한다(고전 우선). 무키면 아무것도 적재하지 않는다
   # (오프라인만 — 잡이 무키 no-op 이라 안전하지만, 무의미한 큐잉을 애초에 막는다). 잡이 멱등이라
   # 재실행 안전(이미 채워졌거나 확인한 책은 skip). 시드 아닌 운영 태스크(스케줄/수동 실행).
-  desc "Backfill Gemini-generated summaries for known catalog books (confidence-gated, no-op without a key)"
+  desc "Backfill Claude-generated summaries for known catalog books (confidence-gated, no-op without a key)"
   task backfill_book_summaries: :environment do
-    unless Ai::GeminiClient.available?
-      puts "Gemini API key not configured — no summaries backfilled (offline)."
+    unless Ai::ClaudeClient.available?
+      puts "Claude API key not configured — no summaries backfilled (offline)."
       next
     end
 
@@ -53,7 +53,7 @@ namespace :games do
     pct = ->(part, whole) { whole.to_i.zero? ? "0.0%" : format("%.1f%%", 100.0 * part / whole) }
 
     puts "== 게임 콘텐츠 건강 스냅샷 (#{Time.current.strftime('%Y-%m-%d %H:%M')}) =="
-    puts "Gemini 키: #{Ai::GeminiClient.available? ? '설정됨' : '없음(오프라인)'}"
+    puts "Claude 키: #{Ai::ClaudeClient.available? ? '설정됨' : '없음(오프라인)'}"
 
     # ① 축별 서빙 소스 분포 — ready·미신고 system 퀴즈의 quiz_questions 를 source 별 카운트.
     puts "\n[1] 축별 서빙 소스 분포 (ready·미신고 system 퀴즈 문항)"
@@ -97,7 +97,7 @@ namespace :games do
       puts "  #{axis}(system): #{count} (#{pct.call(count, total_game_plays)} of plays)"
     end
 
-    # ④ summary 커버리지 — Gemini 아는 책 / 모르는 책(확인했으나 blank) / 미확인.
+    # ④ summary 커버리지 — Claude 아는 책 / 모르는 책(확인했으나 blank) / 미확인.
     puts "\n[4] 줄거리(summary) 커버리지 (전체 도서)"
     total_books = Book.count
     has_summary = Book.where.not(summary: [ nil, "" ]).count
@@ -105,7 +105,7 @@ namespace :games do
     unchecked = Book.where(summary: [ nil, "" ], summary_checked_at: nil).count
     puts "  전체: #{total_books}"
     puts "  줄거리 있음: #{has_summary} (#{pct.call(has_summary, total_books)})"
-    puts "  Gemini 모름(확인·blank): #{checked_blank} (#{pct.call(checked_blank, total_books)})"
+    puts "  Claude 모름(확인·blank): #{checked_blank} (#{pct.call(checked_blank, total_books)})"
     puts "  미확인: #{unchecked} (#{pct.call(unchecked, total_books)})"
 
     # ⑤ 기여 현황 — QuizContribution status 별.

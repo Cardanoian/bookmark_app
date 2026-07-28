@@ -1,7 +1,7 @@
 require "test_helper"
 
 # Phase 2b §2b.1 — 콘텐츠축 캐시-우선 리졸버. 미스=오프라인 즉시(아동 무대기) + 워밍 1적재,
-# 히트=Gemini 0, N1=5표면이 mcq 를 공유해 콘텐츠 1생성, 스코프 플래그·rate limit·신고 경로.
+# 히트=Claude 0, N1=5표면이 mcq 를 공유해 콘텐츠 1생성, 스코프 플래그·rate limit·신고 경로.
 class Games::ContentProviderTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
@@ -12,7 +12,7 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
   end
 
   # 워밍 잡에 주입해 generate 호출 횟수를 세는 클라이언트(유효 mcq 응답 반환 → moderator 통과).
-  class CountingGeminiClient
+  class CountingClaudeClient
     attr_reader :calls
 
     def initialize
@@ -73,18 +73,18 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
   end
 
   # 아동 무대기: resolve 반환 시점엔 아직 어떤 generate 도 일어나지 않는다.
-  test "the child never waits — resolve returns before any Gemini generation happens" do
-    counting = CountingGeminiClient.new
+  test "the child never waits — resolve returns before any Claude generation happens" do
+    counting = CountingClaudeClient.new
     GenerateGameContentJob.draft_service_factory = -> { Ai::QuizDraftService.new(client: counting) }
 
     quiz = provider.resolve(book: @book, surface: "quiz", user: @student)
 
-    assert_equal 0, counting.calls, "resolve 는 워밍(Gemini)을 기다리지 않는다"
+    assert_equal 0, counting.calls, "resolve 는 워밍(Claude)을 기다리지 않는다"
     assert quiz.quiz_questions.any?, "이미 플레이 가능한 오프라인 문항이 채워져 있다"
   end
 
-  # ── 히트: Gemini 0, 워밍 잡 없음 ────────────────────────────────────────
-  test "HIT returns the cached row with zero Gemini work and no warming job" do
+  # ── 히트: Claude 0, 워밍 잡 없음 ────────────────────────────────────────
+  test "HIT returns the cached row with zero Claude work and no warming job" do
     first = provider.resolve(book: @book, surface: "quiz", user: @student) # 미스로 오프라인 생성
 
     assert_no_enqueued_jobs do
@@ -95,7 +95,7 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
 
   # ── N1: 같은 mcq 축 재resolve 는 콘텐츠 단 1생성(게임 재구성 Phase 1: classic 표면 제거 → quiz 만) ──
   test "N1 — repeated resolve on the mcq surface generates the mcq content only once" do
-    counting = CountingGeminiClient.new
+    counting = CountingClaudeClient.new
     GenerateGameContentJob.draft_service_factory = -> { Ai::QuizDraftService.new(client: counting) }
 
     assert_enqueued_jobs 1, only: GenerateGameContentJob do
@@ -324,7 +324,7 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
   end
 
   test "warm! degrades to nothing without an API key (offline only)" do
-    unconfigured = Games::ContentProvider.new(client: Ai::GeminiClient.new) # test 환경 = 무키
+    unconfigured = Games::ContentProvider.new(client: Ai::ClaudeClient.new) # test 환경 = 무키
     assert_no_enqueued_jobs do
       assert_equal 0, unconfigured.warm!(@book, bands: [ :g56 ], axes: [ :mcq ])
     end
@@ -338,7 +338,7 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
   end
 
   test "an assigned book is warmed to AI-backed content before the first play (no cold-first-offline)" do
-    counting = CountingGeminiClient.new
+    counting = CountingClaudeClient.new
     GenerateGameContentJob.draft_service_factory = -> { Ai::QuizDraftService.new(client: counting) }
 
     perform_enqueued_jobs do
@@ -412,7 +412,7 @@ class Games::ContentProviderTest < ActiveSupport::TestCase
 
   test "resolve enqueues no BookSummaryJob without an API key (offline only)" do
     bare = Book.create!(title: "무키책", author: "저자", category: :recommended)
-    unconfigured = Games::ContentProvider.new(client: Ai::GeminiClient.new) # test 환경 = 무키
+    unconfigured = Games::ContentProvider.new(client: Ai::ClaudeClient.new) # test 환경 = 무키
     assert_no_enqueued_jobs only: BookSummaryJob do
       unconfigured.resolve(book: bare, surface: "quiz", user: @student)
     end

@@ -48,7 +48,7 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
 
   # ── §2c 플레이 게이트: 비활성 책 직접 진입 → 리다이렉트, 오프라인 세트 미생성 ──
   # 게이트 상호작용 고정(code-review 후속 LOW): resolve 를 아예 안 부르므로 content_provider 의
-  # §1d 온디맨드 트리거(maybe_enqueue_book_summary)도 걸리지 않는다 — 비활성 책의 Gemini 확인은
+  # §1d 온디맨드 트리거(maybe_enqueue_book_summary)도 걸리지 않는다 — 비활성 책의 Claude 확인은
   # 이 경로가 아니라 reading_activities 자가치유가 담당함을 명시적으로 고정한다(아래 섹션).
   test "quiz play on an unavailable book redirects without materializing an offline quiz" do
     assert_no_difference -> { Quiz.count } do
@@ -101,9 +101,9 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
 
   # ── Phase 4 자가치유(code-review 후속 [중요]): 게이트가 resolve 를 우회시켜 §1d 온디맨드
   #    트리거가 비활성 책에 절대 도달하지 못하므로, 독서활동 화면 자체가 미확인 책을 볼 때
-  #    Gemini 확인을 직접 부트스트랩한다(무키면 큐잉 안 함, 잡은 멱등) ──
-  test "reading activity bootstraps a BookSummaryJob for an unchecked book when a Gemini key is configured" do
-    with_configured_gemini_client do
+  #    Claude 확인을 직접 부트스트랩한다(무키면 큐잉 안 함, 잡은 멱등) ──
+  test "reading activity bootstraps a BookSummaryJob for an unchecked book when a Claude key is configured" do
+    with_configured_claude_client do
       assert_enqueued_jobs 1, only: BookSummaryJob do
         get reading_activity_path(book_id: @bare.id)
       end
@@ -117,7 +117,7 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
   end
 
   test "reading activity does not bootstrap a BookSummaryJob for a book that already has a summary" do
-    with_configured_gemini_client do
+    with_configured_claude_client do
       assert_no_enqueued_jobs only: BookSummaryJob do
         get reading_activity_path(book_id: @available.id) # summary 보유 → 이미 확인된 셈
       end
@@ -126,8 +126,8 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
 
   test "reading activity does not re-bootstrap a BookSummaryJob for an already-checked unknown book" do
     checked = Book.create!(title: "이미확인된책", author: "무명", category: :recommended,
-                           summary_checked_at: Time.current) # Gemini 가 모른다고 이미 확인함
-    with_configured_gemini_client do
+                           summary_checked_at: Time.current) # Claude 가 모른다고 이미 확인함
+    with_configured_claude_client do
       assert_no_enqueued_jobs only: BookSummaryJob do
         get reading_activity_path(book_id: checked.id)
       end
@@ -136,14 +136,14 @@ class GamesContentGateTest < ActionDispatch::IntegrationTest
 
   private
 
-  # Ai::GeminiClient.new 을 configured?=true 로 임시 교체한다(Minitest 6 은 minitest/mock 미제공 —
+  # Ai::ClaudeClient.new 을 configured?=true 로 임시 교체한다(Minitest 6 은 minitest/mock 미제공 —
   # book_summary_job_test.rb 의 run_with_key 선례와 동일 패턴).
-  def with_configured_gemini_client
+  def with_configured_claude_client
     configured = Object.new
     def configured.configured? = true
-    Ai::GeminiClient.define_singleton_method(:new) { |*, **| configured }
+    Ai::ClaudeClient.define_singleton_method(:new) { |*, **| configured }
     yield
   ensure
-    Ai::GeminiClient.singleton_class.send(:remove_method, :new)
+    Ai::ClaudeClient.singleton_class.send(:remove_method, :new)
   end
 end

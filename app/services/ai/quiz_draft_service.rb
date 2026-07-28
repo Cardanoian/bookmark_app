@@ -1,5 +1,5 @@
 module Ai
-  # 도서 기반 독서 게임 콘텐츠 생성(P5.6 → Phase 2a 확장). 키가 있으면 Gemini 경로,
+  # 도서 기반 독서 게임 콘텐츠 생성(P5.6 → Phase 2a 확장). 키가 있으면 Claude 경로,
   # 없거나 실패하면 book.summary/title 파생 **결정적** 오프라인 세트로 폴백한다(무중단).
   #
   # 두 진입점:
@@ -33,7 +33,7 @@ module Ai
     # 보장한다(§2b 검증 후속 [LOW/edge]).
     GENERIC_FILLER_DISTRACTORS = [ "잘 모르겠어요", "이 책과 관련이 없어요", "알 수 없어요", "관계없는 내용이에요" ].freeze
 
-    def initialize(client: GeminiClient.new)
+    def initialize(client: ClaudeClient.new)
       @client = client
     end
 
@@ -47,7 +47,7 @@ module Ai
         response_json: true
       )
       normalize_legacy(response)
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       offline_mcq(book, band, count)
     end
 
@@ -63,7 +63,7 @@ module Ai
         response_json: true
       )
       normalize(response, axis, band)
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       offline_set(book, band, axis)
     end
 

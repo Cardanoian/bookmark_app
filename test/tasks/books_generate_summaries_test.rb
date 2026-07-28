@@ -3,8 +3,8 @@ require "rake"
 require "tempfile"
 require "yaml"
 
-# books:generate_summaries 검증(Gemini 줄거리 생성 → YAML+DB 기록). 스텁 GeminiClient/BookSummaryService
-# (book_summary_job_test 의 stub_new 선례)로 실제 Gemini 호출 없이: 무키→skip, known→YAML+DB, 모름→
+# books:generate_summaries 검증(Claude 줄거리 생성 → YAML+DB 기록). 스텁 ClaudeClient/BookSummaryService
+# (book_summary_job_test 의 stub_new 선례)로 실제 Claude 호출 없이: 무키→skip, known→YAML+DB, 모름→
 # checked_at 만·YAML 미포함, YAML 이미 포함분 skip, limit 준수, 동기(perform_now) 처리를 검증한다.
 class BooksGenerateSummariesTest < ActiveSupport::TestCase
   setup do
@@ -29,7 +29,7 @@ class BooksGenerateSummariesTest < ActiveSupport::TestCase
     YAML.safe_load_file(@yml.path, aliases: false) || {}
   end
 
-  # ── 무키: 생성 skip(test_helper 가 Gemini 키 공란 강제 → available? false) ──
+  # ── 무키: 생성 skip(test_helper 가 Claude 키 공란 강제 → available? false) ──
   test "with no API key it skips generation without touching the DB" do
     book = Book.create!(title: "무키책", isbn: TestBookIsbn.next, category: :classic)
 
@@ -94,17 +94,17 @@ class BooksGenerateSummariesTest < ActiveSupport::TestCase
     end
   end
 
-  # GeminiClient.new 을 configured?=true 로, BookSummaryService.new 을 스텁으로 임시 교체한다
+  # ClaudeClient.new 을 configured?=true 로, BookSummaryService.new 을 스텁으로 임시 교체한다
   # (Minitest 6 은 minitest/mock 미제공 — book_summary_job_test 의 stub_new 선례). BookSummaryJob
-  # 내부(GeminiClient.new.configured? + BookSummaryService.new.call)와 available? 를 모두 커버한다.
+  # 내부(ClaudeClient.new.configured? + BookSummaryService.new.call)와 available? 를 모두 커버한다.
   def with_stub
     configured = Object.new
     def configured.configured? = true
-    Ai::GeminiClient.define_singleton_method(:new) { |*, **| configured }
+    Ai::ClaudeClient.define_singleton_method(:new) { |*, **| configured }
     Ai::BookSummaryService.define_singleton_method(:new) { |*, **| StubService.new }
     yield
   ensure
-    Ai::GeminiClient.singleton_class.send(:remove_method, :new)
+    Ai::ClaudeClient.singleton_class.send(:remove_method, :new)
     Ai::BookSummaryService.singleton_class.send(:remove_method, :new)
   end
 end

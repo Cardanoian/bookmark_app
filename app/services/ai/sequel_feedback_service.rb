@@ -1,5 +1,5 @@
 module Ai
-  # 뒷이야기 이어쓰기 격려 코멘트(review_service 미러, 훨씬 가벼움). 키가 있으면 Gemini 경로,
+  # 뒷이야기 이어쓰기 격려 코멘트(review_service 미러, 훨씬 가벼움). 키가 있으면 Claude 경로,
   # 없거나 실패하면 규칙기반 폴백으로 항상 유효한 코멘트 문자열을 반환한다(무중단).
   #
   # 정직한 AI 사용: 평가 대상은 "책"이 아니라 프롬프트에 든 "학생이 쓴 뒷이야기 글"이라 환각이 없다
@@ -20,14 +20,14 @@ module Ai
       반드시 JSON 으로만 답한다: {"comment": "<격려 코멘트>"}
     PROMPT
 
-    def initialize(client: GeminiClient.new, fallback: RuleBasedSequelFeedback.new)
+    def initialize(client: ClaudeClient.new, fallback: RuleBasedSequelFeedback.new)
       @client = client
       @fallback = fallback
     end
 
     # 반환: 격려형 코멘트 문자열(항상 유효). 무키/실패/스키마이탈 시 규칙기반 폴백.
     def call(sequel)
-      return fallback_comment(sequel) unless Ai::ConsentGate.gemini_allowed?(sequel.user, client: @client)
+      return fallback_comment(sequel) unless Ai::ConsentGate.llm_allowed?(sequel.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(sequel),
@@ -35,7 +35,7 @@ module Ai
         response_json: true
       )
       normalize(response)
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       fallback_comment(sequel)
     end
 

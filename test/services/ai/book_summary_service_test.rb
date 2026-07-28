@@ -1,6 +1,6 @@
 require "test_helper"
 
-# Gemini 줄거리 생성(게임 재구성 Phase 4 §1b). 무키·모름·저확신·스키마이탈이면 nil(저장 안 함),
+# Claude 줄거리 생성(게임 재구성 Phase 4 §1b). 무키·모름·저확신·스키마이탈이면 nil(저장 안 함),
 # known+고확신일 때만 줄거리 문자열. 정직화: 기존 summary 를 프롬프트에 넣지 않는 독립 인식 테스트.
 class Ai::BookSummaryServiceTest < ActiveSupport::TestCase
   setup do
@@ -54,7 +54,7 @@ class Ai::BookSummaryServiceTest < ActiveSupport::TestCase
   end
 
   test "returns nil on ApiError (fallback, no crash)" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("boom"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("boom"))
     assert_nil Ai::BookSummaryService.new(client: client).call(@book)
   end
 

@@ -1,9 +1,12 @@
 # 전역 시스템 설정(P7.4). key 로 조회하는 단일 진실. value 는 JSON.
 # API 키·시크릿류는 절대 저장하지 않는다(credentials/ENV 전용) — 모델 레벨 가드.
 class AppSetting < ApplicationRecord
-  # 저장 금지 키 패턴: gemini/kakao/naver/data4library 를 포함하거나
+  # 저장 금지 키 패턴: anthropic/claude/gemini/kakao/naver/data4library 를 포함하거나
   # *_api_key / *_key / *_secret / *_token 으로 끝나는 이름(대소문자 무시).
-  SENSITIVE_NAME = /(gemini|kakao|naver|data4library)/i
+  # gemini 는 AI 제공자를 Claude 로 옮긴 뒤에도 남긴다 — 이 목록은 "현재 쓰는 제공자"가 아니라
+  # "DB 에 새어 들어오면 안 되는 이름"의 집합이고, 옛 키 이름으로 저장을 시도하는 경로(문서·
+  # 스크립트·운영자 습관)가 남아 있을 수 있어 좁히면 방어만 약해진다.
+  SENSITIVE_NAME = /(anthropic|claude|gemini|kakao|naver|data4library)/i
   SENSITIVE_SUFFIX = /(_api_key|_key|_secret|_token)\z/i
 
   validates :key, presence: true, uniqueness: true

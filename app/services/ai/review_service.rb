@@ -1,11 +1,11 @@
 module Ai
-  # 5축 발전적 첨삭. 키가 있으면 Gemini(LLM) 경로, 없거나 실패하면 규칙기반
+  # 5축 발전적 첨삭. 키가 있으면 Claude(LLM) 경로, 없거나 실패하면 규칙기반
   # 폴백으로 항상 유효한 리뷰 해시를 반환한다(무중단).
   class ReviewService
     # LLM 응답이 스키마를 벗어났을 때 → 폴백 신호.
     class InvalidResponse < StandardError; end
 
-    def initialize(client: GeminiClient.new, fallback: RuleBasedReview.new)
+    def initialize(client: ClaudeClient.new, fallback: RuleBasedReview.new)
       @client = client
       @fallback = fallback
     end
@@ -14,7 +14,7 @@ module Ai
     # 학생 학급 학년으로 학년군(band)을 판별해 눈높이별 프롬프트/폴백을 태운다.
     def call(report)
       band = report.grade_band_key
-      return fallback_review(report, band) unless Ai::ConsentGate.gemini_allowed?(report.user, client: @client)
+      return fallback_review(report, band) unless Ai::ConsentGate.llm_allowed?(report.user, client: @client)
 
       response = @client.generate(
         contents: build_contents(report),
@@ -22,7 +22,7 @@ module Ai
         response_json: true
       )
       normalize(response)
-    rescue GeminiClient::NotConfigured, GeminiClient::ApiError, InvalidResponse
+    rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       fallback_review(report, band)
     end
 

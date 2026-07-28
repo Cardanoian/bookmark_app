@@ -11,17 +11,17 @@ namespace :books do
     ENV["BOOKS_TSV"].presence || Rails.root.join("db/seeds/elementary_books.tsv").to_s
   end
 
-  # ── Gemini 줄거리 YAML 시드(db/seeds/book_summaries.yml) 공용 유틸 ─────────────────
-  # 이 YAML 은 BookSummaryJob 이 세팅한 **Gemini 생성 요약만**(summary_checked_at present) 담는
+  # ── Claude 줄거리 YAML 시드(db/seeds/book_summaries.yml) 공용 유틸 ─────────────────
+  # 이 YAML 은 BookSummaryJob 이 세팅한 **Claude 생성 요약만**(summary_checked_at present) 담는
   # 시드 자산이다. 무키 배포도 books:seed_summaries 로 이 텍스트를 주입해 접지 요약을 확보한다.
   # 네이버 blurb(summary 있음·checked_at nil)는 별개라 담지 않는다(부호 구분 = summary_checked_at).
   # 테스트는 ENV["BOOK_SUMMARIES_YML"] 로 경로를 주입한다.
   # (상수 대신 메서드로 둔다 — 테스트가 load_tasks 를 반복 호출해도 상수 재초기화 경고가 없게.)
   def book_summaries_header
     <<~HEADER
-      # 자동 생성 파일 — Gemini(gemini-2.5-flash)가 만든 도서 줄거리 시드 자산입니다.
-      #   내보내기(부트스트랩): bin/rails books:export_summaries       (무키·무네트워크, 현재 DB의 Gemini 요약 export)
-      #   갱신: bin/rails books:generate_summaries[limit]             (Gemini 키 필요·네트워크·동기)
+      # 자동 생성 파일 — Claude(claude-haiku-4-5)가 만든 도서 줄거리 시드 자산입니다.
+      #   내보내기(부트스트랩): bin/rails books:export_summaries       (무키·무네트워크, 현재 DB의 Claude 요약 export)
+      #   갱신: bin/rails books:generate_summaries[limit]             (Claude 키 필요·네트워크·동기)
       #   로드: bin/rails books:seed_summaries                        (무키·무네트워크·멱등)
       # 수동 편집을 지양하세요. 키 = 정규화 ISBN-13(13자리 문자열) → { title, summary }.
     HEADER
@@ -48,9 +48,9 @@ namespace :books do
     File.write(book_summaries_yml_path, book_summaries_header + YAML.dump(sorted))
   end
 
-  # 현재 DB 의 Gemini 생성 요약(summary_checked_at present·summary 존재)을 기존 YAML 에 병합해 쓴다.
+  # 현재 DB 의 Claude 생성 요약(summary_checked_at present·summary 존재)을 기존 YAML 에 병합해 쓴다.
   # 네이버 blurb(checked_at nil)는 제외한다. 부트스트랩·crash-safe 재수출의 단일 로직.
-  def export_gemini_summaries
+  def export_claude_summaries
     data = read_book_summaries
     Book.where.not(summary_checked_at: nil).where.not(summary: [ nil, "" ])
         .order(:isbn).find_each do |book|
@@ -201,19 +201,19 @@ namespace :books do
     abort "books:deduplicate_isbn completed with errors" if result.error_count.positive?
   end
 
-  # 부트스트랩·재수출(Phase 4 후속): 현재 DB 의 Gemini 생성 요약을 db/seeds/book_summaries.yml 로
+  # 부트스트랩·재수출(Phase 4 후속): 현재 DB 의 Claude 생성 요약을 db/seeds/book_summaries.yml 로
   # 내보낸다. 무키·무네트워크(DB 읽고 YAML 쓰기만)라 언제든 안전하게 실행 가능하며, generate_summaries
   # 의 crash-safe 재기록과 동일한 export 로직을 단독 실행한다(초기 파일 부트스트랩 담당).
-  desc "Export DB Gemini-generated summaries (summary_checked_at present) to db/seeds/book_summaries.yml (offline)"
+  desc "Export DB Claude-generated summaries (summary_checked_at present) to db/seeds/book_summaries.yml (offline)"
   task export_summaries: :environment do
-    data = export_gemini_summaries
+    data = export_claude_summaries
     puts "books:export_summaries — wrote #{data.size} summaries to #{book_summaries_yml_path}."
   end
 
-  # 저장된 Gemini 요약을 매칭 도서에 주입한다. **summary 가 blank 인 책만** summary+summary_checked_at
+  # 저장된 Claude 요약을 매칭 도서에 주입한다. **summary 가 blank 인 책만** summary+summary_checked_at
   # 을 세팅(checked_at 을 함께 세팅해 게이트가 "확인·앎"으로 인식, 재확인 안 하게). 순수 로컬·무네트워크
-  # ·멱등(Gemini 호출 0). YAML 없음/빈 경우 0건 처리, ISBN 매칭 안 되는 항목은 skip(로그). db:seed 배선.
-  desc "Load stored Gemini summaries from db/seeds/book_summaries.yml into matching books (offline, idempotent, no network)"
+  # ·멱등(Claude 호출 0). YAML 없음/빈 경우 0건 처리, ISBN 매칭 안 되는 항목은 skip(로그). db:seed 배선.
+  desc "Load stored Claude summaries from db/seeds/book_summaries.yml into matching books (offline, idempotent, no network)"
   task seed_summaries: :environment do
     data = read_book_summaries
     if data.empty?
@@ -298,14 +298,14 @@ namespace :books do
   end
 
   # 카탈로그 도서(classic/recommended) 중 ① summary blank ② summary_checked_at nil ③ YAML 미포함 ISBN
-  # 인 책에 대해 limit 개(+ 일일 예산)만큼 Gemini 요약을 **동기 생성**하고 YAML 을 갱신한다. 무키면 skip.
+  # 인 책에 대해 limit 개(+ 일일 예산)만큼 Claude 요약을 **동기 생성**하고 YAML 을 갱신한다. 무키면 skip.
   # ⚠️ dev 큐 어댑터(async)에서 perform_later 는 프로세스 종료 시 유실되므로 반드시 perform_now(동기)로
-  # 이 프로세스 안에서 Gemini 호출·DB 반영을 완결한다. 각 known 직후 YAML rewrite(crash-safe). 네트워크
+  # 이 프로세스 안에서 Claude 호출·DB 반영을 완결한다. 각 known 직후 YAML rewrite(crash-safe). 네트워크
   # 는 이 태스크에서만 발생(seed_summaries·앱 런타임은 무네트워크). 시드 아닌 운영 태스크(수동 실행).
-  desc "Generate Gemini summaries for catalog books lacking them and persist to YAML (networked, synchronous; no-op without a key)"
+  desc "Generate Claude summaries for catalog books lacking them and persist to YAML (networked, synchronous; no-op without a key)"
   task :generate_summaries, [ :limit ] => :environment do |_task, args|
-    unless Ai::GeminiClient.available?
-      puts "books:generate_summaries — Gemini API key not configured; skipping generation (no network)."
+    unless Ai::ClaudeClient.available?
+      puts "books:generate_summaries — Claude API key not configured; skipping generation (no network)."
       next
     end
 

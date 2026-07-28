@@ -1,6 +1,6 @@
 # NEIS 생기부 자동요약(P6.4). 학교 소속 학생 1명을 선택하면 그 학생의 독후감에서
 # 독서활동상황 생기부 문장을 오프라인 템플릿으로 생성한다(API 키 불필요, 복사 사용).
-# Ai::GeminiClient.available? 이면 향상 여지가 있으나 현재 기본은 오프라인 템플릿.
+# Ai::ClaudeClient.available? 이면 향상 여지가 있으나 현재 기본은 오프라인 템플릿.
 class SchoolAdmin::NeisController < SchoolAdmin::BaseController
   def index
     @school = current_school

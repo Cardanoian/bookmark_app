@@ -1,8 +1,8 @@
 # Resend 발송 설정의 단일 진실(키·발신주소·가용성·실패 분류).
 #
 # 키 소스는 리포 규약을 그대로 따른다 — **ENV 우선, 없으면 credentials 폴백**
-# (`docs/API_KEYS.md` §1.1, 선례: `Ai::GeminiClient` · `Books::SearchService`).
-# 판정 술어 `available?` 도 같은 선례를 미러한다(`Ai::GeminiClient.available?`).
+# (`docs/API_KEYS.md` §1.1, 선례: `Ai::ClaudeClient` · `Books::SearchService`).
+# 판정 술어 `available?` 도 같은 선례를 미러한다(`Ai::ClaudeClient.available?`).
 #
 # `available?` 는 단순한 키 존재 판정을 넘어 **이메일 인증 게이트의 마스터 스위치**다
 # (`User#email_verification_gate_active?`). 키가 없는 개발·CI·오프라인 시연에서는 게이트가

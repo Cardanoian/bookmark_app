@@ -1,8 +1,8 @@
 require "test_helper"
 
 # 요구 1b — 사진으로 쓰기 전 자가점검 가이드(_photo_guide). 가이드 삽입이 기존 OCR 제출 폼을
-# 깨뜨리지 않는지(회귀 없음) 함께 검증한다. Gemini 키가 없으면 사진 단계 자체가 모드 선택에서
-# 비활성 카드로 막히므로(ocr_test.rb 관례), 두 테스트 모두 with_gemini_available 로 스텁한다.
+# 깨뜨리지 않는지(회귀 없음) 함께 검증한다. Claude 키가 없으면 사진 단계 자체가 모드 선택에서
+# 비활성 카드로 막히므로(ocr_test.rb 관례), 두 테스트 모두 with_claude_available 로 스텁한다.
 class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
@@ -17,7 +17,7 @@ class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
   test "사진으로 쓰기 화면에 자가점검 가이드가 렌더된다" do
     login_as @student
 
-    with_gemini_available do
+    with_claude_available do
       get new_report_path(input_mode: :ocr, report: { book_id: @book.id })
     end
     assert_response :success
@@ -41,7 +41,7 @@ class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
   test "가이드가 삽입돼도 OCR 사진 제출은 그대로 동작한다(회귀 없음)" do
     login_as @student
 
-    with_gemini_available do
+    with_claude_available do
       assert_enqueued_with(job: OcrJob) do
         post ocr_path, params: { ocr: { book_id: @book.id, photo: uploaded_photo } }
       end
@@ -59,11 +59,11 @@ class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
   end
 
   # Minitest 6 에는 minitest/mock 이 없다. 원본 메서드를 보관했다가 복원한다(ocr_test.rb 관례).
-  def with_gemini_available
-    original = Ai::GeminiClient.method(:available?)
-    Ai::GeminiClient.define_singleton_method(:available?) { true }
+  def with_claude_available
+    original = Ai::ClaudeClient.method(:available?)
+    Ai::ClaudeClient.define_singleton_method(:available?) { true }
     yield
   ensure
-    Ai::GeminiClient.define_singleton_method(:available?, original)
+    Ai::ClaudeClient.define_singleton_method(:available?, original)
   end
 end

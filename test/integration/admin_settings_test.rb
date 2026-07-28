@@ -44,9 +44,9 @@ class AdminSettingsTest < ActionDispatch::IntegrationTest
   end
 
   test "an API-key-like custom setting is NOT persisted" do
-    patch admin_settings_path, params: { setting_key: "gemini_api_key", setting_value: "leaked-secret" }
-    assert_nil AppSetting.find_by(key: "gemini_api_key")
-    assert_nil AppSetting.get("gemini_api_key")
+    patch admin_settings_path, params: { setting_key: "claude_api_key", setting_value: "leaked-secret" }
+    assert_nil AppSetting.find_by(key: "claude_api_key")
+    assert_nil AppSetting.get("claude_api_key")
   end
 
   test "an API-key-like name nested in feature_flags is scrubbed" do

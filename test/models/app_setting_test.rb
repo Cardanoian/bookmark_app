@@ -65,8 +65,8 @@ class AppSettingTest < ActiveSupport::TestCase
 
   # 이름 자체가 서비스명/키 접미사면 민감 키로 판정한다(대소문자·공백 무시).
   test "sensitive_key? flags provider names and key/secret/token suffixes" do
-    %w[gemini_api_key NAVER_CLIENT_SECRET data4library kakao_key session_token
-       Gemini api_secret].each do |name|
+    %w[claude_api_key NAVER_CLIENT_SECRET data4library kakao_key session_token
+       Claude api_secret].each do |name|
       assert AppSetting.sensitive_key?(name), "#{name} 는 민감 키로 차단돼야 한다"
     end
   end
@@ -80,7 +80,7 @@ class AppSettingTest < ActiveSupport::TestCase
 
   # 모델 검증: 민감 키로 저장 시도 → invalid(모델 레벨 가드).
   test "a sensitive key fails validation and is not persisted" do
-    setting = AppSetting.new(key: "gemini_api_key", value: "leak")
+    setting = AppSetting.new(key: "claude_api_key", value: "leak")
     assert_not setting.valid?
     assert setting.errors[:key].any?
     assert_not AppSetting.new(key: "openai_secret", value: "x").valid?

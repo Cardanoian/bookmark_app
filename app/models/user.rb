@@ -120,8 +120,8 @@ class User < ApplicationRecord
   end
 
   # AI 활용 동의(P1-1, fail-closed). §1 개인정보 필수동의(privacy_consent_at)와 §2 AI 동의(ai_consent)가
-  # 모두 있어야 학생 데이터를 외부 AI(Gemini)로 보낸다. 비학생·미기록은 false → 규칙기반 폴백.
-  # `Ai::ConsentGate.gemini_allowed?` 가 이 술어로 첨삭·진위·뒷이야기·OCR 경로를 게이팅한다.
+  # 모두 있어야 학생 데이터를 외부 AI(Claude)로 보낸다. 비학생·미기록은 false → 규칙기반 폴백.
+  # `Ai::ConsentGate.llm_allowed?` 가 이 술어로 첨삭·진위·뒷이야기·OCR 경로를 게이팅한다.
   def ai_consented?
     student? && ai_consent? && privacy_consent_at.present?
   end

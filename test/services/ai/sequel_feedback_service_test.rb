@@ -40,7 +40,7 @@ class Ai::SequelFeedbackServiceTest < ActiveSupport::TestCase
     assert comment.present?
   end
 
-  test "falls back without calling Gemini for an author without AI consent (P1-1)" do
+  test "falls back without calling Claude for an author without AI consent (P1-1)" do
     non_consenting = User.create!(school: @school, classroom: @classroom, name: "미동의코멘트학생", password: "password")
     sequel = BookSequel.create!(user: non_consenting, book: @book, classroom: @classroom,
                                 body: "새로운 세계로 떠나는 뒷이야기를 상상했어요.")
@@ -50,12 +50,12 @@ class Ai::SequelFeedbackServiceTest < ActiveSupport::TestCase
 
     comment = Ai::SequelFeedbackService.new(client: client).call(sequel)
 
-    assert_not called, "미동의 학생 창작글은 Gemini 로 보내지 않는다"
+    assert_not called, "미동의 학생 창작글은 Claude 로 보내지 않는다"
     assert comment.present?
   end
 
   test "falls back on ApiError" do
-    client = StubClient.new(configured: true, error: Ai::GeminiClient::ApiError.new("boom"))
+    client = StubClient.new(configured: true, error: Ai::ClaudeClient::ApiError.new("boom"))
     assert Ai::SequelFeedbackService.new(client: client).call(@sequel).present?
   end
 

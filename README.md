@@ -7,7 +7,7 @@
 학생·담임교사·교무관리자·사서·총괄관리자까지 **5개 역할**의 학교 현장 운영을 하나의 앱으로 지원합니다.
 
 - **상태**: 구현 Phase 0~8 완료 · 테스트 1,441 runs / 0 failures · RuboCop(omakase) 무경고 · Brakeman 0
-- **외부 연동**: Gemini · 네이버 도서검색 · 정보나루 4종 실연동 검증 완료 (키 없이도 폴백으로 완전 동작)
+- **외부 연동**: Claude · 네이버 도서검색 · 정보나루 4종 실연동 검증 완료 (키 없이도 폴백으로 완전 동작)
 
 ---
 
@@ -27,8 +27,8 @@
 ## 핵심 기능
 
 ### ✍️ 독후감 & AI 5축 첨삭 (핵심 가치)
-- **다양한 입력 모드** — 직접 타이핑, **손글씨 사진 → OCR 자동 변환**(Gemini Vision), 음성(STT)·원고지·낭독 녹음 등 접근성(UDL) 입력.
-- **AI 5축 첨삭** — Gemini가 **내용·감상·삶(과 연결)·구성·맞춤법** 5개 축으로 평가하고 **5축 방사형(radar) 차트**로 시각화. "점수 매기기"가 아닌 **발전적 첨삭**이 설계 철학.
+- **다양한 입력 모드** — 직접 타이핑, **손글씨 사진 → OCR 자동 변환**(Claude Vision), 음성(STT)·원고지·낭독 녹음 등 접근성(UDL) 입력.
+- **AI 5축 첨삭** — Claude가 **내용·감상·삶(과 연결)·구성·맞춤법** 5개 축으로 평가하고 **5축 방사형(radar) 차트**로 시각화. "점수 매기기"가 아닌 **발전적 첨삭**이 설계 철학.
 - **고쳐쓰기 & 우수작 공유** — 첨삭을 반영해 다시 쓰고, 잘 쓴 글은 게시판에 공유.
 - **AI 진위 확인** — 실제 독서 기반 글인지 보조 판별(suspicion/reasons)로 교사가 확인.
 - **무중단 폴백** — AI 호출 실패 시 규칙 기반 첨삭·로컬 캐시로 자동 전환.
@@ -64,7 +64,7 @@
 | 인가 | Pundit (역할·학교 경계 격리) |
 | 인증 | `has_secure_password` (bcrypt) |
 | 외부 HTTP | Faraday (+ faraday-retry) |
-| AI | Google Gemini (5축 첨삭 · 퀴즈 생성 · 진위 확인 · OCR) |
+| AI | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 진위 확인 · OCR) |
 | 배포 | Docker · Kamal 2 · Thruster (DigitalOcean 대상) |
 | 품질 | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit |
 
@@ -136,7 +136,7 @@ bin/rails quizzes:seed     # 샘플 퀴즈
 
 | credentials 키 | 발급처 | 켜지는 기능 | 폴백 |
 |---|---|---|---|
-| `gemini.api_key` | Google AI Studio | OCR · 5축 첨삭 · 진위 확인 · 퀴즈 생성 | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
+| `claude.api_key` | Google AI Studio | OCR · 5축 첨삭 · 진위 확인 · 퀴즈 생성 | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
 | `naver.client_id` · `naver.client_secret` | Naver Developers | 도서 검색(단독 제공자) | 로컬 카탈로그 LIKE 검색 |
 | `data4library.api_key` | 정보나루 | 인기대출 동기화 | CSV 업로드 |
 | `neis.api_key` | NEIS 교육정보 개방포털 | 학교 스냅샷 갱신(`schools:fetch`) | 커밋된 CSV 오프라인 시드 |
@@ -147,7 +147,7 @@ EDITOR="vim" bin/rails credentials:edit
 
 # 인식 여부 확인
 bin/rails runner '
-  puts "Gemini  : #{Ai::GeminiClient.available?}"
+  puts "Claude  : #{Ai::ClaudeClient.available?}"
   puts "도서검색 : #{Books::SearchService.new.available?}"
   puts "정보나루 : #{Library::Data4libraryService.available?}"
 '
@@ -226,7 +226,7 @@ kamal app exec -i 'bin/rails runner "d = Book.where.not(isbn: [nil, %q()]).group
 app/
   controllers/   역할별 네임스페이스 (teacher · librarian · school_admin · admin · games)
   models/        report · book · monster_species · user_monster · quiz · badge · school ...
-  services/      ai/ (gemini_client · ocr · review · verify · quiz_draft)
+  services/      ai/ (claude_client · ocr · review · verify · quiz_draft)
                  books/ · library/ · monster_acquisition · ranking_board · reading_stats
   jobs/          ai_review_job · ocr_job (백그라운드 첨삭·OCR)
 db/seeds/        monsters.yml (24라인 72폼)

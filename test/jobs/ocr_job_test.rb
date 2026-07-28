@@ -44,8 +44,8 @@ class OcrJobTest < ActiveJob::TestCase
     assert @report.reload.failed?
   end
 
-  test "marks the report failed (not stuck pending) when OcrService raises a Gemini API error" do
-    stub_new(Ai::OcrService, RaisingStub.new(Ai::GeminiClient::ApiError.new("gemini boom"))) do
+  test "marks the report failed (not stuck pending) when OcrService raises a Claude API error" do
+    stub_new(Ai::OcrService, RaisingStub.new(Ai::ClaudeClient::ApiError.new("claude boom"))) do
       OcrJob.perform_now(@report)
     end
 
@@ -62,7 +62,7 @@ class OcrJobTest < ActiveJob::TestCase
     assert @report.done?
   end
 
-  test "does not run OCR (no Gemini call) for a student without AI consent (P1-1)" do
+  test "does not run OCR (no Claude call) for a student without AI consent (P1-1)" do
     student = User.create!(school: @school, classroom: @classroom, name: "미동의OCR학생", password: "password")
     report = Report.create!(user: student, classroom: @classroom, book_title: "책", input_mode: :ocr)
     report.photo.attach(io: StringIO.new("fake"), filename: "hw.png", content_type: "image/png")

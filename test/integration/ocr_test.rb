@@ -12,7 +12,7 @@ class OcrTest < ActionDispatch::IntegrationTest
 
   # P3.5 — 키 없음: 모드 선택 화면에서 사진 카드 비활성 + 서버에서 OCR 거부.
   # 모드 선택은 책을 고른 뒤(책 → 모드 순서) 도달하므로 book_title 을 실어 진입한다.
-  test "the photo card is disabled and OCR is refused when the Gemini key is blank" do
+  test "the photo card is disabled and OCR is refused when the Claude key is blank" do
     login_as @student
 
     get new_report_path(report: { book_title: "책" })
@@ -31,7 +31,7 @@ class OcrTest < ActionDispatch::IntegrationTest
   test "OCR enqueues a job and redirects to the compose screen when the key is available" do
     login_as @student
 
-    with_gemini_available do
+    with_claude_available do
       assert_enqueued_with(job: OcrJob) do
         post ocr_path, params: { ocr: { book_title: "책", photo: uploaded_photo } }
       end
@@ -49,11 +49,11 @@ class OcrTest < ActionDispatch::IntegrationTest
   end
 
   # Minitest 6 에는 minitest/mock 이 없다. 원본 메서드를 보관했다가 복원한다.
-  def with_gemini_available
-    original = Ai::GeminiClient.method(:available?)
-    Ai::GeminiClient.define_singleton_method(:available?) { true }
+  def with_claude_available
+    original = Ai::ClaudeClient.method(:available?)
+    Ai::ClaudeClient.define_singleton_method(:available?) { true }
     yield
   ensure
-    Ai::GeminiClient.define_singleton_method(:available?, original)
+    Ai::ClaudeClient.define_singleton_method(:available?, original)
   end
 end

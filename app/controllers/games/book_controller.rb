@@ -1,9 +1,9 @@
 module Games
-  # 책 소개 대결(교육 다양성 5종 중 소셜 도메인). 퀴즈 파이프라인 **밖** — Gemini/Quiz 를 만들지 않는다.
+  # 책 소개 대결(교육 다양성 5종 중 소셜 도메인). 퀴즈 파이프라인 **밖** — Claude/Quiz 를 만들지 않는다.
   # 도서별로 학생이 소개 글을 쓰고 또래가 투표한다. 경계=학급(BookIntroPolicy 가 크로스-학급 차단).
   # AI 작성 스캐폴딩은 **정적 상수(WRITING_TIPS)** 뿐이라 문항 생성 호출이 전혀 없다(무비용).
   class BookController < BaseController
-    # 소개 작성을 돕는 정적 가이드(Gemini 호출 0 — 상수). 표현용.
+    # 소개 작성을 돕는 정적 가이드(Claude 호출 0 — 상수). 표현용.
     WRITING_TIPS = [
       "주인공은 누구이고, 어떤 인물인가요?",
       "가장 기억에 남는 장면과 그 까닭을 적어 보세요.",
@@ -18,7 +18,7 @@ module Games
       load_intros
     end
 
-    # create — 본인·학급으로 소개 작성. Gemini/Quiz 미생성.
+    # create — 본인·학급으로 소개 작성. Claude/Quiz 미생성.
     def create
       attrs = intro_params # require(:book_intro) — 없으면 400(malformed 방어)
       @book = Book.find(attrs[:book_id])

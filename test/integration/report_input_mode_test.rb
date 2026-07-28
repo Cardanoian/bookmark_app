@@ -45,7 +45,7 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
   test "choosing a book renders the mode chooser carrying the book forward" do
     login_as @student
 
-    with_gemini_available do
+    with_claude_available do
       get new_report_path(report: { book_title: @book.title })
     end
     assert_response :success
@@ -93,7 +93,7 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
   test "ocr mode renders the photo capture screen with book autocomplete" do
     login_as @student
 
-    with_gemini_available do
+    with_claude_available do
       get new_report_path(input_mode: :ocr, report: { book_id: @book.id })
     end
     assert_response :success
@@ -110,7 +110,7 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     login_as @student
 
     # 원격 책: book_id 없음 + remote_isbn + book_title → title_value fallback 으로 제목 프리필.
-    with_gemini_available do
+    with_claude_available do
       get new_report_path(input_mode: :ocr,
         report: { book_title: "원격으로 고른 책", remote_isbn: "9791234567896" })
     end
@@ -118,7 +118,7 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_select "input[name='ocr[book_title]'][value=?]", "원격으로 고른 책", 1
 
     # 로컬 책: book_id → selected_book(report.book) 이 제목을 프리필(원격 title_value 보다 우선).
-    with_gemini_available do
+    with_claude_available do
       get new_report_path(input_mode: :ocr, report: { book_id: @book.id })
     end
     assert_response :success
@@ -177,11 +177,11 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
   private
 
   # Minitest 6 에는 minitest/mock 이 없다. 원본 메서드를 보관했다가 복원한다(ocr_test.rb 관례).
-  def with_gemini_available
-    original = Ai::GeminiClient.method(:available?)
-    Ai::GeminiClient.define_singleton_method(:available?) { true }
+  def with_claude_available
+    original = Ai::ClaudeClient.method(:available?)
+    Ai::ClaudeClient.define_singleton_method(:available?) { true }
     yield
   ensure
-    Ai::GeminiClient.define_singleton_method(:available?, original)
+    Ai::ClaudeClient.define_singleton_method(:available?, original)
   end
 end
