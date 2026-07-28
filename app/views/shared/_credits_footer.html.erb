@@ -1,0 +1,46 @@
+<%# 출처·라이선스 표기 — 로그인 표면 3화면(sessions/new·student_new·staff_new) 공통 푸터.
+    폰트(OFL)·오픈API·공공데이터는 서비스 화면에 출처를 밝혀야 하는데 앱에는 전역 푸터가 없어
+    비로그인 상태에서 누구나 닿는 로그인 화면을 표기 지면으로 삼는다. 판본은 3곳(이 파일 · 저장소
+    NOTICE.md · 체험판 frontend/src/ui.jsx 의 CREDITS)이며 함께 갱신한다.
+    기본은 접힌 <details> — 로그인 동선을 가리지 않으면서 전문을 담는다. %>
+<footer class="mx-auto mt-10 w-full max-w-md">
+  <%# .card 는 자체 padding(1.5rem)을 갖는데 여기선 summary·본문이 각자 여백을 가져야 해서
+      같은 토큰(surface·hairline·radius-card)을 유틸로 직접 쓴다. %>
+  <details class="rounded-card border border-hairline bg-surface">
+    <%# list-none 만으로는 Safari 가 기본 삼각형 마커를 남긴다(학교 iPad 대응). %>
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-4 text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
+      <span class="inline-flex items-center gap-2"><%= ui_icon :info, class_name: "h-5 w-5" %> 출처·라이선스</span>
+      <%= ui_icon :chevron_down, class_name: "h-4 w-4 text-steel" %>
+    </summary>
+    <dl class="space-y-3 border-t border-hairline px-5 py-4 text-sm leading-relaxed">
+      <div>
+        <dt class="font-semibold text-ink">폰트</dt>
+        <dd class="text-slate">Pretendard — 길형진(orioncactus), SIL Open Font License 1.1</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">몬스터 일러스트</dt>
+        <dd class="text-slate">Google Gemini 이미지 생성 모델로 제작한 뒤 자체 가공. 도감 설정·이야기는 직접 만듦.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">빈 화면 그림·아이콘·로고</dt>
+        <dd class="text-slate">OpenAI ChatGPT 이미지 생성으로 만듦.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">도서 정보·표지 이미지</dt>
+        <dd class="text-slate">네이버 도서 검색 오픈API. 표지의 저작권은 각 출판사·저작권자에게 있으며 책을 알아보기 쉽게 표시할 뿐입니다.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">도서·도서관 데이터</dt>
+        <dd class="text-slate">도서관 정보나루(data4library), 국립어린이청소년도서관 사서 추천 목록</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">학교 정보</dt>
+        <dd class="text-slate">나이스(NEIS) 교육정보 개방 포털</dd>
+      </div>
+      <div>
+        <dt class="font-semibold text-ink">AI</dt>
+        <dd class="text-slate">Anthropic Claude</dd>
+      </div>
+    </dl>
+  </details>
+</footer>

@@ -1,8 +1,6 @@
 <% content_for :title, "나의 성장 · 책갈피" %>
-
 <div class="page-shell page-shell-wide space-y-6">
   <%= render "shared/student_nav", active: :growth %>
-
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <p class="text-sm font-medium text-steel">남과 겨루는 점수가 아니라, 지난 나와 견주는 기록이에요</p>
@@ -13,7 +11,6 @@
       <%= link_to "랭킹 보기", rankings_path, class: "btn btn-primary" %>
     </div>
   </header>
-
   <section class="grid gap-3 sm:grid-cols-3" aria-label="성장 요약">
     <div class="stat-card">
       <span class="stat-card__label">확인받은 독후감</span>
@@ -30,7 +27,6 @@
       </span>
     </div>
   </section>
-
   <% if @timeline.entries.empty? %>
     <%= render "shared/empty_state",
           message: "선생님이 확인한 독후감이 생기면 여기에서 나의 변화를 볼 수 있어요.",
@@ -39,17 +35,14 @@
     <% latest = @timeline.latest %>
     <% previous = @timeline.previous %>
     <% changes = @timeline.changes %>
-
     <% if (growth = @timeline.strongest_growth_axis) %>
       <p class="state-banner state-banner--success">
         <%= ui_icon :sparkle %>
         지난 글보다 <strong><%= ReadingDomain::AXIS_LABELS.fetch(growth.first) %> 영역이 가장 많이 성장</strong>했어요(+<%= growth.last %>점).
       </p>
     <% end %>
-
     <section class="card" aria-labelledby="growth-change-title">
       <h2 id="growth-change-title" class="text-lg font-bold text-ink">최근 글과 지난 글 비교</h2>
-
       <div class="mt-4 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
         <%# 5축 방사형 차트 — 실선=최근 글, 회색 점선=지난 글(있을 때만) %>
         <div class="shrink-0">
@@ -58,7 +51,6 @@
                               size: 280,
                               aria_label: "최근 독후감 5축 방사형 차트") %>
         </div>
-
         <div class="w-full min-w-0 flex-1">
           <p class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-steel">
             <span class="inline-flex items-center gap-1.5">
@@ -72,7 +64,6 @@
               </span>
             <% end %>
           </p>
-
           <ul class="space-y-3">
             <% ReadingDomain::RUBRIC_AXES.each do |axis| %>
               <% score = latest.scores.fetch(axis) %>
@@ -98,20 +89,17 @@
               </li>
             <% end %>
           </ul>
-
           <% unless previous %>
             <p class="mt-4 text-sm text-steel">첫 성장 기준점이 생겼어요. 다음 독후감이 승인되면 지난 글과 견줘 볼 수 있어요.</p>
           <% end %>
         </div>
       </div>
     </section>
-
     <section class="card" aria-labelledby="growth-timeline-title">
       <div class="mb-4">
         <h2 id="growth-timeline-title" class="text-lg font-bold text-ink">시간에 따른 변화</h2>
         <p class="mt-1 text-sm text-steel">최근 <%= StudentGrowthTimeline::LIMIT %>편까지 시간순으로 보여요. 교사 조정 점수가 있으면 그 점수를 사용해요.</p>
       </div>
-
       <ul class="space-y-3">
         <% @timeline.entries.each do |entry| %>
           <li>
@@ -130,11 +118,10 @@
           </li>
         <% end %>
       </ul>
-
       <details class="mt-5 border-t border-hairline-soft pt-4">
         <summary class="cursor-pointer text-sm font-medium text-brand-blue">축별 점수를 표로 보기</summary>
         <div class="mt-3 overflow-x-auto">
-          <table class="w-full min-w-[46rem] text-sm">
+          <table class="w-full min-w-184 text-sm">
             <thead>
               <tr class="border-b border-hairline text-left text-steel">
                 <th class="px-2 py-2 font-medium">날짜·책</th>

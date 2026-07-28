@@ -21,6 +21,7 @@
 - [테스트 · 품질](#테스트--품질)
 - [배포](#배포)
 - [프로젝트 구조 · 문서](#프로젝트-구조--문서)
+- [출처 및 라이선스](NOTICE.md)
 
 ---
 
@@ -240,6 +241,7 @@ docs/            설계·구현·운영 문서 (아래)
 | [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
 | [`docs/monsters.md`](docs/monsters.md) | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드 |
 | [`docs/API_KEYS.md`](docs/API_KEYS.md) | 외부 API 키 주입·폴백 가이드 |
+| [`NOTICE.md`](NOTICE.md) | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기 |
 | [`TODO.md`](TODO.md) | 남은 작업(배포·에셋·모니터링) |
 </content>
 </invoke>

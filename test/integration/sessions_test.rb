@@ -29,6 +29,28 @@ class SessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # 출처 표기는 비로그인 상태에서 닿을 수 있어야 의미가 있다(OFL 은 폰트 재배포 시 고지를 요구하고,
+  # 오픈API·공공데이터도 사용 화면에 출처를 밝힌다). 앱에 전역 푸터가 없어 로그인 표면 3화면이
+  # 유일한 지면이므로, 셋 모두에서 렌더되는지와 표기 항목이 빠지지 않았는지를 함께 고정한다.
+  test "every login surface renders the credits footer with each asset source" do
+    [ new_session_path, student_login_path, staff_login_path ].each do |path|
+      get path
+
+      assert_response :success
+      assert_select "details summary", text: /출처·라이선스/, count: 1, message: "#{path} 에 출처 표기 없음"
+      [
+        "Pretendard", "SIL Open Font License 1.1",   # 폰트 — OFL 고지 의무
+        "네이버 도서 검색 오픈API",                     # 도서 정보·표지
+        "정보나루", "국립어린이청소년도서관",              # 도서·도서관 공공데이터
+        "나이스(NEIS)",                               # 학교 정보
+        "Anthropic Claude", "Google Gemini",         # AI 모델
+        "OpenAI ChatGPT"                             # 빈 화면 일러스트 생성
+      ].each do |source|
+        assert_includes response.body, source, "#{path} 출처 표기에 #{source} 누락"
+      end
+    end
+  end
+
   test "an unauthenticated request redirects to the landing index without an alert" do
     get root_path
 
