@@ -68,6 +68,24 @@ if demo_deployment || !sample_excluded
   sample_school_data = sample_data.fetch("school")
   sample_school = School.find_by(neis_code: sample_school_data.fetch("neis_code"))
 
+  # 체험 학교는 전국 NEIS 스냅샷에 없는 **가상 학교**라 `schools:seed_full` 이 만들어 주지 않는다.
+  # accounts.yml 이 이름까지 들고 있으면 여기서 직접 만든다(`data_source: manual` — seed_full 의
+  # 비활성화 대상인 neis 행이 아니므로 전국 스냅샷을 다시 적재해도 살아남는다).
+  # 이름이 없으면 실학교를 참조하던 옛 규약이므로 종전대로 조용히 건너뛴다.
+  if sample_school.nil? && sample_school_data["name"].present?
+    sample_school = School.create!(
+      neis_code: sample_school_data.fetch("neis_code"),
+      name: sample_school_data.fetch("name"),
+      region: sample_school_data["region"].presence,
+      gu: sample_school_data["gu"].presence,
+      office_code: sample_school_data["office_code"].presence,
+      address: sample_school_data["address"].presence,
+      active: true,
+      data_source: "manual"
+    )
+    puts "Created sample school #{sample_school.name} (neis=#{sample_school.neis_code})."
+  end
+
   if sample_school.nil?
     puts "Sample school unavailable in this environment — skipping role sample accounts."
   else

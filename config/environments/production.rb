@@ -36,20 +36,41 @@ Rails.application.configure do
   config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # 신뢰 프록시 명시 — request.remote_ip 신뢰성(로그인 fail2ban IP 스로틀 키의 근거, Phase 6 #7 후속).
-  # 앱은 kamal-proxy(단일 리버스 프록시, 도커 사설 네트워크) 뒤에서만 구동되므로, 신뢰 프록시를
-  # 루프백 + 사설 대역으로 **명시**해 X-Forwarded-For 로부터 실제 클라이언트 IP를 뽑는 경계를
-  # 감사 가능하게 고정한다(암묵적 기본값 의존 제거). 배열을 지정하면 Rails 기본 목록을 대체하므로,
-  # kamal/도커가 쓰는 사설 대역(10/8·172.16/12·192.168/16)과 루프백을 모두 포함한다.
-  #   · 위조 저항: kamal-proxy 가 실제 소켓 IP를 XFF 에 덧붙이고 ip_spoofing_check(기본 on)가 켜져
-  #     있어, 공인 클라이언트가 보낸 위조 XFF 로 remote_ip 를 바꿀 수 없다.
+  # 요청은 Cloudflare → kamal-proxy → Rails 순으로 들어오므로 루프백·도커 사설 대역과 Cloudflare
+  # 공식 IPv4/IPv6 대역만 신뢰한다. 배열을 지정하면 Rails 기본 목록을 대체한다.
+  # Cloudflare 대역 출처: https://www.cloudflare.com/ips/
+  #   · 위조 저항: 가장 가까운 비신뢰 IP가 실제 클라이언트로 선택되므로, 직접 접속한 공인 클라이언트가
+  #     임의 XFF를 보내도 자신의 소켓 IP를 건너뛸 수 없다.
   #   · 계정축 스로틀(user.id 정규화)은 애초에 IP 위조와 무관해 표적 계정 브루트포스를 독립 차단한다.
-  # 실배포 시 도커 브리지의 실제 CIDR 로 더 좁힐 수 있다(현재는 토폴로지 전 범위를 보수적으로 포함).
+  # 도커 사설 대역은 실배포 브리지의 실제 CIDR 로 더 좁힐 수 있다.
   config.action_dispatch.trusted_proxies = [
     IPAddr.new("127.0.0.1"),
     IPAddr.new("::1"),
     IPAddr.new("10.0.0.0/8"),
     IPAddr.new("172.16.0.0/12"),
-    IPAddr.new("192.168.0.0/16")
+    IPAddr.new("192.168.0.0/16"),
+    IPAddr.new("173.245.48.0/20"),
+    IPAddr.new("103.21.244.0/22"),
+    IPAddr.new("103.22.200.0/22"),
+    IPAddr.new("103.31.4.0/22"),
+    IPAddr.new("141.101.64.0/18"),
+    IPAddr.new("108.162.192.0/18"),
+    IPAddr.new("190.93.240.0/20"),
+    IPAddr.new("188.114.96.0/20"),
+    IPAddr.new("197.234.240.0/22"),
+    IPAddr.new("198.41.128.0/17"),
+    IPAddr.new("162.158.0.0/15"),
+    IPAddr.new("104.16.0.0/13"),
+    IPAddr.new("104.24.0.0/14"),
+    IPAddr.new("172.64.0.0/13"),
+    IPAddr.new("131.0.72.0/22"),
+    IPAddr.new("2400:cb00::/32"),
+    IPAddr.new("2606:4700::/32"),
+    IPAddr.new("2803:f800::/32"),
+    IPAddr.new("2405:b500::/32"),
+    IPAddr.new("2405:8100::/32"),
+    IPAddr.new("2a06:98c0::/29"),
+    IPAddr.new("2c0f:f248::/32")
   ].freeze
 
   # Log to STDOUT with the current request id as a default log tag.
@@ -82,12 +103,11 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = true
 
   # 메일 링크(비밀번호 재설정·이메일 인증)가 가리킬 앱 호스트. config/deploy.yml 의
-  # `proxy.host` 와 일치해야 한다(현재 book.gbeai.net). force_ssl 환경이므로 protocol 을
+  # `proxy.hosts`의 기본 호스트와 일치해야 한다(현재 chaekgalpi.net). force_ssl 환경이므로 protocol 을
   # 명시해 링크가 http 로 생성되지 않게 한다.
-  # ※ 발신 도메인(gbeai.net)과 앱 호스트(book.gbeai.net)가 다른 것은 정상이다 — Resend 도메인
-  #   검증은 발신 주소 기준이라 링크 호스트와 무관하다.
+  # 발신 주소도 Resend 에서 검증한 chaekgalpi.net 도메인을 사용한다.
   config.action_mailer.default_url_options = {
-    host: ENV.fetch("APP_HOST", "book.gbeai.net"),
+    host: ENV.fetch("APP_HOST", "chaekgalpi.net"),
     protocol: "https"
   }
 

@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "8761159"
-  school_label: 포항원동초등학교
+  school_neis_code: "9999999"
+  school_label: 테스트초등학교
   grade: 6
   class_no: 8
   academic_year: 2026
 teacher:
   name: 한지수
-  email: teacher.wondong68@chaekgalpi.demo
-template: wondong_6_1.yml
+  email: teacher.sample68@chaekgalpi.demo
+template: sample_6_1.yml
 activity_level: high
 student_names:
   - 윤아람

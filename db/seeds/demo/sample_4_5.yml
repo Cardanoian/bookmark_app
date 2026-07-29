@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761159"
-  school_label: 포항원동초등학교
+  school_neis_code: "9999999"
+  school_label: 테스트초등학교
   grade: 4
   class_no: 5
   academic_year: 2026
 teacher:
   name: 조하진
-  email: teacher.wondong45@chaekgalpi.demo
+  email: teacher.sample45@chaekgalpi.demo
 template: yulha_4_2.yml
 activity_level: balanced
 student_names:

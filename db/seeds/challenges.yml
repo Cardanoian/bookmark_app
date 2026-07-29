@@ -11,10 +11,13 @@
 # reward_points 는 Challenge.reward_max_points(AppSetting `challenge_reward_max_points`,
 # 미설정 시 300) 이하여야 한다.
 challenges:
-  - key: wondong_summer_reading
+  # 학교 스코프 챌린지는 체험 학교(가상 학교 테스트초등학교)에 붙는다. 시더의 멱등 키는
+  # `[scope, school_id, title]` 이라(key 필드는 문서용 라벨), 제목이나 학교를 바꾸면 재시드가
+  # 같은 챌린지를 찾지 못하고 하나 더 만든다 — 마이그레이션이 기존 행의 학교·제목을 함께 옮긴다.
+  - key: sample_summer_reading
     scope: school
-    school_neis_code: "8761159"
-    title: 원동 여름 독서 한마당
+    school_neis_code: "9999999"
+    title: 테스트 여름 독서 한마당
     description: 우리 학교 친구들과 함께 책을 읽어요. 독후감 2편과 독서게임 3번을 채우면 완성이에요!
     starts_on: "2026-06-12"
     ends_on: "2026-08-31"

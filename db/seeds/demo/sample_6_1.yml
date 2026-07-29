@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761159"
-  school_label: 포항원동초등학교
+  school_neis_code: "9999999"
+  school_label: 테스트초등학교
   grade: 6
   class_no: 1
   academic_year: 2026
 teacher:
   name: 이수민
-  email: teacher.wondong61@chaekgalpi.demo
+  email: teacher.sample61@chaekgalpi.demo
 missions:
   - title: 가을 독서 마라톤
     description: 두 주 동안 책을 꾸준히 읽고 기록해요.

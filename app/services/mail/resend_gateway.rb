@@ -22,9 +22,8 @@ module Mail
     # ⚠️ resend 젬 업데이트 시 문구 변경 가능 — 감사 로그에 미분류 실패가 몰리면 여기부터 확인한다.
     UNVERIFIED_DOMAIN_HINT = "not verified"
 
-    # 검증 완료된 발신 도메인(gbeai.net)의 주소. 앱 서비스 호스트(book.gbeai.net)와 다른 것은
-    # 정상이다 — Resend 도메인 검증은 발신 도메인 기준이고, 메일 링크 호스트와 무관하다.
-    DEFAULT_FROM = "책갈피 <admin@gbeai.net>"
+    # Resend 에서 검증한 운영 도메인의 발신 주소.
+    DEFAULT_FROM = "책갈피 <admin@chaekgalpi.net>"
 
     module_function
 

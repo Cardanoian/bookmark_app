@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 한지은
   email: teacher.pohang6_4@chaekgalpi.demo
-template: wondong_6_2.yml
+template: sample_6_2.yml
 student_names:
   - 김지율
   - 이진서

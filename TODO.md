@@ -27,8 +27,8 @@
 ### 🔴 배포 (프로덕션 올리기 전 필수)
 
 - [ ] **실제 원격 배포** — `kamal setup` → `kamal deploy`. 현재는 로컬 부팅 검증까지만 완료(드로플릿·레지스트리 자격 부재로 미실행).
-- [ ] **실 도메인 설정** — `config/deploy.yml`의 `proxy.host`가 플레이스홀더(`chaekgalpi.example.com`). 실 호스트로 교체 + DNS + SSL(kamal-proxy Let's Encrypt 자동).
-- [ ] **메일러 호스트** — `config/environments/production.rb`의 `default_url_options` host가 `example.com`. 실 도메인으로 교체(비밀번호 재설정 등 메일 발송 시 SMTP 자격도).
+- [x] **실 도메인 설정** — `config/deploy.yml`의 운영 호스트를 `chaekgalpi.net`·`www.chaekgalpi.net`으로 교체하고 Cloudflare→Kamal 전달 헤더를 활성화함(2026-07-30). 남은 외부 작업: SSL/TLS `Full (strict)`·SSL 발급·실접속 확인.
+- [x] **메일러 호스트** — 메일 링크 호스트와 Resend 기본 발신자를 각각 `chaekgalpi.net`, `admin@chaekgalpi.net`으로 통일함(2026-07-30). 남은 외부 작업: Resend DNS 검증 완료 확인.
 - [ ] **프로덕션 시크릿 주입** — 서버에 `RAILS_MASTER_KEY`(= `config/master.key` 내용)만 주입하면 credentials 자동 복호화. 절차: [`docs/API_KEYS.md`](docs/API_KEYS.md) §3.2.
 - [ ] **Active Storage 프로덕션 스토리지** — 현재 local disk 서비스. 서버 재생성 시 업로드(사진·낭독 녹음) 유실 방지를 위해 DigitalOcean Spaces(S3 호환) 등 영속 스토리지 검토.
 - [ ] **SQLite 데이터 영속성** — `storage/production*.sqlite3` 4개 DB(primary/cache/queue/cable)의 kamal 볼륨 마운트·백업 전략 확인.

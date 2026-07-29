@@ -382,11 +382,11 @@ class SessionsTest < ActionDispatch::IntegrationTest
     { school_id: @school.id, classroom_id: @classroom.id, name: "로그인학생", password: password }
   end
 
-  # db/seeds/accounts.yml 의 sample_accounts 와 같은 신원(포항원동초 3-1 이도현 / 담임 김지은 /
+  # db/seeds/accounts.yml 의 sample_accounts 와 같은 신원(테스트초등학교 3-1 이도현 / 담임 김지은 /
   # 교무 박은수 / 사서 최지혜)을 만든다. DemoAccounts 상수를 그대로 써서 시드 값이 바뀌면 테스트가
   # 함께 따라간다. 반환은 role 키 해시라 호출부가 필요한 역할만 골라 쓴다.
   def create_demo_accounts!
-    school = School.create!(name: "포항원동초등학교", neis_code: DemoAccounts::SCHOOL_NEIS_CODE)
+    school = School.create!(name: "테스트초등학교", neis_code: DemoAccounts::SCHOOL_NEIS_CODE)
     classroom = Classroom.create!(
       school: school, grade: DemoAccounts::GRADE, class_no: DemoAccounts::CLASS_NO
     )

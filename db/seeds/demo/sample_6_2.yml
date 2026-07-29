@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761159"
-  school_label: 포항원동초등학교
+  school_neis_code: "9999999"
+  school_label: 테스트초등학교
   grade: 6
   class_no: 2
   academic_year: 2026
 teacher:
   name: 박준호
-  email: teacher.wondong62@chaekgalpi.demo
+  email: teacher.sample62@chaekgalpi.demo
 missions:
   - title: 여름 방학 독서 마라톤
     description: 여름 방학 동안 꾸준히 책을 읽고 기록해요.

@@ -15,7 +15,7 @@ class ChallengesSeedTaskTest < ActiveSupport::TestCase
   end
 
   test "전국·학교 챌린지를 목표와 함께 만들고 재실행해도 늘지 않는다" do
-    School.find_or_create_by!(neis_code: "8761159") { |s| s.name = "포항원동초등학교" }
+    School.find_or_create_by!(neis_code: "9999999") { |s| s.name = "테스트초등학교" }
 
     run_task
     created = Challenge.count
@@ -30,7 +30,7 @@ class ChallengesSeedTaskTest < ActiveSupport::TestCase
 
     school = Challenge.find_by(scope: :school)
     assert_not_nil school, "학교 챌린지가 있어야 한다"
-    assert_equal "8761159", school.school.neis_code
+    assert_equal "9999999", school.school.neis_code
     assert_operator school.reward_points, :<=, Challenge.reward_max_points
 
     # 목표는 종류당 1개(유니크 [challenge_id, goal_type])이고 target 은 1 이상.
@@ -49,7 +49,7 @@ class ChallengesSeedTaskTest < ActiveSupport::TestCase
   end
 
   test "학교를 찾을 수 없으면 그 챌린지만 건너뛰고 전국 챌린지는 만든다" do
-    School.where(neis_code: "8761159").destroy_all
+    School.where(neis_code: "9999999").destroy_all
 
     out = run_task
 

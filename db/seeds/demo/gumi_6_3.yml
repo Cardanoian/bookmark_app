@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 송지은
   email: teacher.gumi6_3@chaekgalpi.demo
-template: wondong_6_1.yml
+template: sample_6_1.yml
 student_names:
   - 김아윤
   - 이아진

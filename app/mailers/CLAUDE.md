@@ -1,7 +1,7 @@
 # app/mailers/ — 트랜잭셔널 메일
 
 '책갈피'가 보내는 **계정 인증 메일**을 담는 계층입니다. 발송은 **Resend API**(`delivery_method = :resend`,
-젬의 `Resend::Railtie` 가 자동 등록)로 하며, 발신 주소는 검증 완료된 도메인의 `admin@gbeai.net` 입니다.
+젬의 `Resend::Railtie` 가 자동 등록)로 하며, 발신 주소는 검증 완료된 도메인의 `admin@chaekgalpi.net` 입니다.
 **메일은 교직원에게만 갑니다** — 학생은 이메일 로그인 대상이 아니고(튜플 로그인) 비밀번호는 담임이
 `Teacher::StudentsController#reset_password` 로 직접 초기화합니다.
 
@@ -27,9 +27,8 @@
 - 발송은 `deliver_later`. **트랜잭션 블록 안에서 호출하지 않는다** — 이 앱은
   `ActiveJob::Base.enqueue_after_transaction_commit` 이 `false` 라 커밋 전에 잡이 실행돼 레코드를
   못 찾을 수 있다(`RegistrationsController#create` 주석 참조).
-- 링크 호스트는 환경별 `default_url_options`(production = `book.gbeai.net`, `protocol: https`)를 따른다.
-  **발신 도메인(gbeai.net)과 앱 호스트(book.gbeai.net)가 다른 것은 정상** — Resend 검증은 발신 도메인
-  기준이라 링크 호스트와 무관하다.
+- 링크 호스트는 환경별 `default_url_options`(production = `chaekgalpi.net`, `protocol: https`)를 따른다.
+  발신 주소도 Resend 에서 검증한 같은 운영 도메인을 사용한다.
 - 키가 없으면(`Mail::ResendGateway.available? == false`) 개발·CI 는 `delivery_method = :test` 로
   실제 발송이 일어나지 않고, 이메일 인증 게이트도 함께 꺼진다(무키 완전동작 원칙).
 
