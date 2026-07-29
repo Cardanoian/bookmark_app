@@ -7,3 +7,8 @@ db/schema.rb linguist-generated
 vendor/* linguist-vendored
 config/credentials/*.yml.enc diff=rails_credentials
 config/credentials.yml.enc diff=rails_credentials
+
+# Windows 원클릭 실행 스크립트 — cmd/PowerShell 은 CRLF, WSL bash 는 LF 를 강제 (windows/CLAUDE.md)
+windows/*.bat text eol=crlf
+windows/*.ps1 text eol=crlf
+windows/*.sh  text eol=lf

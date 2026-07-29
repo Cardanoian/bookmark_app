@@ -58,7 +58,8 @@ class SessionsController < ApplicationController
     )
   end
 
-  # 체험 계정 원클릭 로그인(시연·심사·개발 진입 단축). 학생 로그인은 시도→시군구→학교→학년도→학급
+  # 체험 계정 원클릭 로그인(시연·심사·개발 진입 단축, role = student|teacher|school_admin|librarian).
+  # 학생 로그인은 시도→시군구→학교→학년도→학급
   # →이름→비밀번호 7단계라 앱을 한 번 열어 보기가 무겁다. 비밀번호를 클라이언트로 내려보내지 않고
   # **role 만 받아 서버가 계정을 확정**하므로(DemoAccounts) 페이지 소스에 자격증명이 남지 않는다.
   # 자격증명을 받지 않으니 추측할 것도 없어 로그인 스로틀(LoginThrottling) 대상이 아니고,
@@ -169,10 +170,10 @@ class SessionsController < ApplicationController
     @current_academic_year = Classroom.current_academic_year
   end
 
-  # 안내 인덱스의 "바로 체험해 보기" 섹션 노출 판단용. 시드가 돌지 않은 DB 에서는 둘 다 nil 이라
-  # 섹션이 통째로 숨겨진다(죽은 버튼 방지 — 환경 분기 대신 계정 존재 여부로 판단).
+  # 안내 인덱스의 "바로 체험해 보기" 섹션 노출 판단용. 존재하는 체험 계정만 role 순서대로 담기고,
+  # 시드가 돌지 않은 DB 에서는 빈 해시라 섹션이 통째로 숨겨진다(죽은 버튼 방지 — 환경 분기 대신
+  # 계정 존재 여부로 판단).
   def load_demo_accounts
-    @demo_student = DemoAccounts.student
-    @demo_teacher = DemoAccounts.teacher
+    @demo_accounts = DemoAccounts.available
   end
 end

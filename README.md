@@ -84,6 +84,7 @@ docker compose up          # 빌드 + 데모 데이터 적재 + 서버 → http:
 
 > Windows 심사위원용 단계별 안내는 [`docs/JUDGE_RUN_LOCAL.md`](docs/JUDGE_RUN_LOCAL.md),
 > 체험 계정·둘러보기는 [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md) 참고.
+> Windows 에서 Docker 설치조차 자동화하려면 [`windows/setup-and-run.bat`](windows/CLAUDE.md) 더블클릭 한 번으로 WSL2·Ubuntu·Docker 설치부터 실행까지 끝납니다.
 > (운영 배포는 `Dockerfile`+Kamal, 심사용 로컬 실행은 `Dockerfile.dev`+`compose.yaml` 로 분리)
 
 ### 로컬 개발 요구사항 (Docker 없이 직접 실행 시)
