@@ -26,7 +26,7 @@ class SessionsController < ApplicationController
   skip_after_action :verify_authorized
 
   # 처음 접속 시 안내 인덱스 — 학생 로그인 / 교직원 로그인 선택 화면(폼 없음).
-  # 체험 계정이 DB 에 있을 때만 "바로 체험해 보기" 섹션을 렌더하도록 두 계정을 조회한다.
+  # 공개 체험 계정(학생·담임)이 DB 에 있을 때만 "바로 체험해 보기" 섹션을 렌더한다.
   def new
     load_demo_accounts
   end
@@ -170,9 +170,9 @@ class SessionsController < ApplicationController
     @current_academic_year = Classroom.current_academic_year
   end
 
-  # 안내 인덱스의 "바로 체험해 보기" 섹션 노출 판단용. 존재하는 체험 계정만 role 순서대로 담기고,
-  # 시드가 돌지 않은 DB 에서는 빈 해시라 섹션이 통째로 숨겨진다(죽은 버튼 방지 — 환경 분기 대신
-  # 계정 존재 여부로 판단).
+  # 안내 인덱스의 "바로 체험해 보기" 섹션 노출 판단용. 존재하는 체험 계정을 role 순서대로 담고,
+  # 뷰가 공개 대상인 학생·담임만 선별한다. 시드가 돌지 않은 DB 에서는 빈 해시라 섹션이 통째로
+  # 숨겨진다(죽은 버튼 방지 — 환경 분기 대신 계정 존재 여부로 판단).
   def load_demo_accounts
     @demo_accounts = DemoAccounts.available
   end

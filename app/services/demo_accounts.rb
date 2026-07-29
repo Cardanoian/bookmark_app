@@ -5,6 +5,7 @@
 # 재시드나 개명이 있어도 조회가 어긋나지 않는다.
 #
 # 역할은 학생·담임교사·교무관리자·사서 4종이다(총괄관리자는 전역 콘솔이라 체험 대상이 아니다).
+# 로그인 화면에는 학생·담임만 노출하고, 나머지 역할은 서버의 데모 로그인 호환을 위해 유지한다.
 #
 # 로그인 화면의 "바로 체험해 보기" 버튼(`sessions#new`)과 원클릭 로그인(`sessions#demo_create`)이
 # 함께 쓴다. 시드가 돌지 않은 DB(운영 기본)에서는 nil/빈 해시를 돌려 화면이 버튼을 통째로 숨기므로,
@@ -21,7 +22,7 @@ module DemoAccounts
   SCHOOL_ADMIN_EMAIL = "eunsu@gbeai.net"
   LIBRARIAN_EMAIL = "jihye@gbeai.net"
 
-  # 교직원 체험 계정의 role → 이메일. 이 해시가 곧 role 화이트리스트이자 화면 노출 순서다.
+  # 교직원 체험 계정의 role → 이메일. 이 해시가 곧 role 화이트리스트이자 조회 순서다.
   STAFF_EMAILS = {
     "teacher" => TEACHER_EMAIL,
     "school_admin" => SCHOOL_ADMIN_EMAIL,
@@ -40,8 +41,8 @@ module DemoAccounts
     staff(email) if email
   end
 
-  # 실제로 존재하는 체험 계정만 ROLES 순서대로 담은 { role => User }. 시드가 돌지 않은 DB 에서는
-  # 빈 해시라 로그인 화면이 "바로 체험해 보기" 섹션을 통째로 숨긴다(환경 분기 없음).
+  # 실제로 존재하는 체험 계정만 ROLES 순서대로 담은 { role => User }. 로그인 화면은 이 중 공개
+  # 대상인 학생·담임만 선별한다. 시드가 돌지 않은 DB 에서는 빈 해시라 섹션이 통째로 숨겨진다.
   def available
     ROLES.index_with { |role| find(role) }.compact
   end

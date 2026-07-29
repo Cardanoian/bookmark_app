@@ -163,19 +163,18 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", demo_login_path, count: 0
   end
 
-  test "the landing index offers demo buttons when the sample accounts exist" do
+  test "the landing index only offers student and teacher demo buttons" do
     create_demo_accounts!
 
     get new_session_path
 
     assert_response :success
     assert_includes response.body, "바로 체험해 보기"
-    # 학생·담임·교무·사서 4역할.
-    assert_select "form[action=?]", demo_login_path, count: DemoAccounts::ROLES.size
+    assert_select "form[action=?]", demo_login_path, count: 2
     assert_select "button", text: /학생으로 체험하기/
     assert_select "button", text: /담임 선생님으로 체험하기/
-    assert_select "button", text: /교무 선생님으로 체험하기/
-    assert_select "button", text: /사서 선생님으로 체험하기/
+    assert_select "button", text: /교무 선생님으로 체험하기/, count: 0
+    assert_select "button", text: /사서 선생님으로 체험하기/, count: 0
     # 비밀번호는 서버가 확정하므로 마크업에 새지 않는다.
     assert_not_includes response.body, "student1234"
     assert_not_includes response.body, "jieun11!"
@@ -183,15 +182,28 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "jihye11!"
   end
 
-  # 교직원 계정만 있는 인스턴스처럼 일부 역할이 없으면 그 버튼만 빠진다(죽은 버튼 방지).
+  # 공개 역할 중 일부 계정이 없으면 그 버튼만 빠진다(죽은 버튼 방지).
   test "the landing index only offers demo buttons for the accounts that exist" do
-    create_demo_accounts!["librarian"].destroy!
+    create_demo_accounts!["teacher"].destroy!
 
     get new_session_path
 
     assert_response :success
-    assert_select "form[action=?]", demo_login_path, count: DemoAccounts::ROLES.size - 1
-    assert_select "button", text: /사서 선생님으로 체험하기/, count: 0
+    assert_select "form[action=?]", demo_login_path, count: 1
+    assert_select "button", text: /학생으로 체험하기/
+    assert_select "button", text: /담임 선생님으로 체험하기/, count: 0
+  end
+
+  test "the landing index hides the demo section when only internal demo accounts exist" do
+    accounts = create_demo_accounts!
+    accounts["student"].destroy!
+    accounts["teacher"].destroy!
+
+    get new_session_path
+
+    assert_response :success
+    assert_not_includes response.body, "바로 체험해 보기"
+    assert_select "form[action=?]", demo_login_path, count: 0
   end
 
   test "the student demo button logs in as the sample student without a password" do
@@ -212,7 +224,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_equal teacher.id, session[:user_id]
   end
 
-  test "the school_admin demo button logs in as the sample school admin" do
+  test "the hidden school_admin demo role remains available" do
     school_admin = create_demo_accounts!["school_admin"]
 
     post demo_login_path, params: { role: "school_admin" }
@@ -221,7 +233,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_equal school_admin.id, session[:user_id]
   end
 
-  test "the librarian demo button logs in as the sample librarian" do
+  test "the hidden librarian demo role remains available" do
     librarian = create_demo_accounts!["librarian"]
 
     post demo_login_path, params: { role: "librarian" }

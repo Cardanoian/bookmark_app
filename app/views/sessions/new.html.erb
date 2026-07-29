@@ -25,22 +25,21 @@
     <% end %>
   </div>
 
-  <%# 체험 계정 원클릭 로그인. 계정이 DB 에 있을 때만(시드 적재 인스턴스) 그 역할 버튼이 뜬다.
+  <%# 체험 계정 원클릭 로그인. 공개 대상인 학생·담임 계정이 DB 에 있을 때만 그 역할 버튼이 뜬다.
       계정·비밀번호는 서버(DemoAccounts)가 확정하므로 여기엔 role 만 싣는다. %>
-  <% if @demo_accounts.present? %>
+  <% visible_demo_accounts = @demo_accounts.slice("student", "teacher") %>
+  <% if visible_demo_accounts.present? %>
     <%
       demo_labels = {
-        "student"      => [ "학생으로 체험하기", "3-1 이도현 학생" ],
-        "teacher"      => [ "담임 선생님으로 체험하기", "3-1 담임 김지은 선생님" ],
-        "school_admin" => [ "교무 선생님으로 체험하기", "교무관리자 박은수 선생님" ],
-        "librarian"    => [ "사서 선생님으로 체험하기", "사서 최지혜 선생님" ]
+        "student" => [ "학생으로 체험하기", "3-1 이도현 학생" ],
+        "teacher" => [ "담임 선생님으로 체험하기", "3-1 담임 김지은 선생님" ]
       }
     %>
     <div class="mt-10 border-t border-hairline pt-8">
       <p class="text-sm font-bold text-ink">🚀 바로 체험해 보기</p>
       <p class="mt-1 mb-4 text-sm text-steel">계정 없이 샘플 학교(테스트초등학교 3-1)를 역할별로 둘러볼 수 있어요</p>
       <div class="space-y-3">
-        <% @demo_accounts.each_key do |role| %>
+        <% visible_demo_accounts.each_key do |role| %>
           <% title, subtitle = demo_labels.fetch(role) %>
           <%= button_to demo_login_path, params: { role: role },
                 class: "btn btn-secondary btn-block" do %>
