@@ -52,10 +52,16 @@
 
   <section aria-labelledby="profile-shortcuts-title">
     <h2 id="profile-shortcuts-title" class="mb-3 text-lg font-bold text-ink">바로가기</h2>
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <%= link_to reports_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
         <%= ui_icon :writing %>
         <span>내 독후감</span>
+      <% end %>
+      <%# 내가 낸 문제(quiz_contributions#index) — 문제를 낸 뒤 검토·승인 결과를 확인할 화면이
+          없었으므로 여기가 유일한 진입 동선이다(출제 폼은 독서활동 화면의 책별 링크). %>
+      <%= link_to quiz_contributions_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
+        <%= ui_icon :quiz %>
+        <span>내가 낸 문제</span>
       <% end %>
       <%= link_to monsters_path, class: "card flex min-h-[4.5rem] items-center gap-3 font-semibold text-ink hover:bg-surface" do %>
         <%= ui_icon :paw %>

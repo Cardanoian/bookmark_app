@@ -6,6 +6,23 @@ class QuizContributionsController < ApplicationController
   # 유효한 콘텐츠축(2종). 그 외 값은 유형 선택 화면으로 되돌린다.
   AXES = %w[mcq hint_reveal].freeze
 
+  PER_PAGE = 20
+
+  # 내가 낸 문제 모아보기(마이페이지 진입). 조회 범위를 `current_user.quiz_contributions` 로 고정해
+  # 위조 파라미터로도 남의 기여에 닿지 않는다(정책은 역할만 판정 — reports#index 관용구).
+  # 상태별 개수는 전체 기준으로 따로 세서 페이지를 넘겨도 요약이 흔들리지 않게 한다.
+  def index
+    authorize QuizContribution, :index?
+    @page = [ params[:page].to_i, 1 ].max
+    scope = current_user.quiz_contributions
+    @status_counts = scope.group(:status).count
+    records = scope.includes(:book)
+                   .order(created_at: :desc, id: :desc)
+                   .limit(PER_PAGE + 1).offset((@page - 1) * PER_PAGE).to_a
+    @has_next_page = records.size > PER_PAGE
+    @contributions = records.first(PER_PAGE)
+  end
+
   def new
     @book = load_book
     @content_axis = AXES.include?(params[:content_axis]) ? params[:content_axis] : nil

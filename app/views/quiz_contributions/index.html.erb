@@ -1,0 +1,113 @@
+<%# 내가 낸 문제 모아보기(마이페이지 진입). 학생이 낸 기여의 검토 상태와 내용을 되짚는 화면이다.
+    상태 문구는 학생 눈높이로 쓰고(pending=선생님이 보는 중), 반려는 이유를 저장하지 않으므로
+    학생을 탓하지 않는 중립 문구 + 다시 도전 안내로만 표현한다. %>
+<% content_for :title, "내가 낸 문제 · 책갈피" %>
+<% axis_meta = { "mcq" => [ :quiz, "객관식 퀴즈" ], "hint_reveal" => [ :detective, "나는 누구게?" ] } %>
+<% status_meta = {
+     "pending"  => [ "선생님 확인 중", "badge-neutral" ],
+     "approved" => [ "문제은행에 들어갔어요", "badge-success" ],
+     "rejected" => [ "이번에는 뽑히지 않았어요", "badge-yellow" ]
+   } %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <%= link_to icon_text(:arrow_left, "마이페이지"), profile_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+
+  <header class="page-header">
+    <div>
+      <p class="text-sm font-medium text-steel">마이페이지</p>
+      <h1 class="page-title flex items-center gap-2"><%= ui_icon :quiz, class_name: "h-7 w-7" %> 내가 낸 문제</h1>
+      <p class="page-subtitle">책을 읽고 직접 만든 문제예요. 선생님이 확인하면 전국 친구들이 풀게 돼요.</p>
+    </div>
+  </header>
+
+  <% if @contributions.any? || @page > 1 %>
+    <%# 0건인 상태는 배지를 만들지 않는다 — 특히 "뽑히지 않았어요 0" 은 없는 실패를 굳이 상기시킨다. %>
+    <div class="flex flex-wrap gap-2">
+      <% status_meta.each do |status, (label, badge_class)| %>
+        <% count = @status_counts.fetch(status, 0) %>
+        <% next if count.zero? %>
+        <span class="badge <%= badge_class %>"><%= label %> <%= count %></span>
+      <% end %>
+    </div>
+
+    <ul class="space-y-4">
+      <% @contributions.each do |contribution| %>
+        <% payload = contribution.payload_hash %>
+        <% axis_icon, axis_label = axis_meta.fetch(contribution.content_axis, [ :quiz, "문제" ]) %>
+        <% status_label, status_badge = status_meta.fetch(contribution.status, [ contribution.status, "badge-neutral" ]) %>
+        <li class="card space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="flex flex-wrap items-center gap-2">
+              <span class="badge badge-neutral"><%= ui_icon axis_icon, class_name: "h-4 w-4" %> <%= axis_label %></span>
+              <span class="font-semibold text-ink">「<%= contribution.book.title %>」</span>
+            </span>
+            <span class="badge <%= status_badge %>"><%= status_label %></span>
+          </div>
+
+          <% if contribution.mcq? %>
+            <p class="font-medium text-ink"><%= payload[:prompt] %></p>
+            <ol class="space-y-1 text-sm text-slate">
+              <% Array(payload[:choices]).each_with_index do |choice, i| %>
+                <li class="flex items-start gap-2">
+                  <span class="w-5 shrink-0 text-muted"><%= i + 1 %></span>
+                  <span class="<%= "font-semibold text-ink" if payload[:answer_index].to_i == i %>">
+                    <%= choice %><%= " (정답)" if payload[:answer_index].to_i == i %>
+                  </span>
+                </li>
+              <% end %>
+            </ol>
+          <% else %>
+            <p class="font-medium text-ink">정답 · <%= payload[:answer] %></p>
+            <ol class="space-y-1 text-sm text-slate">
+              <% Array(payload[:hints]).each_with_index do |hint, i| %>
+                <li class="flex items-start gap-2">
+                  <span class="w-12 shrink-0 text-muted">힌트 <%= i + 1 %></span>
+                  <span><%= hint %></span>
+                </li>
+              <% end %>
+            </ol>
+          <% end %>
+
+          <% if payload[:explanation].present? %>
+            <p class="text-sm text-steel">해설 · <%= payload[:explanation] %></p>
+          <% end %>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
+            <p class="text-sm text-steel">
+              <% case contribution.status %>
+              <% when "approved" %>
+                전국 친구들이 이 문제를 풀고 있어요. 고마워요!
+              <% when "rejected" %>
+                이 문제는 문제은행에 들어가지 않았어요. 다른 문제로 다시 도전해 보세요.
+              <% else %>
+                선생님이 확인하고 있어요. 조금만 기다려 주세요.
+              <% end %>
+            </p>
+            <span class="text-xs text-steel"><%= contribution.created_at.strftime("%Y-%m-%d") %></span>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <%= render "shared/empty_state", message: "아직 낸 문제가 없어요. 읽은 책으로 첫 문제를 만들어 볼까요?", icon: :quiz %>
+  <% end %>
+
+  <div class="page-actions">
+    <%= link_to icon_text(:writing, "책 고르고 문제 내기"), reading_activity_path, class: "btn btn-primary" %>
+  </div>
+
+  <% if @has_next_page || @page > 1 %>
+    <nav class="flex items-center justify-between gap-3">
+      <% if @page > 1 %>
+        <%= link_to icon_text(:arrow_left, "이전"), quiz_contributions_path(page: @page - 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+      <% if @has_next_page %>
+        <%= link_to text_icon("다음", :arrow_right), quiz_contributions_path(page: @page + 1), class: "btn btn-secondary btn-sm" %>
+      <% else %>
+        <span></span>
+      <% end %>
+    </nav>
+  <% end %>
+</div>

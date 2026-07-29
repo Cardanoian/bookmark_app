@@ -10,4 +10,12 @@ class QuizContributionPolicy < ApplicationPolicy
   def create?
     user&.student? && user.classroom_id.present?
   end
+
+  # 본인이 낸 문제 모아보기(마이페이지 진입). 목록은 컨트롤러가 `current_user.quiz_contributions`
+  # 로 이미 본인 것만 조회하므로 여기서는 역할만 판정한다. **create? 와 달리 학급 소속을 요구하지
+  # 않는다** — 학급이 없어진(전학·학급 해체) 학생도 과거에 낸 문제는 되돌아볼 수 있어야 하고,
+  # 목록은 새 기여를 만들지 않아 학급이 필요 없다.
+  def index?
+    user&.student?
+  end
 end

@@ -285,6 +285,47 @@ class QuizContributionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  # ── 내가 낸 문제 모아보기(마이페이지 진입) ────────────────────────────────
+  # 이 목록이 학생이 자기 기여의 검토 결과를 확인할 유일한 화면이라, 진입 링크와
+  # 본인-스코프 경계를 함께 고정한다.
+  test "a student sees only their own contributions with each review status" do
+    mine_pending = create_pending(@student)
+    mine_approved = create_pending(@student, axis: :hint_reveal)
+    mine_approved.update!(status: :approved, reviewed_by: @teacher_a)
+    peer = User.create!(school: @school, classroom: @room_b, name: "남의반학생", password: "password")
+    theirs = create_pending(peer)
+
+    login_as @student
+    get quiz_contributions_path
+    assert_response :success
+    assert_select "li.card", 2
+    assert_match mine_pending.payload_hash[:prompt], response.body
+    assert_match "선생님 확인 중", response.body
+    assert_match "문제은행에 들어갔어요", response.body
+    assert_no_match(/#{Regexp.escape(theirs.payload_hash[:prompt])}/, response.body,
+                    "다른 학급 학생의 기여는 보이지 않는다")
+  end
+
+  test "the my-page shortcut links to the contribution list" do
+    login_as @student
+    get profile_path
+    assert_response :success
+    assert_select "a[href=?]", quiz_contributions_path
+  end
+
+  test "a student with no contributions gets an empty state, not an error" do
+    login_as @student
+    get quiz_contributions_path
+    assert_response :success
+    assert_select "li.card", 0
+  end
+
+  test "a teacher cannot open the student contribution list (student-only surface)" do
+    login_as @teacher_a
+    get quiz_contributions_path
+    assert_response :forbidden
+  end
+
   private
 
   def create_pending(user, axis: :mcq)

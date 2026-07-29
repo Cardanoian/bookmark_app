@@ -91,8 +91,10 @@ Rails.application.routes.draw do
   end
 
   # 학생 출제 기여(전국 공유 문제은행 UGC, 게임 재구성 Phase 3 §4.1). 독서활동 화면에서 그 책의
-  # 문제(객관식·나는 누구게? 힌트)를 낸다 → pending 저장 → 담임 검토 큐. new/create 최소.
-  resources :quiz_contributions, only: [ :new, :create ]
+  # 문제(객관식·나는 누구게? 힌트)를 낸다 → pending 저장 → 담임 검토 큐.
+  # index 는 **본인이 낸 문제 모아보기**(마이페이지 진입) — 낸 뒤 검토·승인 결과를 확인할 곳이
+  # 없어 학생이 자기 기여를 되짚을 수 없던 공백을 메운다.
+  resources :quiz_contributions, only: [ :index, :new, :create ]
 
   # 독서게임 3종 (P5.6 → Phase 3 온디맨드 → 게임 재구성 Phase 1). 카탈로그에서 도서를 골라
   # `play?book_id=` 로 온디맨드 진입한다(미스=오프라인 즉시). 2종은 퀴즈 파이프라인 실동작
