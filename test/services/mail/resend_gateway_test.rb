@@ -15,7 +15,7 @@ class Mail::ResendGatewayTest < ActiveSupport::TestCase
   end
 
   test "from_address defaults to the verified sender and honours the ENV override" do
-    assert_equal "책갈피 <admin@gbeai.net>", Mail::ResendGateway.from_address
+    assert_equal "책갈피 <admin@chaekgalpi.net>", Mail::ResendGateway.from_address
 
     original = ENV["MAIL_FROM"]
     ENV["MAIL_FROM"] = "other@example.com"

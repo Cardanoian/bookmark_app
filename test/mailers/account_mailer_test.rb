@@ -13,7 +13,7 @@ class AccountMailerTest < ActionMailer::TestCase
 
     assert_equal [ "mailer-teacher@example.com" ], mail.to
     assert_equal "[책갈피] 비밀번호 재설정 안내", mail.subject
-    assert_includes mail.from, "admin@gbeai.net"
+    assert_includes mail.from, "admin@chaekgalpi.net"
   end
 
   test "password_reset renders both html and text parts with the token link" do
