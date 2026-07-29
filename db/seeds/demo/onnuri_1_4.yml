@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761168"
-  school_label: 효자초등학교
+  school_neis_code: "9999992"
+  school_label: 온누리초등학교
   grade: 1
   class_no: 4
   academic_year: 2026
 teacher:
   name: 윤서연
-  email: teacher.hyoja2@chaekgalpi.demo
+  email: teacher.onnuri1_4@chaekgalpi.demo
 missions:
   - title: 첫 책 읽기
     description: 그림책을 읽고 스티커를 모아요.

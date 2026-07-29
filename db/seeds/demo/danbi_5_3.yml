@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761141"
-  school_label: 유강초등학교
+  school_neis_code: "9999991"
+  school_label: 단비초등학교
   grade: 5
   class_no: 3
   academic_year: 2026
 teacher:
   name: 최유진
-  email: teacher.yugang@chaekgalpi.demo
+  email: teacher.danbi5_3@chaekgalpi.demo
 missions:
   - title: 독서 감상문 도전
     description: 한 달 동안 감상문을 써 봐요.

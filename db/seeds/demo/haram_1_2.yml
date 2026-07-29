@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "8761121"
-  school_label: 대이초등학교
+  school_neis_code: "9999988"
+  school_label: 하람초등학교
   grade: 1
   class_no: 2
   academic_year: 2026
 teacher:
   name: 이은정
-  email: teacher.pohang1_2@chaekgalpi.demo
-template: hyoja_1_4.yml
+  email: teacher.haram1_2@chaekgalpi.demo
+template: onnuri_1_4.yml
 student_names:
   - 김지민
   - 이지안

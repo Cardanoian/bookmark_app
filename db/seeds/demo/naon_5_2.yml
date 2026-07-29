@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "9022015"
-  school_label: 광려초등학교
+  school_neis_code: "9999995"
+  school_label: 나온초등학교
   grade: 5
   class_no: 2
   academic_year: 2026
 teacher:
   name: 김현정
-  email: teacher.changwon5_2@chaekgalpi.demo
-template: yugang_5_3.yml
+  email: teacher.naon5_2@chaekgalpi.demo
+template: danbi_5_3.yml
 student_names:
   - 김예성
   - 이예린

@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "9091006"
-  school_label: 경운초등학교
+  school_neis_code: "9999997"
+  school_label: 아린초등학교
   grade: 4
   class_no: 1
   academic_year: 2026
 teacher:
   name: 최은지
-  email: teacher.gimhae4_1@chaekgalpi.demo
-template: yulha_4_2.yml
+  email: teacher.arin4_1@chaekgalpi.demo
+template: mulbit_4_2.yml
 student_names:
   - 김가은
   - 이건우

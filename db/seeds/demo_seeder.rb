@@ -46,7 +46,9 @@ class DemoSeeder
   end
 
   def call
-    files = Dir[File.join(@root, "*.yml")].sort
+    ensure_schools!
+
+    files = (Dir[File.join(@root, "*.yml")] - [ schools_file_path ]).sort
     if files.empty?
       @io.puts "  [demo] db/seeds/demo/*.yml 없음 — 데모 시드 건너뜀."
       return
@@ -74,6 +76,39 @@ class DemoSeeder
   end
 
   private
+
+  # 데모 학급이 사는 **가상 학교**를 먼저 확보한다(`db/seeds/demo/schools.yml`).
+  # 전국 NEIS 스냅샷에 없는 학교라 `schools:seed_full` 이 만들어 주지 않으므로 여기서 만든다.
+  # `data_source: manual` 이라 전국 스냅샷을 다시 적재해도 비활성화되지 않는다.
+  # 이미 있으면 이름·지역만 규약값으로 맞추고 활성 상태를 되살린다(멱등).
+  def ensure_schools!
+    return unless File.exist?(schools_file_path)
+
+    entries = Array(YAML.safe_load_file(schools_file_path, aliases: false)&.fetch("schools", nil))
+    return if entries.empty?
+
+    created = entries.count do |entry|
+      school = School.find_or_initialize_by(neis_code: entry.fetch("neis_code").to_s)
+      new_record = school.new_record?
+      school.assign_attributes(
+        name: entry.fetch("name"),
+        region: entry["region"].presence,
+        gu: entry["gu"].presence,
+        office_code: entry["office_code"].presence,
+        address: entry["address"].presence,
+        active: true,
+        data_source: "manual"
+      )
+      school.save!
+      new_record
+    end
+
+    @io.puts "  [demo] 가상 학교 #{entries.size}곳 확인(신규 #{created}곳)."
+  end
+
+  def schools_file_path
+    File.join(@root, "schools.yml")
+  end
 
   # 신규 데모 학급은 검증된 기존 활동 구성을 템플릿으로 재사용할 수 있다. 템플릿 파일은
   # 학생의 활동량·콘텐츠를 제공하고, 참조 파일은 학교·담임·학생 명단만 선언한다.

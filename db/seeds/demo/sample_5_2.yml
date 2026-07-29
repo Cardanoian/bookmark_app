@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 김도현
   email: teacher.sample52@chaekgalpi.demo
-template: yugang_5_3.yml
+template: danbi_5_3.yml
 activity_level: high
 student_names:
   - 민여름

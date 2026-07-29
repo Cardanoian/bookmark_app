@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "7491095"
-  school_label: 남외초등학교
+  school_neis_code: "9999985"
+  school_label: 나린초등학교
   grade: 1
   class_no: 3
   academic_year: 2026
 teacher:
   name: 강미정
-  email: teacher.ulsan1_3@chaekgalpi.demo
-template: hyoja_1_4.yml
+  email: teacher.narin1_3@chaekgalpi.demo
+template: onnuri_1_4.yml
 student_names:
   - 김건희
   - 이경서

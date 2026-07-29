@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8801092"
-  school_label: 구미왕산초등학교
+  school_neis_code: "9999994"
+  school_label: 별빛초등학교
   grade: 6
   class_no: 3
   academic_year: 2026
 teacher:
   name: 송지은
-  email: teacher.gumi6_3@chaekgalpi.demo
+  email: teacher.byeolbit6_3@chaekgalpi.demo
 template: sample_6_1.yml
 student_names:
   - 김아윤

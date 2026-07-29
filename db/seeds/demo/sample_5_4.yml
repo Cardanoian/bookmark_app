@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 오지영
   email: teacher.sample54@chaekgalpi.demo
-template: yugang_5_3.yml
+template: danbi_5_3.yml
 activity_level: balanced
 student_names:
   - 박노을

@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "9091046"
-  school_label: 율하초등학교
+  school_neis_code: "9999998"
+  school_label: 물빛초등학교
   grade: 4
   class_no: 2
   academic_year: 2026
 teacher:
   name: 김하늘
-  email: teacher.yulha@chaekgalpi.demo
+  email: teacher.mulbit4_2@chaekgalpi.demo
 missions:
   - title: 봄맞이 독서왕
     description: 봄 동안 책을 읽고 기록해요.

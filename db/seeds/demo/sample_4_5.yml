@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 조하진
   email: teacher.sample45@chaekgalpi.demo
-template: yulha_4_2.yml
+template: mulbit_4_2.yml
 activity_level: balanced
 student_names:
   - 고마음

@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 백지훈
   email: teacher.sample37@chaekgalpi.demo
-template: mundeok_3_1.yml
+template: noeul_3_1.yml
 activity_level: balanced
 student_names:
   - 송노을

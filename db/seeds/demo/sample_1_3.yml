@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 문정아
   email: teacher.sample13@chaekgalpi.demo
-template: hyoja_1_4.yml
+template: onnuri_1_4.yml
 activity_level: low
 student_names:
   - 고라움

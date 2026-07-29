@@ -6,7 +6,7 @@
 # teacher 는 accounts.yml 의 homeroom_teacher 와 **같은 이메일**이어야 한다. seed_teacher 가
 # 이메일로 기존 행을 찾으므로, 다르면 담임이 둘이 된다.
 #
-# 활동량은 template(mundeok_3_1.yml)의 학생별 편차를 그대로 쓴다(activity_level: high = 스케일 1.0).
+# 활동량은 template(noeul_3_1.yml)의 학생별 편차를 그대로 쓴다(activity_level: high = 스케일 1.0).
 # 신규 19명을 명단 앞에 두어 활발한 프로필(#1~#19)을 받게 하고, 기존 2명은 맨 뒤에 둔다
 # (기존 학생은 활동을 만들지 않으므로 그 자리의 프로필은 쓰이지 않는다).
 # nickname 을 명시하면 전역 닉네임 카운터를 소비하지 않아 기존 학급 745명의 별칭이 밀리지 않는다.
@@ -19,7 +19,7 @@ classroom:
 teacher:
   name: 김지은
   email: jieun@gbeai.net
-template: mundeok_3_1.yml
+template: noeul_3_1.yml
 activity_level: high
 student_names:
   # ── 신규 19명 (남 10 / 여 9) — 프로필 #1~#19: 독후감 5~1건, 게임 8~0회로 편차가 크다

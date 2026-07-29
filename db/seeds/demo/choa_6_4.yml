@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761122"
-  school_label: 대잠초등학교
+  school_neis_code: "9999989"
+  school_label: 초아초등학교
   grade: 6
   class_no: 4
   academic_year: 2026
 teacher:
   name: 한지은
-  email: teacher.pohang6_4@chaekgalpi.demo
+  email: teacher.choa6_4@chaekgalpi.demo
 template: sample_6_2.yml
 student_names:
   - 김지율

@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761127"
-  school_label: 문덕초등학교
+  school_neis_code: "9999990"
+  school_label: 노을초등학교
   grade: 3
   class_no: 1
   academic_year: 2026
 teacher:
   name: 정민서
-  email: teacher.mundeok@chaekgalpi.demo
+  email: teacher.noeul3_1@chaekgalpi.demo
 missions:
   - title: 책과 친해지기
     description: 매주 한 권씩 읽어요.

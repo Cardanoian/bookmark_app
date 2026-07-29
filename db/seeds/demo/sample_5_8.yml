@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 이나래
   email: teacher.sample58@chaekgalpi.demo
-template: yugang_5_3.yml
+template: danbi_5_3.yml
 activity_level: high
 student_names:
   - 심노을

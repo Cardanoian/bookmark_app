@@ -1,12 +1,12 @@
 classroom:
-  school_neis_code: "8761168"
-  school_label: 효자초등학교
+  school_neis_code: "9999992"
+  school_label: 온누리초등학교
   grade: 2
   class_no: 1
   academic_year: 2026
 teacher:
   name: 강도현
-  email: teacher.hyoja1@chaekgalpi.demo
+  email: teacher.onnuri2_1@chaekgalpi.demo
 missions:
   - title: 책 읽기 습관 만들기
     description: 매주 책을 읽고 독후감을 써봐요.

@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "7501053"
-  school_label: 신정초등학교
+  school_neis_code: "9999987"
+  school_label: 이든초등학교
   grade: 5
   class_no: 1
   academic_year: 2026
 teacher:
   name: 오지은
-  email: teacher.ulsan5_1@chaekgalpi.demo
-template: yugang_5_3.yml
+  email: teacher.ideun5_1@chaekgalpi.demo
+template: danbi_5_3.yml
 student_names:
   - 김재민
   - 이재윤

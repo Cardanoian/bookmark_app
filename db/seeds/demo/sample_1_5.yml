@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 서동희
   email: teacher.sample15@chaekgalpi.demo
-template: hyoja_1_4.yml
+template: onnuri_1_4.yml
 activity_level: balanced
 student_names:
   - 남라움

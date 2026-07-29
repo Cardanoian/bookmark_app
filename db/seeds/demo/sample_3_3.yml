@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 남기훈
   email: teacher.sample33@chaekgalpi.demo
-template: mundeok_3_1.yml
+template: noeul_3_1.yml
 activity_level: high
 student_names:
   - 복여름

@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 류하진
   email: teacher.sample22@chaekgalpi.demo
-template: hyoja_2_1.yml
+template: onnuri_2_1.yml
 activity_level: low
 student_names:
   - 라사랑

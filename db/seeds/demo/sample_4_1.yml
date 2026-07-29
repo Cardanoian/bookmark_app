@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 고은정
   email: teacher.sample41@chaekgalpi.demo
-template: yulha_4_2.yml
+template: mulbit_4_2.yml
 activity_level: high
 student_names:
   - 연노을

@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 박성호
   email: teacher.sample56@chaekgalpi.demo
-template: yugang_5_3.yml
+template: danbi_5_3.yml
 activity_level: low
 student_names:
   - 봉다름

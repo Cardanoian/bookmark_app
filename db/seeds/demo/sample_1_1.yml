@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 황미라
   email: teacher.sample11@chaekgalpi.demo
-template: hyoja_1_4.yml
+template: onnuri_1_4.yml
 activity_level: high
 student_names:
   - 강가람

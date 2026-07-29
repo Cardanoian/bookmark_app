@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "9051008"
-  school_label: 가좌초등학교
+  school_neis_code: "9999996"
+  school_label: 햇살초등학교
   grade: 2
   class_no: 3
   academic_year: 2026
 teacher:
   name: 박지현
-  email: teacher.jinju2_3@chaekgalpi.demo
-template: hyoja_2_1.yml
+  email: teacher.haetsal2_3@chaekgalpi.demo
+template: onnuri_2_1.yml
 student_names:
   - 김서빈
   - 이서진

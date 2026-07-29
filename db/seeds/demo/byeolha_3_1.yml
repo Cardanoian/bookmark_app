@@ -1,13 +1,13 @@
 classroom:
-  school_neis_code: "7501044"
-  school_label: 동백초등학교
+  school_neis_code: "9999986"
+  school_label: 별하초등학교
   grade: 3
   class_no: 1
   academic_year: 2026
 teacher:
   name: 류은지
-  email: teacher.ulsan3_1@chaekgalpi.demo
-template: mundeok_3_1.yml
+  email: teacher.byeolha3_1@chaekgalpi.demo
+template: noeul_3_1.yml
 student_names:
   - 김수빈
   - 이수호

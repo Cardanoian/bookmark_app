@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 장미선
   email: teacher.sample24@chaekgalpi.demo
-template: hyoja_2_1.yml
+template: onnuri_2_1.yml
 activity_level: high
 student_names:
   - 변마음

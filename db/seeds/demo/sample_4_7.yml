@@ -7,7 +7,7 @@ classroom:
 teacher:
   name: 민서영
   email: teacher.sample47@chaekgalpi.demo
-template: yulha_4_2.yml
+template: mulbit_4_2.yml
 activity_level: high
 student_names:
   - 김사랑
