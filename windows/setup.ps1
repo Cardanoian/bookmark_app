@@ -21,9 +21,23 @@ function Step([string]$msg) { Write-Host ""; Write-Host "== $msg" -ForegroundCol
 function Fail([string]$msg) { Write-Host ""; Write-Host "[오류] $msg" -ForegroundColor Red; exit 1 }
 
 # ── 0. 사전 점검 ─────────────────────────────────────────────
-$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-$isAdmin  = (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) { Fail "관리자 권한이 필요합니다. setup-and-run.bat 를 마우스 오른쪽 → '관리자 권한으로 실행' 해 주세요." }
+Write-Host "책갈피(Chaekgalpi) 설치·실행을 시작합니다." -ForegroundColor Green
+
+# 관리자 판정은 .NET 타입 대신 관리자 전용 명령의 종료 코드로 한다.
+#  · [Security.Principal.*] 조회는 스마트 앱 컨트롤이 켜진 PC 의 제한 언어
+#    모드(Constrained Language Mode)에서 막혀 승격됐는데도 실패로 읽힌다.
+#  · net session 은 Server 서비스가 꺼진 PC 에서 관리자여도 실패한다.
+function Test-Admin {
+    if (Get-Command fltmc.exe -ErrorAction SilentlyContinue) { & fltmc.exe *> $null }
+    else { & net.exe session *> $null }
+    return ($LASTEXITCODE -eq 0)
+}
+if (-not (Test-Admin)) { Fail "관리자 권한이 필요합니다. setup-and-run.bat 를 마우스 오른쪽 → '관리자 권한으로 실행' 해 주세요." }
+
+if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
+    Write-Host "[안내] 이 PC 는 보안 정책(스마트 앱 컨트롤 등)으로 스크립트가 제한 모드로 실행됩니다." -ForegroundColor Yellow
+    Write-Host "       중간에 멈추면 windows\차단될때_읽어주세요.txt 의 '해결 3' 을 사용해 주세요."
+}
 
 if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
     Fail "이 Windows 에는 WSL 명령이 없습니다. Windows 10 2004(빌드 19041) 이상으로 업데이트한 뒤 다시 실행해 주세요."
