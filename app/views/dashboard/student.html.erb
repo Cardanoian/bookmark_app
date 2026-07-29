@@ -142,6 +142,23 @@
       </section>
     <% end %>
   <% end %>
+  <%# 5.7) 친구들의 우수작(board_posts 진입점). 게시판은 상단 메뉴에 없으므로 이 카드가 학생의
+      유일한 진입 동선이다. 공유된 글이 하나도 없으면 섹션째 숨긴다(책 이야기 카드와 동형). %>
+  <% featured_posts = @home.featured_board_posts %>
+  <% if featured_posts.any? %>
+    <section id="featured-board-posts" class="space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="flex items-center gap-2 text-lg font-bold text-ink">
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-yellow text-yellow-dark"><%= ui_icon :medal, class_name: "h-4 w-4" %></span>
+          친구들의 우수작
+        </h2>
+        <%= link_to text_icon("우수작 게시판 가기", :arrow_right), board_posts_path, class: "inline-flex items-center gap-1 text-sm text-brand-blue underline" %>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <%= render partial: "board_posts/board_post", collection: featured_posts, as: :board_post %>
+      </div>
+    </section>
+  <% end %>
   <%# 6) 기존 인기·추천·고전 혼합 카탈로그의 책 발견 %>
   <% discovery = @home.discovery_books.to_a %>
   <% if discovery.any? %>

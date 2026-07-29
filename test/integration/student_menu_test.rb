@@ -59,6 +59,40 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_operator popular_index, :<, discovery_index
   end
 
+  # 우수작 게시판은 상단 메뉴에 없어서, 이 홈 섹션이 학생의 유일한 진입 동선이다.
+  # 링크가 사라지면 게시판이 다시 URL 직접 입력으로만 닿는 화면이 되므로 회귀를 여기서 막는다.
+  test "홈은 친구들의 우수작 카드와 게시판 진입 링크를 보여준다" do
+    peer = User.create!(school: @school, classroom: @classroom, name: "우수작친구", password: "password")
+    report = Report.create!(user: peer, classroom: @classroom, book: @book, book_title: @book.title,
+                            body: "친구가 쓴 멋진 독후감이에요.", reviewed: true, shared: true)
+    BoardPost.create!(report: report)
+
+    get root_path
+    assert_response :success
+    assert_select "section#featured-board-posts" do
+      assert_select "h2", text: /친구들의 우수작/
+      assert_select "a[href=?]", board_posts_path
+      assert_select "a[href=?]", board_post_path(report.board_post), text: @book.title
+    end
+  end
+
+  test "공유된 우수작이 없으면 홈의 우수작 섹션을 렌더하지 않는다" do
+    get root_path
+    assert_response :success
+    assert_select "section#featured-board-posts", count: 0
+  end
+
+  test "숨김 처리된 우수작은 홈 섹션에 노출되지 않는다" do
+    peer = User.create!(school: @school, classroom: @classroom, name: "숨김친구", password: "password")
+    report = Report.create!(user: peer, classroom: @classroom, book: @book, book_title: @book.title,
+                            body: "숨김 처리된 독후감이에요.", reviewed: true, shared: true)
+    BoardPost.create!(report: report, hidden: true)
+
+    get root_path
+    assert_response :success
+    assert_select "section#featured-board-posts", count: 0
+  end
+
   test "이 책은 어때요는 다른 책 보기로 다음 묶음을 순환한다" do
     12.times do |index|
       Book.create!(title: "발견책#{format('%02d', index)}", author: "발견작가", category: :recommended)
