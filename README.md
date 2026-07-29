@@ -55,19 +55,19 @@
 
 ## 기술 스택
 
-| 영역 | 사용 기술 |
-|------|-----------|
-| 프레임워크 | Ruby on Rails 8.1 |
-| 언어 | Ruby 4.0.5 |
-| 데이터베이스 | SQLite (primary / cache / queue / cable 다중 DB) |
-| 백그라운드 · 캐시 · 실시간 | Solid Queue · Solid Cache · Solid Cable |
-| 프런트엔드 | Hotwire(Turbo · Stimulus) · Import Maps · Propshaft · Tailwind CSS |
-| 인가 | Pundit (역할별 접근 권한) |
-| 인증 | `has_secure_password` (bcrypt) |
-| 외부 HTTP | Faraday (+ faraday-retry) |
-| AI | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 진위 확인) · Google Gemini (손글씨 OCR 전용) |
-| 배포 | Docker · Kamal 2 · Thruster (DigitalOcean 대상) |
-| 품질 | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit |
+| 영역                       | 사용 기술                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| 프레임워크                 | Ruby on Rails 8.1                                                                     |
+| 언어                       | Ruby 4.0.5                                                                            |
+| 데이터베이스               | SQLite (primary / cache / queue / cable 다중 DB)                                      |
+| 백그라운드 · 캐시 · 실시간 | Solid Queue · Solid Cache · Solid Cable                                               |
+| 프런트엔드                 | Hotwire(Turbo · Stimulus) · Import Maps · Propshaft · Tailwind CSS                    |
+| 인가                       | Pundit (역할별 접근 권한)                                                             |
+| 인증                       | `has_secure_password` (bcrypt)                                                        |
+| 외부 HTTP                  | Faraday (+ faraday-retry)                                                             |
+| AI                         | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 진위 확인) · Google Gemini (손글씨 OCR 전용) |
+| 배포                       | Docker · Kamal 2 · Thruster (DigitalOcean 대상)                                       |
+| 품질                       | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit                     |
 
 ---
 
@@ -82,10 +82,94 @@ Ruby·Rails 설치 없이 **Docker Desktop만 있으면** 소스코드를 그대
 docker compose up          # 빌드 + 데모 데이터 적재 + 서버 → http://localhost:3000
 ```
 
-> Windows 심사위원용 단계별 안내는 [`docs/JUDGE_RUN_LOCAL.md`](docs/JUDGE_RUN_LOCAL.md),
-> 체험 계정·둘러보기는 [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md) 참고.
-> Windows 에서 Docker 설치조차 자동화하려면 [`windows/setup-and-run.bat`](windows/CLAUDE.md) 더블클릭 한 번으로 WSL2·Ubuntu·Docker 설치부터 실행까지 끝납니다.
-> (운영 배포는 `Dockerfile`+Kamal, 심사용 로컬 실행은 `Dockerfile.dev`+`compose.yaml` 로 분리)
+서버가 뜨면 브라우저에서 **http://localhost:3000** 을 여세요. 로그인 화면 아래
+**"🚀 바로 체험해 보기"** 버튼을 누르면 아이디·비밀번호 입력 없이 학생·담임·교무·사서 계정으로
+바로 들어갑니다.
+
+### Windows — PowerShell 4단계 (Docker Desktop 없이, 붙여넣기만)
+
+아래 명령을 **복사해서 붙여넣기만** 하면 끝나고, 결과는 위의 `docker compose up` 과 똑같습니다.
+
+Windows 11 의 스마트 앱 컨트롤은 **인터넷을 거쳐 들어온 서명 없는 스크립트 파일**(`.bat`·`.ps1`)에
+붙는 꼬리표를 보고 실행 전에 막습니다. 파일 내용이 위험해서가 아니라 "출처가 확인되지 않았다"는
+이유이며, 그래서 내용을 아무리 고쳐도 차단은 그대로입니다. 아래 방법은 **`.bat`·`.ps1` 파일을
+하나도 실행하지 않고** 명령만 직접 입력하므로 애초에 검사 대상이 아닙니다. 실제 설치 작업은 WSL
+리눅스 안의 `windows/setup-wsl.sh` 가 맡는데, 리눅스 쪽 스크립트에는 이 검사가 적용되지 않습니다.
+
+<details>
+<summary><b>준비 — 관리자 PowerShell 여는 법</b> (처음이신 분만 펼쳐 보세요)</summary>
+
+1. 키보드의 `Windows 키` 를 누르고 `powershell` 이라고 입력합니다.
+2. 검색 결과의 **Windows PowerShell** 에 **마우스 오른쪽 클릭 → [관리자 권한으로 실행]**.
+3. "이 앱이 디바이스를 변경할 수 있도록 허용하시겠어요?" 창이 뜨면 **[예]**.
+4. 파란 창이 열리면 아래 명령을 **한 단계씩** 붙여넣고 `Enter` 를 누릅니다.
+   (붙여넣기는 `Ctrl+V` 또는 마우스 오른쪽 클릭 한 번)
+
+</details>
+
+#### 1단계 — WSL2 + Ubuntu 설치 · 최초 1회, 5~10분
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+- Windows 안에서 리눅스를 돌리는 **마이크로소프트 공식 기능**을 켜는 명령입니다.
+- 도중에 검은 Ubuntu 창이 열리면 안내에 따라 **사용자 이름과 암호를 한 번 만들고** 그 창을 닫습니다.
+- 끝나면 **PC 를 한 번 다시 시작**하고, 관리자 PowerShell 을 다시 열어 2단계부터 이어서 하면 됩니다.
+- 이미 WSL 이 깔린 PC 라면 "이미 설치되어 있습니다" 만 뜨고 넘어갑니다 — 정상입니다.
+
+#### 2단계 — 소스 폴더 위치 알려주기 · 10초
+
+```powershell
+cd C:\chaekgalpi
+$src = ((wsl -d Ubuntu -u root -e wslpath -a "$PWD") | Select-Object -First 1).Trim()
+```
+
+- `C:\chaekgalpi` 를 **소스코드가 들어 있는 실제 폴더 경로**로 바꿔 주세요. `compose.yaml` 파일이 보이는 폴더입니다.
+- 경로를 모르겠다면 파일 탐색기로 그 폴더를 연 뒤 **주소창 클릭 → `Ctrl+C`** 로 복사해서 `cd ` 뒤에 붙여넣으세요.
+- 둘째 줄은 그 폴더를 리눅스가 아는 주소로 바꿔 기억해 두는 명령입니다. **아무것도 출력되지 않는 것이 정상**입니다.
+
+#### 3단계 — 리눅스 안에 Docker 설치 · 3~5분
+
+```powershell
+wsl -d Ubuntu -u root -- bash -c "tr -d '\r' < '$src/windows/setup-wsl.sh' > /root/s.sh && bash /root/s.sh provision"
+wsl --shutdown
+```
+
+- 인터넷에서 Docker 를 받아 리눅스 안에 설치합니다. **`· Ubuntu 구성 완료`** 가 보이면 성공입니다.
+- 둘째 줄은 설정을 적용하려고 리눅스를 껐다 켜는 것입니다(수 초, 출력 없음).
+
+#### 4단계 — 앱 빌드 · 실행 · 최초 1회 5~15분
+
+```powershell
+wsl -d Ubuntu -u root -- bash -c "SRC_DIR='$src' bash /root/s.sh run"
+```
+
+- 소스 복사 → 컨테이너 빌드 → 도서 8,500여 권·데모 학급 데이터 적재까지 한 번에 진행합니다.
+  진행 중에는 몇 분간 조용할 수 있는데 **중간에 창을 닫지 마세요.**
+- **`✅ 준비 완료: http://localhost:3000`** 이 보이면 끝입니다. 브라우저에서 그 주소를 여세요.
+- 로그인 화면 아래 **"🚀 바로 체험해 보기"** 버튼을 누르면 아이디·비밀번호 입력 없이 학생·교사 화면으로 들어갑니다.
+
+#### 그 다음부터 쓰는 명령
+
+모두 관리자 PowerShell 에 붙여넣으면 됩니다.
+
+| 하고 싶은 것                     | 명령                                                                                   |
+| -------------------------------- | -------------------------------------------------------------------------------------- |
+| 서버 정지 (데이터는 보존)        | `wsl -d Ubuntu -u root -- bash -c "cd /root/chaekgalpi && docker compose down"`        |
+| 빠른 재시작                      | `wsl -d Ubuntu -u root -- bash -c "cd /root/chaekgalpi && docker compose up -d"`       |
+| 로그 보기 (`Ctrl+C` 로 빠져나옴) | `wsl -d Ubuntu -u root -- bash -c "cd /root/chaekgalpi && docker compose logs -f app"` |
+| 데이터까지 완전 초기화           | `wsl -d Ubuntu -u root -- bash -c "cd /root/chaekgalpi && docker compose down -v"`     |
+
+#### 막힐 때
+
+| 증상                                            | 해결                                                                                               |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 3·4단계에서 `s.sh: No such file` 또는 경로 오류 | PowerShell 창을 새로 열면 `$src` 기억이 지워집니다. **2단계를 먼저 다시 실행**한 뒤 이어서 하세요. |
+| `wsl : 이 용어가 ... 인식되지 않습니다`         | Windows 10 2004(빌드 19041) 미만입니다. Windows 업데이트 후 다시 시도하세요.                       |
+| 1단계에서 가상화 관련 오류                      | PC 의 BIOS/UEFI 에서 가상화(VT-x / AMD-V)를 켜야 합니다.                                           |
+| 4단계가 20분을 넘김                             | 위 표의 "로그 보기" 로 진행 상황을 확인하세요. 최초 빌드는 원래 오래 걸립니다.                     |
+| `port is already allocated`                     | 다른 프로그램이 3000 포트를 쓰는 중입니다. 그 프로그램을 끄고 4단계를 다시 실행하세요.             |
 
 ### 로컬 개발 요구사항 (Docker 없이 직접 실행 시)
 - Ruby **4.0.5** (`.ruby-version` 참고)
@@ -136,12 +220,12 @@ bin/rails quizzes:seed     # 샘플 퀴즈
 
 앱은 **ENV 환경변수를 우선하고, 없으면 Rails 암호화 credentials 로 폴백**해 키를 읽습니다. **키가 하나도 없어도 앱은 완전히 동작**하며(사진 OCR만 비활성), 각 기능이 폴백 경로로 자동 전환됩니다 — 오프라인 데모가 가능하도록 설계되었습니다.
 
-| credentials 키 | 발급처 | 켜지는 기능 | 폴백 |
-|---|---|---|---|
-| `claude.api_key` | Google AI Studio | OCR · 5축 첨삭 · 진위 확인 · 퀴즈 생성 | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
-| `naver.client_id` · `naver.client_secret` | Naver Developers | 도서 검색(단독 제공자) | 로컬 카탈로그 LIKE 검색 |
-| `data4library.api_key` | 정보나루 | 인기대출 동기화 | CSV 업로드 |
-| `neis.api_key` | NEIS 교육정보 개방포털 | 학교 스냅샷 갱신(`schools:fetch`) | 커밋된 CSV 오프라인 시드 |
+| credentials 키                            | 발급처                 | 켜지는 기능                            | 폴백                                          |
+| ----------------------------------------- | ---------------------- | -------------------------------------- | --------------------------------------------- |
+| `claude.api_key`                          | Google AI Studio       | OCR · 5축 첨삭 · 진위 확인 · 퀴즈 생성 | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
+| `naver.client_id` · `naver.client_secret` | Naver Developers       | 도서 검색(단독 제공자)                 | 로컬 카탈로그 LIKE 검색                       |
+| `data4library.api_key`                    | 정보나루               | 인기대출 동기화                        | CSV 업로드                                    |
+| `neis.api_key`                            | NEIS 교육정보 개방포털 | 학교 스냅샷 갱신(`schools:fetch`)      | 커밋된 CSV 오프라인 시드                      |
 
 ```bash
 # 키 편집 (EDITOR 설정 필요)
@@ -165,13 +249,13 @@ bin/rails runner '
 
 Pundit 정책으로 역할별 접근 권한을 관리하며, 일부 자원은 학교·학급 소속도 확인합니다. 다만 다학교 동시 운영을 전제로 한 앱 전체의 데이터 경계 격리는 검증하지 않았습니다.
 
-| 역할 | 주요 기능 |
-|------|-----------|
-| **학생** | 독후감 작성·고쳐쓰기·공유, 독서 게임, 몬스터 도감·진화, 랭킹, 커뮤니티 |
-| **담임교사** | 검토 목록(모두·미검토·검토완료 필터), 5축 점수 조정·승인·진위 확인, 학생 관리(비번 재설정·포인트 부여), 미션·퀴즈 발행, 루브릭 설정, 문서 출력(표창장·가정통신문·독서 포트폴리오·학급 성장 리포트), CSV 내보내기 |
-| **교무관리자** | 전교 통계 + NEIS 생기부 자동 요약 |
-| **사서** | 도서관 대시보드, 인기대출(정보나루/CSV), 이달의 책·행사 관리 |
-| **총괄관리자(superadmin)** | 전용 `/admin` — 학교·사용자·도서·퀴즈·뱃지·상점·몬스터종 CRUD, 모더레이션, 전역 분석·설정 |
+| 역할                       | 주요 기능                                                                                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **학생**                   | 독후감 작성·고쳐쓰기·공유, 독서 게임, 몬스터 도감·진화, 랭킹, 커뮤니티                                                                                                                                           |
+| **담임교사**               | 검토 목록(모두·미검토·검토완료 필터), 5축 점수 조정·승인·진위 확인, 학생 관리(비번 재설정·포인트 부여), 미션·퀴즈 발행, 루브릭 설정, 문서 출력(표창장·가정통신문·독서 포트폴리오·학급 성장 리포트), CSV 내보내기 |
+| **교무관리자**             | 전교 통계 + NEIS 생기부 자동 요약                                                                                                                                                                                |
+| **사서**                   | 도서관 대시보드, 인기대출(정보나루/CSV), 이달의 책·행사 관리                                                                                                                                                     |
+| **총괄관리자(superadmin)** | 전용 `/admin` — 학교·사용자·도서·퀴즈·뱃지·상점·몬스터종 CRUD, 모더레이션, 전역 분석·설정                                                                                                                        |
 
 ---
 
@@ -236,13 +320,13 @@ lib/tasks/       monsters · badges · books · schools · quizzes rake 시드
 docs/            설계·구현·운영 문서 (아래)
 ```
 
-| 문서 | 내용 |
-|------|------|
-| [`DESIGN.md`](DESIGN.md) | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형) |
+| 문서                                                                         | 내용                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------- |
+| [`DESIGN.md`](DESIGN.md)                                                     | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형)   |
 | [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
-| [`docs/monsters.md`](docs/monsters.md) | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드 |
-| [`docs/API_KEYS.md`](docs/API_KEYS.md) | 외부 API 키 주입·폴백 가이드 |
-| [`NOTICE.md`](NOTICE.md) | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기 |
-| [`TODO.md`](TODO.md) | 남은 작업(배포·에셋·모니터링) |
+| [`docs/monsters.md`](docs/monsters.md)                                       | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드      |
+| [`docs/API_KEYS.md`](docs/API_KEYS.md)                                       | 외부 API 키 주입·폴백 가이드                            |
+| [`NOTICE.md`](NOTICE.md)                                                     | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기        |
+| [`TODO.md`](TODO.md)                                                         | 남은 작업(배포·에셋·모니터링)                           |
 </content>
 </invoke>
