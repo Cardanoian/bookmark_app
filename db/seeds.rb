@@ -219,6 +219,10 @@ if seed_demo && (!Rails.env.production? || demo_deployment)
   require_relative "seeds/demo_seeder"
   puts "Seeding demo usage data (#{demo_deployment ? 'DEMO_DEPLOYMENT=1' : 'SEED_DEMO=1'})…"
   DemoSeeder.new.call
+
+  # 체험 계정이 직접 만든 것처럼 보이는 콘텐츠(담임 학급 퀴즈·학생 문제 기여·우수작 게시).
+  # 학급·학생·독후감이 모두 존재한 뒤라야 붙일 수 있으므로 DemoSeeder 뒤에 둔다.
+  Rake::Task["demo_content:seed"].invoke
 elsif seed_demo
   puts "SEED_DEMO ignored in production (set DEMO_DEPLOYMENT=1 to allow demo data on a demo instance)."
 end

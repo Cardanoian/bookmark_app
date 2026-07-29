@@ -1,0 +1,470 @@
+# 체험(데모) 계정이 만든 것처럼 보이는 추가 콘텐츠 시드.
+#
+#   · teacher_quizzes      : 담임 김지은(jieun@gbeai.net)이 3-1 학급에 낸 독서 퀴즈(mcq).
+#   · student_contributions: 학생 이도현이 낸 문제 기여(mcq = 독서 퀴즈 / hint_reveal = 나는 누구게?).
+#                            approved 는 담임 승인 → 전국 공유 풀로 물질화, pending 은 검토 큐에 남는다.
+#   · featured_reports     : 이미 있는 승인 독후감 일부를 우수작 게시판에 올리고 응원(좋아요)을 채우는 규칙.
+#
+# 대상 도서는 **카탈로그(인기대출·고전)에 등록돼 있으나 큐레이션 문항(CuratedQuiz)이 없던 책**만 골랐다.
+# 줄거리를 확실히 아는 책만 담고 불확실한 책은 넣지 않는다(이 저장소의 "모르는 책 안 지어내기" 원칙).
+# 소비: db/seeds/demo_content_seeder.rb (rake `demo_content:seed`).
+---
+teacher:
+  email: jieun@gbeai.net
+student:
+  name: 이도현
+
+# ── 담임 김지은이 3-1 학급에 낸 독서 퀴즈(문항 5개씩) ────────────────────────
+teacher_quizzes:
+  - isbn: "9788986621136"
+    title: 강아지똥 독서 퀴즈
+    questions:
+      - prompt: 강아지똥은 어디에서 태어났나요?
+        choices:
+          - 돌이네 흰둥이가 골목길에 눈 똥으로
+          - 학교 운동장 모래밭에서
+          - 산속 깊은 동굴에서
+          - 강가 바위틈에서
+        answer_index: 0
+        explanation: 강아지똥은 돌이네 흰둥이가 골목길에 누고 간 똥이에요.
+        difficulty: 1
+      - prompt: 강아지똥을 보고 "더럽다"며 날아가 버린 동물은 무엇인가요?
+        choices:
+          - 참새
+          - 까치
+          - 제비
+          - 비둘기
+        answer_index: 0
+        explanation: 참새가 날아와 더럽다고 놀리고는 그냥 가 버려요.
+        difficulty: 1
+      - prompt: 강아지똥과 이야기를 나눈 뒤 소달구지 주인에게 실려 간 것은 무엇인가요?
+        choices:
+          - 흙덩이
+          - 돌멩이
+          - 나뭇잎
+          - 지푸라기
+        answer_index: 0
+        explanation: 소달구지에서 떨어진 흙덩이는 주인이 다시 찾아와 데려가요.
+        difficulty: 2
+      - prompt: 민들레가 예쁜 꽃을 피우려면 무엇이 필요하다고 했나요?
+        choices:
+          - 강아지똥이 거름이 되어 주는 것
+          - 사람이 물을 주는 것
+          - 바람이 씨앗을 날라 주는 것
+          - 참새가 노래를 불러 주는 것
+        answer_index: 0
+        explanation: 민들레는 강아지똥이 거름이 되어 주어야 꽃을 피울 수 있다고 말해요.
+        difficulty: 2
+      - prompt: 강아지똥은 마지막에 어떻게 되었나요?
+        choices:
+          - 빗물에 잘게 부서져 민들레의 거름이 되었어요
+          - 바람에 날려 멀리 사라졌어요
+          - 참새가 물고 날아갔어요
+          - 흙덩이를 따라 고추밭으로 갔어요
+        answer_index: 0
+        explanation: 봄비를 맞으며 부서진 강아지똥은 민들레 뿌리로 스며들어 노란 꽃을 피워요.
+        difficulty: 2
+
+  - isbn: "9788934908067"
+    title: 책 먹는 여우 독서 퀴즈
+    questions:
+      - prompt: 여우 아저씨는 책을 다 읽고 나면 무엇을 했나요?
+        choices:
+          - 소금과 후추를 뿌려 먹었어요
+          - 친구에게 빌려주었어요
+          - 책장에 예쁘게 꽂아 두었어요
+          - 표지를 새로 만들어 주었어요
+        answer_index: 0
+        explanation: 여우 아저씨는 다 읽은 책에 소금과 후추를 뿌려 맛있게 먹어 치워요.
+        difficulty: 1
+      - prompt: 여우 아저씨가 도서관에 열심히 다니게 된 까닭은 무엇인가요?
+        choices:
+          - 책을 사 먹을 돈이 모자라서
+          - 사서가 되고 싶어서
+          - 친구를 만나려고
+          - 숙제를 하려고
+        answer_index: 0
+        explanation: 책을 사 먹느라 가난해진 여우 아저씨는 공짜로 책을 볼 수 있는 도서관을 찾아가요.
+        difficulty: 2
+      - prompt: 여우 아저씨는 결국 어떤 일 때문에 감옥에 가게 되었나요?
+        choices:
+          - 도서관과 서점의 책을 훔쳐서
+          - 남의 집 담을 넘어서
+          - 거짓말로 돈을 빌려서
+          - 길에서 싸움을 해서
+        answer_index: 0
+        explanation: 책을 참지 못하고 훔쳐 먹다가 붙잡혀 감옥에 갇혀요.
+        difficulty: 2
+      - prompt: 감옥에서 책을 먹을 수 없게 된 여우 아저씨가 생각해 낸 방법은 무엇인가요?
+        choices:
+          - 직접 이야기를 써서 그 종이를 먹었어요
+          - 벽에 그림을 그려 먹는 시늉을 했어요
+          - 다른 죄수의 편지를 빼앗아 먹었어요
+          - 창밖으로 날아온 나뭇잎을 먹었어요
+        answer_index: 0
+        explanation: 종이와 연필을 얻은 여우 아저씨는 스스로 이야기를 써서 그것을 먹어요.
+        difficulty: 3
+      - prompt: 여우 아저씨가 감옥에서 쓴 이야기는 나중에 어떻게 되었나요?
+        choices:
+          - 책으로 나와 큰 인기를 얻고 작가가 되었어요
+          - 아무도 읽지 않아 버려졌어요
+          - 도서관에만 한 권 남았어요
+          - 여우 아저씨가 모두 먹어 버려 사라졌어요
+        answer_index: 0
+        explanation: 이야기가 너무 재미있어서 책으로 나왔고, 여우 아저씨는 유명한 작가가 돼요.
+        difficulty: 2
+
+  - isbn: "9788952709530"
+    title: 샬롯의 거미줄 독서 퀴즈
+    questions:
+      - prompt: 태어나자마자 죽을 뻔한 새끼 돼지 윌버를 구해 준 사람은 누구인가요?
+        choices:
+          - 펀
+          - 주커만 아저씨
+          - 러비
+          - 호머 아저씨
+        answer_index: 0
+        explanation: 펀은 아빠를 말려 가장 작은 새끼 돼지 윌버를 살려 내고 정성껏 키워요.
+        difficulty: 1
+      - prompt: 헛간에서 윌버와 가장 가까운 친구가 된 동물은 무엇인가요?
+        choices:
+          - 거미 샬롯
+          - 쥐 템플턴
+          - 늙은 양
+          - 거위
+        answer_index: 0
+        explanation: 헛간 문 위에 사는 거미 샬롯이 윌버의 가장 좋은 친구가 돼요.
+        difficulty: 1
+      - prompt: 샬롯이 윌버를 살리기 위해 한 일은 무엇인가요?
+        choices:
+          - 거미줄에 윌버를 칭찬하는 글자를 짜 넣었어요
+          - 농장 주인에게 편지를 썼어요
+          - 윌버를 숲으로 도망시켰어요
+          - 윌버 대신 다른 돼지를 데려왔어요
+        answer_index: 0
+        explanation: 샬롯은 거미줄에 글자를 짜 넣어 사람들이 윌버를 특별한 돼지로 여기게 만들어요.
+        difficulty: 2
+      - prompt: 샬롯이 거미줄에 가장 먼저 짜 넣은 말은 무엇인가요?
+        choices:
+          - 대단한 돼지
+          - 겸손한 돼지
+          - 빛나는 돼지
+          - 끝내주는 돼지
+        answer_index: 0
+        explanation: 첫 거미줄 글자는 "대단한 돼지"였고, 이어서 여러 칭찬이 더해져요.
+        difficulty: 3
+      - prompt: 품평회가 끝난 뒤 샬롯은 어떻게 되었나요?
+        choices:
+          - 알주머니를 남기고 세상을 떠났어요
+          - 윌버와 함께 헛간으로 돌아왔어요
+          - 다른 농장으로 이사했어요
+          - 템플턴과 함께 여행을 떠났어요
+        answer_index: 0
+        explanation: 샬롯은 품평회장에서 알주머니를 남기고 삶을 마치고, 윌버가 그 알주머니를 헛간으로 가져와요.
+        difficulty: 3
+
+  - isbn: "9791171253180"
+    title: 나쁜 어린이 표 독서 퀴즈
+    questions:
+      - prompt: 이 이야기의 주인공 이름은 무엇인가요?
+        choices:
+          - 건우
+          - 민수
+          - 동주
+          - 재석
+        answer_index: 0
+        explanation: 나쁜 어린이 표를 자꾸 받게 되는 주인공은 건우예요.
+        difficulty: 1
+      - prompt: 선생님이 잘못한 아이에게 주는 것은 무엇인가요?
+        choices:
+          - 나쁜 어린이 표
+          - 벌점 쪽지
+          - 반성문 공책
+          - 청소 당번 딱지
+        answer_index: 0
+        explanation: 선생님은 잘한 아이에게는 착한 어린이 표를, 잘못한 아이에게는 나쁜 어린이 표를 줘요.
+        difficulty: 1
+      - prompt: 건우가 억울해한 까닭은 무엇인가요?
+        choices:
+          - 자기 잘못이 아닌데도 나쁜 어린이 표를 받아서
+          - 착한 어린이 표를 너무 많이 받아서
+          - 친구가 표를 훔쳐 가서
+          - 표를 받는 규칙을 몰라서
+        answer_index: 0
+        explanation: 건우는 자기 잘못이 아닌 일로도 나쁜 어린이 표를 받아 마음이 상해요.
+        difficulty: 2
+      - prompt: 건우가 선생님 몰래 만든 것은 무엇인가요?
+        choices:
+          - 나쁜 선생님 표
+          - 반 친구들의 성적표
+          - 학급 신문
+          - 비밀 일기장
+        answer_index: 0
+        explanation: 건우는 선생님의 잘못을 적는 "나쁜 선생님 표"를 만들어요.
+        difficulty: 2
+      - prompt: 이 이야기가 전하려는 생각으로 가장 알맞은 것은 무엇인가요?
+        choices:
+          - 어른도 아이의 마음을 헤아려야 한다는 것
+          - 상을 많이 받아야 훌륭한 사람이 된다는 것
+          - 규칙은 무조건 지켜야 한다는 것
+          - 친구보다 공부가 더 중요하다는 것
+        answer_index: 0
+        explanation: 표로 사람을 판단하기보다 서로의 마음을 헤아려야 한다는 이야기예요.
+        difficulty: 3
+
+  - isbn: "9791169814102"
+    title: 프린들 주세요 독서 퀴즈
+    questions:
+      - prompt: 닉이 볼펜에 새로 붙인 이름은 무엇인가요?
+        choices:
+          - 프린들
+          - 펜슬
+          - 잉키
+          - 워드
+        answer_index: 0
+        explanation: 닉은 볼펜을 "프린들"이라고 부르기 시작해요.
+        difficulty: 1
+      - prompt: 사전을 무엇보다 소중히 여긴 선생님은 누구인가요?
+        choices:
+          - 그레인저 선생님
+          - 앨런 선생님
+          - 채트햄 선생님
+          - 버크 선생님
+        answer_index: 0
+        explanation: 국어 시간마다 사전을 강조하는 그레인저 선생님이에요.
+        difficulty: 2
+      - prompt: 닉이 새 낱말을 만들어 보기로 한 까닭은 무엇인가요?
+        choices:
+          - 낱말은 그것을 쓰는 사람들이 정한다는 것을 알게 되어서
+          - 사전을 만드는 회사에 취직하고 싶어서
+          - 선생님을 골탕 먹이라는 부탁을 받아서
+          - 새 낱말을 만들면 상을 준다고 해서
+        answer_index: 0
+        explanation: 낱말의 뜻은 사람들이 정해서 함께 쓰기로 한 약속이라는 걸 알고 직접 실험해 봐요.
+        difficulty: 2
+      - prompt: '"프린들"이라는 말은 어떻게 퍼져 나갔나요?'
+        choices:
+          - 학교를 넘어 마을과 온 나라로 퍼졌어요
+          - 닉과 친구 몇 명만 쓰다가 사라졌어요
+          - 선생님이 금지해서 곧 없어졌어요
+          - 다른 나라에서 먼저 쓰이기 시작했어요
+        answer_index: 0
+        explanation: 아이들 사이에서 시작된 말이 신문과 방송을 타고 온 나라로 퍼져요.
+        difficulty: 2
+      - prompt: 오랜 시간이 지난 뒤 '프린들'은 어떻게 되었나요?
+        choices:
+          - 사전에 실린 낱말이 되었어요
+          - 아무도 기억하지 못하게 되었어요
+          - 학교에서만 쓰는 말로 남았어요
+          - 다른 말로 바뀌었어요
+        answer_index: 0
+        explanation: 시간이 흐른 뒤 프린들은 진짜 사전에 실린 낱말이 돼요.
+        difficulty: 3
+
+  - isbn: "9788967819446"
+    title: 팥죽 할멈과 호랑이 독서 퀴즈
+    questions:
+      - prompt: 호랑이가 할머니를 바로 잡아먹지 않고 기다린 까닭은 무엇인가요?
+        choices:
+          - 팥 농사를 지어 팥죽을 쑤어 먹은 뒤에 잡아먹기로 해서
+          - 할머니가 도망칠 수 없다고 생각해서
+          - 배가 부르지 않아서
+          - 사냥꾼이 무서워서
+        answer_index: 0
+        explanation: 할머니가 팥죽을 쑤어 먹고 난 뒤에 잡아먹으라고 하자 호랑이가 그러기로 해요.
+        difficulty: 1
+      - prompt: 아궁이 속에 숨어 있다가 호랑이 눈으로 튀어 오른 것은 무엇인가요?
+        choices:
+          - 알밤
+          - 송곳
+          - 자라
+          - 멍석
+        answer_index: 0
+        explanation: 아궁이에 숨어 있던 알밤이 뜨거워지자 톡 튀어 호랑이 눈을 때려요.
+        difficulty: 2
+      - prompt: 물독 속에 숨어 있다가 호랑이의 손을 문 것은 무엇인가요?
+        choices:
+          - 자라
+          - 개구리
+          - 뱀
+          - 게
+        answer_index: 0
+        explanation: 눈이 아파 물독으로 손을 넣은 호랑이의 손을 자라가 꽉 물어요.
+        difficulty: 2
+      - prompt: 할머니를 돕겠다고 나선 것들에게 할머니가 준 것은 무엇인가요?
+        choices:
+          - 팥죽 한 그릇
+          - 쌀 한 되
+          - 엽전 한 냥
+          - 따뜻한 옷 한 벌
+        answer_index: 0
+        explanation: 할머니는 도와주겠다는 것들에게 팥죽을 한 그릇씩 나누어 줘요.
+        difficulty: 1
+      - prompt: 마지막에 호랑이는 어떻게 되었나요?
+        choices:
+          - 멍석에 둘둘 말려 지게에 실려 강물에 빠졌어요
+          - 산으로 도망쳐 다시는 오지 않았어요
+          - 할머니와 친구가 되었어요
+          - 사냥꾼에게 잡혀갔어요
+        answer_index: 0
+        explanation: 멍석이 호랑이를 둘둘 말고 지게가 지고 가서 강물에 빠뜨려요.
+        difficulty: 2
+
+# ── 학생 이도현이 낸 문제 기여 ────────────────────────────────────────────────
+# approved 는 담임(김지은) 승인 처리 → Games::ContributionPublisher 가 전국 공유 풀로 물질화한다.
+student_contributions:
+  - isbn: "9788986621136"
+    content_axis: hint_reveal
+    status: approved
+    payload:
+      answer: 민들레
+      hints:
+        - 강아지똥 바로 옆에서 봄에 싹이 텄어요
+        - 노랗고 예쁜 꽃을 피우고 싶어 했어요
+        - 강아지똥이 거름이 되어 준 덕분에 꽃을 피웠어요
+      explanation: 강아지똥을 거름 삼아 노란 꽃을 피운 것은 민들레예요.
+
+  - isbn: "9788965795513"
+    content_axis: mcq
+    status: approved
+    payload:
+      prompt: 열다섯 소년들이 무인도까지 흘러가게 된 까닭은 무엇인가요?
+      choices:
+        - 배가 항구를 벗어난 채 폭풍을 만나 떠밀려서
+        - 해적에게 붙잡혀 끌려가서
+        - 보물을 찾으러 일부러 떠나서
+        - 학교에서 탐험을 보내서
+      answer_index: 0
+      explanation: 어른 없이 배에 남아 있던 소년들은 배가 항구를 벗어난 뒤 폭풍에 떠밀려 무인도에 닿아요.
+
+  - isbn: "9788965795513"
+    content_axis: hint_reveal
+    status: approved
+    payload:
+      answer: 브리앙
+      hints:
+        - 프랑스에서 온 소년이에요
+        - 동생 자크와 함께 배를 탔어요
+        - 도노반과 부딪치면서도 친구들을 잘 이끌어요
+      explanation: 동생 자크를 아끼며 친구들을 이끄는 프랑스 소년은 브리앙이에요.
+
+  - isbn: "9788979974935"
+    content_axis: mcq
+    status: approved
+    payload:
+      prompt: 제제가 친구처럼 이야기를 나눈 것은 무엇인가요?
+      choices:
+        - 뒤뜰에 있는 작은 라임오렌지나무
+        - 옆집에서 기르는 강아지
+        - 낡은 자전거
+        - 학교 화단의 장미
+      answer_index: 0
+      explanation: 제제는 뒤뜰의 라임오렌지나무를 친구로 삼아 마음속 이야기를 나눠요.
+
+  - isbn: "9788979974935"
+    content_axis: hint_reveal
+    status: approved
+    payload:
+      answer: 밍기뉴
+      hints:
+        - 제제가 직접 지어 준 이름이에요
+        - 뒤뜰에 서 있는 작은 나무예요
+        - 제제와 이야기를 나누는 하나뿐인 친구예요
+      explanation: 제제가 라임오렌지나무에게 붙여 준 이름이 밍기뉴예요.
+
+  - isbn: "9788952709530"
+    content_axis: hint_reveal
+    status: approved
+    payload:
+      answer: 샬롯
+      hints:
+        - 헛간 문 위쪽에 집을 짓고 살아요
+        - 다리가 여덟 개예요
+        - 거미줄에 글자를 짜서 친구를 살려 줘요
+      explanation: 거미줄에 글자를 짜 넣어 윌버를 살린 거미의 이름은 샬롯이에요.
+
+  - isbn: "9788934908067"
+    content_axis: mcq
+    status: approved
+    payload:
+      prompt: 여우 아저씨가 책 위에 뿌려서 먹은 것은 무엇인가요?
+      choices:
+        - 소금과 후추
+        - 설탕과 꿀
+        - 케첩과 마요네즈
+        - 참기름과 깨소금
+      answer_index: 0
+      explanation: 여우 아저씨는 다 읽은 책에 소금과 후추를 뿌려 먹어요.
+
+  - isbn: "9788935676507"
+    content_axis: mcq
+    status: approved
+    payload:
+      prompt: 렝켄의 부모님은 어떤 때에 몸이 절반으로 작아졌나요?
+      choices:
+        - 렝켄의 부탁을 들어주지 않을 때마다
+        - 거짓말을 할 때마다
+        - 늦잠을 잘 때마다
+        - 큰 소리로 화를 낼 때마다
+      answer_index: 0
+      explanation: 마법의 설탕 때문에 부모님은 렝켄의 말을 들어주지 않을 때마다 키가 절반으로 줄어들어요.
+
+  - isbn: "9791171253180"
+    content_axis: hint_reveal
+    status: approved
+    payload:
+      answer: 건우
+      hints:
+        - 선생님께 자꾸 나쁜 어린이 표를 받아요
+        - 억울한 마음에 몰래 공책 하나를 만들어요
+        - 선생님에게 '나쁜 선생님 표'를 주는 아이예요
+      explanation: 나쁜 선생님 표를 만든 이 이야기의 주인공은 건우예요.
+
+  - isbn: "9788967819446"
+    content_axis: mcq
+    status: approved
+    payload:
+      prompt: 호랑이를 멍석에 둘둘 말아 강물까지 지고 간 것은 무엇인가요?
+      choices:
+        - 지게
+        - 송곳
+        - 알밤
+        - 자라
+      answer_index: 0
+      explanation: 멍석이 호랑이를 말자 지게가 지고 가서 강물에 빠뜨려요.
+
+  - isbn: "9788932917245"
+    content_axis: hint_reveal
+    status: pending
+    payload:
+      answer: 장미
+      hints:
+        - 어린 왕자의 작은 별에 단 한 송이 피어 있었어요
+        - 가시 네 개로 자기를 지킬 수 있다고 뽐냈어요
+        - 어린 왕자가 길들였기에 책임져야 하는 꽃이에요
+      explanation: 어린 왕자가 자기 별에 두고 온, 세상에 하나뿐인 꽃은 장미예요.
+
+  - isbn: "9791194381358"
+    content_axis: mcq
+    status: pending
+    payload:
+      prompt: 허수아비가 오즈의 마법사에게 받고 싶어 한 것은 무엇인가요?
+      choices:
+        - 생각할 수 있는 지혜로운 뇌
+        - 따뜻한 심장
+        - 사자처럼 큰 용기
+        - 집으로 돌아갈 은구두
+      answer_index: 0
+      explanation: 허수아비는 지혜로운 뇌를, 양철 나무꾼은 심장을, 사자는 용기를 얻고 싶어 해요.
+
+# ── 우수작 게시판 + 응원(좋아요) ──────────────────────────────────────────────
+# 이미 담임 승인이 끝난 A등급 독후감 중 아직 게시판에 오르지 않은 글을 골라 우수작으로 올린다.
+# 새 독후감을 지어내지 않고 **DB 에 있는 글만** 고르므로 통계·포인트와 어긋나지 않는다.
+featured_reports:
+  # 체험 학생(이도현) 글은 반드시 이만큼 포함한다(책 제목이 겹치면 점수 높은 글 하나만).
+  student_pick_count: 5
+  # 그 밖의 학생 글(학생 1명당 최대 1편).
+  peer_pick_count: 25
+  # 응원 수 범위(글마다 결정적으로 배정, 같은 학급 친구들이 누른다).
+  cheer_min: 4
+  cheer_max: 12
