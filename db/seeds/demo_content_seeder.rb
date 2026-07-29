@@ -3,7 +3,7 @@
 require "yaml"
 require "zlib"
 
-# 체험(데모) 계정 추가 콘텐츠 시더 — db/seeds/demo_content.yml 을 읽어 세 가지를 멱등 생성한다.
+# 체험(데모) 계정 추가 콘텐츠 시더 — db/seeds/demo_content.yml 을 읽어 다섯 가지를 멱등 생성한다.
 #
 #   ① 담임 김지은의 학급 독서 퀴즈(Quiz origin=teacher·scope=classroom·published, 문항 source=manual)
 #   ② 학생 이도현의 문제 기여(QuizContribution). approved 는 담임 승인까지 재현해
@@ -11,6 +11,12 @@ require "zlib"
 #      담임 검토 큐에 남는다 — 화면상 "검토 대기 중인 학생 문제"도 함께 보이게 하려는 의도다.
 #   ③ 우수작 게시판(BoardPost) + 응원(Cheer). **새 독후감을 만들지 않고** 이미 담임 승인이 끝난
 #      A등급 독후감 중 아직 게시판에 없는 글만 골라 올리므로 포인트·통계와 어긋나지 않는다.
+#   ④ 도서관 인기대출(LibraryLoan). 우리 학교분(source=csv)과 전국분(school_id=NULL·data4library)을
+#      함께 담아, 사서 화면이 두 스코프가 섞인 실제 모습대로 보이게 한다.
+#   ⑤ 도서관 이달의 책·행사(LibraryEvent). 상대 날짜라 언제 시드해도 지난 행사·예정 행사가 공존한다.
+#
+# ④⑤ 는 체험 계정 사서(최지혜)가 보는 화면의 자료다 — 정보나루 API 키·DLS CSV 없이도 사서 역할을
+# 둘러볼 수 있게 하려는 것이며, 학교는 담임 학급이 속한 학교(=체험 학교)를 그대로 쓴다.
 #
 # 멱등성: 같은 제목의 교사 퀴즈·같은 내용의 기여·이미 게시된 독후감은 다시 만들지 않는다. 응원도
 # 이미 응원 수가 채워진 게시물은 건드리지 않는다. 재실행(rake demo_content:seed)은 no-op 이다.
@@ -41,6 +47,8 @@ class DemoContentSeeder
     seed_teacher_quizzes
     seed_student_contributions
     seed_featured_reports
+    seed_library_loans
+    seed_library_events
 
     @io.puts "  [demo-content] 완료: " + @totals.map { |k, v| "#{k}=#{v}" }.join(" ")
   end
@@ -263,6 +271,72 @@ class DemoContentSeeder
       @totals[:cheers] += 1
     end
     report.update_columns(cheers_count: cheerers.size)
+  end
+
+  # ── ④ 도서관 인기대출 ─────────────────────────────────────────────────────
+  def seed_library_loans
+    config = @data["library_loans"]
+    return unless config.is_a?(Hash)
+
+    unless school
+      @io.puts "  [demo-content] 체험 학교 없음 — 인기대출 건너뜀."
+      return
+    end
+
+    # 집계가 끝난 직전 달 — 컨트롤러의 정보나루 동기화(`sync_data4library`)와 같은 규칙.
+    period = Date.current.prev_month.strftime("%Y-%m")
+
+    upsert_loans(Array(config["school"]), school_id: school.id, source: :csv, period: period)
+    upsert_loans(Array(config["nation"]), school_id: nil, source: :data4library, period: period)
+  end
+
+  # 멱등 키는 컨트롤러 upsert 의 `[school_id, book_title, period]` 와 달리 **period 를 뺀
+  # `[school_id, book_title]`** 이다 — period 를 키에 넣으면 달이 바뀔 때마다 같은 책이 새 행으로
+  # 쌓여(재실행 = 증식) 데모 자료가 부풀기 때문이다. 대신 period·count 는 매 실행 갱신한다.
+  def upsert_loans(entries, school_id:, source:, period:)
+    entries.each do |entry|
+      title = entry["title"].to_s.strip
+      next if title.empty?
+
+      loan = LibraryLoan.find_or_initialize_by(school_id: school_id, book_title: title)
+      created = loan.new_record?
+      loan.isbn = Books::Isbn.normalize(entry["isbn"].to_s) || entry["isbn"].presence
+      loan.count = entry["count"].to_i
+      loan.source = source
+      loan.period = period
+      loan.save!
+      @totals[created ? :library_loans : :library_loans_existing] += 1
+    end
+  end
+
+  # ── ⑤ 도서관 이달의 책·행사 ───────────────────────────────────────────────
+  def seed_library_events
+    entries = Array(@data["library_events"])
+    return if entries.empty?
+
+    unless school
+      @io.puts "  [demo-content] 체험 학교 없음 — 도서관 행사 건너뜀."
+      return
+    end
+
+    entries.each do |entry|
+      event = LibraryEvent.find_or_initialize_by(school_id: school.id, title: entry.fetch("title"))
+      created = event.new_record?
+      event.description = entry["description"]
+      # 상대 날짜 — 언제 시드해도 지난 행사(음수)와 예정 행사가 함께 보인다. 키가 없으면 상시 운영.
+      offset = entry["days_from_today"]
+      event.event_on = offset.nil? ? nil : Date.current + offset.to_i
+      event.book = entry["isbn"].presence && find_book(entry["isbn"])
+      event.save!
+      @totals[created ? :library_events : :library_events_existing] += 1
+    end
+  end
+
+  # 체험 학교 = 담임 학급이 속한 학교. 사서(최지혜)도 같은 학교 소속이라 별도 신원 규약이 필요 없다.
+  def school
+    return @school if defined?(@school)
+
+    @school = classroom&.school
   end
 
   # YAML 로 읽은 페이로드를 JSON 컬럼에 저장할 문자열 키 해시로 정규화한다.
