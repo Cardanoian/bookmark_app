@@ -110,15 +110,25 @@ module Teacher
     def axis_stats
       @axis_stats ||= grouped do
         scored = original_reports.where(reviewed: true).where.not(rubric: nil).where("rubric != '{}'")
-        sums = ReadingDomain::RUBRIC_AXES.map do |axis|
-          Arel.sql("SUM(COALESCE(json_extract(reports.teacher_rubric, '$.#{axis}'), " \
-                   "json_extract(reports.rubric, '$.#{axis}'), 0))")
-        end
+        sums = ReadingDomain::RUBRIC_AXES.map { |axis| axis_sum_sql(axis) }
 
         scored.group(:user_id)
               .pluck(Arel.sql("reports.user_id"), Arel.sql("COUNT(*)"), *sums)
               .to_h { |user_id, count, *totals| [ user_id, axis_row(count, totals) ] }
       end
+    end
+
+    # 축 하나의 "교사 조정 우선" 합계 SQL 조각. 축 이름은 `RUBRIC_AXES` 폐집합이지만 SQL 에
+    # 문자열 보간으로 끼워 넣지 않고 **바인드로 넘겨 `sanitize_sql_array` 가 인용**하게 한다 —
+    # 값이 실제로 안전한 것과 "안전함을 코드에서 읽어낼 수 있는 것"은 다르고, 정적 분석
+    # (brakeman SQL Injection)도 보간된 조각은 신뢰할 수 없다고 본다.
+    def axis_sum_sql(axis)
+      Arel.sql(
+        Report.sanitize_sql_array([
+          "SUM(COALESCE(json_extract(reports.teacher_rubric, ?), json_extract(reports.rubric, ?), 0))",
+          "$.#{axis}", "$.#{axis}"
+        ])
+      )
     end
 
     def axis_row(count, totals)

@@ -52,6 +52,8 @@ __pycache__
 # db/seeds 데이터(학교·도서·몬스터·데모 등)는 앱 구동·시연에 필수이므로 git 에 포함한다.
 # (과거 blanket 무시였으나, 소스 제출/클론 시 시드 누락으로 빈 앱이 되는 것을 막기 위해 추적 전환.
 #  비밀키가 아니며 총 ~12MB. master.key/credentials 키는 위 `/config/*.key` 규칙으로 계속 제외됨.)
+#  공식 추천도서 XLSX 는 시드 입력이라 `db/seeds/` 아래에 두어 함께 추적한다 — docs/ 는 중첩
+#  git 저장소여서 바깥 저장소가 그 안의 파일을 추적할 수 없다.)
 /docs
 /script
 /manual

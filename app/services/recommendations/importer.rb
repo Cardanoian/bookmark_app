@@ -9,6 +9,19 @@ module Recommendations
 
     Result = Struct.new(:recommendation_import, :reused, keyword_init: true)
 
+    # 최초 설치용 번들 추천도서 XLSX 의 위치 단일 진실(`db/seeds.rb` 초기 적재와 파싱 계약
+    # 테스트가 공유). **`db/seeds` 에 두는 이유**: 이 파일은 시드 입력이라 저장소에 함께 있어야
+    # 클론·CI 체크아웃에서도 추천 목록이 비지 않는데, 예전 위치인 `docs/` 는 중첩 git 저장소라
+    # 바깥 저장소가 그 안의 파일을 추적할 수 없다. `docs/` 는 로컬 문서 저장소를 그대로 둔
+    # 개발자를 위한 폴백으로만 남긴다. 파일명은 "추천도서목록" 포함으로 찾으며(호수·판본이 바뀌어도
+    # 매칭), macOS 등에서 자모 분리(NFD) 저장된 이름도 걸리도록 NFC 정규화 후 비교한다.
+    def self.bundled_workbook_path
+      Dir[
+        Rails.root.join("db", "seeds", "*.xlsx"),
+        Rails.root.join("docs", "*.xlsx")
+      ].find { |path| File.basename(path).unicode_normalize(:nfc).include?("추천도서목록") }
+    end
+
     def initialize(path:, filename:)
       @path = path.to_s
       @filename = File.basename(filename.to_s).presence || "recommendations.xlsx"

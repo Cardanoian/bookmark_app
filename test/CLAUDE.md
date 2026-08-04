@@ -1,4 +1,4 @@
-# test/ — Minitest + Capybara 테스트 스위트 (1690 runs)
+# test/ — Minitest + Capybara 테스트 스위트 (1713 runs)
 
 '책갈피'(Rails 8.1)의 전체 자동화 테스트 모음이다. 모델·정책·서비스 단위 테스트부터 역할별 화면·플로우를 검증하는 integration 테스트까지 포함한다. 테스트는 **외부 API를 절대 호출하지 않으며**(`test_helper.rb`가 credentials 키를 공란으로 강제 → 도서검색·정보나루·Claude가 오프라인 폴백 경로를 탄다), 원격 성공 경로는 스텁 커넥션을 DI로 주입해 검증한다.
 
@@ -19,7 +19,8 @@
 - `mailers/` — **`account_mailer_test`(인증 메일 봉투·본문 계약)**. 발신(`admin@chaekgalpi.net`)·수신·제목, **HTML·텍스트 두 파트가 모두 존재하고 각각 토큰 링크를 포함**(한쪽만 렌더되면 실패), 만료 문구가 `User::*_EXPIRY` 상수에서 파생된 값과 일치(문서-코드 드리프트 차단), 링크 호스트가 환경 `default_url_options` 를 따름, **평문 비밀번호·다이제스트·salt 미포함**(PII 회귀 가드 — 어서션이 URL 경로의 `password_resets` 에 걸리지 않도록 실제 비밀값으로 검사한다).
 - `helpers/` — 뷰 헬퍼(`TeacherHelper`, `MonstersHelper`의 WebP 렌더·이모지 폴백).
 - `integration/` — 역할별 화면·플로우 E2E(대표 그룹은 아래).
-- `system/` — Capybara+Selenium 브라우저 시스템 테스트(`application_system_test_case.rb` = `driven_by :selenium, using: :headless_chrome`). 현재 `reports_guided_compose`(직접쓰기 안내 질문 조립 E2E) 1종. **chromedriver 미가용 환경에서는 각 테스트가 스스로 skip**(무JS·무드라이버 CI 안전) — `bin/rails test`(비-system)와 분리되어 `bin/rails test:system`으로 실행.
+- `system/` — Capybara+Selenium 브라우저 시스템 테스트(`application_system_test_case.rb` = `driven_by :selenium, using: :headless_chrome`). 현재 `reports_guided_compose`(직접쓰기 안내 질문 조립 E2E)·`report_review_gate`(제출→"선생님 확인 중"→교사 승인→첨삭 노출, 한 브라우저 세션에서 학생↔교사 전환) 2종. **chromedriver 미가용 환경에서는 각 테스트가 스스로 skip**(무JS·무드라이버 CI 안전) — `bin/rails test`(비-system)와 분리되어 `bin/rails test:system`으로 실행.
+  - **브라우저 로그인 3계약**(integration 의 `login_as` 가 대신해 주던 일을 여기선 직접 지켜야 한다): ① 학생은 `nickname`·`ranking_opted_in`을 **미리 채워** 만든다 — 비우면 `require_student_ranking_profile` 게이트가 로그인 직후 모든 화면을 `ranking_preferences#edit`로 되돌린다. ② `click_button "로그인"`(로그아웃도 동일) 뒤에는 **도착지를 `assert_current_path`로 기다린다** — Turbo 폼 전송은 즉시 반환하므로 바로 `visit` 하면 세션 쿠키가 심기기 전에 다음 요청이 나가 로그인 인덱스로 튕긴다(뒤늦게 쿠키가 붙어 화면은 로그인한 것처럼 보여 진단이 어렵다). ③ 교사 화면의 로그아웃 버튼은 **대시보드에만** 있으므로(학생 헤더와 달리 전 화면 공통이 아님) 로그아웃 전 `visit root_path`. 잡 실행도 마찬가지로 `perform_enqueued_jobs do click ... end` 는 무효다 — 클릭은 즉시 반환하고 잡은 서버 스레드가 나중에 큐잉하므로, 리다이렉트 도착을 기다린 뒤 블록 없는 `perform_enqueued_jobs`로 큐를 비운다.
 - `fixtures/files/` — 테스트 자산. `handwriting.png`(OCR 입력 이미지)·`schools_sample.csv`(NEIS 전량 시드 파싱용 샘플). YAML 픽스처는 사용하지 않고, 데이터는 각 테스트의 `setup`/시더로 생성.
 
 ## integration/ 대표 그룹
@@ -40,7 +41,7 @@
 - **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약·작성자 전용 목록 삭제).
 
 ## 패턴·규칙
-- 실행: `bin/rails test` (전체, 1690 runs). 시스템 테스트는 `bin/rails test:system`(chromedriver 없으면 skip). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
+- 실행: `bin/rails test` (전체, 1713 runs). 시스템 테스트는 `bin/rails test:system`(chromedriver 없으면 skip). 단일 파일은 `bin/rails test test/경로/파일_test.rb`.
 - 품질 게이트: `bin/ci`가 순서대로 `bin/rubocop`(스타일) → `bin/bundler-audit`·`bin/importmap audit`·`bin/brakeman`(보안) → `bin/rails test`(테스트) → `db:seed:replant`(시드 재적재)를 실행. PR은 이 전 단계가 통과해야 한다.
 - 테스트는 병렬(`parallelize`) 실행되므로 전역 상태에 의존하지 말 것.
 - 몬스터/뱃지가 필요한 테스트는 `setup`에서 `seed_monster_species!`·`seed_badges!`를 호출(트랜잭션 롤백되며 멱등).

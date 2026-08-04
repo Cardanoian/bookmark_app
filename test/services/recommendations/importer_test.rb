@@ -2,9 +2,7 @@ require "test_helper"
 
 class Recommendations::ImporterTest < ActiveJob::TestCase
   test "bundled 2026 recommendation workbook contains 203 elementary books" do
-    path = Dir[Rails.root.join("docs", "*.xlsx")].find do |candidate|
-      File.basename(candidate).unicode_normalize(:nfc).include?("추천도서목록")
-    end
+    path = Recommendations::Importer.bundled_workbook_path
     assert path, "번들 추천도서 XLSX가 있어야 한다"
 
     reader = Recommendations::XlsxReader.new(path)

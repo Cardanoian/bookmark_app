@@ -10,7 +10,11 @@ class ReportsGuidedComposeTest < ApplicationSystemTestCase
     @classroom = Classroom.create!(school: @school, grade: 5, class_no: 1)
     @teacher = User.create!(school: @school, classroom: @classroom, name: "시스템담임", role: :teacher, password: "password")
     @classroom.update!(teacher: @teacher)
-    @student = User.create!(school: @school, classroom: @classroom, name: "시스템학생", password: "password")
+    # 닉네임·랭킹 참여를 미리 정해 둔다. 비워 두면 `require_student_ranking_profile` 게이트가
+    # 로그인 직후 모든 화면을 `ranking_preferences#edit` 로 되돌려 본 시나리오에 닿지 못한다
+    # (`login_as(onboarded: true)` 가 integration 테스트에 해 주는 일의 브라우저 판본).
+    @student = User.create!(school: @school, classroom: @classroom, name: "시스템학생", password: "password",
+      nickname: "시스템학생닉", ranking_opted_in: true)
     @book = Book.create!(title: "긴긴밤", author: "루리", publisher: "문학동네", category: :recommended)
   end
 
@@ -43,6 +47,11 @@ class ReportsGuidedComposeTest < ApplicationSystemTestCase
   # 학생 로그인 표면(학교 검색→선택→학급→이름·비밀번호)을 실제 브라우저로 진행한다.
   # chromedriver 가 없으면 최초 visit 에서 Selenium::WebDriver::Error::WebDriverError 가 나
   # 테스트 본문의 rescue 로 skip 된다.
+  #
+  # 마지막 `assert_current_path` 는 장식이 아니라 **필수 대기점**이다. `click_button` 은 Turbo
+  # 폼 전송을 띄우기만 하고 곧바로 돌아오므로, 이어서 `visit` 하면 세션 쿠키가 심기기 전에 다음
+  # 요청이 나가 `require_login` 이 로그인 인덱스로 되돌린다(뒤늦게 쿠키가 붙어 화면은 로그인한
+  # 것처럼 보이는 탓에 원인 파악도 어렵다). 리다이렉트 도착지를 단언해 전송 완료를 기다린다.
   def login_via_browser
     visit student_login_path
     fill_in "학교 이름으로 찾기", with: @school.name
@@ -52,5 +61,6 @@ class ReportsGuidedComposeTest < ApplicationSystemTestCase
     fill_in "이름", with: @student.name
     fill_in "비밀번호", with: "password"
     click_button "로그인"
+    assert_current_path root_path
   end
 end

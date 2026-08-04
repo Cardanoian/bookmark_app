@@ -188,9 +188,7 @@ Rake::Task["books:seed_full"].invoke
 # 최초 설치의 공식 추천도서. 이후에는 총괄관리자가 /admin/recommendation_imports 에서 올린
 # 최신 파일이 단일 진실이므로, 업로드 이력이 전혀 없는 DB 에서만 번들 XLSX 를 초기 적재한다.
 if RecommendationImport.none?
-  recommendation_xlsx = Dir[Rails.root.join("docs", "*.xlsx")].find do |path|
-    File.basename(path).unicode_normalize(:nfc).include?("추천도서목록")
-  end
+  recommendation_xlsx = Recommendations::Importer.bundled_workbook_path
   if recommendation_xlsx
     result = Recommendations::Importer.new(
       path: recommendation_xlsx,
