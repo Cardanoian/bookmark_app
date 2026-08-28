@@ -1,0 +1,6 @@
+<resources>
+    <!-- 웹 브랜드 헤더의 노란색과 맞춘 런처·시스템 UI 색. DESIGN.md 의 brand yellow 계열. -->
+    <color name="brand_yellow">#FACC15</color>
+    <color name="ink">#111827</color>
+    <color name="canvas">#FFFFFF</color>
+</resources>

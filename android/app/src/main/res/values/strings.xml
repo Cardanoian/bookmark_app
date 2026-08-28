@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">책갈피</string>
+
+    <!--
+      Hotwire Native core(dev.hotwire:core)가 제공하는 WebView 업데이트 안내 문자열을
+      같은 이름으로 override 해 한국어화한다. 원문은 core-1.3.1.aar 의 res/values/values.xml 참고.
+      %1$d = 기기의 현재 WebView 버전, %2$d = 요구 버전(=120, allow_browser :modern 의 Chrome 임계값).
+    -->
+    <string name="webview_error_title">업데이트가 필요해요</string>
+    <string name="webview_error_system_description">이 기기의 <![CDATA[<b>Android System WebView v%1$d</b>]]>이 오래되어 책갈피가 정상 동작하지 않아요. <![CDATA[<b>v%2$d 이상이 필요</b>]]>하며, Play 스토어에서 업데이트할 수 있어요.</string>
+    <string name="webview_error_chrome_description">이 기기의 <![CDATA[<b>Chrome v%1$d</b>]]>이 오래되어 책갈피가 정상 동작하지 않아요. <![CDATA[<b>v%2$d 이상이 필요</b>]]>하며, Play 스토어에서 업데이트할 수 있어요.</string>
+    <string name="webview_error_update">업데이트</string>
+    <string name="webview_error_store_unavailable">Play 스토어 앱을 열 수 없어요.</string>
+
+    <!-- core 의 공용 다이얼로그·오류 문자열 한국어화 -->
+    <string name="hotwire_dialog_ok">확인</string>
+    <string name="hotwire_dialog_cancel">취소</string>
+    <string name="hotwire_error_message">화면을 불러오지 못했어요</string>
+    <string name="hotwire_file_chooser_select">파일 선택</string>
+    <string name="hotwire_file_chooser_select_multiple">파일 선택</string>
+</resources>

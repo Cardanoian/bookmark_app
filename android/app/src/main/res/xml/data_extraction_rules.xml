@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  세션 쿠키·WebView 데이터가 기기 백업이나 기기 간 전송으로 빠져나가지 않게 한다.
+  allowBackup="false" 와 짝을 이루는 API 31+ 규칙이다(계획 §9.3 아동 PII).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="shared_pref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="shared_pref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

@@ -61,3 +61,6 @@
 /script
 /docs
 /manual
+# Android 네이티브 셸(앱 런타임과 무관). Gradle 캐시·빌드 산출물이 수백 MB 라
+# 심사위원용 `docker compose up` 과 Kamal 프로덕션 빌드 컨텍스트에서 모두 제외한다.
+/android

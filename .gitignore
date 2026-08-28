@@ -58,3 +58,13 @@ __pycache__
 /script
 /manual
 /frontend
+# Android(Hotwire Native 셸) 로컬 산출물·사용자별 설정.
+# Gradle Wrapper·Kotlin 소스·리소스·Path Configuration·버전 고정 빌드 파일은 커밋한다.
+# keystore 와 비밀번호는 저장소 밖에 보관한다(계획 Phase 11).
+/android/.gradle/
+/android/.idea/
+/android/local.properties
+/android/**/build/
+/android/keystore.properties
+/android/*.jks
+/android/*.keystore

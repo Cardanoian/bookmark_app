@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      네이티브 AppBar 를 쓰지 않는다(NoActionBar) — 화면 제목·내비게이션은 Rails 가 렌더하는
+      노란 브랜드 헤더가 담당하며, 네이티브 툴바를 함께 띄우면 중복된다(계획 §3.3).
+    -->
+    <style name="Theme.Chaekgalpi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@color/brand_yellow</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowBackground">@color/canvas</item>
+    </style>
+</resources>

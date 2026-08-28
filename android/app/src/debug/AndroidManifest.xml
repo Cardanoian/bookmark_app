@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      debug 전용 예외. 로컬 Rails 를 HTTP(10.0.2.2:3000)로 붙이기 위해 cleartext 를 허용한다.
+      이 파일은 release 병합 Manifest 에 **병합되지 않는다** — Phase 2 완료 조건에서
+      processReleaseMainManifest 산출물로 직접 확인한다(계획 §2.5).
+    -->
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+
+</manifest>

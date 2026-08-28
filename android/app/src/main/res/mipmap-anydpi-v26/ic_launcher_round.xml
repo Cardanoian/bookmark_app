@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 적응형 아이콘(API 26+). minSdk 28 이므로 실제 기기에서는 항상 이 경로가 쓰인다.
+     전경은 108dp 캔버스에 로고를 60% 로 배치해 원·스퀘어클 등 어떤 마스크에도 잘리지 않는다. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

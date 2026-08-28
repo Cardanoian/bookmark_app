@@ -8,6 +8,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 
 ## 기술 스택 (요약)
 - **프레임워크/언어**: Rails 8.1 · Ruby 4.0.5
+- **Android**: Hotwire Native 1.3.1 · Kotlin 2.3 · AGP 8.13 · minSdk 28 (웹앱과 **동시 운영**, [`android/`](android/CLAUDE.md))
 - **DB**: SQLite 다중 DB (primary/cache/queue/cable) + Solid Queue·Cache·Cable
 - **프런트**: Hotwire(Turbo·Stimulus) · Import Maps · Propshaft · Tailwind CSS
 - **인가/인증**: Pundit(역할별 접근 권한) · `has_secure_password`(bcrypt)
@@ -25,6 +26,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 | 폴더 | 역할 | 문서 |
 |------|------|------|
 | `app/` | 애플리케이션 코드 (MVC + 서비스·정책·잡·프런트) | [app/CLAUDE.md](app/CLAUDE.md) |
+| `android/` | **Hotwire Native Android 셸** (Rails 화면을 공유 WebView 로 재사용, Gradle·Kotlin, 웹앱과 동시 운영) | [android/CLAUDE.md](android/CLAUDE.md) |
 | `frontend/` | 심사 제출용 **오프라인 체험판** (React+Vite → 단일 `index.html`, 앱 런타임과 분리) | [frontend/CLAUDE.md](frontend/CLAUDE.md) |
 | `config/` | Rails 설정 · 라우트 · 환경 · credentials | [config/CLAUDE.md](config/CLAUDE.md) |
 | `db/` | 스키마 · 마이그레이션 · 시드 | [db/CLAUDE.md](db/CLAUDE.md) |
