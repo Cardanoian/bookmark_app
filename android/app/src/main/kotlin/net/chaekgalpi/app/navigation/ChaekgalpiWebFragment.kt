@@ -10,6 +10,7 @@ import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
 import dev.hotwire.navigation.fragments.HotwireWebFragment
 import net.chaekgalpi.app.MainActivity
 import net.chaekgalpi.app.R
+import net.chaekgalpi.app.web.SafeFileChooserWebChromeClient
 
 /**
  * 기본 웹 화면. 공식 [HotwireWebFragment] 를 그대로 쓰되 **네이티브 AppBar 만** 제거하고,
@@ -69,6 +70,11 @@ class ChaekgalpiWebFragment : HotwireWebFragment() {
     override fun onWebViewAttached(webView: HotwireWebView) {
         super.onWebViewAttached(webView)
         attachedWebView = webView
+
+        // 사진 선택 콜백을 UI 스레드에서 한 번만 응답하도록 감싼다. 선택기 UI 자체는 core 것을 그대로 쓴다.
+        // core 가 Session 생성 때 설치한 기본 client 를 같은 계열의 하위 클래스로 교체하는 것뿐이라
+        // JS 다이얼로그·권한·새 창 처리는 전부 그대로다.
+        webView.webChromeClient = SafeFileChooserWebChromeClient(navigator.session)
 
         webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             (activity as? MainActivity)?.downloads?.request(

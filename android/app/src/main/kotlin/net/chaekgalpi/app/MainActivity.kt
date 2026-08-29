@@ -9,6 +9,8 @@ import dev.hotwire.core.turbo.webview.WebViewVersionCompatibility
 import dev.hotwire.navigation.activities.HotwireActivity
 import dev.hotwire.navigation.navigator.NavigatorConfiguration
 import net.chaekgalpi.app.downloads.DownloadCoordinator
+import net.chaekgalpi.app.files.CapturedFileStore
+import kotlin.concurrent.thread
 
 /**
  * 단일 [NavigatorConfiguration] 을 가진 Hotwire 셸 Activity.
@@ -41,6 +43,24 @@ class MainActivity : HotwireActivity() {
 
     /** 브리지 컴포넌트가 실패를 알릴 때 쓰는 통로. Toast 표시 규칙을 한 곳에 모아 둔다. */
     fun toastDownloadFailure(messageId: Int) = downloads.announceFailure(messageId)
+
+    /**
+     * 포그라운드로 돌아올 때마다 사진 찌꺼기를 훑는다.
+     *
+     * core 는 `Session` 을 만들 때 한 번만 청소하므로, 앱을 계속 켜 둔 채 사진을 여러 장 고르면
+     * 학생 손글씨 원본 사본이 앱 저장소에 계속 쌓인다([CapturedFileStore] 참고).
+     * 화면 전환마다가 아니라 포그라운드 복귀 시점에 도는 이유는, 사진 선택기·카메라를 다녀오는
+     * 동선이 정확히 이 시점을 지나기 때문이다.
+     *
+     * 파일 조작이라 메인 스레드에서 하지 않는다. 대상이 몇 개뿐이라 짧게 살고 끝나는 스레드로 충분하다.
+     */
+    override fun onStart() {
+        super.onStart()
+        val directory = CapturedFileStore.directory(this)
+        thread(name = "captured-file-sweep") {
+            CapturedFileStore.sweep(directory, System.currentTimeMillis())
+        }
+    }
 
     override fun onDestroy() {
         downloads.shutdown()

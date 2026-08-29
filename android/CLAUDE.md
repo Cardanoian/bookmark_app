@@ -56,7 +56,25 @@
     - `TrustedUrlRouteDecisionHandler.kt` / `DownloadRouteDecisionHandler.kt` — 위 판정을 Hotwire 의
       `Router.Decision` 으로 옮기는 얇은 어댑터. 규칙은 여기 두지 않는다.
     - `ChaekgalpiWebFragment.kt` — 네이티브 AppBar 만 제거한 기본 웹 화면 + WebView DownloadListener
-      (Activity 의 `DownloadCoordinator` 로 위임하는 안전망).
+      (Activity 의 `DownloadCoordinator` 로 위임하는 안전망) + 파일 선택 WebChromeClient 교체.
+  - `web/`
+    - `FileChooserCallbackGuard.kt` — 파일 선택 콜백을 **UI 스레드에서 정확히 한 번** 전달하는 순수 로직.
+      core 1.3.1 은 둘 다 지키지 않는다 — `BrowseFilesDelegate` 가 IO 디스패처에서 콜백을 부르고,
+      새 요청이 오면 이전 `uploadCallback` 을 응답 없이 덮어쓴다(바이트코드 실측).
+      에뮬레이터에서 사진 선택 중 **프로세스 abort** 를 1회 실측했고 툼스톤 스택이
+      `FileChooserDelegate.sendResult → ValueCallback.onReceiveValue → JNI → SIGTRAP` 이었다.
+      재현율이 낮아(약 12회 중 1회) 이 감시자가 그 크래시를 없앤다고 단정하지 않는다.
+    - `SafeFileChooserWebChromeClient.kt` — 위 감시자를 끼우는 `HotwireWebChromeClient` 하위 클래스.
+      **선택기 UI 자체는 core 것을 그대로 쓴다** — 촬영·선택·캐시 복사·FileProvider 를 core 가 이미
+      전부 구현하고 있고, 실측상 시스템 선택기가 카메라와 사진 선택기를 둘 다 제시한다.
+      선택기가 이미 떠 있는데 새 요청이 오면 **새 요청을 즉시 닫는다**(이전 콜백을 되살리지 않는다).
+  - `files/`
+    - `CapturedFileStore.kt` — 사진 찌꺼기를 나이 기준으로 정리한다. core 의 `HotwireFileProvider` 는
+      캐시가 아니라 **`filesDir/shared`** 를 쓰고, core 가 청소하는 시점은 `Session` 생성 때 한 번뿐이라
+      앱을 켜 둔 채 사진을 여러 장 고르면 **학생 손글씨 원본 사본이 계속 쌓인다**(실측).
+      선택기를 열 때마다 생기는 0바이트 `Capture_*.jpg` 도 함께 정리한다.
+      **콜백 직후에 지우지 않는다** — WebView 가 `content://` 로 비동기 참조하므로 나이로만 판단한다.
+      `MainActivity.onStart()` 에서 돈다(사진 선택기·카메라 동선이 정확히 이 시점을 지난다).
   - `downloads/`
     - `DownloadNaming.kt` — `Content-Disposition`(RFC 6266 `filename*` 우선) → 안전한 파일명. 순수·테스트됨.
     - `AuthenticatedDownloader.kt` — 세션 쿠키를 실어 직접 스트리밍. **리다이렉트를 자동 추적하지 않고**
