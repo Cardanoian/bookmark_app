@@ -16,8 +16,13 @@ module Library
     LIB_SEARCH_PATH = "/api/libSrchByBook".freeze
     # 도서관별 소장·대출 가능 여부(불리언, 권수 없음).
     BOOK_EXIST_PATH = "/api/bookExist".freeze
-    # bookExist 는 도서관당 1콜(N+1)이라 목록 조회(8s)보다 짧은 read timeout 으로 팬아웃 지연을 상한한다.
+    # bookExist 는 도서관당 1콜(N+1)이라 목록 조회보다 짧은 read timeout 으로 팬아웃 지연을 상한한다.
     BOOK_EXIST_READ_TIMEOUT = 4
+    # libSrchByBook 은 시도 전체 소장 목록(pageSize 1000)이라 응답이 크고 느리다. 커넥션 기본
+    # timeout(8s)에 맡기면 인근 도서관 화면 하나가 8초를 통째로 쓸 수 있어 여기서 따로 상한을 건다.
+    # **너무 짧게 잡지 않는다** — 이 호출이 끊기면 nil→:error 라 도서관 섹션이 통째로 사라진다
+    # (팬아웃은 끊겨도 :unknown 배지로 남는 것과 다르다).
+    LIB_SEARCH_READ_TIMEOUT = 6
 
     # 직전 popular_loans 호출의 실패 사유. 성공·무키 시 nil.
     attr_reader :last_error
@@ -93,12 +98,13 @@ module Library
     # 반환: [{ code:, name:, address:, tel:, homepage:, latitude:, longitude: }, ...].
     # 무키·미존재(빈 결과) → [] / 원격 실패(비200·연결) → nil(호출자가 :none 과 :error 를 구분).
     # cover_url_for 처럼 popular_loans 전용 last_error 는 오염시키지 않는다(메서드 독립).
-    def libraries_holding(isbn13:, region:, page_size: 1000)
+    def libraries_holding(isbn13:, region:, page_size: 1000, timeout: LIB_SEARCH_READ_TIMEOUT)
       isbn = isbn13.to_s.strip
       code = region.to_s.strip
       return [] if isbn.blank? || code.blank? || !available?
 
       response = connection.get(LIB_SEARCH_PATH) do |req|
+        req.options.timeout = timeout
         req.params["authKey"] = @api_key
         req.params["format"] = "json"
         req.params["isbn"] = isbn
@@ -115,13 +121,15 @@ module Library
     # 한 도서관에서 이 책의 대출 가능 여부(인근 도서관 §5.2). loanAvailable Y→:available /
     # N→:unavailable / (에러·미존재)→:unknown. fetched_at 을 값에 동봉해 캐시 히트 시에도
     # "언제 조회한 값인지"가 보존되게 한다(정직 라벨 근거). 무키·실패 시에도 크래시 없이 :unknown.
-    def loan_status(lib_code:, isbn13:)
+    # timeout: 호출자가 **남은 시간예산**을 넘겨 상한을 더 좁힐 수 있다(NearbyAvailability 가
+    # 팬아웃 전체를 예산 안에 가두는 데 쓴다). 미지정이면 기존 4s 그대로.
+    def loan_status(lib_code:, isbn13:, timeout: BOOK_EXIST_READ_TIMEOUT)
       code = lib_code.to_s.strip
       isbn = isbn13.to_s.strip
       return unknown_status if code.blank? || isbn.blank? || !available?
 
       response = connection.get(BOOK_EXIST_PATH) do |req|
-        req.options.timeout = BOOK_EXIST_READ_TIMEOUT
+        req.options.timeout = timeout
         req.params["authKey"] = @api_key
         req.params["format"] = "json"
         req.params["libCode"] = code

@@ -6,25 +6,29 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
 
   # 네트워크 없는 스텁 서비스. holdings 는 nil(실패)/[]/배열을 그대로 돌려주고 호출 수를 센다.
   class StubService
-    attr_reader :holdings_calls, :loan_calls
+    attr_reader :holdings_calls, :loan_calls, :loan_timeouts
 
-    def initialize(available: true, holdings: [], loans: {})
+    def initialize(available: true, holdings: [], loans: {}, loan_delay: 0)
       @available = available
       @holdings = holdings
       @loans = loans # code => { status:, fetched_at: }
+      @loan_delay = loan_delay # 느린 도서관 시뮬레이션(초)
       @holdings_calls = 0
       @loan_calls = 0
+      @loan_timeouts = [] # 서비스가 실제로 받은 read timeout 들
     end
 
     def available? = @available
 
-    def libraries_holding(isbn13:, region:, page_size: 1000)
+    def libraries_holding(isbn13:, region:, page_size: 1000, timeout: nil)
       @holdings_calls += 1
       @holdings
     end
 
-    def loan_status(lib_code:, isbn13:)
+    def loan_status(lib_code:, isbn13:, timeout: nil)
       @loan_calls += 1
+      @loan_timeouts << timeout
+      sleep(@loan_delay) if @loan_delay.positive?
       @loans.fetch(lib_code, { status: :unknown, fetched_at: Time.current })
     end
   end
@@ -159,6 +163,51 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     assert_equal :ok, result.state, "예산 초과여도 프레임은 완료 렌더된다"
     assert result.libraries.all? { |l| l[:status] == :unknown }
     assert_equal 0, stub.loan_calls, "예산 밖이면 bookExist 를 호출하지 않는다"
+  end
+
+  test "팬아웃 호출에 남은 예산을 read timeout 으로 내려보낸다(예산이 진짜 천장이 되게)" do
+    # 예전에는 "시작 시각"만 봐서, 예산 직전에 시작한 마지막 호출이 자기 timeout(4s)까지 더
+    # 달릴 수 있었다 — 5s 예산이 실제로는 9s 였고 그래서 프레임 하나가 14.3초까지 갔다.
+    holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2") ]
+    stub = StubService.new(holdings: holdings)
+
+    build(service: stub, time_budget: 2).call
+
+    assert_equal 2, stub.loan_calls
+    assert stub.loan_timeouts.all? { |t| t.is_a?(Numeric) && t <= 2 },
+           "각 호출의 read timeout 이 남은 예산 이하여야 한다: #{stub.loan_timeouts.inspect}"
+    assert_operator stub.loan_timeouts.first, :>, stub.loan_timeouts.last,
+                    "예산이 줄어드는 만큼 뒤 호출의 상한도 함께 줄어든다"
+  end
+
+  test "예산을 다 쓰면 남은 도서관은 원격 호출 없이 :unknown 으로 강등된다" do
+    # 첫 호출이 예산을 통째로 먹는 상황(느린 도서관 1곳). 나머지는 호출조차 하지 않는다.
+    holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2"),
+                 lib("C", "서울특별시 노원구 한글비석로 3") ]
+    # 예산은 MIN_REMOTE_WINDOW(0.5s)보다 커야 첫 호출이 나간다. 첫 호출이 예산을 거의 다 쓰도록 잡는다.
+    stub = StubService.new(holdings: holdings, loan_delay: 0.55,
+                           loans: { "A" => { status: :available, fetched_at: Time.current } })
+
+    result = build(service: stub, time_budget: 0.6).call
+
+    assert_equal :ok, result.state
+    assert_equal 1, stub.loan_calls, "예산을 쓴 뒤에는 원격을 더 부르지 않는다"
+    assert_equal :available, result.libraries.first[:status]
+    assert result.libraries.drop(1).all? { |l| l[:status] == :unknown }
+  end
+
+  test "캐시 히트는 예산이 바닥나도 :unknown 으로 떨어지지 않는다" do
+    # 캐시 읽기는 시간을 쓰지 않는다. 예산은 원격 호출만 제한해야 한다.
+    cache = memory_cache
+    cache.write("book_loan:v1:A:#{ISBN}", { status: :available, fetched_at: Time.current })
+    holdings = [ lib("A", "서울특별시 노원구 상계로 1") ]
+    stub = StubService.new(holdings: holdings)
+
+    result = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub,
+                                             cache: cache, time_budget: 0).call
+
+    assert_equal :available, result.libraries.first[:status], "캐시된 확정값은 예산과 무관하다"
+    assert_equal 0, stub.loan_calls
   end
 
   # --- 분리 TTL 캐시 히트(criterion 12) ---

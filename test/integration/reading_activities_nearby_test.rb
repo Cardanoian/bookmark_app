@@ -17,12 +17,12 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
 
     def available? = @available
 
-    def libraries_holding(isbn13:, region:, page_size: 1000)
+    def libraries_holding(isbn13:, region:, page_size: 1000, timeout: nil)
       @holdings_calls += 1
       @holdings
     end
 
-    def loan_status(lib_code:, isbn13:)
+    def loan_status(lib_code:, isbn13:, timeout: nil)
       @loans.fetch(lib_code, { status: :unknown, fetched_at: Time.current })
     end
   end
