@@ -31,7 +31,9 @@ class ReadingActivitiesController < ApplicationController
   def nearby_libraries
     book = resolve_book(params[:book_id])
     @nearby = book && Library::NearbyAvailability.new(book: book, school: Current.school).call
-    render partial: "reading_activities/nearby_libraries", locals: { nearby: @nearby }
+    # book·school 은 :warming 구독 스트림 이름용이다(워밍 잡이 끝나면 이 프레임을 교체한다).
+    render partial: "reading_activities/nearby_libraries",
+           locals: { nearby: @nearby, book: book, school: Current.school }
   end
 
   private

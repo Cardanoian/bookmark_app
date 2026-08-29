@@ -58,12 +58,30 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("독서 게임"), :<, response.body.index("nearby_libraries")
   end
 
+  # 렌더는 캐시만 읽고 미스면 워밍 잡에 위임한다(정보나루가 소장목록 9.5초·대출조회 1콜
+  # 8~35초라 요청 안에서 감당할 수 없다). 그래서 상태 분기를 보려면 **워밍이 먼저 돌아야** 한다.
+
+  test "캐시가 비면 워밍 잡을 걸고 '찾고 있어요'를 즉시 돌려준다" do
+    stub = StubData4library.new(holdings: [ lib("A", "서울특별시 노원구 상계로 1") ])
+
+    assert_enqueued_with(job: Library::NearbyLibrariesWarmJob, args: [ @book.id, @school.id ]) do
+      swap_service(stub) { get nearby_libraries_reading_activity_path(book_id: @book.id) }
+    end
+
+    assert_response :success
+    assert_match "가까운 도서관을 찾고 있어요", response.body
+    assert_equal 0, stub.holdings_calls, "렌더 경로는 정보나루를 부르지 않는다"
+    # 구독이 없으면 학생은 워밍이 끝나도 화면이 바뀌지 않아 영영 기다린다.
+    assert_select "turbo-frame#nearby_libraries turbo-cable-stream-source", 1
+  end
+
   test "nearby_libraries lists holding libraries with available/busy badges (criterion 1)" do
     holdings = [ lib("A", "서울특별시 노원구 상계로 1", name: "노원도서관"),
                  lib("B", "서울특별시 노원구 월계로 2", name: "월계도서관") ]
     loans = { "A" => { status: :available, fetched_at: Time.current },
               "B" => { status: :unavailable, fetched_at: Time.current } }
-    swap_service(StubData4library.new(holdings: holdings, loans: loans)) do
+
+    with_warmed_cache(StubData4library.new(holdings: holdings, loans: loans)) do
       get nearby_libraries_reading_activity_path(book_id: @book.id)
     end
 
@@ -73,11 +91,13 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
     assert_match "월계도서관", response.body
     assert_match "대출 가능", response.body
     assert_match "대출 중", response.body
+    assert_no_match "찾고 있어요", response.body, "워밍이 끝났으면 대기 문구가 남지 않는다"
   end
 
   test "nearby_libraries shows an empty state when all holdings are in a different gu (criterion 2)" do
     holdings = [ lib("A", "서울특별시 강남구 테헤란로 1") ]
-    swap_service(StubData4library.new(holdings: holdings)) do
+
+    with_warmed_cache(StubData4library.new(holdings: holdings)) do
       get nearby_libraries_reading_activity_path(book_id: @book.id)
     end
 
@@ -97,13 +117,16 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
   end
 
   test "nearby_libraries hides the section on a remote failure with no exception (criterion 4)" do
-    swap_service(StubData4library.new(holdings: nil)) do # libraries_holding → nil = 원격 실패
+    # 실패는 **짧게 기억**해야 한다. 아예 기억하지 않으면 렌더가 영원히 캐시 미스 → :warming
+    # 이라 학생이 "찾고 있어요"에 갇힌다(섹션이 조용히 숨는 :error 로 내려가지 못함).
+    with_warmed_cache(StubData4library.new(holdings: nil)) do # libraries_holding → nil = 원격 실패
       get nearby_libraries_reading_activity_path(book_id: @book.id)
     end
 
     assert_response :success
     assert_no_match "우리 학교 근처", response.body
     assert_no_match "없어요", response.body
+    assert_no_match "찾고 있어요", response.body, "실패는 무한 대기가 아니라 섹션 숨김으로 끝난다"
   end
 
   test "nearby_libraries degrades to a staff notice when the school location is unresolvable (criterion 5)" do
@@ -137,6 +160,21 @@ class ReadingActivitiesNearbyTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # 워밍 잡을 먼저 돌려 캐시를 채운 뒤 블록(렌더)을 실행한다.
+  #
+  # ⚠️ test 환경의 `Rails.cache` 는 `:null_store` 라 아무것도 남지 않는다 — 그대로 두면 렌더가
+  #   항상 :warming 이라 :ok/:none/:error 분기를 볼 수 없다. 이 헬퍼 안에서만 MemoryStore 로 바꾼다.
+  def with_warmed_cache(stub)
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    swap_service(stub) do
+      Library::NearbyLibrariesWarmJob.perform_now(@book.id, @school.id)
+      yield
+    end
+  ensure
+    Rails.cache = original
+  end
 
   # Library::Data4libraryService.new 를 스텁으로 교체(NearbyAvailability 기본 service: 주입 경로).
   def swap_service(stub)

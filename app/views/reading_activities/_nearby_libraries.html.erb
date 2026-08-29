@@ -1,6 +1,10 @@
-<%# locals: (nearby:) %>
+<%# locals: (nearby:, book: nil, school: nil) %>
+<%# ⚠️ 위 줄은 주석이 아니라 **strict locals 선언**이다. 설명을 덧붙이면 서명이 깨져
+    템플릿 전체가 SyntaxError 로 죽는다(문구는 이 줄 아래에 적을 것). %>
 <%# nearby: Library::NearbyAvailability::Result 또는 nil(resolve_book 실패 방어). %>
 <%# lazy src 프레임은 응답에 동일 id 프레임이 없으면 "content missing" 이 되므로 항상 감싼다. %>
+<%# book·school 은 :warming 구독 스트림 이름에만 쓴다. 워밍 잡이 방송으로 렌더할 때는 이미
+    최종 상태라 :warming 분기를 타지 않으므로 기본값 nil 로 둔다. %>
 <%= turbo_frame_tag "nearby_libraries" do %>
   <% status_badges = { available: [ "대출 가능", "badge badge-success" ],
                        unavailable: [ "대출 중", "badge badge-neutral" ],
@@ -39,6 +43,18 @@
     <section>
       <%= render "shared/empty_state",
             message: "우리 학교 근처에는 이 책을 빌릴 수 있는 도서관이 없어요", icon: :books %>
+    </section>
+  <% elsif nearby&.state == :warming %>
+    <%# 정보나루가 느려(소장목록 9.5초·대출조회 1콜 8~35초) 렌더 경로에서 부르지 않는다.
+        워밍 잡이 캐시를 채우면 이 프레임을 완성본으로 교체한다. 구독이 없으면 학생은
+        "찾고 있어요"에서 영영 멈춘다(직접 새로고침해야 갱신됨). %>
+    <% if book && school %>
+      <%= turbo_stream_from school.id, book.id, :nearby_libraries %>
+    <% end %>
+    <section class="card">
+      <p class="flex items-center gap-1.5 text-sm text-steel">
+        <%= ui_icon :location, class_name: "h-4 w-4" %> 가까운 도서관을 찾고 있어요. 잠시만 기다려 주세요.
+      </p>
     </section>
   <% elsif nearby&.state == :no_location %>
     <section class="card">

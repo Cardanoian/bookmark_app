@@ -2,6 +2,8 @@ require "test_helper"
 
 # 인근 도서관 §5.3 — 시도코드 도출·토큰 완전일치 gu 필터·N컷·시간예산·분리 TTL 캐시·as_of.
 class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   ISBN = "9788949140926".freeze
 
   # 네트워크 없는 스텁 서비스. holdings 는 nil(실패)/[]/배열을 그대로 돌려주고 호출 수를 센다.
@@ -56,6 +58,83 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
                                     cache: memory_cache, **opts)
   end
 
+  # --- 렌더 경로: 외부 HTTP 0 + 워밍 위임 ---
+  #
+  # 렌더가 정보나루를 직접 부르던 시절, 운영 실측은 libSrchByBook 9.5초 · bookExist 1콜
+  # 7.9~35.5초였다. 5곳 순차면 101초다. 시간예산을 조이면 대부분이 "확인 필요"로 떨어지고
+  # 늘리면 아이가 그만큼 기다린다 — 렌더 안에서 풀 수 있는 문제가 아니었다.
+  # 그래서 `call` 은 **캐시만 읽는다.** 이 성질이 깨지면 요청이 다시 외부 API 에 묶인다.
+
+  test "렌더 경로(call)는 외부 HTTP 를 한 번도 하지 않는다" do
+    book = Book.create!(title: "근처책", author: "김저자", isbn: ISBN)
+    school = School.create!(name: "근처초", region: "서울특별시교육청", gu: "노원구",
+                            address: "서울특별시 노원구 상계로 1")
+    stub = StubService.new(holdings: [ lib("A", "서울특별시 노원구 상계로 1") ])
+
+    result = Library::NearbyAvailability.new(book: book, school: school, service: stub,
+                                             cache: memory_cache).call
+
+    assert_equal :warming, result.state
+    assert_equal 0, stub.holdings_calls, "렌더는 소장 목록을 원격으로 부르지 않는다"
+    assert_equal 0, stub.loan_calls, "렌더는 대출여부를 원격으로 부르지 않는다"
+  end
+
+  test "캐시 미스면 워밍 잡을 걸고 :warming 으로 즉시 돌아온다" do
+    book = Book.create!(title: "워밍책", author: "김저자", isbn: ISBN)
+    school = School.create!(name: "워밍초", region: "서울특별시교육청", gu: "노원구",
+                            address: "서울특별시 노원구 상계로 1")
+    availability = Library::NearbyAvailability.new(book: book, school: school,
+                                                   service: StubService.new, cache: memory_cache)
+
+    assert_enqueued_with(job: Library::NearbyLibrariesWarmJob, args: [ book.id, school.id ]) do
+      assert_equal :warming, availability.call.state
+    end
+  end
+
+  test "한 반이 같은 책을 동시에 열어도 워밍 잡은 1건이다(스탬피드 가드)" do
+    book = Book.create!(title: "동시책", author: "김저자", isbn: ISBN)
+    school = School.create!(name: "동시초", region: "서울특별시교육청", gu: "노원구",
+                            address: "서울특별시 노원구 상계로 1")
+    cache = memory_cache # 학생들이 같은 캐시를 공유한다
+    render = -> { Library::NearbyAvailability.new(book: book, school: school,
+                                                  service: StubService.new, cache: cache).call }
+
+    5.times { assert_equal :warming, render.call.state }
+
+    assert_enqueued_jobs 1, only: Library::NearbyLibrariesWarmJob
+  end
+
+  test "캐시가 다 차 있으면 렌더가 외부 콜 0 으로 :ok 를 낸다" do
+    holdings = [ lib("A", "서울특별시 노원구 상계로 1") ]
+    cache = memory_cache
+    warmer = build(service: StubService.new(holdings: holdings,
+                                            loans: { "A" => { status: :available, fetched_at: Time.current } }),
+                   cache: cache)
+    warmer.warm! # 워밍 잡이 하는 일
+
+    reader = StubService.new(holdings: nil) # 렌더가 원격을 부르면 :error 로 드러난다
+    result = build(service: reader, cache: cache).call
+
+    assert_equal :ok, result.state
+    assert_equal :available, result.libraries.first[:status]
+    assert_equal 0, reader.holdings_calls
+    assert_equal 0, reader.loan_calls
+  end
+
+  test "소장 목록만 캐시되고 대출여부가 비면 반쯤 채운 화면 대신 :warming 을 낸다" do
+    # "확인 필요"가 섞인 화면을 내보내느니 잠깐 기다렸다 완성본을 보여 준다.
+    book = Book.create!(title: "반쯤책", author: "김저자", isbn: ISBN)
+    school = School.create!(name: "반쯤초", region: "서울특별시교육청", gu: "노원구",
+                            address: "서울특별시 노원구 상계로 1")
+    cache = memory_cache
+    cache.write("nearby_holdings:v1:#{ISBN}:11", [ lib("A", "서울특별시 노원구 상계로 1") ])
+
+    result = Library::NearbyAvailability.new(book: book, school: school,
+                                             service: StubService.new, cache: cache).call
+
+    assert_equal :warming, result.state
+  end
+
   # --- state 분기 ---
 
   test ":no_key when the service is unavailable (offline / no key)" do
@@ -80,12 +159,12 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   end
 
   test ":error when the holdings call fails (nil, distinct from empty)" do
-    result = build(service: StubService.new(holdings: nil)).call
+    result = build(service: StubService.new(holdings: nil)).warm!
     assert_equal :error, result.state
   end
 
   test ":none when the book is held nowhere in the sido" do
-    result = build(service: StubService.new(holdings: [])).call
+    result = build(service: StubService.new(holdings: [])).warm!
     assert_equal :none, result.state
   end
 
@@ -95,7 +174,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2") ]
     loans = { "A" => { status: :available, fetched_at: Time.current },
               "B" => { status: :unavailable, fetched_at: Time.current } }
-    result = build(service: StubService.new(holdings: holdings, loans: loans)).call
+    result = build(service: StubService.new(holdings: holdings, loans: loans)).warm!
 
     assert_equal :ok, result.state
     assert_equal 2, result.libraries.size
@@ -108,28 +187,28 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   test "token-exact gu filter excludes 대구 서구 vs 달서구 (substring would over-match)" do
     holdings = [ lib("A", "대구광역시 달서구 성서로 1") ]
     school = sample_school(region: "대구광역시교육청", gu: "서구")
-    result = build(service: StubService.new(holdings: holdings), school: school).call
+    result = build(service: StubService.new(holdings: holdings), school: school).warm!
     assert_equal :none, result.state
   end
 
   test "token-exact gu filter excludes 부산 서구 vs 강서구" do
     holdings = [ lib("A", "부산광역시 강서구 명지로 1") ]
     school = sample_school(region: "부산광역시교육청", gu: "서구")
-    result = build(service: StubService.new(holdings: holdings), school: school).call
+    result = build(service: StubService.new(holdings: holdings), school: school).warm!
     assert_equal :none, result.state
   end
 
   test "token-exact gu filter excludes 인천 동구 vs 남동구" do
     holdings = [ lib("A", "인천광역시 남동구 구월로 1") ]
     school = sample_school(region: "인천광역시교육청", gu: "동구")
-    result = build(service: StubService.new(holdings: holdings), school: school).call
+    result = build(service: StubService.new(holdings: holdings), school: school).warm!
     assert_equal :none, result.state
   end
 
   test "token-exact gu filter keeps the exact-token match" do
     holdings = [ lib("A", "대구광역시 서구 국채보상로 1"), lib("B", "대구광역시 달서구 성서로 2") ]
     school = sample_school(region: "대구광역시교육청", gu: "서구")
-    result = build(service: StubService.new(holdings: holdings), school: school).call
+    result = build(service: StubService.new(holdings: holdings), school: school).warm!
 
     assert_equal :ok, result.state
     assert_equal [ "도서관A" ], result.libraries.map { |l| l[:name] }
@@ -139,7 +218,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     holdings = [ lib("A", "세종특별자치시 한누리대로 1"), lib("B", "세종특별자치시 조치원읍 2") ]
     # 세종 교육청명은 SIDO_BY_OFFICE 폐집합에 있어 region → 29, gu 는 nil(단층제).
     sejong = School.new(region: "세종특별자치시교육청", gu: nil, address: "세종특별자치시 한누리대로 1")
-    result = build(service: StubService.new(holdings: holdings), school: sejong).call
+    result = build(service: StubService.new(holdings: holdings), school: sejong).warm!
 
     assert_equal :ok, result.state
     assert_equal 2, result.libraries.size
@@ -150,7 +229,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   test "caps the fan-out at max_libraries (bookExist calls <= 5)" do
     holdings = (1..7).map { |i| lib("L#{i}", "서울특별시 노원구 상계로 #{i}") }
     stub = StubService.new(holdings: holdings)
-    result = build(service: stub).call
+    result = build(service: stub).warm!
 
     assert_equal :ok, result.state
     assert_equal 5, result.libraries.size
@@ -163,7 +242,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   test "degrades statuses to :unknown when the time budget is exhausted (no infinite spinner)" do
     holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2") ]
     stub = StubService.new(holdings: holdings)
-    result = build(service: stub, time_budget: 0).call
+    result = build(service: stub, time_budget: 0).warm!
 
     assert_equal :ok, result.state, "예산 초과여도 프레임은 완료 렌더된다"
     assert result.libraries.all? { |l| l[:status] == :unknown }
@@ -171,15 +250,15 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   end
 
   test "팬아웃이 병렬이라 총 소요가 콜 수에 비례해 늘지 않는다" do
-    # 운영 실측: bookExist 1콜이 2.5~3초다. 순차면 5곳에 12.5초 + 소장 목록 = 14.4초로,
-    # 계획서가 실측한 14.3초와 정확히 일치한다. 순차인 한 "빠른 화면"과 "실제 대출 상태" 중
-    # 하나를 포기해야 하므로, 동시에 쏴서 총 소요를 **최장 1콜**로 만든다.
+    # 운영 실측(2026-08-29): bookExist 1콜이 7.9~35.5초다. 5곳 순차면 **합 101초**,
+    # 동시에 쏘면 8.7초에 5곳 전부 실제 상태였다. 워밍 잡 안이라 요청을 막지는 않지만,
+    # 순차로 두면 워밍 한 번이 2분 가까이 걸려 잡 큐를 잡아먹는다.
     holdings = %w[A B C D E].each_with_index.map { |c, i| lib(c, "서울특별시 노원구 길#{i} 1") }
     loans = holdings.to_h { |l| [ l[:code], { status: :available, fetched_at: Time.current } ] }
     stub = StubService.new(holdings: holdings, loans: loans, loan_delay: 0.3)
 
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = build(service: stub, time_budget: 3).call
+    result = build(service: stub, time_budget: 3).warm!
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
     assert_equal 5, stub.loan_calls
@@ -197,7 +276,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
                            loans: { "A" => { status: :available, fetched_at: Time.current },
                                     "B" => { status: :unavailable, fetched_at: Time.current } })
 
-    result = build(service: stub, time_budget: 1).call
+    result = build(service: stub, time_budget: 1).warm!
     by_name = result.libraries.to_h { |l| [ l[:name], l[:status] ] }
 
     assert_equal :unknown, by_name["도서관SLOW"], "예산 안에 못 들어온 곳만 강등된다"
@@ -213,7 +292,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     stub = StubService.new(holdings: holdings)
 
     result = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub,
-                                             cache: cache, time_budget: 0).call
+                                             cache: cache, time_budget: 0).warm!
 
     assert_equal :available, result.libraries.first[:status], "캐시된 확정값은 예산과 무관하다"
     assert_equal 0, stub.loan_calls
@@ -226,8 +305,8 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     stub = StubService.new(holdings: holdings, loans: { "A" => { status: :available, fetched_at: Time.current } })
     availability = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub, cache: memory_cache)
 
-    availability.call
-    availability.call
+    availability.warm!
+    availability.warm!
 
     assert_equal 1, stub.holdings_calls, "동일 (isbn,region) 재조회는 소장 목록을 캐시에서 읽는다"
   end
@@ -240,8 +319,8 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     cache = memory_cache
     availability = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub, cache: cache)
 
-    availability.call
-    availability.call
+    availability.warm!
+    availability.warm!
 
     assert_equal 1, stub.loan_calls, "확정값(available)은 15min 캐시되어 재조회 시 bookExist 를 다시 호출하지 않는다"
   end
@@ -253,8 +332,8 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     cache = memory_cache
     availability = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub, cache: cache)
 
-    availability.call
-    availability.call
+    availability.warm!
+    availability.warm!
 
     assert_equal 2, stub.loan_calls, ":unknown 은 캐시하지 않아 다음 조회에서 재시도한다(회복 억제 방지)"
   end
@@ -271,7 +350,7 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     stub = StubService.new(holdings: holdings)
     availability = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub,
                                                    cache: cache, now: -> { fixed })
-    result = availability.call
+    result = availability.warm!
 
     assert_equal :ok, result.state
     assert_equal fifteen_min_ago, result.as_of, "as_of 는 캐시된 fetched_at(15분 전)이라야 한다"
