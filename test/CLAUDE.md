@@ -37,7 +37,7 @@
 - **사서(P6.5)**: `librarian_dashboard`·`librarian_events`·`librarian_loans`(정보나루 동기화).
 - **교무관리자**: `school_admin_neis`(생기부 요약)·`school_admin_stats`(전교 통계·학교 경계).
 - **총괄관리자(P7)**: `admin_isolation`(superadmin 전용 격리)·`admin_users`(**사용자 비밀번호를 총괄이 직접 6자 이상으로 초기화, 빈 값·공백·5자 거부와 실패 시 기존 비밀번호 유지**)·`admin_content`·`admin_settings`(API 키 저장 금지 가드)·`admin_moderation`·`admin_analytics`·`admin_monster_species`·**`audit_logs`(총괄 전용 격리·필터·삭제/포인트/비밀번호/CSV 성공 기록)**.
-- **인가 안전망·보안**: `authorization_safety_net`(fail-closed, authorize 누락 감지)·`content_security_policy`.
+- **인가 안전망·보안**: **`authorization_safety_net`**(fail-closed — ① `ApplicationController` 의 `verify_authorized` after_action 존재 ② **`app/controllers` 파일 목록을 직접 훑어** ApplicationController 를 상속하지 않는 컨트롤러가 허용목록(`NativeConfigurationsController`)과 정확히 일치하는지 [인가 체인 밖 컨트롤러가 새로 생겨도 화면도 테스트도 아무 말을 하지 않는다] ③ 허용목록 컨트롤러가 쿠키·CSRF·flash·뷰 없는 `ActionController::API` 인지 ④ **소스에 session·cookies·Current·current_user 가 없는지** — `session` 은 `ActionController::Metal` 이 위임해 API 컨트롤러에서도 **읽히므로** 구조가 아니라 소스로 막는다)·`content_security_policy`.
 - **Phase 6 하드닝(#2·#4·#7·#9·misc)**: `books_catalog`(카탈로그 페이지네이션 + `searched` 캐시 제외)·`admin_moderation`(3섹션 페이지네이션)·`admin_users`(포인트 조정 award_points 델타 경유 — 랭킹 후크 발화·하향 원자 차감)·`sessions`(계정 단위 스로틀+락아웃, RateLimiter 원자 increment 주입 시임)·`reports`(고쳐쓰기 동일 본문 재첨삭 스킵·본문 수정 시 재예약·작성자 전용 목록 삭제).
 
 ## 패턴·규칙

@@ -84,10 +84,14 @@
 - `res/values/strings.xml` — **`dev.hotwire:core` 의 문자열 리소스를 같은 이름으로 override 해 한국어화**한다
   (`webview_error_*`, `hotwire_dialog_*`, `hotwire_file_chooser_*`). 원문은 `core-1.3.1.aar` 의
   `res/values/values.xml` 참고. core 버전을 올리면 키가 늘거나 바뀌었는지 확인한다.
+  ⚠️ **lint 가 이 문자열들을 `UnusedResources` 로 표시하는 것은 오탐이다** — 참조가 우리 코드가 아니라 core 안에 있기 때문. Phase 9 에서 AAR 을 풀어 10개 이름이 전부 일치함을 확인했다. **이름이 하나라도 어긋나면 한국어가 조용히 안 나오고 아이가 영어를 본다**(오류도 로그도 없다) — core 업그레이드 때 반드시 AAR 대조로 확인할 것.
 - `res/mipmap-*/` — `public/icon.png`(512×512)에서 생성한 적응형 아이콘. 전경은 108dp 캔버스에
   로고를 60% 로 배치해 어떤 런처 마스크에서도 잘리지 않는다.
 - `assets/json/path_configuration.json` — 번들 Path Configuration. **원격 장애 시 폴백**이며,
   단일 진실은 `../config/hotwire_native/android_v1.json` 이다(이 파일은 그것의 생성물).
+  `BundledPathConfigurationTest` 가 계약을 고정한다 — 특히 **모든 패턴이 Java 정규식으로 컴파일되는지**를 본다.
+  서버 쪽 `native_configuration_test.rb` 는 같은 파일을 **Ruby** 정규식으로 검사하는데, 실제 매칭은 Android 가
+  하므로 Ruby 에서 유효한 패턴이 Java 에서 예외를 던지면 그 규칙만 앱에서 조용히 사라진다.
 
 ### `app/src/debug/`
 
@@ -120,7 +124,22 @@
 
 **현재 CI 에 포함되어 있지 않다.** `.github/workflows/ci.yml` 은 Ruby 잡 5종(brakeman·importmap audit·
 rubocop·test·system test)만 돈다. Android 회귀는 로컬 `./gradlew test lintRelease` 가 유일한 게이트다.
-CI 잡 추가는 계획의 P2 항목이다.
+CI 잡 추가는 계획의 P2 항목이다(계획 K.4 A-4 "CI 에 Android 레인이 없다").
+
+### 단위 테스트 (`app/src/test/`) — 158건 / 14클래스
+
+`TrustedUrlPolicy`(호스트 접미사 공격 포함)·`NativeRouting`·`DownloadNaming`·`ImagePayload`·
+`CapturedFileStore`·`FileChooserCallbackGuard`·`BundledPathConfiguration`. **Espresso(`androidTest`)는
+없다** — 계획 K.4 A-7 이 허용한 선택지로, 덮을 항목(런치·로그인·내부이동·뒤로가기·회전 복원·외부 URL·
+file chooser 취소)은 Phase 6·8 에서 에뮬레이터 실측으로 기록했고 CI 레인이 없어 작성해도 자동으로 돌지 않는다.
+
+### release 가드 실측 (Phase 9)
+
+`verifyReleaseStartUrl` 이 http·타호스트·**접미사 공격**(`chaekgalpi.net.evil.example`)·포트·userinfo
+5종을 각각 정확한 메시지로 차단함을 확인했다.
+⚠️ **`assembleRelease` 로 시험하지 말 것** — `validateSigningRelease`(죽은 keystore)가 먼저 실패해
+가드가 실행조차 되지 않는데 "BUILD FAILED" 만 보면 통과한 것으로 오인한다. 태스크를 직접 지정한다:
+`./gradlew verifyReleaseStartUrl -Pchaekgalpi.releaseStartUrl=<url>`
 
 > ⚠️ 이 폴더의 파일이 추가·삭제되거나 역할이 바뀌면 이 `CLAUDE.md` 와 [`README.md`](README.md) 를 함께 갱신하고,
 > 루트 [`../CLAUDE.md`](../CLAUDE.md) 의 디렉토리 인덱스도 확인합니다.
