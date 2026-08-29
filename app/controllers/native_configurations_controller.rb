@@ -9,8 +9,13 @@
 # 상속을 끊는 편이 향후 `ApplicationController` 에 필터가 추가돼도 조용히 깨지지 않는다.
 #
 # `ActionController::API` 를 쓰는 이유: ETag(`ConditionalGet`)·캐싱·렌더러는 그대로 얻으면서
-# 쿠키·세션·flash·CSRF·레이아웃·뷰 렌더링은 애초에 없다. 익명·캐시 가능해야 할 엔드포인트에서
-# 누군가 나중에 `session` 을 읽는 사고가 구조적으로 불가능해진다.
+# **쿠키·flash·CSRF·레이아웃·뷰 렌더링**은 애초에 없다. 익명·캐시 가능해야 할 엔드포인트의
+# 표면이 그만큼 좁아진다.
+#
+# ⚠️ 단, **`session` 은 여기서도 읽힌다.** `ActionController::Metal` 이 `@_request.session` 으로
+#   위임하고 세션 미들웨어는 앱 전역에 있기 때문이다(이 주석은 원래 "구조적으로 불가능"이라고
+#   적혀 있었으나 사실이 아니라 Phase 9 감사에서 정정했다). 그래서 사용자 컨텍스트 미사용은
+#   구조가 아니라 `authorization_safety_net_test.rb` 의 **소스 검사**가 지킨다.
 #
 # public/ 정적 파일로 두지 않는 이유: production 은 정적 파일에 최대 1년 cache-control 을 적용해
 # 원격 설정의 "APK 재배포 없이 즉시 조정" 목적이 사라진다. 여기서 짧은 max-age 와 ETag 를 준다.
