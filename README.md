@@ -15,6 +15,7 @@
 
 - [핵심 기능](#핵심-기능)
 - [기술 스택](#기술-스택)
+- [Android 앱](#android-앱)
 - [빠른 시작](#빠른-시작)
 - [외부 API 키](#외부-api-키)
 - [사용자 역할](#사용자-역할)
@@ -66,8 +67,37 @@
 | 인증                       | `has_secure_password` (bcrypt)                                                        |
 | 외부 HTTP                  | Faraday (+ faraday-retry)                                                             |
 | AI                         | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 진위 확인) · Google Gemini (손글씨 OCR 전용) |
+| Android                    | Hotwire Native 1.3.1 · Kotlin 2.3 · AGP 8.13 · minSdk 28 (**웹앱과 동시 운영**)        |
 | 배포                       | Docker · Kamal 2 · Thruster (DigitalOcean 대상)                                       |
 | 품질                       | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit                     |
+
+---
+
+## Android 앱
+
+같은 Rails 화면과 세션을 **공유 WebView 로 재사용**하는 Hotwire Native 셸이다. 웹앱과 동시에
+운영되며, 서버는 하나다 — 앱 전용 API 도 앱 전용 화면 사본도 없다.
+
+```bash
+cd android
+./gradlew test lintRelease          # 단위 테스트 158건 + lint
+./gradlew assembleDebug             # 에뮬레이터용 (기본 http://10.0.2.2:3000)
+./gradlew assembleRelease           # 실제 서명 키 필요
+```
+
+- **웹 무영향이 최우선 원칙**이다. 앱 전용 동작은 `hotwire_native_app?`(서버) 와
+  `BridgeComponent.shouldLoad`(클라이언트) 뒤에만 둔다 — 일반 브라우저에서는 브리지 컨트롤러가
+  **아예 로드되지 않아** 기존 폴백(`<a download>`·인라인 `window.print()`)이 그대로 남는다.
+- **release 빌드 가드 2종**: 시작 URL 이 `https://chaekgalpi.net` 이 아니면(http·타 호스트·
+  포트·userinfo·접미사 공격) 빌드가 실패하고, 서명 키가 없거나 경로가 비었으면 **debug 키로
+  폴백하지 않고** 실패한다.
+- 화면 규칙(어느 경로를 어떻게 열지·무엇을 다운로드로 볼지)의 단일 진실은
+  `config/hotwire_native/android_v1.json` 이고 앱이 `GET /configurations/android_v1.json` 으로
+  받아 간다 — **APK 재배포 없이** 규칙을 바꿀 수 있다.
+
+자세한 것은 [`android/README.md`](android/README.md)(빌드·서명·versionCode 정책) ·
+[`android/CLAUDE.md`](android/CLAUDE.md)(구조·보안 경계) ·
+[`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md)(실기기 검증 체크리스트).
 
 ---
 
@@ -321,6 +351,7 @@ app/
   services/      ai/ (claude_client · ocr · review · verify · quiz_draft)
                  books/ · library/ · monster_acquisition · ranking_board · reading_stats
   jobs/          ai_review_job · ocr_job (백그라운드 첨삭·OCR)
+android/         Hotwire Native Android 셸 (Kotlin · Gradle, 웹앱과 동시 운영)
 db/seeds/        monsters.yml (24라인 72폼)
 lib/tasks/       monsters · badges · books · schools · quizzes rake 시드
 docs/            설계·구현·운영 문서 (아래)
@@ -332,6 +363,8 @@ docs/            설계·구현·운영 문서 (아래)
 | [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
 | [`docs/monsters.md`](docs/monsters.md)                                       | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드      |
 | [`docs/API_KEYS.md`](docs/API_KEYS.md)                                       | 외부 API 키 주입·폴백 가이드                            |
+| [`android/README.md`](android/README.md)                                     | Android 빌드·서명·versionCode 정책                      |
+| [`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md)           | 실기기 검증 체크리스트(에뮬레이터 실측분과 미확인 구분) |
 | [`NOTICE.md`](NOTICE.md)                                                     | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기        |
 | [`TODO.md`](TODO.md)                                                         | 남은 작업(배포·에셋·모니터링)                           |
 </content>
