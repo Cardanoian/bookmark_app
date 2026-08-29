@@ -4,8 +4,16 @@
     OCR 초안의 첫 제출(first_submit)도 마찬가지로 컨트롤러를 떼어 낸다 — OCR이 로드 전에
     빠르게 완료되면 textarea 기준값이 이미 OCR 본문이 되어 "그대로 제출"이 막히기 때문. %>
 <% first_submit = local_assigns.fetch(:first_submit, false) %>
-<%= form_with model: report, class: "space-y-6",
-      data: ((report.persisted? && !first_submit) ? { controller: "report-edit" } : {}) do |f| %>
+<% form_data = (report.persisted? && !first_submit) ? { controller: "report-edit" } : {} %>
+<%# 앱 전용: 새 글 제출 뒤 뒤로가기가 **입력값이 그대로 남은 작성 폼**으로 돌아간다(에뮬레이터 실측).
+    거기서 그대로 다시 제출하면 같은 독후감이 한 편 더 생긴다 — 실제로 2편이 생기는 것을 확인했고,
+    학생 포인트·경험치·미션 진행이 이중 집계되며 교사 검토 큐에도 같은 글이 두 번 뜬다.
+    새 글 방문만 replace 로 바꿔 작성 폼을 히스토리에서 걷어낸다.
+    · 고쳐쓰기·수정(persisted)은 제외 — 같은 글을 다시 저장할 뿐이라 중복 생성이 없고,
+      학생이 뒤로 돌아가 이어서 고치는 것은 정상 동선이다.
+    · 웹은 이 분기 밖이라 히스토리 동작이 지금까지와 같다. %>
+<% form_data = form_data.merge(turbo_action: "replace") if hotwire_native_app? && !report.persisted? %>
+<%= form_with model: report, class: "space-y-6", data: form_data do |f| %>
   <%# 직접 쓰기 폼임을 못박아, create 검증 실패 render :new 재렌더 시 input_mode 우선 분기가
       _form 으로 복원되게 한다(book_title 만 남아 mode_chooser 로 새는 회귀 차단). 값은 모델의
       input_mode 를 따르므로(고정값 아님) edit 로 재사용될 때 OCR 초안의 ocr 모드를 훼손하지 않는다. %>
