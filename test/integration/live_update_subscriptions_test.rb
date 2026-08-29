@@ -50,6 +50,36 @@ class LiveUpdateSubscriptionsTest < ActionDispatch::IntegrationTest
     assert_select "turbo-cable-stream-source", 1
   end
 
+  test "학생 홈이 대표 몬스터 변경을 구독한다" do
+    # 도감에서 진화·대표 지정을 하면 홈의 대표 몬스터 카드가 실시간으로 바뀐다.
+    login_as @student
+
+    get root_path
+
+    assert_response :success
+    assert_select "turbo-cable-stream-source", 1
+  end
+
+  test "학생 독후감 목록이 교사 승인 반영을 구독한다" do
+    # 교사가 승인하면 목록의 그 카드(뱃지·등급)가 실시간 교체된다.
+    login_as @student
+
+    get reports_path
+
+    assert_response :success
+    assert_select "turbo-cable-stream-source", 1
+  end
+
+  test "교사의 독후감 목록에는 학생용 구독이 붙지 않는다" do
+    # 구독은 `current_user.student?` 게이트 안에 있다. 교사에게 붙으면 남의 학생 카드가 끼어든다.
+    login_as @teacher
+
+    get reports_path
+
+    assert_response :success
+    assert_select "turbo-cable-stream-source", count: 0
+  end
+
   test "랭킹 화면이 학급 랭킹 갱신을 구독한다" do
     login_as @student
 
