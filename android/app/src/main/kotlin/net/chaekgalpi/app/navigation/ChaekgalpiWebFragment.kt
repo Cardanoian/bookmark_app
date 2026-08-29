@@ -27,6 +27,14 @@ import net.chaekgalpi.app.R
 @HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
 class ChaekgalpiWebFragment : HotwireWebFragment() {
 
+    /**
+     * 지금 이 화면에 붙어 있는 WebView. Android 인쇄가 `createPrintDocumentAdapter` 를 쓰려면
+     * 참조가 필요한데 `HotwireView` 는 WebView 를 공개하지 않는다. 공식 콜백으로 받은 값을
+     * 붙어 있는 동안만 들고 있는다(detach 에서 비워 누수를 막는다).
+     */
+    var attachedWebView: HotwireWebView? = null
+        private set
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -60,6 +68,7 @@ class ChaekgalpiWebFragment : HotwireWebFragment() {
      */
     override fun onWebViewAttached(webView: HotwireWebView) {
         super.onWebViewAttached(webView)
+        attachedWebView = webView
 
         webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             (activity as? MainActivity)?.downloads?.request(
@@ -72,6 +81,7 @@ class ChaekgalpiWebFragment : HotwireWebFragment() {
     }
 
     override fun onWebViewDetached(webView: HotwireWebView) {
+        attachedWebView = null
         webView.setDownloadListener(null)
         super.onWebViewDetached(webView)
     }

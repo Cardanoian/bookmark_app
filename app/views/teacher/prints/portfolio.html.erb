@@ -1,7 +1,8 @@
 <% content_for :title, "독서 포트폴리오 · 책갈피" %>
 
 <article class="space-y-6"
-         data-controller="growth-card"
+         data-controller="growth-card save-image"
+         data-save-image-filename-value="<%= "성장카드_#{@student.name}.png" %>"
          data-growth-card-name-value="<%= @student.name %>"
          data-growth-card-avg-value="<%= @axis_averages.values.sum.fdiv([ @axis_averages.size, 1 ].max).round(1) %>"
          data-growth-card-level-value="<%= @reports.last&.level %>"
@@ -38,9 +39,12 @@
 
       <div class="no-print rounded-lg border border-hairline p-4">
         <h2 class="mb-2 text-sm font-semibold text-ink">성장카드</h2>
-        <canvas data-growth-card-target="canvas" width="320" height="220"
+        <canvas data-growth-card-target="canvas" data-save-image-target="canvas"
+                width="320" height="220"
                 class="w-full rounded border border-hairline"></canvas>
-        <button type="button" data-action="growth-card#download"
+        <%# 두 액션을 함께 건다. 웹에서는 save-image 컨트롤러가 로드되지 않아 growth-card#download 만
+            돌고, 앱에서는 growth-card#download 가 스스로 물러나 브리지 저장만 남는다. %>
+        <button type="button" data-action="growth-card#download save-image#save"
                 class="btn btn-primary btn-sm mt-2">PNG 저장</button>
       </div>
     </div>

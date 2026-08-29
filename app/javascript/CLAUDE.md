@@ -12,7 +12,7 @@
 - `controllers/book_search_controller.js` — 도서 자동완성 + **선택**. 디바운스 입력을 서버로 fetch해 결과 목록을 렌더하고, 결과 클릭 시 hidden `book_id`·표시 input·표지를 세팅한 뒤 `book:selected` 커스텀 이벤트를 dispatch한다(퀴즈·게임·독후감 공용, 이벤트 계약 불변). **멀티북 바스켓 지원(additive)**: dispatch detail 에 원격 선택이면 `isbn`(로컬은 null)을 함께 실어 `book_basket_controller.js`가 로컬/원격을 구분해 칩에 담을 수 있게 한다(기존 단일 선택 리스너는 추가 키 무시, 하위호환). **드롭다운 항목엔 고전 여부·장르 배지(`badgeElements`, 서버 `book_meta_badges`와 동일 `.badge` 스타일)를 붙인다** — 로컬 자동완성 응답의 `classic`/`genre` 필드 기반이며 원격(네이버) 결과엔 필드가 없어 자동 생략(그레이스풀). strict/fallback 모드 + `bookId`/`cover` 타깃은 선택적(없으면 표시 전용으로 동작). **시리즈 접기 2단계 드릴다운**: 결과 렌더의 `itemElement`가 디스패처로 분리돼 `series_count>1`(로컬 자동완성만 해당)이면 `seriesElement`("전 N권" 배지, `drillIntoSeries` 액션 — 즉시 선택하지 않음)를, 그 외(단권·원격·개별 권)는 기존처럼 즉시 `select`하는 `bookElement`를 렌더한다. `drillIntoSeries`가 신규 `volumesUrl` value(기본 `/books/volumes`)로 그 시리즈 전 권을 fetch해 `renderVolumes`("← 뒤로" 헤더 + 권별 "N권" 표식 목록)로 펼치고, 권 선택 시 그 권의 book_id로 확정한다. `backToResults`가 접힌 결과 목록(`lastResults`에 보관)으로 복귀시킨다. series_count가 없는 단권·원격 결과는 하위호환으로 기존과 동일하게 즉시 선택된다. **opt-in 원격검색 확장(하위호환)**: `remoteSearchUrl` value·`searchButton`/`isbn` 타깃이 있으면 검색 버튼(`manualSearch()`)이 **원격(네이버) 도서검색**을 `remoteSearchUrl`로 fetch(타이핑은 기존 `url`=로컬 autocomplete 그대로, 2-URL 분리·minChars 미강제). `select()`는 항목의 `id` 유무로 분기 — 로컬(id 보유)은 hidden `book_id` 세팅, 원격(id 없음+`isbn`)은 hidden `isbn`에 스태시하고 `book_id`는 공란(등록은 제출 시 서버가 수행, resolve/POST/async 없이 동기 유지). 셋 다 미설정이면 기존 동작과 완전히 동일
 - `controllers/clipboard_controller.js` — 텍스트(NEIS 생기부 요약 등) 클립보드 복사 + "복사됨" 피드백
 - `controllers/dex_controller.js` — 몬스터 도감 속성별 필터. 카드 표시 토글(순수 DOM)
-- `controllers/growth_card_controller.js` — 독서 성장카드 PNG 내보내기. data-* 값을 Canvas에 그려 다운로드
+- `controllers/growth_card_controller.js` — 독서 성장카드 PNG 내보내기. data-* 값을 Canvas에 그려 다운로드 **Android 앱에서는 `save-image` 브리지가 같은 버튼을 맡으므로 `nativeSaveAvailable`(= `<html data-bridge-components>`) 이면 스스로 물러난다.**
 - `controllers/monster_care_controller.js` — 먹이/진화 연출. 스프라이트에 bounce 애니메이션 클래스 토글
 - `controllers/photo_upload_controller.js` — 사진 업로드 전 Canvas 클라이언트 압축 + 미리보기(불가 시 원본 전송)
 - `controllers/report_edit_controller.js` — 고쳐쓰기(수정) 폼의 저장 버튼 dirty-check. 본문 textarea 를 원본과 비교해 **달라졌을 때만 "수정하기" 버튼 활성화**(`resubmit?` 본문-변경 재첨삭 가드와 짝). 기존 글 폼(`report.persisted?`)에만 부착하고, OCR 초안으로 textarea 가 교체돼도 기준값 유지. JS 미로딩 시 버튼은 그대로 활성(그레이스풀)
@@ -21,11 +21,20 @@
 - `controllers/discovery_controller.js` — 몬스터 발견 연출 모달. 미연출 몬스터 큐를 순차 등장 애니메이션으로 보여 주고, 표시 즉시 `discoveries/acknowledge` fetch로 celebrated_at 을 마킹(재노출 방지)
 - `controllers/report_guide_controller.js` — **직접쓰기 안내 질문 단계(요구 1a)**. 밴드별 질문 답변(name 없는 answer 타깃 textarea)을 `assemble()`가 trim·빈 제외·`\n\n` join 해 숨겨진 `_form`의 `#report_body_field`에 주입(`input`/`change` 이벤트 dispatch로 리스너 호환)하고 질문 패널을 접어 폼을 노출한다. 답변은 `localStorage`(키 `guided:<userId||anon>:<bookKey>`)에 저장해 학생별로 격리·"이어서 쓰기" 복원, assemble/제출 성공 시 클리어. localStorage 접근은 try/catch 그레이스풀, JS 미로딩 시 질문·폼이 함께 보여 직접 작성 가능
 - `controllers/guide_modal_controller.js` — **사진쓰기 가이드 모달(요구 1b)**. `_photo_guide`의 자가점검 안내 카드를 connect 시 오버레이 dialog 로 승격·자동 오픈하고, "확인했어요" 버튼·Escape·배경 클릭·"작성 팁 다시 보기"로 여닫는다. `turbo:before-cache`에 상태 리셋. JS 미로딩 시 그냥 보이는 안내 카드로 완전 동작(그레이스풀)
+- `controllers/save_image_controller.js` · `controllers/print_controller.js` — **Hotwire Native 브리지 컴포넌트 2종**
+  (`@hotwired/hotwire-native-bridge`의 `BridgeComponent` 상속). Android 앱에만 있는 기능을 웹 화면이 부른다:
+  성장카드 PNG 를 사용자가 고른 위치에 저장(`save-image`), 현재 화면을 Android 시스템 인쇄/PDF 로 보냄(`print`).
+  **일반 브라우저에서는 두 컨트롤러가 아예 로드되지 않는다** — `BridgeComponent.shouldLoad` 가 User-Agent 의
+  `bridge-components: [...]` 를 보고 판단하고 그 문자열은 앱만 붙인다. 그래서 웹의 기존 폴백
+  (`growth-card#download` 의 `<a download>`, 인쇄 툴바의 인라인 `window.print()`)은 손대지 않아도 그대로 남는다.
+  `static component` 값은 앱의 `ChaekgalpiApplication.configureBridge()` 등록 이름과 **반드시 같아야 하고**,
+  어긋나면 앱에서 버튼이 조용히 무반응이 된다(웹에는 아무 증상도 없다) — `test/integration/native_bridge_test.rb` 가 고정한다.
 - `controllers/student_nav_controller.js` — 학생 공용 네비의 모바일 `<details>` disclosure 보조. 메뉴 링크 선택·바깥 클릭·Escape 에서 닫고(Escape 는 summary 로 포커스 복원), `turbo:before-cache` 전에 열린 상태를 초기화한다. 열기/닫기 기본 동작은 네이티브 `<details>/<summary>`가 맡아 JS 미로딩 시에도 메뉴 접근 가능
 
 ## 패턴·규칙
 - **자동 등록**: 새 컨트롤러는 `controllers/이름_controller.js`로 추가하면 `index.js`의 eager-load가 자동 인식. 수동 등록 불필요.
-- **경량·무의존**: 외부 npm 패키지 없이 순수 DOM/Canvas/Fetch로 구현. `static targets`·`static values`로 뷰의 `data-*`와 연결.
+- **경량·무의존**: 외부 npm 패키지 없이 순수 DOM/Canvas/Fetch로 구현. **예외는 `@hotwired/hotwire-native-bridge`
+  하나뿐**이며, 이것도 CDN 이 아니라 `vendor/javascript/` 자체 호스팅이라 CSP `script-src :self` 를 유지한다. `static targets`·`static values`로 뷰의 `data-*`와 연결.
 - **그레이스풀 폴백**: 클립보드·이미지 압축 등 브라우저 API 미지원 환경에서 원본 전송/폴백 경로를 둠.
 - **역할 분담**: 서버 렌더 부분 갱신은 Turbo Stream(뷰의 `.turbo_stream.erb`)이 맡고, JS는 순수 클라이언트 상호작용(입력 보조·연출·내보내기)만 담당.
 

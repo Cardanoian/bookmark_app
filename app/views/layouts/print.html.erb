@@ -21,7 +21,10 @@
 
   <body class="p-6">
     <div class="print-toolbar no-print mb-6 flex items-center gap-3">
+      <%# onclick 은 웹 폴백이라 그대로 둔다(CSP sha256 해시 대상 — 문구를 바꾸면 해시도 바꿔야 한다).
+          Android 앱에서는 print 브리지 컨트롤러가 로드되어 이 속성을 걷어내고 시스템 인쇄를 부른다. %>
       <button type="button" onclick="window.print()"
+              data-controller="print" data-action="print#print"
               class="btn btn-primary">인쇄하기</button>
       <a href="<%= teacher_dashboard_path %>" class="text-sm text-steel hover:underline">대시보드로</a>
     </div>

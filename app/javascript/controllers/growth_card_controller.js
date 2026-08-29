@@ -35,10 +35,20 @@ export default class extends Controller {
 
   download() {
     if (!this.hasCanvasTarget) return
+    // Android 앱에서는 save-image 브리지가 같은 버튼에 물려 저장을 맡는다. WebView 에서
+    // `<a download>` + data URL 은 아무 일도 하지 않으므로 두 경로가 겹치지 않게 여기서 물러난다.
+    if (this.nativeSaveAvailable) return
 
     const link = document.createElement("a")
     link.download = `growth_card_${this.nameValue || "student"}.png`
     link.href = this.canvasTarget.toDataURL("image/png")
     link.click()
+  }
+
+  // 브리지 어댑터가 `<html data-bridge-components="...">` 에 지원 컴포넌트를 적어 둔다.
+  // 이 속성이 없으면(= 일반 브라우저) 기존 다운로드 경로를 그대로 쓴다.
+  get nativeSaveAvailable() {
+    const components = document.documentElement.dataset.bridgeComponents
+    return !!components && components.split(" ").includes("save-image")
   }
 }

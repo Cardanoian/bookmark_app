@@ -39,7 +39,15 @@ class DownloadCoordinator(
 
     private var pending: Pending? = null
 
-    private data class Pending(val url: String, val userAgent: String?)
+    /**
+     * 저장 위치를 고르는 동안 붙들고 있는 요청. 출처가 둘이라 sealed 로 나눈다.
+     *  · [Pending.Remote] — 서버에서 세션 쿠키로 받아야 하는 파일(CSV·PDF)
+     *  · [Pending.Local]  — 웹이 브리지로 넘긴 바이트(성장카드 PNG). 네트워크가 없다.
+     */
+    private sealed interface Pending {
+        data class Remote(val url: String, val userAgent: String?) : Pending
+        data class Local(val bytes: ByteArray) : Pending
+    }
 
     /**
      * ActivityResult 등록. **Activity 의 onCreate 에서 호출해야 한다**(STARTED 이후 등록은 예외).
@@ -80,7 +88,7 @@ class DownloadCoordinator(
             return
         }
 
-        pending = Pending(url, userAgent)
+        pending = Pending.Remote(url, userAgent)
 
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -97,6 +105,30 @@ class DownloadCoordinator(
         }
     }
 
+    /**
+     * 이미 손에 든 바이트를 사용자가 고른 위치에 저장한다. 네트워크를 타지 않는다.
+     * 성장카드 PNG(`save-image` 브리지)가 쓴다 — 웹이 Canvas 로 만든 이미지라 서버에 없다.
+     */
+    fun saveBytes(bytes: ByteArray, mimeType: String, suggestedName: String?) {
+        pending = Pending.Local(bytes)
+
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType
+            putExtra(Intent.EXTRA_TITLE, DownloadNaming.fileName(null, null, mimeType, suggestedName))
+        }
+
+        try {
+            launcher.launch(intent)
+        } catch (e: Exception) {
+            pending = null
+            toast(R.string.download_failed)
+        }
+    }
+
+    /** 브리지 컴포넌트가 실패를 알릴 때 쓰는 통로. 문구는 호출부가 고른다. */
+    fun announceFailure(messageId: Int) = toast(messageId)
+
     private fun start(request: Pending, destination: Uri) {
         val resolver = activity.applicationContext.contentResolver
         toast(R.string.download_started)
@@ -104,7 +136,14 @@ class DownloadCoordinator(
         executor.execute {
             val result = try {
                 resolver.openOutputStream(destination)?.use { sink ->
-                    downloader.download(request.url, request.userAgent, sink)
+                    when (request) {
+                        is Pending.Remote -> downloader.download(request.url, request.userAgent, sink)
+                        is Pending.Local -> {
+                            sink.write(request.bytes)
+                            sink.flush()
+                            AuthenticatedDownloader.Result.Success(request.bytes.size.toLong())
+                        }
+                    }
                 } ?: AuthenticatedDownloader.Result.Failure(AuthenticatedDownloader.Reason.Storage)
             } catch (e: Exception) {
                 AuthenticatedDownloader.Result.Failure(AuthenticatedDownloader.Reason.Storage)

@@ -39,6 +39,9 @@ class MainActivity : HotwireActivity() {
         warnIfWebViewOutdated()
     }
 
+    /** 브리지 컴포넌트가 실패를 알릴 때 쓰는 통로. Toast 표시 규칙을 한 곳에 모아 둔다. */
+    fun toastDownloadFailure(messageId: Int) = downloads.announceFailure(messageId)
+
     override fun onDestroy() {
         downloads.shutdown()
         super.onDestroy()

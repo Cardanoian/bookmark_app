@@ -4,12 +4,16 @@ import android.app.Application
 import dev.hotwire.core.config.Hotwire
 import dev.hotwire.core.logging.HotwireLogLevel
 import dev.hotwire.core.turbo.config.PathConfiguration
+import dev.hotwire.core.bridge.BridgeComponentFactory
 import dev.hotwire.navigation.config.defaultFragmentDestination
+import dev.hotwire.navigation.config.registerBridgeComponents
 import dev.hotwire.navigation.config.registerFragmentDestinations
 import dev.hotwire.navigation.config.registerRouteDecisionHandlers
 import dev.hotwire.navigation.routing.AppNavigationRouteDecisionHandler
 import dev.hotwire.navigation.routing.BrowserTabRouteDecisionHandler
 import dev.hotwire.navigation.routing.SystemNavigationRouteDecisionHandler
+import net.chaekgalpi.app.bridge.PrintComponent
+import net.chaekgalpi.app.bridge.SaveImageComponent
 import net.chaekgalpi.app.navigation.ChaekgalpiWebFragment
 import net.chaekgalpi.app.navigation.DownloadRouteDecisionHandler
 import net.chaekgalpi.app.navigation.TrustedUrlRouteDecisionHandler
@@ -48,6 +52,25 @@ class ChaekgalpiApplication : Application() {
         Hotwire.registerFragmentDestinations(ChaekgalpiWebFragment::class)
 
         configureRouting()
+        configureBridge()
+    }
+
+    /**
+     * 웹이 네이티브에만 있는 기능을 부르는 통로. **등록한 이름이 곧 계약**이다.
+     *
+     * 등록하면 core 가 User-Agent 에 `bridge-components: [save-image print]` 를 덧붙이고,
+     * 웹의 `BridgeComponent.shouldLoad` 가 그 문자열을 보고 컨트롤러를 붙일지 결정한다.
+     * 그래서 **일반 브라우저에서는 컨트롤러가 아예 로드되지 않고** 기존 폴백
+     * (`<a download>`·`window.print()`)이 그대로 남는다 — 웹 회귀가 구조적으로 불가능하다.
+     *
+     * 이름을 바꾸면 배포된 APK 와 서버 화면의 계약이 깨진다. `app/javascript/controllers` 의
+     * `static component` 값과 **반드시 같아야 한다**.
+     */
+    private fun configureBridge() {
+        Hotwire.registerBridgeComponents(
+            BridgeComponentFactory("save-image", ::SaveImageComponent),
+            BridgeComponentFactory("print", ::PrintComponent)
+        )
     }
 
     /**

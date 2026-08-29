@@ -28,4 +28,7 @@
     <string name="download_failed">파일을 저장하지 못했어요.</string>
     <string name="download_unauthorized">로그인이 풀렸어요. 다시 로그인한 뒤 내려받아 주세요.</string>
     <string name="download_untrusted">책갈피 서버의 파일만 내려받을 수 있어요.</string>
+
+    <!-- Android 인쇄(PrintComponent). 인쇄 서비스가 없는 기기·WebView 미부착 상황. -->
+    <string name="print_failed">이 기기에서는 인쇄를 시작할 수 없어요.</string>
 </resources>

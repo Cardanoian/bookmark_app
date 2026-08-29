@@ -137,6 +137,9 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.8.5")
 
     testImplementation("junit:junit:4.13.2")
+    // `org.json` 은 Android SDK 에 stub 으로만 들어 있어 JVM 단위 테스트에서 예외를 던진다.
+    // 실제 구현을 테스트 클래스패스에만 올려 브리지 payload 파싱을 진짜로 검증한다(APK 미포함).
+    testImplementation("org.json:json:20240303")
 
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
