@@ -52,8 +52,15 @@ val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
-val hasReleaseKeystore = keystorePropsFile.exists() &&
-    listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all { !keystoreProps.getProperty(it).isNullOrBlank() }
+val releaseKeystoreKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val hasReleaseKeystoreProps = keystorePropsFile.exists() &&
+    releaseKeystoreKeys.all { !keystoreProps.getProperty(it).isNullOrBlank() }
+
+// storeFile 이 **실제로 존재하는지**까지 본다. 값만 채워져 있고 파일이 없으면(예: 임시 경로에
+// 만들었다가 지워진 키) 아래 verifyReleaseSigning 이 통과해 버리고, 빌드는 한참 뒤 Gradle 내부의
+// `validateSigningRelease` 에서 원인을 알 수 없는 메시지로 죽는다 — 실제로 그 상태였다.
+val releaseKeystoreFile = keystoreProps.getProperty("storeFile")?.let { rootProject.file(it) }
+val hasReleaseKeystore = hasReleaseKeystoreProps && releaseKeystoreFile?.exists() == true
 
 android {
     namespace = "net.chaekgalpi.app"
@@ -162,10 +169,12 @@ val verifyReleaseStartUrl by tasks.registering {
 val verifyReleaseSigning by tasks.registering {
     group = "verification"
     description = "release 서명 키 설정이 존재하는지 검증한다. debug 키로 폴백하지 않는다."
-    val present = hasReleaseKeystore
+    val propsPresent = hasReleaseKeystoreProps
+    val storePath = releaseKeystoreFile?.absolutePath
+    val storeExists = releaseKeystoreFile?.exists() == true
     val path = keystorePropsFile.absolutePath
     doLast {
-        if (!present) {
+        if (!propsPresent) {
             throw GradleException(
                 """
                 release 서명 키 설정이 없습니다.
@@ -175,7 +184,18 @@ val verifyReleaseSigning by tasks.registering {
                 """.trimIndent()
             )
         }
-        logger.lifecycle("release 서명 설정 확인됨.")
+        if (!storeExists) {
+            throw GradleException(
+                """
+                release 서명 키 파일이 없습니다.
+                  keystore.properties: $path
+                  storeFile          : $storePath
+                설정은 채워져 있으나 그 경로에 키가 없습니다. 임시 경로에 만들었다가 지워진 키를
+                가리키고 있지 않은지 확인하세요. debug 키로 자동 폴백하지 않습니다.
+                """.trimIndent()
+            )
+        }
+        logger.lifecycle("release 서명 설정 확인됨: $storePath")
     }
 }
 

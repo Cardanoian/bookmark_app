@@ -30,6 +30,9 @@
   🔴 는 대부분 에뮬레이터가 신뢰할 수 없는 영역(실제 카메라·HEIC·고해상도 메모리 압박·시스템 글꼴
   확대·파일 관리자 설치 경로)에서 나온다. 결함 보고 양식과 logcat 명령도 포함.
 - `local.properties` · `keystore.properties` — **gitignored.** 후자가 없으면 `assembleRelease` 가 실패한다.
+  `verifyReleaseSigning` 은 **4개 값의 존재와 `storeFile` 이 실제로 있는지를 모두** 본다 — 값만 채워져 있고
+  파일이 없으면(임시 경로에 만들었다 지운 키 등) 가드가 통과해 버리고 빌드는 한참 뒤 Gradle 내부
+  `validateSigningRelease` 에서 원인을 알 수 없는 메시지로 죽는다(실제로 그 상태였다).
 - `app/build.gradle.kts` — 모듈 설정 + **release 가드 2종**:
   - `verifyReleaseStartUrl` — URI 파싱으로 scheme=`https`·host=`chaekgalpi.net`·userinfo/port 없음 확인.
     로컬 URL 을 가리키는 release APK 제출 사고를 막는다.
