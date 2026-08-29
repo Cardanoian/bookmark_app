@@ -82,13 +82,33 @@ keytool -genkeypair -v \
   -dname "CN=<이름>, O=<소속>, L=<지역>, C=KR"
 ```
 
+키를 만든 직후 **인증서 지문을 기록**한다. 나중에 "이 APK 가 그 키로 서명된 게 맞나"를
+확인하는 유일한 근거다.
+
+```bash
+keytool -list -v -keystore ~/chaekgalpi-release.jks -alias chaekgalpi | grep "SHA256:"
+```
+
 ### 2. `android/keystore.properties` (gitignored)
+
+> ⚠️ **이 파일은 이미 존재할 수 있다.** 새로 만드는 것이 아니라 **열어서 `storeFile` 을
+> 실제 키 경로로 바꾸는** 작업이다. 지금 저장소에 있는 값은 개발 중 만들었다 지운 임시 키의
+> 경로를 가리키고 있어서 `verifyReleaseSigning` 이 실패한다 — **실제 키가 생길 때까지
+> 시끄럽게 실패하는 것이 의도된 상태다.**
 
 ```properties
 storeFile=/home/<user>/chaekgalpi-release.jks
 storePassword=<비밀번호>
 keyAlias=chaekgalpi
 keyPassword=<비밀번호>
+```
+
+설정이 맞는지 빌드 전에 따로 확인할 수 있다(서명 가드만 단독 실행).
+
+```bash
+./gradlew verifyReleaseSigning
+# 성공: "release 서명 설정 확인됨: <경로>"
+# 실패: 어떤 경로가 비었는지 메시지가 지목한다
 ```
 
 > ⚠️ **패키지명(`net.chaekgalpi.app`)과 서명 키는 앱의 신원이다.**
@@ -98,13 +118,63 @@ keyPassword=<비밀번호>
 
 ### 3. 빌드·검증
 
+> ⚠️ **도구 두 개가 그냥은 안 돈다.** 실제로 겪은 순서대로 적는다.
+> - `apksigner`·`aapt2` 는 **PATH 에 없다**(SDK build-tools 안에 있다).
+> - `apksigner` 는 셸 래퍼라 **`java` 가 PATH 에 있어야 한다.** 없으면
+>   `exec: java: not found` 로 죽는데, **종료 코드는 0 이라** 파이프에 물리면 조용히 빈 출력만 남는다.
+>
+> ```bash
+> export PATH="$JAVA_HOME/bin:$PATH"                                   # java 없으면 apksigner 가 죽는다
+> export BT=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -type d | sort -V | tail -1)
+> echo "$BT"   # 예: /home/<user>/Android/Sdk/build-tools/35.0.0
+> ```
+
 ```bash
 ./gradlew clean test lintRelease assembleRelease
 cp app/build/outputs/apk/release/app-release.apk chaekgalpi-android-v1.0.0-release.apk
 
-apksigner verify --verbose --print-certs chaekgalpi-android-v1.0.0-release.apk
+"$BT/apksigner" verify --verbose --print-certs chaekgalpi-android-v1.0.0-release.apk
 sha256sum chaekgalpi-android-v1.0.0-release.apk
 ```
+
+**확인할 것 4가지** — `apksigner` 가 "Verifies" 를 찍었다고 끝이 아니다.
+
+1. **서명 인증서가 그 키가 맞나** — 출력의 `Signer #1 certificate SHA-256 digest` 가
+   §1 에서 기록해 둔 지문과 같아야 한다. **다른 키로 서명해도 `apksigner` 는 통과한다** —
+   "서명이 유효한가"와 "우리 키로 서명했나"는 다른 질문이다.
+2. **debug 빌드가 아닌가** — 아래가 **비어야** 한다. debug APK 로 시험하면 `application-debuggable`
+   이 나오는 것으로 검사 자체가 동작하는지 확인할 수 있다.
+   ```bash
+   "$BT/aapt2" dump badging chaekgalpi-android-v1.0.0-release.apk | grep -i "debuggable\|testOnly"
+   ```
+3. **`testOnly` 가 아닌가** — 위 출력에 나오면 `adb install -t` 로만 설치되어 심사장에서
+   파일 관리자로 설치할 수 없다.
+4. **시작 URL 이 운영인가** — `strings <apk> | grep chaekgalpi.net`.
+   단 이건 **스모크 테스트일 뿐이다** — 문자열이 있다는 것이 그 값이 `BuildConfig.START_URL`
+   이라는 증명은 아니다. 진짜 근거는 빌드 가드(`verifyReleaseStartUrl`)와 **설치 후 첫 화면**이다.
+
+### 4. 제출물 규칙
+
+**제출하면 안 되는 것**
+
+- `testOnly=true` APK — 파일 관리자로 설치되지 않는다
+- `app-debug.apk` — cleartext 허용 + 로컬 서버(`10.0.2.2`)를 본다
+- 서명되지 않은 release
+- 로컬 URL 로 빌드한 APK
+- **keystore 를 포함한 zip** — 키가 새면 앱 신원을 잃는다
+- **서명 후 다시 압축한 APK** — 재압축은 서명을 깨뜨린다
+
+**제출 패키지**
+
+```text
+책갈피_Android_제출/
+├─ chaekgalpi-android-v1.0.0-release.apk
+├─ APK_설치_및_체험안내.pdf
+└─ SHA256.txt
+```
+
+`SHA256.txt` 는 `sha256sum` 출력 그대로 넣는다. 심사위원이 받은 파일이 우리가 만든 것과
+같은지 확인할 수 있는 유일한 근거이며, **APK 를 다시 만들면 해시도 반드시 다시 계산한다.**
 
 ### versionCode 정책
 
