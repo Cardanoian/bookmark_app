@@ -16,13 +16,18 @@ module Library
     LIB_SEARCH_PATH = "/api/libSrchByBook".freeze
     # 도서관별 소장·대출 가능 여부(불리언, 권수 없음).
     BOOK_EXIST_PATH = "/api/bookExist".freeze
-    # bookExist 는 도서관당 1콜(N+1)이라 목록 조회보다 짧은 read timeout 으로 팬아웃 지연을 상한한다.
-    BOOK_EXIST_READ_TIMEOUT = 4
-    # libSrchByBook 은 시도 전체 소장 목록(pageSize 1000)이라 응답이 크고 느리다. 커넥션 기본
-    # timeout(8s)에 맡기면 인근 도서관 화면 하나가 8초를 통째로 쓸 수 있어 여기서 따로 상한을 건다.
-    # **너무 짧게 잡지 않는다** — 이 호출이 끊기면 nil→:error 라 도서관 섹션이 통째로 사라진다
-    # (팬아웃은 끊겨도 :unknown 배지로 남는 것과 다르다).
-    LIB_SEARCH_READ_TIMEOUT = 6
+    # ⚠️ 아래 두 상한은 **운영 실측에 맞춘 값이다**(2026-08-29, 운영 컨테이너에서 직접 측정).
+    #   추측으로 조이면 조용히 전부 실패한다 — 실제로 한 번 그랬다(6초로 잡았다가 9.5초짜리
+    #   호출이 매번 잘려 도서관 섹션이 통째로 사라질 뻔했다).
+    #
+    #   · libSrchByBook : **9.2~9.8초** (pageSize 100 이든 1000 이든 같다 — 응답 크기가 아니라
+    #                      서버 지연이다. 줄여도 안 빨라진다.)
+    #   · bookExist     : **7.9~35.5초** (편차 4배. 5곳 순차 합 101초, 동시 8.7초.)
+    #
+    #   둘 다 이제 **렌더 밖(NearbyLibrariesWarmJob)에서만** 불리므로 요청을 막지 않는다.
+    #   그래서 실측 위에 여유를 얹어 잡는다 — 여기서 조이면 캐시가 영영 안 채워진다.
+    BOOK_EXIST_READ_TIMEOUT = 20
+    LIB_SEARCH_READ_TIMEOUT = 20
 
     # 직전 popular_loans 호출의 실패 사유. 성공·무키 시 nil.
     attr_reader :last_error

@@ -325,7 +325,12 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     assert_equal 1, stub.loan_calls, "확정값(available)은 15min 캐시되어 재조회 시 bookExist 를 다시 호출하지 않는다"
   end
 
-  test "does not cache a transient :unknown loan status (re-queries so recovery is not suppressed)" do
+  test "일시 :unknown 은 짧게만 기억한다 — 무한 워밍 루프도, 회복 억제도 피한다" do
+    # 두 실패 사이의 균형점이다.
+    #   · 아예 캐시하지 않으면 → 렌더가 그 도서관을 영원히 미스로 보고 :warming → 워밍 → :warming
+    #     을 반복한다. 한 곳만 계속 느려도 섹션 전체가 안 뜬다(무한 워밍 루프).
+    #   · 확정값처럼 15분 캐시하면 → 일시 오류가 회복돼도 15분간 "확인 필요"가 굳는다.
+    # 그래서 UNKNOWN_LOAN_TTL(2분)만 기억한다.
     holdings = [ lib("A", "서울특별시 노원구 상계로 1") ]
     # loans 에 "A" 미지정 → StubService 기본이 :unknown(일시 오류 시뮬레이션).
     stub = StubService.new(holdings: holdings)
@@ -334,8 +339,27 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
 
     availability.warm!
     availability.warm!
+    assert_equal 1, stub.loan_calls, "직후 재워밍은 캐시를 읽어 루프를 만들지 않는다"
 
-    assert_equal 2, stub.loan_calls, ":unknown 은 캐시하지 않아 다음 조회에서 재시도한다(회복 억제 방지)"
+    travel(Library::NearbyAvailability::UNKNOWN_LOAN_TTL + 1.second) do
+      availability.warm!
+      assert_equal 2, stub.loan_calls, "짧은 TTL 이 지나면 다시 시도한다(회복 억제 방지)"
+    end
+  end
+
+  test "확정값은 :unknown 보다 훨씬 오래 기억한다" do
+    # :unknown TTL 이 지나도 확정값은 남아 있어야 한다 — 두 TTL 이 같아지면 15분 캐시의 의미가 없다.
+    holdings = [ lib("A", "서울특별시 노원구 상계로 1") ]
+    stub = StubService.new(holdings: holdings,
+                           loans: { "A" => { status: :available, fetched_at: Time.current } })
+    cache = memory_cache
+    availability = Library::NearbyAvailability.new(book: sample_book, school: sample_school, service: stub, cache: cache)
+    availability.warm!
+
+    travel(Library::NearbyAvailability::UNKNOWN_LOAN_TTL + 1.second) do
+      availability.warm!
+      assert_equal 1, stub.loan_calls, "확정값(available)은 그대로 캐시에 남는다"
+    end
   end
 
   # --- as_of = 가장 오래된 fetched_at(criterion 13, 15분 캐시 → "15분 기준") ---

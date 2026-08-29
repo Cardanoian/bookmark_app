@@ -22,6 +22,11 @@ module Library
     # 캐시 미스 → :warming 이라 학생이 "찾고 있어요"에 갇힌다(섹션이 조용히 숨는 :error 로
     # 내려가지 못함). 회복은 이 TTL 이 지나면 자동으로 다시 시도된다.
     HOLDINGS_FAIL_TTL = 10.minutes
+    # 워밍이 끝났는데도 못 받아 낸 대출여부(:unknown)를 **짧게** 기억한다. 아예 기억하지 않으면
+    # 렌더가 그 도서관을 영원히 캐시 미스로 보고 :warming → 워밍 → 또 :warming 을 도는
+    # **무한 워밍 루프**가 된다(한 곳만 계속 느려도 섹션 전체가 안 뜬다). 이 TTL 이 지나면
+    # 다시 시도하므로 회복은 여전히 열려 있다(확정값 15분보다 훨씬 짧게 잡는 이유).
+    UNKNOWN_LOAN_TTL = 2.minutes
     # 실패 마커 값. 정상값(배열)·미스(nil)와 구분되는 세 번째 상태다.
     HOLDINGS_FAILED = :failed
     # 워밍 스탬피드 가드 마커 TTL. 진행 중이면 재큐잉을 스킵하고, 실패해도 자연만료로 재시도한다
@@ -129,9 +134,11 @@ module Library
 
       misses.each_with_index do |slot, n|
         statuses[slot] = fetched[n]
-        # 확정값(available/unavailable)만 캐시한다. :unknown 은 일시 오류(HTTP·타임아웃·파싱)일 수
-        # 있어 캐시하면 회복이 15분간 억제된다(소장 목록의 nil 미캐시와 대칭).
-        @cache.write(loan_key(libraries[slot][:code], isbn), fetched[n], expires_in: LOAN_TTL) if cacheable_status?(fetched[n])
+        # 확정값은 15분, :unknown 은 2분만 기억한다. :unknown 은 일시 오류(HTTP·타임아웃·파싱)일 수
+        # 있어 길게 캐시하면 회복이 억제되지만, **아예 캐시하지 않으면 무한 워밍 루프**가 된다
+        # (렌더가 영원히 미스로 보고 :warming 을 반복). 짧게 기억해 둘 다 피한다.
+        ttl = cacheable_status?(fetched[n]) ? LOAN_TTL : UNKNOWN_LOAN_TTL
+        @cache.write(loan_key(libraries[slot][:code], isbn), fetched[n], expires_in: ttl)
       end
       statuses
     end
