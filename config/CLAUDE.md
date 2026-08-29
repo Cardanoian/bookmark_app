@@ -39,6 +39,15 @@
 - `deploy.yml` — Kamal 배포 매니페스트. 서비스명 `bookmark_app`, 운영 호스트 `chaekgalpi.net` + `www.chaekgalpi.net`, SSL 자동(Let's Encrypt), 전 호스트 Cloudflare 프록시 + 클라이언트 IP 전달(`proxy.forward_headers: true`), 로컬 레지스트리(`localhost:5555`), 영구 볼륨(`/rails/storage`). 생성 URL의 기준인 `APP_HOST`는 apex를 명시한다. 시크릿 ENV 는 **`RAILS_MASTER_KEY` 하나뿐**(이 키로 컨테이너가 credentials 를 복호화해 API 키를 런타임에 읽음 — 단일 소스). API 키를 서버 ENV 로 우회 주입하지 않는다(`docs/API_KEYS.md` §6). `.kamal/secrets` 도 `RAILS_MASTER_KEY` 한 줄만 담는다.
 - `ci.rb` — `bin/ci` 파이프라인(rubocop·bundler-audit·importmap audit·brakeman·rails test·seed replant).
 - `bundler-audit.yml` — 젬 취약점 감사 무시 목록(CVE allowlist).
+- `hotwire_native/android_v1.json` — **Hotwire Native Android 앱의 원격 Path Configuration 단일 진실**.
+  `NativeConfigurationsController`(`GET /configurations/android_v1.json`)가 이 파일을 그대로 서빙하고,
+  `android/app/src/main/assets/json/path_configuration.json` 은 원격 장애용 번들 사본(생성물)이다.
+  전체 경로 기본 규칙(`uri`·pull-to-refresh off) + 로그인/홈 `replace_root` + **`download` 규칙**을 담는다.
+  `download: true` 표시가 붙은 경로는 앱이 화면 이동 대신 파일 저장으로 분기한다 — 표시가 빠지면
+  Turbo 가 CSV 를 방문으로 처리해 앱에는 오류 화면만 뜨고 **서버에는 다운로드 감사 로그만 남는다**.
+  새 다운로드 경로(CSV·PDF)가 생기면 여기에 규칙을 추가한다(APK 재배포 불필요).
+  호환성이 깨지는 변경은 덮어쓰지 않고 `android_v2.json` 을 추가한다.
+  계약은 `test/integration/native_configuration_test.rb` 가 실제 라우트와 대조해 지킨다.
 - `credentials.yml.enc` — **보안 파일**. 외부 API 키 등 암호화 저장소. `master.key` 없이 복호화 불가. `bin/rails credentials:edit` 로만 편집하고 내용을 열거나 커밋 로그에 노출하지 말 것.
 - `master.key` — **보안 파일**. credentials 복호화 키(32바이트). `.gitignore` 대상이며 절대 커밋 금지. 열람·공유 금지.
 

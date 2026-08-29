@@ -43,8 +43,26 @@
   - `ChaekgalpiApplication.kt` — Hotwire 설정 진입점. **User-Agent prefix 만 붙이고 WebView 기본
     Chromium UA 를 덮어쓰지 않는다** — 서버의 `hotwire_native_app?` 판정과
     `allow_browser versions: :modern`(Chrome 120+) 버전 파싱이 **둘 다** 그 문자열에 의존한다.
+    라우트 판정 핸들러 등록도 여기서 한다(다운로드 → 신뢰 URL → 라이브러리 기본 3종 순서).
   - `MainActivity.kt` — `REQUIRED_WEBVIEW_VERSION = 120` 상수 보유. 서버의 `allow_browser` Chrome
     임계값과 **같은 값을 유지해야 한다**(한쪽만 바꾸면 406 을 사전 차단하지 못한다).
+    `DownloadCoordinator` 를 **onCreate 안에서** 생성한다(ActivityResult 등록 시점 계약).
+  - `navigation/`
+    - `TrustedUrlPolicy.kt` — URI 파싱 기반 4분기(Internal/BrowserTab/SystemIntent/Reject).
+      문자열 `contains`/`endsWith` 를 쓰지 않는다 — 접미 위조를 막을 수 없다.
+    - `NativeRouting.kt` — 위 판정을 라우팅 결정(InApp/Fallthrough/Blocked)으로 옮기는 **순수 로직**과,
+      세션 쿠키를 실어도 되는지 판정하는 `allowsCredentialedRequest`. 라이브러리 타입에 의존하지
+      않아 JVM 단위 테스트로 전수 검증한다. debug 로컬 서버 예외는 origin(scheme+host+port) 일치로만.
+    - `TrustedUrlRouteDecisionHandler.kt` / `DownloadRouteDecisionHandler.kt` — 위 판정을 Hotwire 의
+      `Router.Decision` 으로 옮기는 얇은 어댑터. 규칙은 여기 두지 않는다.
+    - `ChaekgalpiWebFragment.kt` — 네이티브 AppBar 만 제거한 기본 웹 화면 + WebView DownloadListener
+      (Activity 의 `DownloadCoordinator` 로 위임하는 안전망).
+  - `downloads/`
+    - `DownloadNaming.kt` — `Content-Disposition`(RFC 6266 `filename*` 우선) → 안전한 파일명. 순수·테스트됨.
+    - `AuthenticatedDownloader.kt` — 세션 쿠키를 실어 직접 스트리밍. **리다이렉트를 자동 추적하지 않고**
+      매 홉마다 신뢰 호스트를 재검사한다(신뢰 호스트가 외부로 302 를 주면 쿠키가 따라간다).
+    - `DownloadCoordinator.kt` — SAF `ACTION_CREATE_DOCUMENT` 로 저장 위치를 **먼저 묻고** 받는다.
+      먼저 받아 두면 사용자가 취소해도 서버 감사 원장에 다운로드가 기록되기 때문이다.
 - `res/values/strings.xml` — **`dev.hotwire:core` 의 문자열 리소스를 같은 이름으로 override 해 한국어화**한다
   (`webview_error_*`, `hotwire_dialog_*`, `hotwire_file_chooser_*`). 원문은 `core-1.3.1.aar` 의
   `res/values/values.xml` 참고. core 버전을 올리면 키가 늘거나 바뀌었는지 확인한다.
@@ -68,9 +86,16 @@
 | `GET /session/new` | 시작 화면(로그인 선택) |
 | `POST /ocr` (`ocr[photo]` multipart) | 사진 OCR 업로드 계약 |
 | `GET /reports/:id/photo` | 인증 프록시 사진 |
+| `GET /teacher/exports/reports_csv` · `GET /admin/analytics/export` · `/agree.pdf` | 원격 설정의 `download` 규칙 대상 |
 | `hotwire_native_app?` 분기 뷰 | native 전용 링크 표현 |
 
 호환성이 깨지는 Path Configuration 변경은 기존 파일을 덮어쓰지 않고 `android_v2.json` 을 **추가**한다.
+
+**다운로드 경로는 원격 설정이 단일 진실이다.** `download: true` 표시가 빠지면 Turbo 가 CSV 링크를 방문으로
+처리하고, HTML 이 아니라서 앱에는 "화면을 불러오지 못했어요"만 뜬 채 **서버에는 다운로드 감사 로그가 남는다**
+(아무도 받지 못한 파일이 내려받아진 것으로 기록). 새 다운로드 경로가 생기면 Kotlin 이 아니라
+`config/hotwire_native/android_v1.json` 에 규칙을 추가한다 — APK 재배포 없이 반영되고,
+`test/integration/native_configuration_test.rb` 가 실제 라우트와의 정합을 지킨다.
 
 ## CI
 

@@ -5,7 +5,9 @@
   },
   "rules": [
     {
-      "patterns": [".*"],
+      "patterns": [
+        ".*"
+      ],
       "properties": {
         "context": "default",
         "uri": "hotwire://fragment/web",
@@ -13,9 +15,41 @@
       }
     },
     {
-      "patterns": ["^/$", "^/session/new$"],
+      "patterns": [
+        "^/$",
+        "^/session/new$"
+      ],
       "properties": {
         "presentation": "replace_root"
+      }
+    },
+    {
+      "patterns": [
+        "^/teacher/exports/reports_csv$"
+      ],
+      "properties": {
+        "download": true,
+        "download_mime": "text/csv",
+        "download_filename": "5축_사전사후.csv"
+      }
+    },
+    {
+      "patterns": [
+        "^/admin/analytics/export$"
+      ],
+      "properties": {
+        "download": true,
+        "download_mime": "text/csv",
+        "download_filename": "전국_독서통계.csv"
+      }
+    },
+    {
+      "patterns": [
+        "\\.pdf$"
+      ],
+      "properties": {
+        "download": true,
+        "download_mime": "application/pdf"
       }
     }
   ]

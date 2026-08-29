@@ -6,7 +6,13 @@ import dev.hotwire.core.logging.HotwireLogLevel
 import dev.hotwire.core.turbo.config.PathConfiguration
 import dev.hotwire.navigation.config.defaultFragmentDestination
 import dev.hotwire.navigation.config.registerFragmentDestinations
+import dev.hotwire.navigation.config.registerRouteDecisionHandlers
+import dev.hotwire.navigation.routing.AppNavigationRouteDecisionHandler
+import dev.hotwire.navigation.routing.BrowserTabRouteDecisionHandler
+import dev.hotwire.navigation.routing.SystemNavigationRouteDecisionHandler
 import net.chaekgalpi.app.navigation.ChaekgalpiWebFragment
+import net.chaekgalpi.app.navigation.DownloadRouteDecisionHandler
+import net.chaekgalpi.app.navigation.TrustedUrlRouteDecisionHandler
 
 /**
  * 앱 진입점. Activity 가 만들어지기 전에 Hotwire 설정을 끝낸다.
@@ -40,6 +46,35 @@ class ChaekgalpiApplication : Application() {
         // 등록 API 는 `HotwireNavigation`(internal) 이 아니라 `Hotwire` 의 공개 확장 함수를 쓴다.
         Hotwire.defaultFragmentDestination = ChaekgalpiWebFragment::class
         Hotwire.registerFragmentDestinations(ChaekgalpiWebFragment::class)
+
+        configureRouting()
+    }
+
+    /**
+     * URL 신뢰 판정을 기본 라우터 **앞**에 끼운다.
+     *
+     * 등록하면 라이브러리 기본 3종(AppNavigation → BrowserTab → SystemNavigation)이 뒤로 밀리고,
+     * 우리 핸들러가 매칭하지 않은 것만 기존대로 처리된다. 고치는 것은 두 가지다.
+     *  · `www.chaekgalpi.net` — 기본 AppNavigation 은 startLocation 과 host 가 완전히 같을 때만
+     *    매칭해서 www 가 Custom Tab 으로 새어 나간다(쿠키가 달라 로그아웃 화면이 뜬다).
+     *  · javascript:/file:/content: — 기본 라우터도 막지만 조용히 막아서 사용자는 버튼 고장으로 오해한다.
+     *
+     * developmentOrigin 은 **debug 빌드에서만** 넘긴다. debug 서버는 평문 http 라 신뢰 정책이 당연히
+     * 거부하므로, 이 예외가 없으면 debug 빌드에서 모든 이동이 막힌다. release 에서는 null 이 되어
+     * 운영 호스트 외에는 앱 WebView 안으로 들어올 수 없다.
+     */
+    private fun configureRouting() {
+        Hotwire.registerRouteDecisionHandlers(
+            // 다운로드 표시가 가장 먼저다. 그 뒤 어떤 핸들러가 매칭돼도 화면 이동이 일어나면
+            // Turbo 가 CSV 를 방문으로 처리해 실패 화면 + 헛 감사 로그가 남는다.
+            DownloadRouteDecisionHandler(),
+            TrustedUrlRouteDecisionHandler(
+                developmentOrigin = if (BuildConfig.DEBUG) BuildConfig.START_URL else null
+            ),
+            AppNavigationRouteDecisionHandler(),
+            BrowserTabRouteDecisionHandler(),
+            SystemNavigationRouteDecisionHandler()
+        )
     }
 
     /**

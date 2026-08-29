@@ -8,6 +8,7 @@ import androidx.core.view.updatePadding
 import dev.hotwire.core.turbo.webview.WebViewVersionCompatibility
 import dev.hotwire.navigation.activities.HotwireActivity
 import dev.hotwire.navigation.navigator.NavigatorConfiguration
+import net.chaekgalpi.app.downloads.DownloadCoordinator
 
 /**
  * 단일 [NavigatorConfiguration] 을 가진 Hotwire 셸 Activity.
@@ -15,12 +16,32 @@ import dev.hotwire.navigation.navigator.NavigatorConfiguration
  */
 class MainActivity : HotwireActivity() {
 
+    /**
+     * 인증 파일 저장의 단일 창구. Fragment 가 아니라 Activity 에 두는 이유는
+     * [DownloadCoordinator] 주석 참고(저장 위치 선택 중 화면 전환, 두 진입 경로).
+     *
+     * **onCreate 안에서 생성해야 한다** — 내부에서 ActivityResult 를 등록하므로 STARTED 이후에는
+     * 예외가 난다. lazy 로 미루면 첫 다운로드 시점에 터진다.
+     */
+    lateinit var downloads: DownloadCoordinator
+        private set
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        downloads = DownloadCoordinator(
+            activity = this,
+            // release 에서는 null 이라 운영 호스트에만 세션 쿠키를 싣는다.
+            developmentOrigin = if (BuildConfig.DEBUG) BuildConfig.START_URL else null
+        )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         applySystemBarInsets()
         warnIfWebViewOutdated()
+    }
+
+    override fun onDestroy() {
+        downloads.shutdown()
+        super.onDestroy()
     }
 
     override fun navigatorConfigurations() = listOf(

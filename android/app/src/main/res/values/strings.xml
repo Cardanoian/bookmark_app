@@ -18,4 +18,14 @@
     <string name="hotwire_error_message">화면을 불러오지 못했어요</string>
     <string name="hotwire_file_chooser_select">파일 선택</string>
     <string name="hotwire_file_chooser_select_multiple">파일 선택</string>
+
+    <!-- 앱이 열지 않는 링크(javascript:/file:/content: 등) 안내. TrustedUrlRouteDecisionHandler 사용. -->
+    <string name="link_blocked">이 링크는 앱에서 열 수 없어요.</string>
+
+    <!-- 인증 파일 다운로드(ChaekgalpiWebFragment). 파일명·URL 을 문구에 넣지 않는다 — 학생 이름이 섞인다. -->
+    <string name="download_started">저장할 위치에 내려받는 중이에요.</string>
+    <string name="download_saved">파일을 저장했어요.</string>
+    <string name="download_failed">파일을 저장하지 못했어요.</string>
+    <string name="download_unauthorized">로그인이 풀렸어요. 다시 로그인한 뒤 내려받아 주세요.</string>
+    <string name="download_untrusted">책갈피 서버의 파일만 내려받을 수 있어요.</string>
 </resources>

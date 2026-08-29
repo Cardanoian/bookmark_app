@@ -121,6 +121,66 @@ class NativeConfigurationTest < ActionDispatch::IntegrationTest
                  "번들 사본만으로도 목적지를 찾을 수 있어야 한다"
   end
 
+  # ── 다운로드 규칙 ────────────────────────────────────────────────────────────
+  # 앱은 이 표시를 보고 "화면 이동" 대신 "파일 저장"으로 분기한다. 표시가 빠지면 Turbo 가 CSV 를
+  # 방문으로 처리해 앱에는 오류 화면만 뜨고 **서버에는 다운로드 감사 로그가 남는다** —
+  # 아무도 받지 못한 파일이 내려받아진 것으로 기록된다. 그래서 규칙 존재 여부를 테스트로 고정한다.
+
+  DOWNLOAD_PATHS = {
+    "/teacher/exports/reports_csv" => "교사 5축 사전·사후 CSV",
+    "/admin/analytics/export" => "총괄 전국 통계 CSV",
+    "/agree.pdf" => "보호자 동의서 PDF"
+  }.freeze
+
+  test "다운로드 대상 경로가 download 규칙에 매칭된다" do
+    get android_v1_configuration_path
+    rules = JSON.parse(response.body).fetch("rules")
+
+    DOWNLOAD_PATHS.each do |path, label|
+      matched = rules.any? do |rule|
+        rule.dig("properties", "download") == true &&
+          rule.fetch("patterns").any? { |pattern| Regexp.new(pattern).match?(path) }
+      end
+
+      assert matched, "#{label}(#{path})이 download 규칙에 걸리지 않는다"
+    end
+  end
+
+  test "다운로드 경로가 실제 라우트와 일치한다" do
+    # 위 테스트는 문자열 경로를 검사한다. 라우트가 바뀌면 그 문자열도 함께 낡으므로,
+    # 헬퍼가 만드는 실제 경로와 대조해 둘이 같이 늙지 않게 한다.
+    assert_equal "/teacher/exports/reports_csv", teacher_exports_reports_csv_path
+    assert_equal "/admin/analytics/export", admin_analytics_export_path
+    assert Rails.public_path.join("agree.pdf").exist?, "동의서 PDF 가 public/ 에 있어야 한다"
+  end
+
+  test "일반 화면 경로는 download 규칙에 걸리지 않는다" do
+    # `\.pdf$` 같은 패턴이 과하게 넓어지면 평범한 화면이 저장 대화상자로 새어 나간다.
+    get android_v1_configuration_path
+    rules = JSON.parse(response.body).fetch("rules")
+    download_rules = rules.select { |rule| rule.dig("properties", "download") == true }
+
+    %w[/ /session/new /reports /reports/1 /teacher /monsters /admin/analytics].each do |path|
+      leaked = download_rules.any? do |rule|
+        rule.fetch("patterns").any? { |pattern| Regexp.new(pattern).match?(path) }
+      end
+
+      assert_not leaked, "화면 경로 #{path} 가 다운로드로 처리되면 안 된다"
+    end
+  end
+
+  test "download 규칙은 확장자와 파일명을 함께 준다" do
+    # 라우팅으로 잡은 다운로드는 응답 헤더가 없어 URL 마지막 조각밖에 단서가 없다.
+    # 확장자 없는 이름으로 저장되면 기기에서 열리지 않으므로 MIME 을 함께 내려 준다.
+    get android_v1_configuration_path
+    rules = JSON.parse(response.body).fetch("rules")
+
+    rules.select { |rule| rule.dig("properties", "download") == true }.each do |rule|
+      assert rule.dig("properties", "download_mime").present?,
+             "download 규칙 #{rule['patterns'].inspect} 에 download_mime 이 없다"
+    end
+  end
+
   test "번들 사본과 서버 사본의 schema_version 이 같다" do
     # 규칙 내용의 의도적 divergence 는 허용하되, 스키마가 갈리면 구 APK 가 새 규칙을
     # 해석하지 못하므로 그것만 실패시킨다.
