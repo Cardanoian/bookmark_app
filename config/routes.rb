@@ -1,6 +1,14 @@
 Rails.application.routes.draw do
   root "dashboard#show"
 
+  # Hotwire Native Android 앱이 받아가는 원격 Path Configuration(공개 정적 JSON).
+  # 컨트롤러가 `ActionController::API` 를 직접 상속해 로그인·Pundit·allow_browser 를 타지 않는다
+  # (사유는 `NativeConfigurationsController` 주석 참고). public/ 정적 파일로 두지 않는 이유는
+  # production 의 1년 cache-control 이 "APK 재배포 없이 즉시 조정" 목적을 없애기 때문이다.
+  # 호환성이 깨지는 규칙 변경은 이 파일을 덮어쓰지 않고 android_v2.json 을 추가한다.
+  get "configurations/android_v1.json",
+      to: "native_configurations#show", as: :android_v1_configuration
+
   # 인증 — 처음 접속 시 안내 인덱스(학생/교직원 선택) + 분리 로그인 + 공용 로그아웃.
   #   new(GET /session/new) = 안내 인덱스 선택 화면. 비로그인 접근 리다이렉트(require_login)가
   #     이 경로로 오므로, 앱에 처음 들어오면 학생·교직원 로그인을 고르는 화면이 뜬다.
