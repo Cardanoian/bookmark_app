@@ -245,7 +245,8 @@ Rails.application.routes.draw do
 
     # 문서 출력(대회요건 연구06 원자료 CSV + 인쇄용 HTML)
     get "exports/reports_csv", to: "exports#reports_csv", as: :exports_reports_csv
-    resources :prints, only: [] do
+    # index = 문서 출력 진입 화면(교사 네비 "문서 출력"). 4종 문서는 여기서만 링크된다.
+    resources :prints, only: [ :index ] do
       collection do
         get :award         # 표창장
         get :home_letter   # 가정통신문

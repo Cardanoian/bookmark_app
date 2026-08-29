@@ -17,7 +17,7 @@
 - `account_links_controller.rb` — **계정 연동(MERGE) 교사 보조(account_linking_seasons_plan §Phase 4)**. `index`(담임 학급으로 향한 병합 원장)·`new`(현재 학급 학생 NEW 선택 + `?old_name=` 후보 작년 계정 이름검색[학교·과거 학년도])·`create`(**`owned_student!(new_account)`로 NEW 가 자기 학급 소속임을 강제** + `valid_old_candidate?`[학교·과거 학년도 서버 검증] → `Accounts::MergeService#call` 공유 + 커밋 후 `run_post_commit_side_effects!`, **세션 스왑 없음**[교사 세션 유지])·`reverse`(member — `owned_merge!`[to_classroom 이 자기 학급]·**14일 창**[`REVERSE_WINDOW = AccountMerge::TEACHER_REVERSE_WINDOW` 단일 상수 공유, 창 밖은 총괄 위임]·미되돌림만 → `AccountMerge#reverse!(performed_by:)` + 커밋 후 `run_reverse_side_effects`[생존자 랭킹/시즌 방송 갱신, 뱃지 미회수]). **동시 되돌리기·유니크 충돌은 `AccountMerge::ReversalError` rescue → alert 리다이렉트**(raw 500 방지). 크로스학급 create/reverse 는 403.
 - `rubric_configs_controller.rb` — 학급 루브릭 5축 가중치 설정(`edit`/`update`). 0..5 클램프, 채점에 반영.
 - `exports_controller.rb` — 독후감 사전·사후 5축 비교 원자료 CSV(`reports_csv`). gem 없이 RFC 4180 인코딩하며, 성공한 다운로드의 담당 학급 ID와 행 수를 `AuditLog`에 기록한다.
-- `prints_controller.rb` — 인쇄용 HTML(`layout "print"`): `award`(표창장)·`home_letter`(가정통신문)·`portfolio`(포트폴리오)·`class_report`(학급 리포트).
+- `prints_controller.rb` — **`index`(문서 출력 진입 화면)** + 인쇄용 HTML 4종: `award`(표창장)·`home_letter`(가정통신문)·`portfolio`(포트폴리오)·`class_report`(학급 리포트). **레이아웃은 람다 분기** — index 만 `application`(교사 네비가 있는 일반 화면), 문서 4종은 `print`. index 는 `set_classroom` 대신 `set_index_scope` 를 타는데, **담당 학급이 하나도 없어도 403 이 아니라 빈 상태**로 열기 위해서다(네비에 상시 노출되는 화면이라 학급 배정 전 교사에게 권한 오류를 띄우면 안 된다). 위조 `classroom_id` 는 그대로 `owned_classroom!` 이 403 으로 막는다. index 이전에는 4종 문서에 **웹·앱 어디에도 진입 링크가 없어** URL 직접 입력으로만 닿을 수 있었다.
 
 ## 패턴·규칙
 - **역할 게이트**: `Teacher::BaseController#require_teacher!` 가 교사/총괄 외 전 역할을 403 으로 차단하고, `verify_authorized` 를 스킵한다(per-action Pundit 아님).

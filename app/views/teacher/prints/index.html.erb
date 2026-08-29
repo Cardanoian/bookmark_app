@@ -1,0 +1,96 @@
+<% content_for :title, "문서 출력 · 책갈피" %>
+<%# 인쇄 문서 4종의 유일한 진입 화면. 이 화면이 생기기 전까지 award·home_letter·portfolio·
+    class_report 은 웹·앱 어디에도 링크가 없어 URL 을 직접 치는 사람만 닿을 수 있었다.
+    문서는 새 탭(웹)에서 열어 인쇄하는 흐름이라 target 을 지정하되, Android 앱은 target="_blank"
+    를 무시하므로 **앱에서는 같은 스택 안에서 열리도록** target 을 붙이지 않는다(_ocr_photo 선례 —
+    앱에서 새 탭 링크는 아무 일도 하지 않는다). %>
+<% open_in_new_tab = !hotwire_native_app? %>
+<% doc_link = ->(path, label, description, icon) do
+     link_to path,
+             target: (open_in_new_tab ? "_blank" : nil),
+             rel: (open_in_new_tab ? "noopener" : nil),
+             class: "flex items-start gap-3 rounded-xl border border-hairline-soft p-3 hover:bg-surface" do
+       safe_join([
+         ui_icon(icon, class_name: "mt-0.5 h-5 w-5"),
+         tag.span(class: "min-w-0") do
+           safe_join([
+             tag.span(label, class: "block text-sm font-semibold text-ink"),
+             tag.span(description, class: "block text-sm text-steel")
+           ])
+         end
+       ])
+     end
+   end %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :prints %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">문서 출력</h1>
+          <p class="mt-1 text-sm text-slate">
+            표창장·가정통신문·독서 포트폴리오·학급 성장 리포트를 인쇄용으로 열 수 있어요.
+            문서를 연 뒤 위쪽 <strong>인쇄하기</strong> 버튼을 누르면 인쇄하거나 PDF 로 저장할 수 있어요.
+          </p>
+        </div>
+      </header>
+
+      <% if @classrooms.size > 1 %>
+        <%= form_with url: teacher_prints_path, method: :get, class: "card flex flex-wrap items-end gap-3" do %>
+          <div>
+            <%= label_tag :classroom_id, "학급", class: "form-label" %>
+            <%= select_tag :classroom_id,
+                  options_for_select(@classrooms.map { |c| [ c.label_with_year, c.id ] }, @classroom&.id),
+                  class: "form-select" %>
+          </div>
+          <%= submit_tag "보기", class: "btn btn-secondary" %>
+        <% end %>
+      <% end %>
+
+      <% if @classroom.nil? %>
+        <%= render "shared/empty_state",
+              message: "담당 학급이 아직 없어요. 학급이 만들어지면 문서를 출력할 수 있어요.", icon: :school %>
+      <% else %>
+        <section class="card space-y-3">
+          <h2 class="flex items-center gap-1.5 font-semibold text-ink">
+            <%= ui_icon :students, class_name: "h-5 w-5" %> 학급 문서
+          </h2>
+          <p class="text-sm text-steel"><%= @classroom.label %> 전체를 한 장으로 정리한 문서예요.</p>
+          <%= doc_link.call(class_report_teacher_prints_path(classroom_id: @classroom.id),
+                            "학급 성장 리포트",
+                            "학급 전체의 5축 평균과 학생별 기록을 한눈에 정리해요.",
+                            :chart) %>
+        </section>
+
+        <section class="card space-y-3">
+          <h2 class="flex items-center gap-1.5 font-semibold text-ink">
+            <%= ui_icon :student, class_name: "h-5 w-5" %> 학생별 문서
+          </h2>
+          <% if @students.empty? %>
+            <%= render "shared/empty_state",
+                  message: "#{@classroom.label} 학생이 아직 없어요. 학생 관리에서 추가해 주세요.", icon: :students %>
+          <% else %>
+            <p class="text-sm text-steel">학생을 고르면 그 학생의 문서 3종을 열 수 있어요.</p>
+            <ul class="divide-y divide-hairline-soft">
+              <% @students.each do |student| %>
+                <li class="py-3">
+                  <p class="mb-2 font-semibold text-ink"><%= student.name %></p>
+                  <div class="grid gap-2 sm:grid-cols-3">
+                    <%= doc_link.call(award_teacher_prints_path(classroom_id: @classroom.id, student_id: student.id),
+                                      "표창장", "가장 최근 확인받은 독후감으로 만들어요.", :medal) %>
+                    <%= doc_link.call(home_letter_teacher_prints_path(classroom_id: @classroom.id, student_id: student.id),
+                                      "가정통신문", "가정에 보내는 독서 활동 안내예요.", :inbox) %>
+                    <%= doc_link.call(portfolio_teacher_prints_path(classroom_id: @classroom.id, student_id: student.id),
+                                      "독서 포트폴리오", "5축 방사형 그래프와 뱃지를 담아요.", :book_open) %>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </section>
+      <% end %>
+    </section>
+  </div>
+</div>
