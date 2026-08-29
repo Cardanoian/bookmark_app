@@ -1,0 +1,25 @@
+<%# 사진 크게 보기. locals 없음 — 컨트롤러가 @report 를 넘긴다.
+
+    **이 화면은 앱(WebView) 때문에 있다.** 웹에서는 확대 링크가 이미지 바이트를 새 탭으로 열고
+    브라우저의 확대·저장을 그대로 쓰므로 여기를 지나지 않는다(`reports/_ocr_photo` 주석 참고).
+
+    바이트는 여기서 서빙하지 않는다 — 아래 `<img>` 가 `report_photo_path` 를 다시 부르므로
+    인가(`ReportPolicy#show?`)와 조건부 GET 정책이 `ReportPhotosController#show` 한 곳에 남는다. %>
+<% content_for :title, "사진 크게 보기 · 책갈피" %>
+
+<div class="page-shell page-shell-reading space-y-4">
+  <h1 class="text-lg font-semibold">사진 크게 보기</h1>
+
+  <section class="card">
+    <%# 화면 폭에 맞춰 넣고, 더 크게 보고 싶으면 두 손가락으로 확대한다.
+        레이아웃의 viewport 메타가 확대를 막지 않으므로 앱·웹 모두 핀치 확대가 된다. %>
+    <%= image_tag report_photo_path(@report, size: :original),
+          alt: "학생이 촬영한 손글씨 독후감 사진",
+          class: "w-full h-auto rounded-md border border-hairline-soft" %>
+    <p class="mt-2 text-sm text-stone">두 손가락으로 벌리면 더 크게 볼 수 있어요.</p>
+  </section>
+
+  <div class="page-actions">
+    <%= link_to "독후감으로 돌아가기", report_path(@report), class: "btn btn-secondary" %>
+  </div>
+</div>

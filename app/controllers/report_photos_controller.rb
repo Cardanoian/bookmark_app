@@ -24,6 +24,17 @@ class ReportPhotosController < ApplicationController
     send_variant(report, photo)
   end
 
+  # 사진을 감싼 HTML 화면. **바이트는 여기서 서빙하지 않는다** — 뷰의 `<img>` 가 다시 [show] 를
+  # 부르므로 인가 경계도 캐시 정책도 한 곳에 그대로 남는다.
+  #
+  # 앱(WebView)에서 확대 링크가 죽어 있어 만든 화면이다(계획 §N.5). 웹은 지금까지처럼 이미지
+  # 바이트를 새 탭으로 열므로 이 액션을 지나지 않는다 — 다만 URL 로 직접 오면 웹에서도 정상 동작한다.
+  def zoom
+    @report = Report.find(params[:id])
+    authorize @report, :show?
+    head :not_found and return unless @report.display_photo
+  end
+
   private
 
   # variant 처리 실패에만 국한한 rescue — 조회(`find`)·인가(`authorize`)는 이미 위에서 통과했으므로

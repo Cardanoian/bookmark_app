@@ -5,12 +5,29 @@
 <% if report.display_photo? %>
   <section class="card">
     <h2 class="mb-2 text-sm font-semibold text-steel">사진 원본</h2>
-    <%= link_to report_photo_path(report, size: :original), target: "_blank", rel: "noopener" do %>
-      <%= image_tag report_photo_path(report),
-            alt: "학생이 촬영한 손글씨 독후감 사진",
-            class: "max-w-full h-auto rounded-md border border-hairline-soft shadow-sm",
-            loading: "lazy" %>
+
+    <%# 확대 경로가 웹과 앱에서 다르다. **웹 동작은 지금까지와 완전히 같다.**
+        · 웹  — 이미지 바이트를 새 탭으로 연다. 브라우저의 확대·저장을 그대로 쓴다.
+        · 앱  — WebView 는 `target="_blank"` 를 무시해 이 링크가 **아무 일도 하지 않았다**(실측:
+                화면 그대로, 서버 요청조차 없음). target 만 빼면 이번엔 Turbo 가 비-HTML 응답을
+                방문으로 처리해 "화면을 불러오지 못했어요" 로 끝난다(CSV 에서 겪은 실패 모드와 동일).
+                그래서 앱에서만 이미지를 감싼 HTML 화면으로 보낸다. %>
+    <% if hotwire_native_app? %>
+      <%= link_to zoom_report_photo_path(report) do %>
+        <%= image_tag report_photo_path(report),
+              alt: "학생이 촬영한 손글씨 독후감 사진",
+              class: "max-w-full h-auto rounded-md border border-hairline-soft shadow-sm",
+              loading: "lazy" %>
+      <% end %>
+    <% else %>
+      <%= link_to report_photo_path(report, size: :original), target: "_blank", rel: "noopener" do %>
+        <%= image_tag report_photo_path(report),
+              alt: "학생이 촬영한 손글씨 독후감 사진",
+              class: "max-w-full h-auto rounded-md border border-hairline-soft shadow-sm",
+              loading: "lazy" %>
+      <% end %>
     <% end %>
+
     <p class="mt-1 text-sm text-stone">이미지를 누르면 더 크게 볼 수 있어요.</p>
   </section>
 <% end %>

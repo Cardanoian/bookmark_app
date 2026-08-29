@@ -104,6 +104,7 @@
 | `GET /session/new` | 시작 화면(로그인 선택) |
 | `POST /ocr` (`ocr[photo]` multipart) | 사진 OCR 업로드 계약 |
 | `GET /reports/:id/photo` | 인증 프록시 사진 |
+| `GET /reports/:id/photo/zoom` | **앱 전용** 사진 확대 HTML 화면(웹은 `target="_blank"` 로 바이트를 새 탭에 연다) |
 | `GET /teacher/exports/reports_csv` · `GET /admin/analytics/export` · `/agree.pdf` | 원격 설정의 `download` 규칙 대상 |
 | `hotwire_native_app?` 분기 뷰 | native 전용 링크 표현 |
 

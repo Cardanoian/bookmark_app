@@ -80,6 +80,12 @@ Rails.application.routes.draw do
   # `?size=original` 은 확대용 1600px 유계 variant(원본 바이트는 서빙하지 않음).
   get "reports/:id/photo", to: "report_photos#show", as: :report_photo
 
+  # 위 경로는 이미지 **바이트**를 돌려준다. 앱(WebView)에서는 그 URL 로 이동할 방법이 없어
+  # (`target="_blank"` 는 무시되고, target 을 빼면 Turbo 가 비-HTML 응답을 방문으로 처리해
+  # 오류 화면으로 끝난다 — 계획 §N.5 실측) 이미지를 감싼 **HTML 화면**을 따로 둔다.
+  # 웹은 기존 경로를 그대로 쓰므로 이 라우트는 순수 추가다.
+  get "reports/:id/photo/zoom", to: "report_photos#zoom", as: :zoom_report_photo
+
   # 도서 검색·카탈로그 (P5.1/P5.2)
   #   search    = 네이버+로컬 폴백 검색(무키 로컬 LIKE), 결과를 searched 로 캐시. 독후감 자동완성용(id 포함).
   #   autocomplete = 로컬 카탈로그(비-searched) 전용 자동완성(외부호출 0). 퀴즈·게임 도서 선택용.
