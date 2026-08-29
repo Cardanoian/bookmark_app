@@ -25,6 +25,10 @@
 - `build.gradle.kts` — **AGP 8.13.2 · Kotlin 2.3.0 단일 고정 지점.** Kotlin 버전은 `dev.hotwire:core` 가
   가져오는 `kotlin-stdlib` 과 맞춰야 한다(현재 2.3.0). 버전 변경 시 AGP·Gradle wrapper·Kotlin 셋을 함께 본다.
 - `.mise.toml` — JDK 17 · Gradle 8.14.5 툴체인 고정(재현 가능한 빌드).
+- `DEVICE_VERIFICATION.md` — **실기기 검증 체크리스트(Phase 10, 사용자 수행)**. 계획 §11 을 채울 수 있는
+  형태로 옮기되 **에뮬레이터에서 이미 실측한 것(🟢)과 아무도 확인한 적 없는 것(🔴)을 구분**한다 —
+  🔴 는 대부분 에뮬레이터가 신뢰할 수 없는 영역(실제 카메라·HEIC·고해상도 메모리 압박·시스템 글꼴
+  확대·파일 관리자 설치 경로)에서 나온다. 결함 보고 양식과 logcat 명령도 포함.
 - `local.properties` · `keystore.properties` — **gitignored.** 후자가 없으면 `assembleRelease` 가 실패한다.
 - `app/build.gradle.kts` — 모듈 설정 + **release 가드 2종**:
   - `verifyReleaseStartUrl` — URI 파싱으로 scheme=`https`·host=`chaekgalpi.net`·userinfo/port 없음 확인.

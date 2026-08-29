@@ -146,6 +146,7 @@ android/
 ├─ build.gradle.kts         AGP·Kotlin 플러그인 버전 단일 고정 지점
 ├─ gradle.properties        AndroidX·병렬·캐시
 ├─ .mise.toml               JDK·Gradle 툴체인 고정
+├─ DEVICE_VERIFICATION.md   실기기 검증 체크리스트(Phase 10)
 ├─ local.properties         SDK 경로 (gitignored)
 ├─ keystore.properties      서명 키 (gitignored, 없으면 release 실패)
 └─ app/
