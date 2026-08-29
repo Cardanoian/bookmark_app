@@ -8,14 +8,19 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
   class StubService
     attr_reader :holdings_calls, :loan_calls, :loan_timeouts
 
-    def initialize(available: true, holdings: [], loans: {}, loan_delay: 0)
+    # 팬아웃이 병렬이라 카운터는 여러 스레드가 함께 만진다 — 뮤텍스로 보호한다.
+    def initialize(available: true, holdings: [], loans: {}, loan_delay: 0,
+                   slow_codes: [], slow_delay: 0)
       @available = available
       @holdings = holdings
       @loans = loans # code => { status:, fetched_at: }
-      @loan_delay = loan_delay # 느린 도서관 시뮬레이션(초)
+      @loan_delay = loan_delay
+      @slow_codes = slow_codes # 이 도서관들만 따로 느리게(예산 초과 시뮬레이션)
+      @slow_delay = slow_delay
       @holdings_calls = 0
       @loan_calls = 0
       @loan_timeouts = [] # 서비스가 실제로 받은 read timeout 들
+      @lock = Mutex.new
     end
 
     def available? = @available
@@ -26,9 +31,9 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     end
 
     def loan_status(lib_code:, isbn13:, timeout: nil)
-      @loan_calls += 1
-      @loan_timeouts << timeout
-      sleep(@loan_delay) if @loan_delay.positive?
+      @lock.synchronize { @loan_calls += 1; @loan_timeouts << timeout }
+      delay = @slow_codes.include?(lib_code) ? @slow_delay : @loan_delay
+      sleep(delay) if delay.positive?
       @loans.fetch(lib_code, { status: :unknown, fetched_at: Time.current })
     end
   end
@@ -165,35 +170,39 @@ class Library::NearbyAvailabilityTest < ActiveSupport::TestCase
     assert_equal 0, stub.loan_calls, "예산 밖이면 bookExist 를 호출하지 않는다"
   end
 
-  test "팬아웃 호출에 남은 예산을 read timeout 으로 내려보낸다(예산이 진짜 천장이 되게)" do
-    # 예전에는 "시작 시각"만 봐서, 예산 직전에 시작한 마지막 호출이 자기 timeout(4s)까지 더
-    # 달릴 수 있었다 — 5s 예산이 실제로는 9s 였고 그래서 프레임 하나가 14.3초까지 갔다.
-    holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2") ]
-    stub = StubService.new(holdings: holdings)
+  test "팬아웃이 병렬이라 총 소요가 콜 수에 비례해 늘지 않는다" do
+    # 운영 실측: bookExist 1콜이 2.5~3초다. 순차면 5곳에 12.5초 + 소장 목록 = 14.4초로,
+    # 계획서가 실측한 14.3초와 정확히 일치한다. 순차인 한 "빠른 화면"과 "실제 대출 상태" 중
+    # 하나를 포기해야 하므로, 동시에 쏴서 총 소요를 **최장 1콜**로 만든다.
+    holdings = %w[A B C D E].each_with_index.map { |c, i| lib(c, "서울특별시 노원구 길#{i} 1") }
+    loans = holdings.to_h { |l| [ l[:code], { status: :available, fetched_at: Time.current } ] }
+    stub = StubService.new(holdings: holdings, loans: loans, loan_delay: 0.3)
 
-    build(service: stub, time_budget: 2).call
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = build(service: stub, time_budget: 3).call
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
-    assert_equal 2, stub.loan_calls
-    assert stub.loan_timeouts.all? { |t| t.is_a?(Numeric) && t <= 2 },
-           "각 호출의 read timeout 이 남은 예산 이하여야 한다: #{stub.loan_timeouts.inspect}"
-    assert_operator stub.loan_timeouts.first, :>, stub.loan_timeouts.last,
-                    "예산이 줄어드는 만큼 뒤 호출의 상한도 함께 줄어든다"
+    assert_equal 5, stub.loan_calls
+    assert result.libraries.all? { |l| l[:status] == :available },
+           "5곳 모두 실제 상태를 받아야 한다(예산에 밀려 :unknown 으로 떨어지지 않는다)"
+    assert_operator elapsed, :<, 1.0,
+                    "순차였다면 5×0.3=1.5초를 넘겼을 것이다(실제 #{elapsed.round(2)}초)"
   end
 
-  test "예산을 다 쓰면 남은 도서관은 원격 호출 없이 :unknown 으로 강등된다" do
-    # 첫 호출이 예산을 통째로 먹는 상황(느린 도서관 1곳). 나머지는 호출조차 하지 않는다.
-    holdings = [ lib("A", "서울특별시 노원구 상계로 1"), lib("B", "서울특별시 노원구 월계로 2"),
-                 lib("C", "서울특별시 노원구 한글비석로 3") ]
-    # 예산은 MIN_REMOTE_WINDOW(0.5s)보다 커야 첫 호출이 나간다. 첫 호출이 예산을 거의 다 쓰도록 잡는다.
-    stub = StubService.new(holdings: holdings, loan_delay: 0.55,
-                           loans: { "A" => { status: :available, fetched_at: Time.current } })
+  test "느린 도서관 한 곳이 나머지를 끌고 내려가지 않는다" do
+    # 순차 시절의 핵심 문제 — 앞의 느린 한 곳이 예산을 다 먹으면 뒤가 전부 :unknown 이 됐다.
+    holdings = [ lib("SLOW", "서울특별시 노원구 상계로 1"), lib("A", "서울특별시 노원구 월계로 2"),
+                 lib("B", "서울특별시 노원구 한글비석로 3") ]
+    stub = StubService.new(holdings: holdings, slow_codes: %w[SLOW], slow_delay: 2.0, loan_delay: 0.1,
+                           loans: { "A" => { status: :available, fetched_at: Time.current },
+                                    "B" => { status: :unavailable, fetched_at: Time.current } })
 
-    result = build(service: stub, time_budget: 0.6).call
+    result = build(service: stub, time_budget: 1).call
+    by_name = result.libraries.to_h { |l| [ l[:name], l[:status] ] }
 
-    assert_equal :ok, result.state
-    assert_equal 1, stub.loan_calls, "예산을 쓴 뒤에는 원격을 더 부르지 않는다"
-    assert_equal :available, result.libraries.first[:status]
-    assert result.libraries.drop(1).all? { |l| l[:status] == :unknown }
+    assert_equal :unknown, by_name["도서관SLOW"], "예산 안에 못 들어온 곳만 강등된다"
+    assert_equal :available, by_name["도서관A"], "느린 이웃 때문에 함께 죽지 않는다"
+    assert_equal :unavailable, by_name["도서관B"]
   end
 
   test "캐시 히트는 예산이 바닥나도 :unknown 으로 떨어지지 않는다" do
