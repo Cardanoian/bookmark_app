@@ -1,5 +1,17 @@
 <%# 다시 뽑기(§3.4) + 신고(무게이트 롤아웃 안전장치). 온디맨드(system) 판에서만 노출. locals: quiz, game %>
 <% if quiz.origin == "system" %>
+  <%# 워밍 완료 수신처(신규 발견 7). GenerateGameContentJob#broadcast_ready 가 이 스트림에
+      target: "game_content_status" 로 append 하는데, 여기가 생기기 전까지는 **코드베이스 어디에도
+      구독자도 그 id 를 가진 요소도 없어서** 방송이 아무 화면에도 닿지 않았다(웹·앱 공통).
+      스트림 키는 잡과 **같은 순서·같은 타입**이어야 한다 — quiz 는 AR 레코드라 band·content_axis 가
+      문자열이고, 잡도 같은 레코드에서 읽는다. 어긋나면 조용히 다시 짝을 잃는다
+      (`game_content_broadcast_test.rb` 가 서명된 스트림 이름 동일성으로 고정).
+      온디맨드(system) 판에만 붙인다 — 교사 발행 퀴즈는 워밍 대상이 아니다. %>
+  <%= turbo_stream_from quiz.book_id, quiz.band, quiz.content_axis, :game_content %>
+  <%# 잡이 보내는 것은 클래스 없는 <span> 하나라 표시는 이 컨테이너가 책임진다. 대기 상태에서 빈
+      상자가 보이지 않도록 empty:hidden 을 쓰므로 **여는 태그와 닫는 태그 사이에 공백을 두지 않는다**
+      (공백도 텍스트 노드라 :empty 가 깨진다). %>
+  <div id="game_content_status" class="mt-2 rounded-xl border border-hairline bg-success-surface p-3 text-sm font-medium text-success-ink empty:hidden"></div>
   <div class="mt-2 flex flex-col gap-2 rounded-xl border border-hairline bg-surface-yellow p-4 sm:flex-row sm:items-center sm:justify-between">
     <p class="form-hint text-yellow-dark"><%= ui_icon :medal, class_name: "h-4 w-4" %> 포인트와 경험치는 최고 기록만 반영돼요. 새 문제를 뽑아도 이미 받은 보상은 줄지 않아요.</p>
     <%= button_to games_regenerate_path,
