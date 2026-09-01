@@ -79,8 +79,27 @@ echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # 커밋하지 않는다
 keytool -genkeypair -v \
   -keystore ~/chaekgalpi-release.jks \
   -alias chaekgalpi -keyalg RSA -keysize 4096 -validity 10950 \
-  -dname "CN=<이름>, O=<소속>, L=<지역>, C=KR"
+  -dname "CN=Chaekgalpi, O=Chaekgalpi, C=KR"
 ```
+
+> ⚠️ **`-dname` 에 실명·학교명·지역을 넣지 않는다.** 이 값들은 APK 에서 누구나 읽을 수 있고
+> (`apksigner verify --print-certs` → `Signer #1 certificate DN: ...`), **한 번 만들면 바꿀 수 없다**
+> (바꾸려면 키를 새로 만들어야 하고 그러면 앱 신원이 달라진다). 대회 요강이 **시·도명·학교명·
+> 출품자명** 노출을 금지하는데(`app/views/shared/_contest_banner.html.erb`), 제출물인 APK 에서
+> 그대로 읽히는 것은 굳이 감수할 이유가 없다.
+>
+> **자체 서명 인증서라 이 값을 검증하는 주체가 아무도 없다** — Android 는 DN 을 보지 않고,
+> 업데이트 가능 여부는 오직 **키가 같은지**로만 판단한다. 실명을 넣어 얻는 이득이 0이다.
+>
+> | 항목 | 뜻 | 이 프로젝트에서 |
+> |---|---|---|
+> | `CN` | Common Name (주 식별자) | 앱 이름 `Chaekgalpi` |
+> | `O` | Organization (조직) | 앱 이름 `Chaekgalpi` |
+> | `C` | Country — **2글자 ISO 코드** | `KR` (`KOR`·`Korea` 아님) |
+> | `L` | Locality (도시) | **생략한다** — 지역이 곧 시·도 단서다 |
+>
+> 한글(`CN=책갈피`)도 정상 저장·복원되는 것을 확인했으나, 도구에 따라 인코딩 표시가 어긋날 수
+> 있어 ASCII 를 권한다.
 
 키를 만든 직후 **인증서 지문을 기록**한다. 나중에 "이 APK 가 그 키로 서명된 게 맞나"를
 확인하는 유일한 근거다.
