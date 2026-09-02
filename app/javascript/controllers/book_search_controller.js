@@ -45,6 +45,19 @@ export default class extends Controller {
     await this.fetchInto(this.urlValue, query)
   }
 
+  // 검색 입력에서 누른 엔터를 "폼 제출"이 아니라 "검색"으로 돌린다(opt-in — 파셜에
+  // `block_enter_submit: true` 를 넘긴 화면에만 붙는다). 책 고르기 스텝은 검색 input 과 "다음"
+  // submit 이 같은 폼에 있어서, 엔터 한 번이면 책을 고르지 않은 채 다음 단계로 넘어갔다.
+  // 원격 검색이 켜진 화면이면 원격을, 아니면 로컬 자동완성을 즉시 조회한다(디바운스 대기 없이).
+  submitSearch(event) {
+    event.preventDefault()
+    if (this.remoteSearchUrlValue) {
+      this.manualSearch()
+    } else {
+      this.fetchResults()
+    }
+  }
+
   // 검색 버튼 클릭 시 원격(네이버) 도서검색. remoteSearchUrl 미설정이면 no-op(하위호환).
   // 사용자가 명시적으로 누른 것이라 minChars 를 강제하지 않고, 비어 있지만 않으면 조회한다.
   async manualSearch() {

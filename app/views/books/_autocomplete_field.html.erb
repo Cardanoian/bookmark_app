@@ -33,9 +33,16 @@
   isbn_value         = local_assigns.fetch(:isbn_value, nil)
   title_value        = local_assigns.fetch(:title_value, nil)
   show_search_button = local_assigns.fetch(:show_search_button, false)
+  block_enter_submit = local_assigns.fetch(:block_enter_submit, false)
 
   input_class = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-  input_data  = { book_search_target: "input", action: "input->book-search#search" }
+  input_actions = [ "input->book-search#search" ]
+  # 엔터를 폼 제출이 아니라 검색으로 돌린다. **opt-in 인 이유**: 이 파셜을 쓰는 6개 화면 중
+  # 엔터가 실제로 문제인 곳은 책 고르기 스텝 하나뿐이다. 나머지는 엔터가 "독후감 제출"·"저장"
+  # 같은 정상 동선이거나(fallback 3곳), `title_field: nil` 이라 입력값이 애초에 서버로 가지
+  # 않는다(strict 3곳 — 거기서 엔터는 고른 책으로 진행하는 정상 키보드 동선이다).
+  input_actions << "keydown.enter->book-search#submitSearch" if block_enter_submit
+  input_data  = { book_search_target: "input", action: input_actions.join(" ") }
   hidden_data = { book_search_target: "bookId" }
 %>
 
