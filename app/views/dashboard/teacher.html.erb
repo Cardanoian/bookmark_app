@@ -23,9 +23,11 @@
           <p class="text-lg font-semibold text-ink">미션·퀴즈 &rarr;</p>
           <p class="mt-1 text-sm text-steel">독서 미션과 퀴즈를 만들어요</p>
         <% end %>
-        <%= link_to teacher_exports_reports_csv_path, class: "card transition-colors hover:border-brand-blue" do %>
+        <%# 목적지는 문서 출력 **화면**이다. 예전에는 이 카드가 CSV 다운로드로 직결돼 있어,
+            문서를 보러 온 교사가 영문 모를 파일을 내려받았다(라벨과 동작 불일치). %>
+        <%= link_to teacher_prints_path, class: "card transition-colors hover:border-brand-blue" do %>
           <p class="text-lg font-semibold text-ink">문서 출력 &rarr;</p>
-          <p class="mt-1 text-sm text-steel">사전·사후 5축 CSV·표창장·포트폴리오</p>
+          <p class="mt-1 text-sm text-steel">표창장·가정통신문·포트폴리오·학급 리포트와 5축 원자료 CSV</p>
         <% end %>
       </div>
     </section>
