@@ -33,7 +33,7 @@
         </li>
       <% end %>
       <li>
-        <%= link_to teacher_exports_reports_csv_path,
+        <%= link_to teacher_prints_path(anchor: "csv-export"),
               class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-hairline-soft px-3 py-2 text-slate" do %>
           <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
         <% end %>
@@ -57,7 +57,7 @@
         </li>
       <% end %>
       <li>
-        <%= link_to teacher_exports_reports_csv_path,
+        <%= link_to teacher_prints_path(anchor: "csv-export"),
               class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 text-slate hover:bg-surface" do %>
           <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
         <% end %>

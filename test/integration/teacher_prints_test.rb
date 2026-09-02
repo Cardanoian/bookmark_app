@@ -132,6 +132,41 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?][target]", class_report_teacher_prints_path(classroom_id: @classroom.id), 0
   end
 
+  # CSV 는 담임 학급 **전체**를 내보내는 학급-무관 산출물이고, 교사 네비의 CSV 링크가 이 섹션으로
+  # 오므로 학급 유무와 무관하게 닿아야 한다. 학급 분기 안쪽에 두면 학급 없는 교사가 경로를 잃는다.
+  test "index shows the CSV section with its purpose explained" do
+    login_as @teacher
+    get teacher_prints_path
+
+    assert_response :success
+    assert_select "section#csv-export" do
+      assert_select "a[href=?]", teacher_exports_reports_csv_path
+    end
+    assert_match "AI에게", response.body, "CSV 용도(AI 분석) 안내가 있어야 한다"
+  end
+
+  test "index still shows the CSV section for a teacher with no classroom" do
+    classroomless = User.create!(school: @school, name: "무학급담임", role: :teacher,
+                                 email: "noclass@example.com", password: "password")
+    login_as classroomless
+    get teacher_prints_path
+
+    assert_response :success
+    assert_select "section#csv-export a[href=?]", teacher_exports_reports_csv_path
+  end
+
+  # 앱은 링크 마크업이 아니라 원격 Path Configuration 의 URL 패턴으로 다운로드를 판정한다.
+  # Turbo 방문이 제안되어야 그 핸들러가 잡으므로 data-turbo="false" 를 붙이면 안 된다(2026-09-03 실측).
+  test "the CSV link keeps the markup the Android download handler relies on" do
+    login_as @teacher
+    get teacher_prints_path
+
+    assert_select "section#csv-export a[href=?]", teacher_exports_reports_csv_path do |links|
+      assert_nil links.first["data-turbo"], "data-turbo 를 끄면 앱의 다운로드 훅이 사라진다"
+      assert_nil links.first["target"], "CSV 는 새 탭에서 여는 문서가 아니다"
+    end
+  end
+
   test "a student is forbidden from print documents" do
     login_as @student
     get award_teacher_prints_path(student_id: @student.id)

@@ -49,6 +49,50 @@
         <% end %>
       <% end %>
 
+      <%# 원자료 CSV — **학급 분기 밖**에 둔다. 이 파일은 담당 학급이 없으면 아래 empty_state 로
+          낙하하는데, exports#reports_csv 는 담임 학급 **전체**를 내보내는 학급-무관 산출물이라
+          학급 유무와 무관하게 닿을 수 있어야 한다(교사 네비의 CSV 링크가 이 섹션으로 오므로,
+          안쪽에 두면 학급 없는 교사가 CSV 경로를 통째로 잃는다).
+
+          링크는 `doc_link` 를 쓰지 않고 평범한 link_to 로 둔다. doc_link 는 웹에서 target="_blank"
+          를 붙이는데 CSV 는 새 탭에서 "여는" 문서가 아니라 내려받는 파일이다. 그리고 이 마크업
+          (target 없음·data-turbo 없음)이 앱에서 이미 검증된 형태다 — Android 셸은 링크 마크업이
+          아니라 원격 Path Configuration 의 URL 패턴(^/teacher/exports/reports_csv$)으로 다운로드를
+          판정하므로, Turbo 방문이 제안되어야 그 핸들러가 잡는다. data-turbo="false" 를 붙이면
+          그 훅이 사라져 파일명·MIME 설정을 잃는다(2026-09-03 에뮬레이터 실측). %>
+      <section id="csv-export" class="card space-y-3" data-controller="clipboard">
+        <h2 class="flex items-center gap-1.5 font-semibold text-ink">
+          <%= ui_icon :download, class_name: "h-5 w-5" %> 5축 원자료 CSV (사전·사후)
+        </h2>
+        <p class="text-sm text-steel">
+          학생별로 <strong class="font-semibold text-ink">처음 쓴 글</strong>과
+          <strong class="font-semibold text-ink">고쳐 쓴 글</strong>의 5축 점수·등급·향상도를 표로 내려받아요.
+          엑셀로 열어 봐도 되고, <strong class="font-semibold text-ink">AI에게 파일을 주고 학급의 성장을 분석</strong>하게 할 수도 있어요.
+        </p>
+
+        <div>
+          <%= link_to icon_text(:download, "CSV 내려받기"), teacher_exports_reports_csv_path,
+                class: "btn btn-primary" %>
+        </div>
+
+        <details class="text-sm text-slate">
+          <summary class="min-h-[2.75rem] cursor-pointer list-none font-medium text-brand-blue">
+            AI에게 물어볼 문장 예시 보기
+          </summary>
+          <p class="mt-2 text-steel">아래 문장을 복사해 CSV 파일과 함께 AI에게 주세요.</p>
+          <div class="mt-2 flex items-start gap-2">
+            <textarea readonly rows="5" data-clipboard-target="source"
+                      class="form-textarea flex-1 text-sm">첨부한 CSV는 초등학생들의 독후감을 5개 축(내용·감상·삶·구성·맞춤법)으로 채점한 자료입니다. '사전_'은 처음 쓴 글, '사후_'는 고쳐 쓴 글의 점수예요.
+1) 학급 전체가 어느 축에서 가장 많이 늘었고 어느 축이 제자리인지 알려 주세요.
+2) 향상도가 낮은 학생을 골라, 그 학생에게 어떤 지도가 필요할지 축별로 제안해 주세요.
+3) 다음 달 독서 수업에서 강조하면 좋을 활동 3가지를 추천해 주세요.
+학생 이름은 결과에 그대로 쓰지 말고 '학생 A'처럼 익명으로 바꿔 주세요.</textarea>
+            <button type="button" class="btn btn-secondary btn-sm shrink-0"
+                    data-action="clipboard#copy" data-clipboard-target="button">복사</button>
+          </div>
+        </details>
+      </section>
+
       <% if @classroom.nil? %>
         <%= render "shared/empty_state",
               message: "담당 학급이 아직 없어요. 학급이 만들어지면 문서를 출력할 수 있어요.", icon: :school %>
