@@ -8,7 +8,33 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     @classroom.update!(teacher: @teacher)
     @author = User.create!(school: @school, classroom: @classroom, name: "글쓴이", password: "password")
     @peer = User.create!(school: @school, classroom: @classroom, name: "응원친구", password: "password")
-    @report = Report.create!(user: @author, classroom: @classroom, book_title: "우수작 책", body: "정말 좋은 독후감입니다.")
+    # 공유는 담임 승인(reviewed) 후에만 가능하다(ReportPolicy#share?). 이 파일의 관심사는
+    # 공유 **이후**의 게시판·응원·스티커 동작이므로 승인본을 전제로 둔다. 게이트 자체는
+    # report_policy_test.rb(4상태)와 아래 "검토 전에는 공유할 수 없다" 테스트가 지킨다.
+    @report = Report.create!(user: @author, classroom: @classroom, book_title: "우수작 책",
+                             body: "정말 좋은 독후감입니다.",
+                             submitted_at: Time.current, reviewed: true, reviewed_at: Time.current)
+  end
+
+  test "검토 전 독후감은 작성자도 우수작으로 공유할 수 없다" do
+    draft = Report.create!(user: @author, classroom: @classroom, book_title: "아직 낸 적 없는 책", body: "초안이에요.")
+    login_as @author
+
+    assert_no_difference "BoardPost.count" do
+      post share_report_path(draft)
+    end
+    assert_not draft.reload.shared?
+  end
+
+  test "승인이 풀리는 재제출은 공유와 게시물을 함께 걷는다" do
+    login_as @author
+    post share_report_path(@report)
+    assert @report.reload.shared?
+
+    patch report_path(@report), params: { report: { body: "고쳐 쓴 본문이에요." } }
+
+    assert_not @report.reload.shared?, "재제출로 미검토가 된 글이 게시판에 남아 있으면 안 된다"
+    assert_nil BoardPost.find_by(report: @report)
   end
 
   test "author sharing a report creates a board post and marks it shared" do

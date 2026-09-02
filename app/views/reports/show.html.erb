@@ -22,9 +22,13 @@
       <%= button_to "고쳐쓰기", revise_report_path(@report), method: :post,
             class: "btn btn-primary" %>
     <% end %>
+    <%# 공유는 담임 승인 후에만(ReportPolicy#share?). 버튼이 그냥 사라지면 학생은 기능이 없어진
+        줄 알므로, 본인 글이면 왜 아직 못 하는지를 그 자리에서 알려 준다. %>
     <% if policy(@report).share? %>
       <%= button_to @report.shared? ? "공유 취소" : "우수작 공유", share_report_path(@report), method: :post,
             class: "btn btn-blue" %>
+    <% elsif @report.user_id == current_user&.id %>
+      <span class="text-sm text-steel">선생님이 확인하면 우수작으로 공유할 수 있어요.</span>
     <% end %>
     <%= link_to "목록", reports_path, class: "btn btn-secondary" %>
   </div>

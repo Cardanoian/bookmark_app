@@ -48,11 +48,19 @@ class ReportPolicy < ApplicationPolicy
     user.present? && record.user_id == user.id
   end
 
-  # 우수작 공유는 작성자 본인 또는 담당 교사(총괄 포함).
+  # 우수작 공유는 작성자 본인 또는 담당 교사(총괄 포함) + **담임 승인(reviewed) 후에만**.
+  # 게시판은 학급을 넘어 열람되는 지면이라, 검토를 거치지 않은 글이 올라가면 되돌릴 수 없다
+  # (approve? 가 record.submitted? 를 보는 것과 같은 이유의 상태 게이트다).
+  #
+  # `|| record.shared?` 는 **취소 경로를 열어 두기 위한 fail-safe** 다. 공유 중인 글이 어떤
+  # 경위로든 미검토 상태가 되면(레거시 행·수동 조작) 공유를 걷을 방법이 없어 게시판에 박제된다.
+  # ReportsController#submit_for_review 가 재제출 시 공유를 자동 해제하므로 정상 흐름에서는
+  # 이 분기에 도달하지 않는다 — 핵심 방어가 아니라 마지막 안전장치다.
   def share?
     return false unless user
+    return false unless record.user_id == user.id || teacher_of_classroom? || user.superadmin?
 
-    record.user_id == user.id || teacher_of_classroom? || user.superadmin?
+    record.reviewed? || record.shared?
   end
 
   # 검토·승인·진위 확인은 학급 담임(또는 superadmin)만.

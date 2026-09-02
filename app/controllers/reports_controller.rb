@@ -115,11 +115,7 @@ class ReportsController < ApplicationController
     authorize @report, :share?
 
     if @report.shared?
-      # board_post 파기 → 응원(cheers)이 cascade 삭제된다. 스티커는 report 소속이라 유지.
-      # cheers_count 는 콜백 없는 수동 카운터라 여기서 0 으로 초기화해야 재공유·스탯 집계가
-      # 어긋나지 않는다(ReadingStats#cheers_received 과대 집계 방지).
-      @report.board_post&.destroy
-      @report.update!(shared: false, cheers_count: 0)
+      unshare!(@report)
       redirect_to @report, notice: "공유를 취소했어요."
     else
       @report.update!(shared: true)
@@ -205,7 +201,20 @@ class ReportsController < ApplicationController
     report.update!(ai_status: :pending, reviewed: false, reviewed_at: nil,
                    submitted_at: report.submitted_at || Time.current,
                    teacher_feedback: nil, teacher_rubric: nil, teacher_comment: nil)
+    # 승인이 풀리는 지점이므로 공유도 함께 걷는다. 안 걷으면 학생이 승인본을 고쳐 다시 낸 순간
+    # **미검토 본문이 게시판에 그대로 공개된 채** 남는다(ReportPolicy#share? 의 승인 게이트를
+    # 우회하는 유일한 구멍이었다). 공유 중이 아니면 no-op.
+    unshare!(report) if report.shared?
     AiReviewJob.perform_later(report)
+  end
+
+  # 공유 해제 + 게시물 파기. share 액션의 취소 분기와 submit_for_review 가 공용한다.
+  # board_post 파기 → 응원(cheers)이 cascade 삭제된다. 스티커는 report 소속이라 유지.
+  # cheers_count 는 콜백 없는 수동 카운터라 여기서 0 으로 초기화해야 재공유·스탯 집계가
+  # 어긋나지 않는다(ReadingStats#cheers_received 과대 집계 방지).
+  def unshare!(report)
+    report.board_post&.destroy
+    report.update!(shared: false, cheers_count: 0)
   end
 
   # 작성자가 본문을 바꿔 다시 낸 경우에만 재첨삭.

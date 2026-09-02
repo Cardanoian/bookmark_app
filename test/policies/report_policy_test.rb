@@ -74,6 +74,37 @@ class ReportPolicyTest < ActiveSupport::TestCase
     assert_not ReportPolicy.new(@teacher1, @report1).destroy?
   end
 
+  # 공유 게이트 4상태. 게시판은 학급을 넘어 열람되므로 검토를 거치지 않은 글은 올라갈 수 없다.
+  test "share? blocks an unsubmitted draft even for the author" do
+    assert @report1.draft?, "전제: setup 의 report1 은 미제출 초안이다"
+    assert_not ReportPolicy.new(@student1, @report1).share?
+    assert_not ReportPolicy.new(@teacher1, @report1).share?
+  end
+
+  test "share? blocks a submitted but unreviewed report" do
+    @report1.update!(submitted_at: Time.current)
+
+    assert_not ReportPolicy.new(@student1, @report1).share?
+    assert_not ReportPolicy.new(@teacher1, @report1).share?
+  end
+
+  test "share? allows the author and owning teacher once reviewed" do
+    @report1.update!(submitted_at: Time.current, reviewed: true, reviewed_at: Time.current)
+
+    assert ReportPolicy.new(@student1, @report1).share?
+    assert ReportPolicy.new(@teacher1, @report1).share?
+    assert_not ReportPolicy.new(@student2, @report1).share?
+    assert_not ReportPolicy.new(@teacher2, @report1).share?
+  end
+
+  # fail-safe: 승인이 풀린 공유 글이라도 '공유 취소'는 가능해야 한다. 막으면 미검토 본문이
+  # 게시판에 박제된다(정상 흐름에서는 submit_for_review 가 먼저 공유를 걷는다).
+  test "share? still allows unsharing when a shared report is no longer reviewed" do
+    @report1.update!(submitted_at: Time.current, reviewed: false, shared: true)
+
+    assert ReportPolicy.new(@student1, @report1).share?
+  end
+
   private
 
   def scope_for(user)
