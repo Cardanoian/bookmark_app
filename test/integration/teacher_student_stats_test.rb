@@ -48,6 +48,33 @@ class TeacherStudentStatsTest < ActionDispatch::IntegrationTest
     assert_equal [ @idle.name, @active.name ], table_student_order, "위조 정렬 값은 이름순 폴백(가조용 < 차활발)"
   end
 
+  # `recent` 축은 Date 를 정렬 키로 넘기는데 예전 desc_by 가 `.to_f` 를 호출해 **헤더를 한 번
+  # 누르면 500** 이었다(커버 테스트가 없어 오래 살아남았다). 9개 축 전부를 스모크로 묶는다.
+  test "index renders for every whitelisted sort key" do
+    login_as @teacher
+
+    Teacher::StudentStatsController::SORTS.each do |sort|
+      get teacher_student_stats_path(sort: sort)
+      assert_response :success, "sort=#{sort} 에서 실패했다"
+    end
+  end
+
+  test "index reverses the order when dir is flipped and keeps 이름 tiebreak" do
+    login_as @teacher
+
+    get teacher_student_stats_path(sort: "approved", dir: "desc")
+    assert_response :success
+    assert_equal [ @active.name, @idle.name ], table_student_order
+
+    get teacher_student_stats_path(sort: "approved", dir: "asc")
+    assert_response :success
+    assert_equal [ @idle.name, @active.name ], table_student_order, "방향을 뒤집으면 순서도 뒤집힌다"
+
+    get teacher_student_stats_path(sort: "approved", dir: "'; DROP TABLE users; --")
+    assert_response :success
+    assert_equal [ @active.name, @idle.name ], table_student_order, "위조 방향은 축 기본값(desc)으로 폴백"
+  end
+
   test "index lets a 겸임 teacher switch between owned classrooms" do
     second = Classroom.create!(school: @school, grade: 5, class_no: 3, teacher: @teacher)
     second_student = User.create!(school: @school, classroom: second, name: "겸임반학생", password: "password")

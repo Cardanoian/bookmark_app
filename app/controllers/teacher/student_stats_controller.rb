@@ -7,6 +7,10 @@
 class Teacher::StudentStatsController < Teacher::BaseController
   # 표 헤더 정렬 화이트리스트. 위조·미지정 값은 이름순 폴백(교사가 학급 명렬표처럼 읽는 기본).
   SORTS = %w[name reports approved avg games missions challenges points recent].freeze
+  # 정렬 방향 화이트리스트. 위조·미지정은 축별 기본값으로 폴백한다.
+  DIRECTIONS = %w[asc desc].freeze
+  # 축별 기본 방향 — 이름은 명렬표처럼 가나다순, 지표·최근활동은 "많이 한/최근" 먼저(기존 동작 보존).
+  DEFAULT_DIRECTIONS = { "name" => "asc" }.freeze
   # 상세 화면의 목록 상한(최근 항목만 — 화면이 길어지는 것과 계산량을 함께 막는다).
   RECENT_REPORTS = 10
   RECENT_ITEMS = 8
@@ -16,6 +20,7 @@ class Teacher::StudentStatsController < Teacher::BaseController
     @classroom = selected_classroom
     @students = classroom_students(@classroom)
     @sort = SORTS.include?(params[:sort]) ? params[:sort] : "name"
+    @dir = DIRECTIONS.include?(params[:dir]) ? params[:dir] : DEFAULT_DIRECTIONS.fetch(@sort, "desc")
     @rows = sort_rows(Teacher::StudentStatsQuery.new(@students).rows)
     @summary = summarize(@rows)
   end
@@ -48,23 +53,38 @@ class Teacher::StudentStatsController < Teacher::BaseController
     User.where(classroom_id: classroom.id, role: :student).order(:name).to_a
   end
 
-  # 지표 내림차순(많이 한 학생 먼저) + 동점은 이름순. 이름·최근활동만 별도 규칙.
+  # 정렬 = 축(@sort) × 방향(@dir). 동점은 **항상 이름 오름차순**으로 묶는다(교사가 명렬표처럼 읽는다).
+  #
+  # 방향을 부호 반전(`-값.to_f`)으로 표현하지 않는다 — 그 방식은 숫자에만 통해서 `recent` 축의
+  # `Date` 를 만나면 `NoMethodError: undefined method 'to_f' for an instance of Date` 로 죽었다
+  # (화면 헤더에 링크가 노출돼 있어 담임이 "최근 활동"을 한 번 누르면 500 이었다). 비교 자체를
+  # 뒤집으면 Numeric·Date·String 을 같은 코드로 다루고 동점 규칙도 방향에 오염되지 않는다
+  # (배열 통째 `reverse` 는 동점 그룹의 이름 순서까지 뒤집으므로 쓰지 않는다).
   def sort_rows(rows)
-    case @sort
-    when "reports"    then desc_by(rows) { |row| row.reports }
-    when "approved"   then desc_by(rows) { |row| row.approved }
-    when "avg"        then desc_by(rows) { |row| row.avg_score }
-    when "games"      then desc_by(rows) { |row| row.game_plays }
-    when "missions"   then desc_by(rows) { |row| row.missions_completed }
-    when "challenges" then desc_by(rows) { |row| row.challenges_completed }
-    when "points"     then desc_by(rows) { |row| row.student.points.to_i }
-    when "recent"     then desc_by(rows) { |row| row.last_activity_on || Date.new(0) }
-    else rows.sort_by { |row| row.student.name.to_s }
+    direction = @dir == "desc" ? -1 : 1
+    rows.sort do |left, right|
+      primary = sort_key(left) <=> sort_key(right)
+      if primary.nil? || primary.zero?
+        left.student.name.to_s <=> right.student.name.to_s
+      else
+        primary * direction
+      end
     end
   end
 
-  def desc_by(rows)
-    rows.sort_by { |row| [ -(yield(row).to_f), row.student.name.to_s ] }
+  # 축별 정렬 키. 축 안에서는 타입이 일정해야 `<=>` 가 성립한다(숫자 축은 숫자, recent 는 Date).
+  def sort_key(row)
+    case @sort
+    when "reports"    then row.reports.to_i
+    when "approved"   then row.approved.to_i
+    when "avg"        then row.avg_score.to_f
+    when "games"      then row.game_plays.to_i
+    when "missions"   then row.missions_completed.to_i
+    when "challenges" then row.challenges_completed.to_i
+    when "points"     then row.student.points.to_i
+    when "recent"     then row.last_activity_on || Date.new(0)
+    else row.student.name.to_s
+    end
   end
 
   # 학급 요약(표 위 stat-card). 참여율 = 독후감·게임 중 하나라도 한 학생 비율.
