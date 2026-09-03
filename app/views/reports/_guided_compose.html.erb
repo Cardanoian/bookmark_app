@@ -17,12 +17,22 @@
 <% else %>
   <div class="space-y-6" data-controller="report-guide"
        data-report-guide-user-id-value="<%= Current.user.id %>">
-    <div class="card card-feature">
-      <h2 class="text-xl font-bold text-ink">이 질문에 답하면 독후감이 완성돼요</h2>
-      <p class="form-hint mt-2">
-        <%= ui_icon :lightbulb %>
-        <%= @guided[:ratio_hint] %>
-      </p>
+    <%# 안내 문구 좌측 / "질문 없이 바로 쓰기" 우측. 좁은 화면에서는 flex-wrap 으로 아래에 떨어진다.
+        **skipLink 타깃이 필수다** — 이 카드는 questions 컨테이너 **밖**이라, 타깃 없이 두면
+        "초안 만들기"로 질문을 접은 뒤에도 버튼이 남는다. 아이가 그걸 누르면 GET 이동이라
+        방금 조립한 본문이 통째로 사라진다. assemble() 이 함께 감추고 reset() 이 되돌린다. %>
+    <div class="card card-feature flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="text-xl font-bold text-ink">이 질문에 답하면 독후감이 완성돼요</h2>
+        <p class="form-hint mt-2">
+          <%= ui_icon :lightbulb %>
+          <%= @guided[:ratio_hint] %>
+        </p>
+      </div>
+      <%= link_to "질문 없이 바로 쓰기",
+            new_report_path(input_mode: :keyboard, report: { book_id: @report.book_id, book_title: @report.book_title }),
+            data: { report_guide_target: "skipLink" },
+            class: "btn btn-secondary shrink-0" %>
     </div>
 
     <%# localStorage 에 이어 쓸 답변이 있을 때만 컨트롤러가 노출한다(기본 hidden). %>
@@ -76,11 +86,6 @@
         </button>
       </div>
 
-      <p class="text-center">
-        <%= link_to "질문 없이 바로 쓰기",
-              new_report_path(input_mode: :keyboard, report: { book_id: @report.book_id, book_title: @report.book_title }),
-              class: "inline-flex min-h-[44px] items-center px-3 text-sm text-brand-blue underline" %>
-      </p>
     </div>
 
     <%# 제출용 _form. 기본은 보이게 두고(그레이스풀: JS 미로딩 시 질문+폼이 함께 보여 직접 작성·제출

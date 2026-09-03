@@ -14,7 +14,7 @@ class ReportsGuidedWriteTest < ActionDispatch::IntegrationTest
     @book = Book.create!(title: "긴긴밤", author: "루리", publisher: "문학동네", category: :recommended)
   end
 
-  test "guided compose 화면은 컨트롤러 마운트·초안 만들기·질문 없이 바로 쓰기 링크를 렌더한다" do
+  test "guided compose 화면은 컨트롤러 마운트·초안 만들기·질문 없이 바로 쓰기 버튼을 렌더한다" do
     login_as student_in_grade(5)
 
     get new_report_path(input_mode: :keyboard, guided: 1, report: { book_id: @book.id })
@@ -22,6 +22,24 @@ class ReportsGuidedWriteTest < ActionDispatch::IntegrationTest
     assert_select "div[data-controller='report-guide']", 1
     assert_match "초안 만들기", response.body
     assert_match "질문 없이 바로 쓰기", response.body
+  end
+
+  # 이 버튼은 상단 안내 카드(= questions 컨테이너 **밖**)에 있어야 한다. 그런데 그 위치는
+  # "초안 만들기"로 질문을 접어도 살아남는다는 뜻이기도 하다 — 조립 뒤에 남겨 두면 아이가
+  # 눌렀을 때 GET 이동이라 방금 만든 본문이 통째로 사라진다. 그래서 **skipLink 타깃이 필수**이며
+  # (`assemble()` 이 이 타깃을 함께 감춘다) 마크업 계약을 여기서 고정한다.
+  test "질문 없이 바로 쓰기는 상단 카드에 있고 assemble 이 감출 수 있게 타깃을 갖는다" do
+    login_as student_in_grade(5)
+
+    get new_report_path(input_mode: :keyboard, guided: 1, report: { book_id: @book.id })
+    assert_response :success
+
+    assert_select ".card-feature a[data-report-guide-target='skipLink']", count: 1,
+                  message: "상단 안내 카드 안에 버튼이 있어야 한다"
+    assert_select "[data-report-guide-target='questions'] a[data-report-guide-target='skipLink']", count: 0,
+                  message: "질문 컨테이너 안에 중복 렌더되면 안 된다(이동이지 복제가 아니다)"
+    assert_select "a[data-report-guide-target='skipLink']", count: 1,
+                  message: "화면 전체에서 1개여야 한다"
   end
 
   test "g56(5~6학년) 학급 학생은 질문 8개를 받는다" do

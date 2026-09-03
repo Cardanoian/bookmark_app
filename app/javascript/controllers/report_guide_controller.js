@@ -6,7 +6,7 @@ import { Controller } from "@hotwired/stimulus"
 // 답변은 localStorage 에 임시 저장해(사용자·책별로 분리) 새로고침/이탈 후에도 이어 쓸 수 있게 하고,
 // 조립 또는 제출이 끝나면 지운다. localStorage 접근은 모두 그레이스풀(실패해도 기능은 그대로 동작).
 export default class extends Controller {
-  static targets = ["answer", "questions", "form", "banner", "notice"]
+  static targets = ["answer", "questions", "form", "banner", "notice", "skipLink"]
   static values = { userId: String }
 
   connect() {
@@ -31,6 +31,7 @@ export default class extends Controller {
     if (this.hasQuestionsTarget) this.questionsTarget.classList.remove("hidden")
     if (this.hasFormTarget) this.formTarget.classList.add("hidden")
     if (this.hasNoticeTarget) this.noticeTarget.classList.add("hidden")
+    if (this.hasSkipLinkTarget) this.skipLinkTarget.classList.remove("hidden")
   }
 
   // 각 질문 답변 입력마다 호출(input 이벤트) — 진행 중인 답변을 통째로 저장한다.
@@ -80,6 +81,9 @@ export default class extends Controller {
 
     if (this.hasQuestionsTarget) this.questionsTarget.classList.add("hidden")
     if (this.hasFormTarget) this.formTarget.classList.remove("hidden")
+    // "질문 없이 바로 쓰기"는 상단 카드(questions 컨테이너 밖)에 있어 질문을 접어도 살아남는다.
+    // 조립 후 남겨 두면 아이가 눌렀을 때 GET 이동이라 방금 만든 본문이 통째로 사라진다.
+    if (this.hasSkipLinkTarget) this.skipLinkTarget.classList.add("hidden")
 
     bodyField.scrollIntoView({ behavior: "smooth", block: "center" })
     bodyField.focus()

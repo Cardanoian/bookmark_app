@@ -29,10 +29,16 @@ class ReportsGuidedComposeTest < ApplicationSystemTestCase
     sample_texts = [ "책을 읽게 된 까닭을 적었어요.", "가장 기억에 남는 장면을 적었어요.", "내 삶과 연결해 느낀 점을 적었어요." ]
     answers.first(3).each_with_index { |field, index| field.fill_in with: sample_texts[index] }
 
+    assert_selector "a[data-report-guide-target='skipLink']", visible: true
+
     click_on "초안 만들기"
 
     body_field = find("#report_body_field", visible: :all)
     assert_equal sample_texts.join("\n\n"), body_field.value
+
+    # "질문 없이 바로 쓰기"는 상단 카드(questions 컨테이너 밖)에 있어 질문을 접어도 살아남는다.
+    # 조립 뒤에 남아 있으면 아이가 눌렀을 때 GET 이동이라 방금 만든 본문이 통째로 사라진다.
+    assert_no_selector "a[data-report-guide-target='skipLink']", visible: true
 
     click_on "제출하기"
 
