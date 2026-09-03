@@ -1,10 +1,19 @@
 <% content_for :title, "학생별 통계 · 책갈피" %>
-<%# 정렬 헤더: [키, 라벨]. 현재 정렬 컬럼은 화살표로 표시하고, 링크는 학급 선택을 이월한다. %>
+<%# 정렬 헤더: [키, 라벨]. 현재 컬럼을 다시 누르면 방향이 뒤집히고(▲/▼로 구분), 링크는
+    학급 선택과 **검색어**를 함께 이월한다 — 안 실으면 정렬을 누를 때마다 검색이 풀린다. %>
 <% sort_link = ->(key, label) do
      current = @sort == key
-     link_to teacher_student_stats_path(classroom_id: @classroom&.id, sort: key),
-             class: "inline-flex items-center gap-1 #{current ? "font-semibold text-brand-blue" : "text-steel hover:text-ink"}" do
-       safe_join([ label, (ui_icon(:arrow_right, class_name: "h-3 w-3 rotate-90") if current) ].compact)
+     next_dir =
+       if current
+         @dir == "desc" ? "asc" : "desc"
+       else
+         Teacher::StudentStatsController::DEFAULT_DIRECTIONS.fetch(key, "desc")
+       end
+     arrow = @dir == "asc" ? "▲" : "▼"
+     link_to teacher_student_stats_path(classroom_id: @classroom&.id, sort: key, dir: next_dir, q: @query.presence),
+             class: "inline-flex items-center gap-1 #{current ? "font-semibold text-brand-blue" : "text-steel hover:text-ink"}",
+             aria: { label: "#{label} 기준으로 #{next_dir == 'asc' ? '오름차순' : '내림차순'} 정렬" } do
+       safe_join([ label, (tag.span(arrow, class: "text-xs", aria: { hidden: true }) if current) ].compact)
      end
    end %>
 
@@ -23,17 +32,38 @@
         </div>
       </header>
 
-      <% if @classrooms.size > 1 %>
-        <%= form_with url: teacher_student_stats_path, method: :get, class: "card flex flex-wrap items-end gap-3" do %>
+      <%# 폼은 **항상** 렌더한다(학급 select 만 조건부) — 예전에는 폼 전체가 `@classrooms.size > 1`
+          안에 있어서 단일 학급 담임에게는 검색을 얹을 자리가 없었다.
+          정렬 상태(sort·dir)는 hidden 으로 이월해 검색·학급 변경이 정렬을 풀지 않게 한다. %>
+      <%= form_with url: teacher_student_stats_path, method: :get, class: "card flex flex-wrap items-end gap-3" do %>
+        <% if @classrooms.size > 1 %>
           <div>
             <%= label_tag :classroom_id, "학급", class: "form-label" %>
             <%= select_tag :classroom_id,
                   options_for_select(@classrooms.map { |c| [ c.label_with_year, c.id ] }, @classroom&.id),
                   class: "form-select" %>
           </div>
-          <%= hidden_field_tag :sort, @sort %>
-          <%= submit_tag "보기", class: "btn btn-secondary" %>
         <% end %>
+        <div class="min-w-0 flex-1">
+          <%= label_tag :q, "학생 이름 검색", class: "form-label" %>
+          <%= search_field_tag :q, @query, placeholder: "이름의 일부만 넣어도 돼요",
+                autocomplete: "off", class: "form-input" %>
+        </div>
+        <%= hidden_field_tag :sort, @sort %>
+        <%= hidden_field_tag :dir, @dir %>
+        <%= submit_tag "보기", class: "btn btn-secondary" %>
+        <% if @query.present? %>
+          <%= link_to "검색 지우기", teacher_student_stats_path(classroom_id: @classroom&.id, sort: @sort, dir: @dir),
+                class: "btn btn-secondary" %>
+        <% end %>
+      <% end %>
+
+      <% if @query.present? %>
+        <p class="text-sm text-steel">
+          <strong class="font-semibold text-ink"><%= @classroom&.label %></strong>에서
+          "<strong class="font-semibold text-ink"><%= @query %></strong>"로 검색한 결과예요.
+          <%# 이 화면은 언제나 한 학급만 다룬다(학생 관리 화면은 담임 학급 전체를 합쳐 보므로 결과가 다르다). %>
+        </p>
       <% end %>
 
       <% if @classroom.nil? %>

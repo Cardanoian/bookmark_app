@@ -40,6 +40,42 @@
         <%= submit_tag "학생 추가", class: "btn btn-primary" %>
       <% end %>
 
+      <%# 검색·정렬 폼(GET). 위의 학생 추가 폼(POST)과 **중첩하지 않는다** — HTML 상 불가하고,
+          중첩하면 검색 submit 이 학생 생성으로 새어 나간다. 정렬축은 목록이 실제로 보여 주는
+          값(이름·포인트·경험치)으로만 한정한다. %>
+      <%= form_with url: teacher_students_path, method: :get, class: "card flex flex-wrap items-end gap-3" do %>
+        <div class="min-w-0 flex-1">
+          <%= label_tag :q, "학생 이름 검색", class: "form-label" %>
+          <%= search_field_tag :q, @query, placeholder: "이름의 일부만 넣어도 돼요",
+                autocomplete: "off", class: "form-input" %>
+        </div>
+        <div>
+          <%= label_tag :sort, "정렬", class: "form-label" %>
+          <%= select_tag :sort,
+                options_for_select([ [ "이름", "name" ], [ "포인트", "points" ], [ "경험치", "experience" ] ], @sort),
+                class: "form-select" %>
+        </div>
+        <div>
+          <%= label_tag :dir, "순서", class: "form-label" %>
+          <%= select_tag :dir,
+                options_for_select([ [ "오름차순", "asc" ], [ "내림차순", "desc" ] ], @dir),
+                class: "form-select" %>
+        </div>
+        <%= submit_tag "보기", class: "btn btn-secondary" %>
+        <% if @query.present? %>
+          <%= link_to "검색 지우기", teacher_students_path(sort: @sort, dir: @dir), class: "btn btn-secondary" %>
+        <% end %>
+      <% end %>
+
+      <p class="text-sm text-steel">
+        <%# 통계 화면은 한 학급만 보지만 이 화면은 담임 학급 전체를 합친다 — 같은 검색어라도
+            결과가 달라 보이므로 범위를 밝혀 둔다. %>
+        담당 학급 <strong class="font-semibold text-ink">전체</strong>의 학생 목록이에요.
+        <% if @query.present? %>
+          "<strong class="font-semibold text-ink"><%= @query %></strong>" 검색 결과 <%= @students.size %>명.
+        <% end %>
+      </p>
+
       <div class="card">
         <% if @students.any? %>
           <ul class="divide-y divide-hairline-soft">

@@ -75,6 +75,46 @@ class TeacherStudentStatsTest < ActionDispatch::IntegrationTest
     assert_equal [ @active.name, @idle.name ], table_student_order, "위조 방향은 축 기본값(desc)으로 폴백"
   end
 
+  test "index filters by 이름 검색 without leaking past the classroom boundary" do
+    login_as @teacher
+
+    get teacher_student_stats_path(q: "차활")
+    assert_response :success
+    assert_equal [ @active.name ], table_student_order
+    assert_match "차활", response.body
+
+    # 검색은 학급 경계 스코프 **위에만** 얹힌다 — 타 학급 학생은 이름이 맞아도 나오면 안 된다.
+    get teacher_student_stats_path(q: "타반학생")
+    assert_response :success
+    assert_equal [], table_student_order
+  end
+
+  test "index escapes LIKE wildcards so % does not match everyone" do
+    login_as @teacher
+
+    get teacher_student_stats_path(q: "%")
+    assert_response :success
+    assert_equal [], table_student_order, "'%' 는 리터럴로 취급돼 아무도 매칭되지 않아야 한다"
+  end
+
+  # 정렬을 누를 때마다 검색이 풀리면 교사가 두 조작을 함께 쓸 수 없다.
+  test "sort links carry the active 검색어" do
+    login_as @teacher
+    get teacher_student_stats_path(q: "차활", sort: "approved")
+
+    assert_response :success
+    assert_select "a[href*='q=%EC%B0%A8%ED%99%9C']", minimum: 1
+  end
+
+  test "index renders the 검색 form even for a teacher with a single classroom" do
+    login_as @teacher
+    get teacher_student_stats_path
+
+    assert_response :success
+    assert_select "select#classroom_id", count: 0, message: "단일 학급이면 학급 select 는 없다"
+    assert_select "input#q", count: 1, message: "그래도 검색 입력은 있어야 한다"
+  end
+
   test "index lets a 겸임 teacher switch between owned classrooms" do
     second = Classroom.create!(school: @school, grade: 5, class_no: 3, teacher: @teacher)
     second_student = User.create!(school: @school, classroom: second, name: "겸임반학생", password: "password")

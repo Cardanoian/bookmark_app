@@ -15,6 +15,44 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "관리학생", password: "password")
   end
 
+  test "index filters by 이름 검색 and keeps the classroom boundary" do
+    other_student = User.create!(school: @school, classroom: @other_classroom, name: "타반학생", password: "password")
+    mate = User.create!(school: @school, classroom: @classroom, name: "관리동무", password: "password")
+    login_as @teacher
+
+    get teacher_students_path(q: "관리학")
+    assert_response :success
+    assert_match @student.name, response.body
+    assert_no_match(/관리동무/, response.body)
+    assert_no_match(/타반학생/, response.body, "타 학급 학생은 검색에도 나오면 안 된다")
+
+    get teacher_students_path(q: "%")
+    assert_response :success
+    assert_no_match(/관리학생/, response.body, "'%' 는 리터럴이라 아무도 매칭되지 않는다")
+    assert_no_match(/타반학생/, response.body)
+    mate.destroy!
+    other_student.destroy!
+  end
+
+  test "index sorts by a whitelisted column in both directions and falls back on 위조 값" do
+    low = User.create!(school: @school, classroom: @classroom, name: "가포인트", password: "password", points: 5)
+    high = User.create!(school: @school, classroom: @classroom, name: "하포인트", password: "password", points: 500)
+    login_as @teacher
+
+    get teacher_students_path(sort: "points", dir: "desc")
+    assert_response :success
+    assert_operator response.body.index(high.name), :<, response.body.index(low.name)
+
+    get teacher_students_path(sort: "points", dir: "asc")
+    assert_response :success
+    assert_operator response.body.index(low.name), :<, response.body.index(high.name)
+
+    # 위조 정렬·방향은 화이트리스트에서 걸러져 이름 오름차순으로 폴백한다(SQL 주입 표면 차단).
+    get teacher_students_path(sort: "points; DROP TABLE users; --", dir: "'; --")
+    assert_response :success
+    assert_operator response.body.index(low.name), :<, response.body.index(high.name)
+  end
+
   test "index lists the담임's students" do
     login_as @teacher
     get teacher_students_path

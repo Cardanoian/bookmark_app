@@ -8,9 +8,23 @@ class Teacher::StudentsController < Teacher::BaseController
   before_action :require_verified_email!, only: [ :create, :reset_password ]
   before_action :set_student, only: [ :destroy, :reset_password, :give_points, :set_ai_consent ]
 
+  # 정렬 화이트리스트. **화면에 보이는 값만** 정렬축으로 둔다 — 목록이 렌더하는 것은 이름·학급·
+  # 포인트·경험치·레벨뿐이라, 예컨대 가입일로 정렬하면 교사가 결과를 눈으로 검증할 수 없다.
+  SORTS = %w[name points experience].freeze
+  DIRECTIONS = %w[asc desc].freeze
+  DEFAULT_DIRECTIONS = { "name" => "asc" }.freeze
+
   def index
     @classrooms = teacher_classrooms.order(:academic_year, :grade, :class_no).to_a
-    @students = User.where(classroom_id: @classrooms.map(&:id), role: :student).order(:name)
+    @query = params[:q].to_s.squish
+    @sort = SORTS.include?(params[:sort]) ? params[:sort] : "name"
+    @dir = DIRECTIONS.include?(params[:dir]) ? params[:dir] : DEFAULT_DIRECTIONS.fetch(@sort, "desc")
+
+    # 이 화면은 통계 화면과 달리 **담임 학급 전체**를 한 목록에 합친다(학급 선택이 없다).
+    # 같은 검색어라도 두 화면의 결과가 다를 수 있어 뷰가 범위를 문구로 밝힌다.
+    scope = User.where(classroom_id: @classrooms.map(&:id), role: :student)
+    scope = scope.where("name LIKE ? ESCAPE '\\'", "%#{sanitize_like(@query)}%") if @query.present?
+    @students = scope.order(@sort => @dir.to_sym, :name => :asc)
   end
 
   def create
@@ -113,6 +127,11 @@ class Teacher::StudentsController < Teacher::BaseController
   end
 
   private
+
+  # LIKE 특수문자(% _)를 이스케이프한다 — 안 하면 "%" 한 글자로 전원이 매칭된다.
+  def sanitize_like(value)
+    value.gsub(/[\\%_]/) { |char| "\\#{char}" }
+  end
 
   def set_student
     @student = owned_student!(User.find(params[:id]))

@@ -18,6 +18,7 @@ class Teacher::StudentStatsController < Teacher::BaseController
   def index
     @classrooms = teacher_classrooms.order(:academic_year, :grade, :class_no).to_a
     @classroom = selected_classroom
+    @query = params[:q].to_s.squish
     @students = classroom_students(@classroom)
     @sort = SORTS.include?(params[:sort]) ? params[:sort] : "name"
     @dir = DIRECTIONS.include?(params[:dir]) ? params[:dir] : DEFAULT_DIRECTIONS.fetch(@sort, "desc")
@@ -47,10 +48,19 @@ class Teacher::StudentStatsController < Teacher::BaseController
     @classrooms.first
   end
 
+  # 이름 검색은 **학급 경계 스코프 위에만** 얹는다(reports#index 필터 관례). 학급은 이미
+  # `selected_classroom` 의 `owned_classroom!` 이 403 으로 막으므로 여기서 경계가 넓어지지 않는다.
+  # LIKE 특수문자(% _)는 이스케이프해 "%" 한 글자로 전원이 매칭되는 일이 없게 한다.
   def classroom_students(classroom)
     return [] if classroom.nil?
 
-    User.where(classroom_id: classroom.id, role: :student).order(:name).to_a
+    scope = User.where(classroom_id: classroom.id, role: :student)
+    scope = scope.where("name LIKE ? ESCAPE '\\'", "%#{sanitize_like(@query)}%") if @query.present?
+    scope.order(:name).to_a
+  end
+
+  def sanitize_like(value)
+    value.gsub(/[\\%_]/) { |char| "\\#{char}" }
   end
 
   # 정렬 = 축(@sort) × 방향(@dir). 동점은 **항상 이름 오름차순**으로 묶는다(교사가 명렬표처럼 읽는다).
