@@ -11,10 +11,12 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  MENU_LABELS = [ "홈", "내 서재", "독서활동", "도감", "나의 성장", "사용방법" ].freeze
+  # 순서는 `shared/_student_nav` 의 nav_items 와 1:1 로 맞춘다(이 테스트가 href 순서까지 고정한다).
+  MENU_LABELS = [ "홈", "내 서재", "독서활동", "미션", "챌린지", "도감", "나의 성장", "사용방법" ].freeze
 
   def menu_paths
-    [ root_path, library_path, reading_activity_path, monsters_path, growth_path, guide_path ]
+    [ root_path, library_path, reading_activity_path, missions_path, challenges_path,
+      monsters_path, growth_path, guide_path ]
   end
 
   def assert_full_navbar(path, active_label)
@@ -53,6 +55,8 @@ class StudentNavPersistenceTest < ActionDispatch::IntegrationTest
     assert_full_navbar root_path, "홈"
     assert_full_navbar library_path, "내 서재"
     assert_full_navbar reading_activity_path, "독서활동"
+    assert_full_navbar missions_path, "미션"
+    assert_full_navbar challenges_path, "챌린지"
     assert_full_navbar monsters_path, "도감"
     assert_full_navbar growth_path, "나의 성장"
     assert_full_navbar guide_path, "사용방법"

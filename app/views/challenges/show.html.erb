@@ -7,6 +7,8 @@
     <%= render "teacher/nav", active: :challenges if teacher_console %>
 
     <section class="<%= teacher_console ? "min-w-0 flex-1" : "" %> space-y-4">
+      <%# 학생에게만 렌더된다(파셜 자기 방어). 교직원은 좌측 teacher/nav 를 쓴다. %>
+      <%= render "shared/student_nav", active: :challenges %>
       <header>
         <%= link_to icon_text(:arrow_left, "챌린지 목록"), challenges_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
       </header>

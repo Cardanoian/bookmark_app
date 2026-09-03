@@ -2,9 +2,9 @@
 <% goal_label = { "approved_reports" => "승인 독후감", "game_plays" => "독서 게임" } %>
 
 <div class="page-shell page-shell-content space-y-4">
-  <header>
-    <%= link_to icon_text(:arrow_left, "홈"), root_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
-  </header>
+  <%# 미션이 상위 메뉴가 된 뒤로는 이 화면이 그 메뉴의 목적지다. 네비가 홈으로 가는 길을 이미
+      제공하므로 별도 "홈" 뒤로가기 링크는 두지 않는다(reports#index 관례). %>
+  <%= render "shared/student_nav", active: :missions %>
 
   <div class="page-header">
     <div>

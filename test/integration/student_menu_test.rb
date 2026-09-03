@@ -30,16 +30,19 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     login_as @student
   end
 
-  test "학생 상위 메뉴는 6개(홈·내 서재·독서활동·도감·나의 성장·사용방법)이고 상점·미션·독후감·게임은 상위에 없다" do
+  # PR6 은 미션을 상위 메뉴에서 뺐고 이 테스트가 그 결정을 고정하고 있었다. 실사용에서
+  # **홈에서만 닿을 수 있다는 것이 곧 발견 불가**였으므로(다른 화면에서 진행 중인 미션·챌린지로
+  # 돌아갈 길이 없다) 그 두 항목에 한해 의식적으로 번복한다. 상점·독후감·게임은 그대로 제외다.
+  test "학생 상위 메뉴는 8개(홈·내 서재·독서활동·미션·챌린지·도감·나의 성장·사용방법)이고 상점·독후감·게임은 상위에 없다" do
     get root_path
     assert_response :success
     # 라벨은 아이콘 span 과 분리된 label span 에 있다(모바일·데스크톱 각 1회).
-    [ "홈", "내 서재", "독서활동", "도감", "나의 성장", "사용방법" ].each do |label|
+    [ "홈", "내 서재", "독서활동", "미션", "챌린지", "도감", "나의 성장", "사용방법" ].each do |label|
       assert_select "nav[aria-label='학생 메뉴'] span", text: label
     end
     # 제거된 상위 메뉴는 nav 에 없다.
     assert_select "nav[aria-label='학생 메뉴'] span", text: "상점", count: 0
-    assert_select "nav[aria-label='학생 메뉴'] span", text: "미션", count: 0
+    assert_select "nav[aria-label='학생 메뉴'] span", text: "독후감", count: 0
   end
 
   test "홈은 추천도서·우리 반 인기 도서·책 발견 순서로 렌더한다" do

@@ -7,6 +7,9 @@
     <%= render "teacher/nav", active: :challenges if teacher_console %>
 
     <section class="<%= teacher_console ? "min-w-0 flex-1" : "" %> space-y-6">
+      <%# 학생에게만 렌더된다(파셜이 current_user&.student? 로 자기 방어) — 교직원은 좌측
+          teacher/nav 를 쓰므로 여기서 조건을 따로 두지 않는다. %>
+      <%= render "shared/student_nav", active: :challenges %>
       <header class="page-header">
         <div>
           <p class="text-sm font-medium text-steel">챌린지</p>

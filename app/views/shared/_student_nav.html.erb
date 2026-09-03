@@ -3,17 +3,26 @@
     아이콘은 장식용 공용 SVG(aria-hidden)이며 모든 조작부는 최소 44px 터치 영역을 갖는다. %>
 <%# locals: (active: nil) %>
 <% if current_user&.student? %>
-  <%# 학생 상위 메뉴 6개(홈·내 서재·독서활동·도감·나의 성장·사용방법). 랭킹은 성장 화면의 선택 경로로
-      제공하고, 독후감·게임·상점·미션은
-      상위 메뉴에서 제거(독후감·게임은 독서활동 하위 흐름, 미션은 홈·독서활동 문맥 카드).
-      사용방법은 앱 전체 흐름을 설명하는 정적 도움말이라 어느 화면에서든 닿게 상위에 둔다. %>
+  <%# 학생 상위 메뉴 8개. 랭킹은 성장 화면의 선택 경로로 제공하고, 독후감·게임·상점은 상위 메뉴에
+      두지 않는다(독후감·게임은 독서활동 하위 흐름). 사용방법은 앱 전체 흐름을 설명하는 정적
+      도움말이라 어느 화면에서든 닿게 상위에 둔다.
+
+      **미션·챌린지는 상위 메뉴에 둔다(menu_refactor 심화 PR6 의 결정을 이 두 항목에 한해 번복).**
+      PR6 은 "미션은 홈·독서활동 문맥 카드로 충분하다"고 보고 상위에서 뺐는데, 실사용에서
+      **홈에서만 닿을 수 있다는 것이 곧 발견 불가**였다 — 다른 화면에 있는 동안에는 진행 중인
+      미션·챌린지로 돌아갈 길이 없다. 열람 전용 목록 화면(`missions#index`·`challenges#index`)이
+      이미 있으므로(라우트 주석 참조) 상위 메뉴는 그 화면들의 진입점이 된다. 사유=사용자 요구.
+      경계는 그대로다 — 이 파셜은 `current_user&.student?` 로 자기 방어하고, 열람 인가는
+      MissionPolicy#index?/#show?(학급 경계)와 ChallengePolicy 가 진다. %>
   <% nav_items = [
-       [ :home,     "홈",       root_path,             :home ],
-       [ :library,  "내 서재",  library_path,          :books ],
-       [ :activity, "독서활동", reading_activity_path, :writing ],
-       [ :monsters, "도감",     monsters_path,         :paw ],
-       [ :growth,   "나의 성장", growth_path,          :chart ],
-       [ :guide,    "사용방법", guide_path,           :lightbulb ]
+       [ :home,       "홈",       root_path,             :home ],
+       [ :library,    "내 서재",  library_path,          :books ],
+       [ :activity,   "독서활동", reading_activity_path, :writing ],
+       [ :missions,   "미션",     missions_path,         :target ],
+       [ :challenges, "챌린지",   challenges_path,       :flame ],
+       [ :monsters,   "도감",     monsters_path,         :paw ],
+       [ :growth,     "나의 성장", growth_path,          :chart ],
+       [ :guide,      "사용방법", guide_path,           :lightbulb ]
      ] %>
   <% current_item = nav_items.find { |item| item.first == active } || nav_items.first %>
   <% active_nav_classes = "border-brand-blue/25 bg-surface-featured font-semibold text-blue-pressed shadow-sm" %>
