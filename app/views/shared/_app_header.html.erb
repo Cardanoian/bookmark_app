@@ -10,10 +10,14 @@
       <span>책갈피</span>
     <% end %>
 
-    <% if current_user&.student? %>
+    <%# 계정 컨트롤은 **전 역할 공통**이다. 예전에는 학생만 렌더돼, 교직원은 로그아웃 버튼을
+        각 대시보드 화면이 따로 그렸다(7곳에 흩어져 있었고 그 화면을 벗어나면 로그아웃할 길이
+        없었다). 마이페이지는 학생 대상 화면이라 학생에게만 남긴다. %>
+    <% if current_user %>
       <div class="flex min-w-0 items-center gap-3 sm:gap-4">
         <span class="hidden min-w-0 max-w-[10rem] truncate text-base font-bold text-ink sm:block"><%= current_user.name %><span class="font-medium text-slate">님</span></span>
         <div class="flex shrink-0 items-center gap-2">
+          <% if current_user.student? %>
           <%= link_to profile_path,
                 class: "btn btn-sm shrink-0 border-hairline bg-canvas px-3 text-ink shadow-sm",
                 aria: { current: (current_page?(profile_path) ? "page" : nil), label: "마이페이지" } do %>
@@ -22,6 +26,7 @@
               <circle cx="12" cy="7" r="4" />
             </svg>
             <span class="hidden sm:inline">마이페이지</span>
+          <% end %>
           <% end %>
           <%= button_to "로그아웃", session_path, method: :delete,
                 class: "btn btn-sm shrink-0 border-hairline bg-canvas text-ink shadow-sm" %>
