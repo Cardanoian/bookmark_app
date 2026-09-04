@@ -42,6 +42,12 @@ module Games
     end
 
     # mcq_multi: 정답 집합 대비 부분점수. (맞게 고른 수 − 틀리게 고른 수)/정답수 비율 × 만점.
+    #
+    # **만점은 정답 개수와 무관하게 문항당 POINTS_PER_CORRECT 다.** 예전에는 비율에
+    # `correct_set.size` 를 곱해 정답 3개 문항의 만점이 15점(단일 정답의 3배)이었다. `PointAward`
+    # 의 상한은 절대 상한이 아니라 "이 학생의 직전 최고치"(재플레이 파밍 방지용)라 이걸 막지
+    # 못하므로, 교사가 정답을 여러 개 고르는 것만으로 판당 포인트가 몇 배인 퀴즈가 만들어졌다.
+    # 문항 1개는 문항 1개다 — 어려움은 난이도이지 배점이 아니다.
     class McqMulti < QuestionScorer
       def score(response, hints_used: 0)
         correct_set = Array(@question.answer).map(&:to_i)
@@ -52,7 +58,7 @@ module Games
         wrong = (selected - correct_set).size
         ratio = [ (hits - wrong).to_f / correct_set.size, 0.0 ].max
         exact = selected.sort == correct_set.sort
-        points = (ratio * POINTS_PER_CORRECT * correct_set.size).round
+        points = (ratio * POINTS_PER_CORRECT).round
 
         result(
           score: points,

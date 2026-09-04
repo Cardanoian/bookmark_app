@@ -16,6 +16,15 @@
         전국 친구들의 문제은행에 들어가요. 문제가 있으면 <strong>반려</strong>하세요.
       </p>
 
+      <%# 저장·승인이 검증에 걸리면 422 로 이 화면이 다시 렌더된다. 이유를 안 보여 주면 교사에겐
+          "버튼을 눌렀는데 아무 일도 안 일어남"으로만 보인다(보기 중복 기여 등). %>
+      <% if @contribution&.errors&.any? %>
+        <div class="state-banner state-banner--error" role="alert">
+          <%= ui_icon :warning %>
+          <span><%= @contribution.errors.full_messages.to_sentence %></span>
+        </div>
+      <% end %>
+
       <% if @contributions.any? %>
         <ul class="space-y-4">
           <% @contributions.each do |contribution| %>

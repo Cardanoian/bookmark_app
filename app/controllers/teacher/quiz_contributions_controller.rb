@@ -62,6 +62,11 @@ class Teacher::QuizContributionsController < Teacher::BaseController
   end
 
   # 검증 후 물질화 + approved 저장을 한 트랜잭션으로. 페이로드 무효면 물질화하지 않고 false.
+  #
+  # `valid?` 는 `QuizContribution#payload_shape` 만 본다. 물질화는 거기서 `QuizQuestion` 을 만드는데
+  # 두 검증이 완전히 같다는 보장은 없다(보기 중복처럼 미러해 둔 규칙도 언젠가 어긋날 수 있다).
+  # 어긋나면 `publish!` 의 `save!` 가 RecordInvalid 로 터져 **담임의 승인 클릭이 500** 이 된다 —
+  # 학생 입력의 문제를 교사 화면의 장애로 갚는 꼴이라, 여기서 잡아 422 안내로 돌린다.
   def publish_and_approve
     return false unless @contribution.valid?
 
@@ -70,6 +75,10 @@ class Teacher::QuizContributionsController < Teacher::BaseController
       @contribution.save!
     end
     true
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.warn("ContributionPublisher rejected contribution #{@contribution.id}: #{e.message}")
+    @contribution.errors.add(:payload, "이 문제는 문제은행 규칙에 맞지 않아요. 내용을 고친 뒤 다시 승인해 주세요.")
+    false
   end
 
   # 교사 수정 반영(밴드 + 축별 페이로드) — **update 전용**(approve 는 형제 폼의 독립 button_to 라

@@ -56,6 +56,38 @@ class QuizContributionsTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  # 중복 보기는 **제출 시점에** 막는다. 여기서 막지 않으면 pending 으로 저장됐다가, 담임이
+  # 승인하는 순간 ContributionPublisher 의 save! 가 QuizQuestion 검증에 걸려 500 이 난다
+  # (학생 입력의 문제를 교사 화면의 장애로 갚는 꼴).
+  test "a contribution with duplicate choices is rejected at submission time" do
+    login_as @student
+    assert_no_difference -> { QuizContribution.count } do
+      post quiz_contributions_path, params: {
+        quiz_contribution: { book_id: @book.id, content_axis: "mcq", prompt: "질문",
+                             choices: [ "가", "가", "다", "라" ], answer_number: "1", explanation: "해설" }
+      }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  # 검증이 생기기 전에 들어온 레거시 pending 행이 있을 수 있다. 승인이 500 이 아니라
+  # 안내와 함께 422 로 돌아와야 한다.
+  test "approving a legacy contribution with duplicate choices fails gracefully, not with a 500" do
+    login_as @student
+    post quiz_contributions_path, params: mcq_params
+    contribution = QuizContribution.order(:created_at).last
+    # 검증을 우회해 레거시 상태를 만든다(제출 경로는 위 테스트가 이미 막는다).
+    payload = contribution.payload.merge("choices" => [ "가", "가", "다", "라" ])
+    contribution.update_column(:payload, payload)
+
+    login_as @teacher_a
+    assert_no_difference -> { Quiz.where(origin: :system).count } do
+      post approve_teacher_quiz_contribution_path(contribution)
+    end
+    assert_response :unprocessable_entity
+    assert_equal "pending", contribution.reload.status
+  end
+
   test "a teacher cannot create a contribution (student-only)" do
     login_as @teacher_a
     assert_no_difference -> { QuizContribution.count } do

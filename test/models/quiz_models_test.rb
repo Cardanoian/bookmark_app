@@ -71,6 +71,73 @@ class QuizModelsTest < ActiveSupport::TestCase
     assert_nil question.answer_number
   end
 
+  # ── 복수 정답(answer_indexes) ──────────────────────────────────────────────
+  test "answer_indexes= keeps a single pick on mcq_single and promotes two picks to mcq_multi" do
+    question = quiz.quiz_questions.build(prompt: "문", choices: %w[가 나 다 라], position: 1)
+
+    question.answer_indexes = [ "2" ]
+    assert question.mcq_single?
+    assert_equal 2, question.answer_index
+    assert_equal [ 2 ], question.answer_indexes
+
+    question.answer_indexes = [ "0", "2" ]
+    assert question.mcq_multi?
+    assert_nil question.answer_index
+    assert_equal [ 0, 2 ], question.answer
+    assert question.valid?, question.errors.full_messages.to_sentence
+  end
+
+  test "answer_indexes= ignores the blank sentinel the form sends when nothing is checked" do
+    question = quiz.quiz_questions.build(prompt: "문", choices: %w[가 나 다 라], position: 1)
+    question.answer_indexes = [ "", "1" ]
+
+    assert question.mcq_single?
+    assert_equal 1, question.answer_index
+  end
+
+  # 총괄 화면은 문항 타입을 가리지 않고 전 퀴즈를 편집한다. 가드가 없으면 hint_reveal 문항에
+  # 체크 0개가 들어와 question_type 을 mcq 로 덮고 정답 문자열을 날려 **저장 자체가 불가능**해진다.
+  test "answer_indexes= is a no-op on non-mcq questions so their answers survive" do
+    hint = quiz.quiz_questions.build(prompt: "누구게?", question_type: :hint_reveal,
+                                     answer: "홍길동", content: { hints: %w[힌트1 힌트2] }, position: 1)
+
+    hint.answer_indexes = [ "" ]
+    assert hint.hint_reveal?, "타입이 mcq 로 덮이면 안 된다"
+    assert_equal "홍길동", hint.answer
+    assert hint.valid?, hint.errors.full_messages.to_sentence
+
+    hint.answer_indexes = [ "0", "1" ]
+    assert hint.hint_reveal?
+    assert_equal "홍길동", hint.answer
+  end
+
+  # ── 보기 중복 차단 ─────────────────────────────────────────────────────────
+  test "choices must be distinct (앞뒤 공백만 다른 것도 같은 보기로 본다)" do
+    question = quiz.quiz_questions.build(prompt: "문", choices: [ "가", "나", " 가 ", "라" ],
+                                         answer_index: 0, position: 1)
+
+    assert_not question.valid?
+    assert_match(/서로 달라야/, question.errors.full_messages.to_sentence)
+  end
+
+  # AI·시드 유래 레거시 행에 중복이 있어도 질문만 고치는 저장은 막히면 안 된다.
+  test "a legacy row with duplicate choices can still be edited when choices are untouched" do
+    question = quiz.quiz_questions.create!(prompt: "문", choices: %w[가 나 다 라], answer_index: 0, position: 1)
+    question.update_column(:choices, %w[가 가 다 라])
+    question.reload
+
+    question.prompt = "고친 질문"
+    assert question.valid?, "choices 를 건드리지 않은 저장은 통과해야 한다: #{question.errors.full_messages}"
+  end
+
+  test "answer index must fall inside the choice list" do
+    question = quiz.quiz_questions.build(prompt: "문", choices: %w[가 나], position: 1)
+    question.answer_indexes = [ "5" ]
+
+    assert_not question.valid?
+    assert_match(/보기 범위/, question.errors.full_messages.to_sentence)
+  end
+
   test "quiz_attempt belongs to quiz and user" do
     q = quiz
     attempt = q.quiz_attempts.create!(user: @student, score: 2, answers: { "1" => 0 }, played_at: Time.current)

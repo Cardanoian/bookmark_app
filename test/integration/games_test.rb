@@ -77,6 +77,30 @@ class GamesTest < ActionDispatch::IntegrationTest
     assert_equal Games::QuizPlay::POINTS_PER_CORRECT, @student.reload.points
   end
 
+  # 복수 정답 문항은 라디오가 아니라 체크박스로 그려지고, 배열 제출이 그대로 채점된다.
+  # 서버(AttemptsController#submitted_answers·QuizPlay)는 변경 없이 배열을 원형 보존한다.
+  test "a mcq_multi question renders checkboxes and grades an array submission" do
+    quiz = Quiz.create!(title: "복수정답 퀴즈", created_by: @teacher, book: @book, scope: :global, published: true)
+    question = quiz.quiz_questions.create!(prompt: "모두 고르세요", question_type: :mcq_multi,
+                                           choices: %w[가 나 다 라], answer: [ 0, 2 ], position: 1)
+    login_as @student
+
+    get games_quiz_path(quiz)
+    assert_response :success
+    assert_select "input[type=checkbox][name=?]", "answers[#{question.id}][]", count: 4
+    assert_select "input[type=radio][name=?]", "answers[#{question.id}]", count: 0
+    assert_match "정답을 모두 고르세요", response.body
+
+    assert_difference -> { QuizAttempt.count }, 1 do
+      post games_attempts_path, params: { quiz_id: quiz.id, game: "quiz",
+                                          answers: { question.id.to_s => %w[0 2] } }
+    end
+    attempt = QuizAttempt.order(:created_at).last
+    assert_equal 1, attempt.score, "정확히 맞춘 문항은 정답 1개로 센다"
+    assert_equal Games::QuestionScorer::POINTS_PER_CORRECT, attempt.points_awarded,
+                 "만점은 정답 개수와 무관하게 문항당 5점이다"
+  end
+
   test "unpublished quiz is not playable (404) and rejects attempts" do
     hidden = build_published_quiz(published: false)
     login_as @student

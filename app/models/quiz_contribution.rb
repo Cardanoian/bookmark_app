@@ -37,6 +37,11 @@ class QuizContribution < ApplicationRecord
       choices = Array(data[:choices]).map { |c| c.to_s.strip }.reject(&:blank?)
       errors.add(:payload, "질문을 입력해 주세요.") if data[:prompt].to_s.strip.blank?
       errors.add(:payload, "보기를 4개 입력해 주세요.") unless choices.size == 4
+      # QuizQuestion 의 중복 보기 검증을 **제출 시점에 미러**한다. 여기서 막지 않으면 중복 보기
+      # 기여가 pending 으로 저장됐다가, 담임이 승인하는 순간 ContributionPublisher 의
+      # `quiz.tap(&:save!)` 이 RecordInvalid 로 터진다(학생 잘못을 교사 화면의 500 으로 갚는 꼴).
+      squished = choices.map(&:squish)
+      errors.add(:payload, "보기는 서로 달라야 해요.") unless squished.uniq.size == squished.size
       index = data[:answer_index]
       errors.add(:payload, "정답 보기를 골라 주세요.") unless index.is_a?(Integer) && index.between?(0, 3)
     when "hint_reveal"

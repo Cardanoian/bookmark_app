@@ -45,6 +45,58 @@ class TeacherQuizzesTest < ActionDispatch::IntegrationTest
     assert question.correct?(0)
   end
 
+  # 체크박스 2개 → mcq_multi 로 승격되고, 학생 플레이 화면이 체크박스를 그리며, 배열 제출이
+  # 그대로 채점된다(서버는 무변경 — submitted_answers 의 to_unsafe_h 가 배열을 보존한다).
+  test "update promotes a question to mcq_multi when two answers are checked" do
+    quiz = Quiz.create!(title: "복수정답", created_by: @teacher, classroom: @classroom, scope: :classroom)
+    question = quiz.quiz_questions.create!(prompt: "문", choices: %w[가 나 다 라], answer_index: 0, position: 1)
+
+    login_as @teacher
+    patch teacher_quiz_path(quiz), params: {
+      quiz: { quiz_questions_attributes: { "0" => { id: question.id, answer_indexes: [ "", "0", "2" ] } } }
+    }
+
+    question.reload
+    assert question.mcq_multi?
+    assert_equal [ 0, 2 ], question.answer
+    assert_nil question.answer_index
+  end
+
+  test "update rejects duplicate choices instead of saving them" do
+    quiz = Quiz.create!(title: "중복보기", created_by: @teacher, classroom: @classroom, scope: :classroom)
+    question = quiz.quiz_questions.create!(prompt: "문", choices: %w[가 나 다 라], answer_index: 0, position: 1)
+
+    login_as @teacher
+    patch teacher_quiz_path(quiz), params: {
+      quiz: { quiz_questions_attributes: { "0" => { id: question.id, choices: [ "가", "가", "다", "라" ] } } }
+    }
+
+    assert_response :unprocessable_entity
+    assert_equal %w[가 나 다 라], question.reload.choices
+  end
+
+  # 이 화면은 문항 타입을 가리지 않는다. 체크박스를 무조건 그리면 hint_reveal 문항은 보기가 없어
+  # 체크가 0개가 되고 setter 가 타입을 덮어 **저장 자체가 불가능**해진다.
+  test "editing a quiz that contains a hint_reveal question does not corrupt it" do
+    quiz = Quiz.create!(title: "혼합", created_by: @teacher, classroom: @classroom, scope: :classroom)
+    hint = quiz.quiz_questions.create!(prompt: "누구게?", question_type: :hint_reveal,
+                                       answer: "홍길동", content: { hints: %w[힌트1 힌트2] }, position: 1)
+
+    login_as @teacher
+    get edit_teacher_quiz_path(quiz)
+    assert_response :success
+    assert_select "input[name=?]", "quiz[quiz_questions_attributes][0][answer_indexes][]", count: 0
+
+    patch teacher_quiz_path(quiz), params: {
+      quiz: { published: "1", quiz_questions_attributes: { "0" => { id: hint.id, prompt: "고친 질문" } } }
+    }
+
+    hint.reload
+    assert hint.hint_reveal?
+    assert_equal "홍길동", hint.answer
+    assert quiz.reload.published?
+  end
+
   test "index lists the teacher's quizzes" do
     Quiz.create!(title: "목록퀴즈", created_by: @teacher, classroom: @classroom, scope: :classroom)
     login_as @teacher

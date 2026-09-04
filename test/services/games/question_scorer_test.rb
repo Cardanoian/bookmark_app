@@ -34,16 +34,31 @@ class Games::QuestionScorerTest < ActiveSupport::TestCase
     partial = Games::QuestionScorer.for(q).score([ 0 ])
     penalized = Games::QuestionScorer.for(q).score([ 0, 1 ]) # 정답 1 + 오답 1 → 상쇄
 
-    assert_equal 10, full[:score]
+    assert_equal Games::QuestionScorer::POINTS_PER_CORRECT, full[:score]
     assert full[:correct]
     refute full[:partial]
 
-    assert_equal 5, partial[:score]
+    assert_equal 3, partial[:score] # 비율 0.5 × 5점 = 2.5 → 반올림
     refute partial[:correct]
     assert partial[:partial]
 
     assert_equal 0, penalized[:score]
     refute penalized[:correct]
+  end
+
+  # 만점은 **정답 개수와 무관하게 문항당 POINTS_PER_CORRECT** 다. 예전에는 비율에 정답 개수를
+  # 곱해 정답 3개 문항이 15점(단일 정답의 3배)이었고, PointAward 의 상한은 "이 학생의 직전
+  # 최고치"라 이를 막지 못했다 — 교사가 정답을 여러 개 고르는 것만으로 판당 포인트가 몇 배인
+  # 퀴즈가 만들어졌다.
+  test "mcq_multi full marks do not scale with the number of correct answers" do
+    two = question(question_type: :mcq_multi, choices: %w[가 나 다 라], answer: [ 0, 1 ])
+    three = question(question_type: :mcq_multi, choices: %w[가 나 다 라], answer: [ 0, 1, 2 ])
+    single = question(question_type: :mcq_single, choices: %w[가 나 다 라], answer_index: 0)
+
+    assert_equal Games::QuestionScorer.for(single).score(0)[:score],
+                 Games::QuestionScorer.for(two).score([ 0, 1 ])[:score]
+    assert_equal Games::QuestionScorer.for(single).score(0)[:score],
+                 Games::QuestionScorer.for(three).score([ 0, 1, 2 ])[:score]
   end
 
   # ── matching ────────────────────────────────────────────────────────────

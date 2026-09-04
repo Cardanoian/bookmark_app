@@ -33,8 +33,19 @@
         <%= qf.text_field :prompt, placeholder: "문항 질문", class: "form-input" %>
         <%= qf.text_area :choices, value: (qf.object.choices.is_a?(Array) ? qf.object.choices.join("\n") : qf.object.choices),
               rows: 4, placeholder: "보기 (한 줄에 하나)", class: "form-textarea" %>
+        <%# 정답 번호 입력은 **mcq_single 에만** 의미가 있다. 이 화면은 문항 타입을 가리지 않고
+            전 퀴즈를 편집하는데(교사가 만든 복수 정답 문항, system 풀의 hint_reveal 등이 섞인다),
+            다른 타입에 숫자를 적으면 answer_index 만 바뀌고 채점기는 그 값을 읽지 않아 **조용히
+            무시된다**. 그래서 아예 그리지 않고 어디서 고치는지 알려 준다.
+            (`answer_number=` 는 question_type·answer 를 건드리지 않으므로 기존 정답은 안전하다.) %>
         <div class="flex items-center gap-3">
-          <%= qf.number_field :answer_number, placeholder: "정답 번호(1부터)", class: "form-input w-40" %>
+          <% if qf.object.mcq_single? %>
+            <%= qf.number_field :answer_number, placeholder: "정답 번호(1부터)", class: "form-input w-40" %>
+          <% else %>
+            <span class="text-sm text-steel">
+              <%= qf.object.mcq_multi? ? "복수 정답 문항 — 정답은 교사 퀴즈 편집 화면에서 고쳐요." : "#{qf.object.question_type} 문항 — 여기서 정답을 고칠 수 없어요." %>
+            </span>
+          <% end %>
           <%= qf.number_field :position, placeholder: "순서", class: "form-input w-24" %>
           <% if qf.object.persisted? %>
             <label class="flex items-center gap-1 text-xs text-error-text"><%= qf.check_box :_destroy %> 삭제</label>

@@ -102,7 +102,10 @@ class Teacher::QuizzesController < Teacher::BaseController
   def quiz_params
     params.require(:quiz).permit(
       :title, :book_id, :classroom_id, :published,
-      quiz_questions_attributes: [ :id, :prompt, :answer_number, :position, :_destroy, { choices: [] } ]
+      # answer_number(단일 정답)는 **제거하지 않는다** — 학생 기여 폼·기존 테스트가 계속 쓴다.
+      # answer_indexes(체크박스 배열)가 복수 정답 경로이고, 모델의 setter 가 둘을 같은 컬럼으로 모은다.
+      quiz_questions_attributes: [ :id, :prompt, :answer_number, :position, :_destroy,
+                                   { choices: [], answer_indexes: [] } ]
     )
   end
 end
