@@ -1,5 +1,8 @@
 import java.io.FileInputStream
 import java.net.URI
+// `java` 는 Kotlin DSL 안에서 Gradle 의 java 확장으로 먼저 잡혀 `java.security.MessageDigest` 를
+// 통째로 쓰면 Unresolved reference 가 난다. import 로 이름만 끌어온다.
+import java.security.MessageDigest
 import java.util.Properties
 
 plugins {
@@ -201,4 +204,44 @@ val verifyReleaseSigning by tasks.registering {
 
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
     dependsOn(verifyReleaseStartUrl, verifyReleaseSigning)
+}
+
+// ---------------------------------------------------------------------------
+// 배포 사본 — release APK 를 `android/index.apk` 로 복사한다.
+//
+// 이 앱은 스토어가 아니라 **웹에 올린 `index.apk` 링크로 배포**한다. 예전에는 그 복사를 손으로
+// 했는데, 잊으면 낡은 `index.apk` 가 그대로 배포에 남는다(파일이 있으니 아무 경고도 나지 않는다 —
+// 조용히 구버전이 배포되는 자리다). 그래서 assembleRelease 가 끝나면 항상 다시 만든다.
+//
+// SHA-256 을 함께 찍는 이유: 재빌드하면 바이트가 달라지므로 배포처에 게시한 해시도 같이 갈아야
+// 하는데, 그 값을 따로 계산하러 가는 단계가 바로 빠뜨리는 단계다.
+// ---------------------------------------------------------------------------
+
+// ⚠️ `Copy` 태스크로 `into(rootProject.layout.projectDirectory)` 를 쓰면 안 된다. 출력으로
+// **android/ 디렉터리 전체**를 선언하는 셈이라 그 안의 `app/build/outputs/...` 까지 이 태스크가
+// 만든 것으로 잡히고, 같은 파일을 읽는 `createReleaseApkListingFileRedirect` 와 암묵적 의존
+// 관계가 생겨 빌드가 검증에서 실패한다. 출력은 파일 **하나**로 좁혀 선언한다.
+val webDistributionApk by tasks.registering {
+    group = "distribution"
+    description = "release APK 를 웹 배포용 이름(index.apk)으로 저장소 android/ 에 복사한다."
+
+    val source = layout.buildDirectory.file("outputs/apk/release/app-release.apk")
+    val target = rootProject.layout.projectDirectory.file("index.apk")
+    inputs.file(source)
+    outputs.file(target)
+
+    val destination = target.asFile
+    doLast {
+        source.get().asFile.copyTo(destination, overwrite = true)
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(destination.readBytes())
+            .joinToString("") { "%02x".format(it) }
+        logger.lifecycle("웹 배포본: ${destination.absolutePath}")
+        logger.lifecycle("SHA-256 : $digest")
+        logger.lifecycle("배포처의 파일과 게시한 해시를 **함께** 갈아 끼우세요(둘 중 하나만 바꾸면 변조로 읽힙니다).")
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy(webDistributionApk)
 }

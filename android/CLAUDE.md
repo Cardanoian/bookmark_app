@@ -29,10 +29,14 @@
   형태로 옮기되 **에뮬레이터에서 이미 실측한 것(🟢)과 아무도 확인한 적 없는 것(🔴)을 구분**한다 —
   🔴 는 대부분 에뮬레이터가 신뢰할 수 없는 영역(실제 카메라·HEIC·고해상도 메모리 압박·시스템 글꼴
   확대·파일 관리자 설치 경로)에서 나온다. 결함 보고 양식과 logcat 명령도 포함.
-- `*.apk` · `*.aab` — **gitignored**(`/android/*.apk`). 배포용 사본 두 가지를 같은 빌드에서 복사해 만든다:
-  심사 제출본 `chaekgalpi-android-v<versionName>-release.apk` 와 **웹에 올려 내려받게 하는 `index.apk`**.
-  파일은 같고 이름만 다르다. 재빌드하면 바이트가 달라지므로 **게시한 SHA-256 도 함께 교체**한다
-  ([`README.md`](README.md) §웹 배포용 사본).
+- `index.apk` · `SHA256.txt` — **gitignored**(`/android/*.apk`, `/android/SHA256.txt`). 이 앱은 스토어가
+  아니라 **웹에 올린 `index.apk` 링크로 배포**하며, 심사 제출도 같은 파일을 낸다. 손으로 복사하지
+  않는다 — `assembleRelease` 가 `webDistributionApk` 로 이어져 **항상 덮어쓰고 SHA-256 을 로그에 찍는다**
+  (복사를 잊어도 파일은 그 자리에 있어 아무 경고 없이 구버전이 배포되던 자리를 없앴다).
+  재빌드하면 바이트가 달라지므로 **배포처의 파일과 게시한 해시를 함께** 교체한다
+  ([`README.md`](README.md) §배포 산출물). ⚠️ 그 태스크를 `Copy` 로 만들면서 `into(android/)` 를 주면
+  디렉터리 전체가 출력으로 잡혀 `createReleaseApkListingFileRedirect` 와 암묵적 의존이 생기고 빌드가
+  검증에서 죽는다 — 출력은 파일 하나로 선언한다.
 - `local.properties` · `keystore.properties` — **gitignored.** 후자가 없으면 `assembleRelease` 가 실패한다.
   서명·제출 절차 전량은 [`README.md`](README.md) §release 서명 에 있다(키 생성·지문 기록·가드 단독 실행·APK 검증 4종·금지 제출물·제출 패키지).
   `verifyReleaseSigning` 은 **4개 값의 존재와 `storeFile` 이 실제로 있는지를 모두** 본다 — 값만 채워져 있고

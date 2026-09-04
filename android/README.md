@@ -150,11 +150,17 @@ keyPassword=<비밀번호>
 
 ```bash
 ./gradlew clean test lintRelease assembleRelease
-cp app/build/outputs/apk/release/app-release.apk chaekgalpi-android-v1.0.1-release.apk
+# assembleRelease 가 끝나면 `webDistributionApk` 가 android/index.apk 를 다시 만들고
+# SHA-256 을 찍는다(손으로 복사하지 않는다 — 잊으면 낡은 index.apk 가 그대로 배포된다).
 
-"$BT/apksigner" verify --verbose --print-certs chaekgalpi-android-v1.0.1-release.apk
-sha256sum chaekgalpi-android-v1.0.1-release.apk
+"$BT/apksigner" verify --verbose --print-certs index.apk
+sha256sum index.apk | tee SHA256.txt
 ```
+
+**배포 산출물은 `android/index.apk` 하나다.** 웹에 올려 링크로 내려받게 하는 것도, 심사에
+제출하는 것도 이 파일이다. 제출처가 버전이 드러나는 파일명을 요구하면 그때만 복사해 이름을
+바꾼다(`cp index.apk chaekgalpi-android-v1.0.1-release.apk`) — 사본이 늘면 어느 것이 최신인지
+파일명으로는 알 수 없으므로 기본은 하나로 둔다.
 
 **확인할 것 4가지** — `apksigner` 가 "Verifies" 를 찍었다고 끝이 아니다.
 
@@ -164,7 +170,7 @@ sha256sum chaekgalpi-android-v1.0.1-release.apk
 2. **debug 빌드가 아닌가** — 아래가 **비어야** 한다. debug APK 로 시험하면 `application-debuggable`
    이 나오는 것으로 검사 자체가 동작하는지 확인할 수 있다.
    ```bash
-   "$BT/aapt2" dump badging chaekgalpi-android-v1.0.1-release.apk | grep -i "debuggable\|testOnly"
+   "$BT/aapt2" dump badging index.apk | grep -i "debuggable\|testOnly"
    ```
 3. **`testOnly` 가 아닌가** — 위 출력에 나오면 `adb install -t` 로만 설치되어 심사장에서
    파일 관리자로 설치할 수 없다.
@@ -187,7 +193,7 @@ sha256sum chaekgalpi-android-v1.0.1-release.apk
 
 ```text
 책갈피_Android_제출/
-├─ chaekgalpi-android-v1.0.1-release.apk
+├─ index.apk                      ← 웹 배포본과 같은 파일이다(재빌드하면 같이 갈린다)
 ├─ APK_설치_및_체험안내.pdf
 └─ SHA256.txt
 ```
@@ -195,19 +201,19 @@ sha256sum chaekgalpi-android-v1.0.1-release.apk
 `SHA256.txt` 는 `sha256sum` 출력 그대로 넣는다. 심사위원이 받은 파일이 우리가 만든 것과
 같은지 확인할 수 있는 유일한 근거이며, **APK 를 다시 만들면 해시도 반드시 다시 계산한다.**
 
-### 웹 배포용 사본 — `index.apk`
+### 배포 산출물 — `android/index.apk`
 
-같은 release APK 를 **웹에 올려 링크로 내려받게 하는** 판본이다. 심사 제출 패키지와 파일이
-같고 이름만 다르다(배포처에서 쓰는 이름이 `index.apk`).
+이 앱은 스토어가 아니라 **웹에 올린 `index.apk` 링크로 배포한다.** 그래서 배포 이름을 빌드가
+직접 만든다 — `assembleRelease` 는 `webDistributionApk` 로 이어지고, 그 태스크가 방금 만든
+release APK 를 `android/index.apk` 로 덮어쓴 뒤 SHA-256 을 로그에 찍는다.
 
-```bash
-cp app/build/outputs/apk/release/app-release.apk index.apk
-sha256sum index.apk
-```
+**손으로 복사하지 않는 이유**: 복사를 잊어도 `index.apk` 는 이미 그 자리에 있다. 파일이 있으니
+아무 경고도 나지 않고, 조용히 구버전이 배포된다. 빌드가 항상 덮어쓰면 그 실패 모드가 사라진다.
 
 - `.gitignore` 의 `/android/*.apk` 대상이라 **저장소에 들어가지 않는다.** 빌드한 사람이 직접 올린다.
-- **다시 빌드하면 바이트가 달라진다.** 배포처의 파일과 함께 게시한 해시를 반드시 같이 교체한다
-  (같은 소스라도 재빌드는 다른 해시를 낸다 — 그래서 "이미 올라가 있으니 됐다"가 성립하지 않는다).
+- **다시 빌드하면 바이트가 달라진다.** 배포처의 파일과 게시한 해시를 반드시 **같이** 교체한다.
+  하나만 바꾸면 받는 쪽에서는 "구버전"이 아니라 **"변조된 파일"** 로 읽힌다.
+  (그래서 태스크가 해시를 대신 찍어 준다 — 따로 계산하러 가는 단계가 바로 빠뜨리는 단계다.)
 - 받는 쪽은 스토어가 아닌 사이드로드라 **"출처를 알 수 없는 앱 설치"** 허용이 필요하다. 안내 문구에
   그 단계를 함께 적어 둔다.
 - 배포처가 `.apk` 를 HTML 이나 텍스트로 내려주면 브라우저가 파일이 아니라 화면으로 열려 한다.
