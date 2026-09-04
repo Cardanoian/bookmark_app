@@ -195,6 +195,24 @@ sha256sum chaekgalpi-android-v1.0.1-release.apk
 `SHA256.txt` 는 `sha256sum` 출력 그대로 넣는다. 심사위원이 받은 파일이 우리가 만든 것과
 같은지 확인할 수 있는 유일한 근거이며, **APK 를 다시 만들면 해시도 반드시 다시 계산한다.**
 
+### 웹 배포용 사본 — `index.apk`
+
+같은 release APK 를 **웹에 올려 링크로 내려받게 하는** 판본이다. 심사 제출 패키지와 파일이
+같고 이름만 다르다(배포처에서 쓰는 이름이 `index.apk`).
+
+```bash
+cp app/build/outputs/apk/release/app-release.apk index.apk
+sha256sum index.apk
+```
+
+- `.gitignore` 의 `/android/*.apk` 대상이라 **저장소에 들어가지 않는다.** 빌드한 사람이 직접 올린다.
+- **다시 빌드하면 바이트가 달라진다.** 배포처의 파일과 함께 게시한 해시를 반드시 같이 교체한다
+  (같은 소스라도 재빌드는 다른 해시를 낸다 — 그래서 "이미 올라가 있으니 됐다"가 성립하지 않는다).
+- 받는 쪽은 스토어가 아닌 사이드로드라 **"출처를 알 수 없는 앱 설치"** 허용이 필요하다. 안내 문구에
+  그 단계를 함께 적어 둔다.
+- 배포처가 `.apk` 를 HTML 이나 텍스트로 내려주면 브라우저가 파일이 아니라 화면으로 열려 한다.
+  `application/vnd.android.package-archive`(또는 최소한 `application/octet-stream`)로 나가는지 확인한다.
+
 ### versionCode 정책
 
 - release 후보마다 **`versionCode` 를 +1** 한다. 되돌리지 않는다.

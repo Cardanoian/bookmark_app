@@ -29,6 +29,10 @@
   형태로 옮기되 **에뮬레이터에서 이미 실측한 것(🟢)과 아무도 확인한 적 없는 것(🔴)을 구분**한다 —
   🔴 는 대부분 에뮬레이터가 신뢰할 수 없는 영역(실제 카메라·HEIC·고해상도 메모리 압박·시스템 글꼴
   확대·파일 관리자 설치 경로)에서 나온다. 결함 보고 양식과 logcat 명령도 포함.
+- `*.apk` · `*.aab` — **gitignored**(`/android/*.apk`). 배포용 사본 두 가지를 같은 빌드에서 복사해 만든다:
+  심사 제출본 `chaekgalpi-android-v<versionName>-release.apk` 와 **웹에 올려 내려받게 하는 `index.apk`**.
+  파일은 같고 이름만 다르다. 재빌드하면 바이트가 달라지므로 **게시한 SHA-256 도 함께 교체**한다
+  ([`README.md`](README.md) §웹 배포용 사본).
 - `local.properties` · `keystore.properties` — **gitignored.** 후자가 없으면 `assembleRelease` 가 실패한다.
   서명·제출 절차 전량은 [`README.md`](README.md) §release 서명 에 있다(키 생성·지문 기록·가드 단독 실행·APK 검증 4종·금지 제출물·제출 패키지).
   `verifyReleaseSigning` 은 **4개 값의 존재와 `storeFile` 이 실제로 있는지를 모두** 본다 — 값만 채워져 있고
