@@ -72,6 +72,8 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
 
       assert_select "header.app-header form[action=?][method=post]", session_path, count: 1,
                     message: "#{label}: 헤더에 로그아웃이 1개여야 한다"
+      assert_select "header.app-header form[action=?] button.btn.btn-secondary", session_path, count: 1,
+                    message: "#{label}: 로그아웃은 연파랑 보조 버튼이어야 한다"
       assert_select "form[action=?][method=post]", session_path, count: 1,
                     message: "#{label}: 화면 전체에서 로그아웃은 1개여야 한다(중복 렌더 금지)"
     end

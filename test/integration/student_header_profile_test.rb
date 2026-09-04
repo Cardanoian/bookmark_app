@@ -64,6 +64,7 @@ class StudentHeaderProfileTest < ActionDispatch::IntegrationTest
   # 이름·마이페이지는 전역 밴드(app-header)에 있다(구 학생 서브헤더는 제거됨).
   def assert_student_header
     assert_select "header.app-header", text: /헤더학생/
-    assert_select "header.app-header a[href='#{profile_path}']", text: /마이페이지/, count: 1
+    assert_select "header.app-header a.btn.btn-secondary[href='#{profile_path}']", text: /마이페이지/, count: 1
+    assert_select "header.app-header form[action='#{session_path}'] button.btn.btn-secondary", text: /로그아웃/, count: 1
   end
 end
