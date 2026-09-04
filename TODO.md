@@ -1,7 +1,9 @@
 # 「책갈피」 TODO
 
-> 앞으로 해야 할 작업 정리. 최종 수정: 2026-07-23
-> 참고 문서: [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md) · [`DESIGN.md`](DESIGN.md)
+> 앞으로 해야 할 작업 정리. 최종 수정: 2026-09-04
+> 참고 문서: [`docs/monsters.md`](docs/monsters.md) · [`docs/API_KEYS.md`](docs/API_KEYS.md) · [`DESIGN.md`](DESIGN.md) · [`android/README.md`](android/README.md) · [`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md)
+>
+> ⚠️ 아래 「현재 상태(baseline)」와 🟡·🔵 절의 일부 수치는 **2026-07 기준으로 낡았다**(테스트는 497 → **1785+**). 📱 Android 절과 🔴 배포 절만 2026-09-04 기준으로 갱신돼 있다.
 
 ## 현재 상태 (baseline)
 
@@ -14,11 +16,19 @@
 
 > 남은 작업을 **리스크·의존성·비용** 기준으로 정렬한 권장 순서(강제 아님, 오너 우선순위에 따라 재배열 가능). **각 항목의 상세 정의·기술 배경은 아래 카테고리 섹션에 있고, 여기서는 순서 근거만 적는다.**
 >
-> 최근 완료: 하드닝 Phase 0~3 5커밋 로컬 main 병합(미push) · 외부 API 3종 실호출 검증(Claude 결함 2건 수정) · **몬스터 도감 24라인 72폼 전량 시드(dex_complete 보상 루프 닫힘, 2026-07-08)** · **OCR 실사진 라이브 검증(손글씨 2장 정확 인식, 2026-07-08)** → 이로써 4종 API 경로 전량 실검증 완료. · **디자인 개편(2026-07-17) 완료** → 남은 것은 실기기 다중 뷰포트 시각 QA(아래 🔵 「브라우저/시스템 테스트」와 동일 범위)뿐.
+> *(2026-07 시점 기록)* 최근 완료: 하드닝 Phase 0~3 5커밋 로컬 main 병합(미push) · 외부 API 3종 실호출 검증(Claude 결함 2건 수정) · **몬스터 도감 24라인 72폼 전량 시드(dex_complete 보상 루프 닫힘, 2026-07-08)** · **OCR 실사진 라이브 검증(손글씨 2장 정확 인식, 2026-07-08)** → 이로써 4종 API 경로 전량 실검증 완료. · **디자인 개편(2026-07-17) 완료** → 남은 것은 실기기 다중 뷰포트 시각 QA(아래 🔵 「브라우저/시스템 테스트」와 동일 범위)뿐.
 
-1. **🔴 배포 준비** *(→ 배포)* — 드로플릿·레지스트리 자격이 확보되면 착수하는 마일스톤.
-2. **🔵 모니터링·에러 트래킹** *(→ 품질·운영)* — 아래 3.2 착수 판단의 관측 근거라 배포와 함께 세팅 권장.
-3. **`git push origin main`** *(자격 확보 시 상시)* — 현재 로컬 main이 origin보다 앞서 있음(미push). 인증되면 원격 동기화.
+> **2026-09-04 기준 — 지금은 심사 제출을 향해 간다.** 아래 1~5 는 순서가 의존성으로 묶여 있다.
+
+1. **결함 수정 마무리** *(진행 중)* — 로컬에 11커밋(미push). 여기가 끝나야 2번이 열린다.
+2. **🔒 배포 동결 해제** *(→ 배포)* — 푸시 → CI → `kamal deploy`. 검토 전 독후감 공개(`0959ff4`) 등
+   실제 결함이 심사 판본에 남지 않게 한다.
+3. **📱 배포 후 앱 회귀 확인** *(→ Android)* — 앱으로 학생·교사 핵심 동선을 다시 훑는다.
+4. **📱 실기기 검증** *(→ Android, 기기 필요)* — [`DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md) 의 🔴 부터.
+5. **📱 설치 안내문 + 제출 패키지 마감** *(→ Android)*.
+
+> 위 흐름 **밖**에 있는 것(급하지 않음): 🔵 모니터링·에러 트래킹(3.2 착수 판단의 관측 근거),
+> CI Android 레인, Active Storage 영속 스토리지.
 
 ---
 
@@ -26,13 +36,76 @@
 
 ### 🔴 배포 (프로덕션 올리기 전 필수)
 
-- [ ] **실제 원격 배포** — `kamal setup` → `kamal deploy`. 현재는 로컬 부팅 검증까지만 완료(드로플릿·레지스트리 자격 부재로 미실행).
+- [x] **실제 원격 배포** ✅ **완료(2026-08-29)** — `kamal deploy` 로 `chaekgalpi.net` 운영 중. 이 배포에서 `solid_cable`(운영 DB 폴링 pub/sub)·Cloudflare 너머 ActionCable·원격 Path Configuration 이 **처음으로 실검증**됐다(로컬 `cable.yml` 은 `adapter: async` 라 같은 프로세스 안에서만 동작해 검증이 불가능했다).
+- [ ] 🔒 **배포 동결 해제 판단** — 심사 판본을 고정하려고 배포를 동결했으나(운영 = `5c3e01b`), 이후 로컬에 **결함 수정 4건 포함 11커밋**이 쌓였다(미push). 특히 `0959ff4`(검토 전 독후감이 우수작으로 공유되던 문제)는 학생 글이 검토 없이 학급을 넘어 공개되던 것이라 심사 판본에 남기기 껄끄럽다. **결함 수정이 끝나면 푸시 → CI → 배포 → 앱 회귀 확인** 순서로 재개한다. 상세는 📱 Android 절.
 - [x] **실 도메인 설정** — `config/deploy.yml`의 운영 호스트를 `chaekgalpi.net`·`www.chaekgalpi.net`으로 교체하고 Cloudflare→Kamal 전달 헤더를 활성화함(2026-07-30). 남은 외부 작업: SSL/TLS `Full (strict)`·SSL 발급·실접속 확인.
 - [x] **메일러 호스트** — 메일 링크 호스트와 Resend 기본 발신자를 각각 `chaekgalpi.net`, `admin@chaekgalpi.net`으로 통일함(2026-07-30). 남은 외부 작업: Resend DNS 검증 완료 확인.
 - [ ] **프로덕션 시크릿 주입** — 서버에 `RAILS_MASTER_KEY`(= `config/master.key` 내용)만 주입하면 credentials 자동 복호화. 절차: [`docs/API_KEYS.md`](docs/API_KEYS.md) §3.2.
 - [ ] **Active Storage 프로덕션 스토리지** — 현재 local disk 서비스. 서버 재생성 시 업로드(사진·낭독 녹음) 유실 방지를 위해 DigitalOcean Spaces(S3 호환) 등 영속 스토리지 검토.
 - [ ] **SQLite 데이터 영속성** — `storage/production*.sqlite3` 4개 DB(primary/cache/queue/cable)의 kamal 볼륨 마운트·백업 전략 확인.
 - [ ] **잡 워커** — 현재 `SOLID_QUEUE_IN_PUMA: true`(Puma 내 실행)로 단일 서버엔 충분. 트래픽 증가 시 전용 job 서버 분리(`deploy.yml`의 `servers.job`).
+
+### 📱 Android 앱 (Hotwire Native — 심사 제출물)
+
+> **코드 개발은 끝났다.** 서명된 release APK 가 검증 4종을 통과했고 단위 테스트 158건·lint 오류 0 이다.
+> 남은 것은 **① 실기기 검증 ② 배포 재개 ③ 설치 안내문** 셋이며, ①은 기기가 있어야 하고 ②는
+> 위 「배포 동결 해제 판단」에 걸려 있다.
+
+#### 먼저 알아야 할 것 — APK 는 껍데기다
+
+앱은 `https://chaekgalpi.net` 을 여는 WebView 셸이다. **Rails 코드를 고쳐도 APK 를 다시 만들 필요가
+없다** — 배포만 하면 앱이 새 화면을 본다. 지금 만들어 둔 APK 와 SHA-256 이 그대로 유효하다.
+
+**예외 — 이럴 때만 Android 를 다시 본다:**
+
+1. **새 다운로드 경로**(CSV·PDF)를 만들 때 → `config/hotwire_native/android_v1.json` 에 규칙 추가.
+   이건 **원격 설정이라 APK 재배포 없이** 반영된다. 규칙이 없으면 Turbo 가 파일을 화면 이동으로
+   처리해 앱에는 오류만 뜨는데 **서버에는 다운로드 감사 로그가 남는다**(아무도 못 받은 파일이
+   내려받아진 것으로 기록됨).
+   ⚠️ 링크에 `data-turbo="false"` 를 붙이면 그 훅이 사라져 파일명·MIME 설정을 잃는다(2026-09-03 실측).
+2. **앱에서 다르게 동작해야 하는 링크** → 서버 `hotwire_native_app?` 분기.
+   WebView 는 `target="_blank"` 를 **무시해서 링크가 아무 일도 하지 않는다**(실측).
+3. **패키지명·versionCode/Name·권한·시작 URL** 변경 → 이때만 APK 재빌드.
+
+#### 남은 작업
+
+- [ ] 🔴 **실기기 검증 (Galaxy Tab SM-P610)** — 체크리스트 [`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md).
+  🟢(에뮬레이터 실측 완료) / 🔴(아무도 확인 안 함) / ⚪ 로 나눠 두었으니 **🔴 부터** 하면 된다.
+  🔴 는 대부분 에뮬레이터가 신뢰할 수 없는 영역이다 — 실제 카메라, HEIC, 고해상도 사진의 메모리
+  압박, **시스템 글자 크기 확대**(초등 전학년 대상이라 화면 매트릭스에서 가장 위험), 파일 관리자를
+  통한 설치 경로, One UI WebView. **사진 변형 10종은 절 전체가 🔴** 다.
+- [ ] 🔴 **업데이트 설치 확인** — 같은 키로 `versionCode` 2 인 APK 를 한 벌 더 만들어 기기에서 덮어쓴다.
+  키가 같아야 업데이트로 설치되므로 **서명 키 확정 후에만** 가능한 검증이다.
+- [ ] 🟡 **배포 재개 후 앱 회귀 확인** — 동결 해제·배포 뒤 앱으로 학생·교사 핵심 동선을 다시 훑는다.
+  특히 최근 바뀐 **문서 출력·CSV 경로**(위 예외 ①에 해당).
+- [ ] 🟡 **`APK_설치_및_체험안내.pdf`** — 아직 없다. `docs/` 의 심사 안내 4종
+  (`JUDGE_GUIDE.md`·`JUDGE_MANUAL.html`·`JUDGE_RUN_LOCAL.md`·`소프트웨어_실행안내.md`)에
+  **APK·Android 언급이 하나도 없다.** 설치 시나리오는 `DEVICE_VERIFICATION.md` §1 을 재료로 쓴다.
+- [ ] 🟡 **제출 패키지 마감** — `~/책갈피_Android_제출/` 에 APK·`SHA256.txt` 준비됨.
+  ⚠️ **APK 를 다시 빌드하면 SHA-256 이 바뀌므로 `SHA256.txt` 를 반드시 다시 계산**한다.
+  금지 제출물(testOnly·debug APK·미서명·로컬 URL·keystore 포함 zip·서명 후 재압축)은
+  [`android/README.md`](android/README.md) §4 참고.
+
+#### 구조적 공백 (P1 — 급하지 않으나 남겨 둔다)
+
+- [ ] **CI 에 Android 레인이 없다** — `.github/workflows/ci.yml` 은 Ruby 잡 5종만 돈다.
+  `./gradlew test lintRelease` 가 PR 에서 돌지 않아 **Android 회귀를 로컬에서만 잡는다.**
+- [ ] **Espresso instrumentation 테스트 없음** — 의도적 제외(사용자 결정). 덮을 항목(런치·로그인·
+  내부이동·뒤로가기·회전 복원·외부 URL·file chooser 취소)은 에뮬레이터 실측으로 기록했고,
+  위 CI 공백 때문에 작성해도 자동으로 돌지 않는다. **CI 레인이 생기면 재검토할 것.**
+- [ ] **인근 도서관 대출 배지** — 정보나루 상류가 **8초~60초+** 를 오가 배지가 "확인 필요"로 자주
+  떨어진다. 화면 속도(0.4초)와 도서관 목록은 백그라운드 워밍 구조로 지켜지므로 P1 이다.
+  어떤 타임아웃 값으로도 해결되지 않는 **상류 문제**라 상수 튜닝은 하지 않기로 했다.
+
+#### 서명 키 (2026-09-04 생성)
+
+- 위치 `~/chaekgalpi-release.jks` · alias `chaekgalpi` · 4096-bit RSA · 2056년까지
+- 인증서 `CN=Chaekgalpi, O=Chaekgalpi, C=KR` — **요강이 금지하는 시·도명·학교명·출품자명을 넣지
+  않았다.** 이 값은 APK 에서 누구나 읽을 수 있고(`apksigner verify --print-certs`) 한 번 만들면
+  바꿀 수 없다.
+- 지문 `SHA256: D0:C4:10:FD:5C:41:EA:47:8E:56:74:6D:F9:0D:B5:5B:74:C6:84:1F:70:D7:2E:D6:FC:4E:46:FE:79:56:07:61`
+- ⚠️ **키와 비밀번호를 잃으면 기존 설치본 위에 업데이트를 올릴 수 없다**(패키지명을 바꾼 새 앱으로
+  다시 시작하는 것 외에 방법이 없다). 저장소 밖 2중 백업 필수. `keystore.properties` 는 gitignored.
 
 ### 🟡 콘텐츠·데이터 완성
 
