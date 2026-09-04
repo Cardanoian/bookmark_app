@@ -74,3 +74,6 @@ __pycache__
 # 저장소가 아니라 제출 패키지로 관리한다(android/README.md §release 서명).
 /android/*.apk
 /android/*.aab
+# 그 APK 의 체크섬 파일(제출 패키지 동봉용). 빌드마다 값이 달라지므로 저장소에 두면
+# 낡은 해시가 남아 "이게 우리가 만든 파일"이라고 잘못 말하게 된다 — APK 옆에서만 만든다.
+/android/SHA256.txt
