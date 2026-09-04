@@ -30,6 +30,32 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_select "textarea#report_body_field", 0
   end
 
+  # 책을 고르지 않고 넘어가는 두 경로(엔터·"다음" 클릭)를 막되, 자유 제목 폴백은 **명시 버튼**으로
+  # 남긴다 — 카탈로그·네이버에 없는 책도 독후감을 쓸 수 있어야 한다(mode: "fallback" 은 의도된 설계).
+  # 게이트 자체는 JS 가 걸므로 여기서는 그 마크업 계약을 고정한다.
+  test "book chooser gates progress on an actual selection but keeps an explicit free-title path" do
+    login_as @student
+    get new_report_path
+    assert_response :success
+
+    assert_select "div[data-controller='book-chooser']", 1
+    assert_select "input[type=submit][data-book-chooser-target='next'][value=?]", "다음", 1
+    assert_select "input[type=submit][data-book-chooser-target='fallback']", 1
+    # 검색창에서 엔터가 폼을 제출하지 않게 하는 opt-in 이 이 화면에만 붙는다.
+    assert_select "input[data-action*='keydown.enter->book-search#submitSearch']", 1
+    # 버튼은 활성으로 렌더된다 — 비활성화는 connect() 가 한다(JS 없으면 기존 동작 유지).
+    assert_select "input[type=submit][disabled]", 0
+  end
+
+  # 이 화면 말고 다른 자동완성 화면에는 엔터 차단이 붙지 않는다(엔터가 정상 동선인 곳들).
+  test "the enter guard is opt-in and does not leak into the report form" do
+    login_as @student
+
+    get new_report_path(input_mode: :keyboard, report: { book_title: "어떤 책" })
+    assert_response :success
+    assert_select "input[data-action*='book-search#submitSearch']", 0
+  end
+
   # 빈 문자열 파라미터는 present? 로 걸러져 mode_chooser 가 아니라 book_chooser 로 낙하한다.
   test "blank book_title falls through to the book chooser (not the mode chooser)" do
     login_as @student
@@ -84,7 +110,9 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "textarea#report_body_field", 1
     assert_select "input[name=?][value=?]", "report[input_mode]", "keyboard", 1
-    assert_select "input[type=submit]", 1
+    # 제출 버튼 2개 — "제출하기"(첨삭 시작)와 "임시 저장"(제출 없이 초안으로만 저장).
+    assert_select "input[type=submit][value=?]", "제출하기", 1
+    assert_select "input[type=submit][name='save_draft']", 1
     assert_no_match(/name="ocr\[photo\]"/, response.body)
   end
 

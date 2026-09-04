@@ -34,6 +34,9 @@
   title_value        = local_assigns.fetch(:title_value, nil)
   show_search_button = local_assigns.fetch(:show_search_button, false)
   block_enter_submit = local_assigns.fetch(:block_enter_submit, false)
+  # 바깥 컨트롤러가 이 input 을 자기 타깃으로도 잡게 하는 opt-in. 키·값을 그대로 data 에 병합하므로
+  # 호출부가 `{ book_chooser_target: "input" }` 처럼 Rails data 관용구로 넘긴다(미전달이면 무변경).
+  extra_input_data = local_assigns.fetch(:extra_input_data, {})
 
   input_class = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
   input_actions = [ "input->book-search#search" ]
@@ -42,7 +45,7 @@
   # 같은 정상 동선이거나(fallback 3곳), `title_field: nil` 이라 입력값이 애초에 서버로 가지
   # 않는다(strict 3곳 — 거기서 엔터는 고른 책으로 진행하는 정상 키보드 동선이다).
   input_actions << "keydown.enter->book-search#submitSearch" if block_enter_submit
-  input_data  = { book_search_target: "input", action: input_actions.join(" ") }
+  input_data  = { book_search_target: "input", action: input_actions.join(" ") }.merge(extra_input_data)
   hidden_data = { book_search_target: "bookId" }
 %>
 

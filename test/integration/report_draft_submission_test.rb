@@ -68,19 +68,108 @@ class ReportDraftSubmissionTest < ActionDispatch::IntegrationTest
     assert_not draft.reload.reviewed?
   end
 
+  # --- 임시 저장(save_draft): 제출하지 않는 저장 ---
+
+  test "임시 저장으로 만든 글은 제출되지 않는다(교사 큐·AI 첨삭 모두 안 탄다)" do
+    login_as @student
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      assert_difference -> { Report.count }, 1 do
+        post reports_path, params: { save_draft: "임시 저장",
+                                     report: { book_title: "임시책", body: "쓰다 만 글" } }
+      end
+    end
+
+    draft = Report.order(:created_at).last
+    assert draft.draft?, "submitted_at 이 기록되면 안 된다"
+    assert_redirected_to edit_report_path(draft)
+  end
+
+  # 미제출 초안은 rubric 이 비어 있어 first_review? 가 참이다. update 에서 그 분기까지 건너뛰지
+  # 않으면 "임시 저장"이 곧 "제출하기"가 되어 첨삭이 돌고 교사 큐에 올라간다 — 가장 놓치기 쉬운 지점.
+  test "임시 저장은 update 의 first_review? 승격도 건너뛴다" do
+    login_as @student
+    post reports_path, params: { save_draft: "1", report: { book_title: "임시책", body: "처음 쓴 글" } }
+    draft = Report.order(:created_at).last
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      patch report_path(draft), params: { save_draft: "1", report: { body: "더 쓴 글" } }
+    end
+
+    draft.reload
+    assert draft.draft?, "임시 저장이 제출로 승격되면 안 된다"
+    assert_equal "더 쓴 글", draft.body
+  end
+
+  test "임시 저장한 초안을 제출 버튼으로 내면 그때 제출·첨삭이 시작된다" do
+    login_as @student
+    post reports_path, params: { save_draft: "1", report: { book_title: "임시책", body: "처음 쓴 글" } }
+    draft = Report.order(:created_at).last
+
+    assert_enqueued_with job: AiReviewJob do
+      patch report_path(draft), params: { report: { body: "다 써서 냅니다" } }
+    end
+    assert draft.reload.submitted?
+  end
+
+  test "본문이 비면 임시 저장으로 빈 초안을 만들지 않는다" do
+    login_as @student
+
+    assert_no_difference -> { Report.count } do
+      post reports_path, params: { save_draft: "1", report: { book_title: "빈책", body: "" } }
+    end
+    assert_response :unprocessable_entity
+  end
+
+  # 사진 초안 화면은 "제출하기를 눌러야 첨삭이 시작돼요"를 못박고 있다. 옆에 임시 저장이
+  # 나란히 뜨면 아이가 저장했다고 믿고 떠나 첨삭이 영영 안 붙는다.
+  test "사진(OCR) 초안 편집 화면에는 임시 저장 버튼이 없다" do
+    draft = ocr_draft_after_reading
+    login_as @student
+
+    get edit_report_path(draft)
+    assert_response :success
+    assert_select "input[name='save_draft']", count: 0
+  end
+
   # --- 학생 화면: 초안을 초안이라고 말하기 ---
 
-  test "학생 화면은 미제출 초안을 '선생님 확인 중'이 아니라 '작성 중'으로 보여주고 제출 CTA 를 준다" do
+  # 사진 초안은 학생이 "저장"한 것이 아니라 업로드 순간 서버가 만든 레코드다(판독 결과를 받을
+  # 자리). 학생이 직접 임시 저장한 키보드 초안과 같은 "작성 중"으로 뭉개면, 아이는 자기가
+  # 저장해 둔 줄 알고 제출하기를 누르지 않는다 — 첨삭이 영영 안 붙던 사고의 학생 쪽 절반이다.
+  test "학생 화면은 사진 초안을 '작성 중'이 아니라 '제출 전 확인'으로 구분하고 제출 CTA 를 준다" do
     draft = ocr_draft_after_reading
     login_as @student
 
     get report_path(draft)
     assert_response :success
-    assert_match "작성 중", response.body
+    assert_match "제출 전 확인", response.body
+    assert_no_match(/작성 중/, response.body, "사진 초안은 키보드 초안과 구분한다")
     assert_match "아직 제출하지 않았어요", response.body
     assert_no_match "선생님이 확인하고 있어요", response.body
     assert_no_match "선생님 확인 중", response.body
     assert_select "a[href=?]", edit_report_path(draft), text: "이어서 쓰고 제출하기"
+  end
+
+  test "판독 중인 사진 초안은 '사진 읽는 중'으로 보인다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: "사진 책",
+                           input_mode: :ocr, ai_status: :processing)
+    login_as @student
+
+    get report_path(draft)
+    assert_response :success
+    assert_match "사진 읽는 중", response.body
+  end
+
+  # 학생이 직접 누른 임시 저장은 그대로 "작성 중"이다(사진 초안과 다른 상태).
+  test "키보드 초안은 '작성 중'으로 보인다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: "직접 쓴 책",
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_as @student
+
+    get report_path(draft)
+    assert_response :success
+    assert_match "작성 중", response.body
   end
 
   test "compose 화면은 판독이 끝나면 '읽고 있어요'가 아니라 제출 안내를 보여준다" do

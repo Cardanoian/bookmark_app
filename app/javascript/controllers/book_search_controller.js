@@ -31,6 +31,11 @@ export default class extends Controller {
   search() {
     // 입력이 바뀌면 직전 선택은 더 이상 유효하지 않으므로 book_id 를 무효화한다.
     if (this.hasBookIdTarget) this.bookIdTarget.value = ""
+    // 원격(네이버) 선택은 book_id 가 아니라 isbn 에 스태시되므로 그것도 함께 비운다.
+    if (this.hasIsbnTarget) this.isbnTarget.value = ""
+    // **선택 해제를 알린다.** book:selected 만 있고 짝이 없으면, 구독자(예: 책 고르기의 "다음"
+    // 버튼)는 한 번 활성화된 뒤 제목을 고쳐도 활성인 채 남아 미선택 자유텍스트가 그대로 통과한다.
+    this.dispatch("deselected", { prefix: "book" })
     clearTimeout(this.timer)
     this.timer = setTimeout(() => this.fetchResults(), this.delayValue)
   }

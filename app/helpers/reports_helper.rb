@@ -31,6 +31,15 @@ module ReportsHelper
         [ "확인 완료", "badge-success" ]
       elsif report.ai_status == "failed"
         [ "다시 시도", "badge-danger" ]
+      elsif report.draft? && report.ocr?
+        # 사진 초안은 학생이 "저장"한 것이 아니라 **업로드 순간 서버가 만든** 레코드다
+        # (비동기 판독 결과를 받을 자리가 필요해서). 키보드 초안과 같은 "작성 중"으로 뭉개면
+        # 아이는 자기가 임시 저장한 줄 알고 제출하기를 누르지 않아 첨삭이 영영 안 붙는다.
+        if report.pending? || report.processing?
+          [ "사진 읽는 중", "badge-yellow" ]
+        else
+          [ "제출 전 확인", "badge-neutral" ]
+        end
       elsif report.draft?
         [ "작성 중", "badge-neutral" ]
       elsif report.ai_status == "done"

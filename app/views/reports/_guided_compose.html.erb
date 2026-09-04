@@ -15,8 +15,9 @@
   <%# 안전 폴백: 학년군 미지원·worker-1 미완성 등으로 질문 세트가 없으면 일반 폼으로 낙하한다. %>
   <%= render "reports/form", report: @report %>
 <% else %>
-  <div class="space-y-6" data-controller="report-guide"
-       data-report-guide-user-id-value="<%= Current.user.id %>">
+  <%# user-id-value 는 localStorage 키를 사용자별로 가르는 용도였는데, 자동 저장을 없애면서
+      저장소 자체가 사라져 더는 필요하지 않다. %>
+  <div class="space-y-6" data-controller="report-guide">
     <%# 안내 문구 좌측 / "질문 없이 바로 쓰기" 우측. 좁은 화면에서는 flex-wrap 으로 아래에 떨어진다.
         **skipLink 타깃이 필수다** — 이 카드는 questions 컨테이너 **밖**이라, 타깃 없이 두면
         "초안 만들기"로 질문을 접은 뒤에도 버튼이 남는다. 아이가 그걸 누르면 GET 이동이라
@@ -35,17 +36,6 @@
             class: "btn btn-secondary shrink-0" %>
     </div>
 
-    <%# localStorage 에 이어 쓸 답변이 있을 때만 컨트롤러가 노출한다(기본 hidden). %>
-    <div data-report-guide-target="banner" class="state-banner state-banner--info hidden" role="status">
-      <%= ui_icon :save %>
-      <div class="min-w-0 flex-1">
-        <p>쓰다 만 답변이 있어요. 이어서 쓸까요?</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary btn-sm" data-action="report-guide#restoreDraft">이어서 쓰기</button>
-          <button type="button" class="btn btn-secondary btn-sm" data-action="report-guide#discardDraft">새로 시작</button>
-        </div>
-      </div>
-    </div>
 
     <div class="space-y-4" data-report-guide-target="questions">
       <% part_labels = { intro: "서론", body: "본론", conclusion: "결론" } %>
@@ -60,7 +50,7 @@
             <p class="form-hint"><%= ui_icon :sparkle, class_name: "h-4 w-4" %> <%= q[:hint] %></p>
           <% end %>
           <%= tag.textarea nil,
-                data: { report_guide_target: "answer", action: "input->report-guide#saveDraft" },
+                data: { report_guide_target: "answer" },
                 aria: { label: q[:question] },
                 placeholder: q[:example],
                 rows: 3,
@@ -83,6 +73,11 @@
       <div class="page-actions">
         <button type="button" class="btn btn-primary" data-action="report-guide#assemble">
           <%= ui_icon :writing %> 초안 만들기
+        </button>
+        <%# 답변을 조립해 **서버 초안**으로 저장한다(제출 아님). 자동 저장을 없앤 대신 두는
+            명시적 저장 경로라, 여기서 누르면 목록에 '작성 중'으로 남아 다음에 이어 쓸 수 있다. %>
+        <button type="button" class="btn btn-secondary" data-action="report-guide#saveDraft">
+          <%= ui_icon :save %> 임시 저장
         </button>
       </div>
 

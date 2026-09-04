@@ -69,6 +69,13 @@
     <%= f.submit (report.persisted? && !first_submit) ? "수정하기" : "제출하기",
           class: "btn btn-primary",
           data: { "report-edit-target": "submit" } %>
+    <%# 임시 저장 — 아직 내지 않은 글에만. **사진(OCR) 초안은 제외**한다: 그 화면은 "잘못 읽은
+        곳을 고친 뒤 제출하기를 눌러야 선생님 첨삭이 시작돼요"를 못박고 있는데(edit.html.erb),
+        옆에 임시 저장이 나란히 뜨면 아이가 저장했다고 믿고 떠나 첨삭이 영영 안 붙는다.
+        report-edit 의 submit 타깃을 달지 않아 dirty-check 와 무관하게 항상 누를 수 있다. %>
+    <% if report.draft? && !report.ocr? %>
+      <%= f.submit "임시 저장", name: "save_draft", class: "btn btn-secondary" %>
+    <% end %>
     <%= link_to "취소", reports_path, class: "btn btn-secondary" %>
   </div>
 <% end %>

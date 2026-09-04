@@ -44,7 +44,16 @@ class ReportsController < ApplicationController
     link_participation(@report)
     authorize @report
 
-    if @report.save
+    if save_draft?
+      # 임시 저장 — 제출하지 않는다(submitted_at 미기록 → 교사 큐에 안 올라가고 AI 첨삭도 안 돈다).
+      return render :new, status: :unprocessable_entity unless draft_body_present?(@report)
+
+      if @report.save
+        redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요."
+      else
+        render :new, status: :unprocessable_entity
+      end
+    elsif @report.save
       submit_for_review(@report)
       redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
     else
@@ -58,6 +67,11 @@ class ReportsController < ApplicationController
 
   def update
     authorize @report
+
+    # 임시 저장은 **제출 판정을 통째로 건너뛴다.** resubmit? 뿐 아니라 first_review? 도 반드시
+    # 우회해야 한다 — 미제출 초안은 rubric 이 비어 있어 first_review? 가 참이므로, 안 건너뛰면
+    # "임시 저장" 버튼이 곧 "제출하기"가 되어 AI 첨삭이 돌고 교사 큐에 올라간다.
+    return update_as_draft if save_draft?
 
     if @report.update(report_params)
       if resubmit?
@@ -215,6 +229,33 @@ class ReportsController < ApplicationController
   def unshare!(report)
     report.board_post&.destroy
     report.update!(shared: false, cheers_count: 0)
+  end
+
+  # "임시 저장" 버튼(name="save_draft")으로 들어온 요청인지. 제출 버튼과 같은 폼을 쓰되 이름으로만
+  # 갈린다 — 별도 라우트를 만들지 않아 폼·인가 계약이 하나로 유지된다.
+  def save_draft?
+    params[:save_draft].present?
+  end
+
+  # 초안 저장(제출 아님). 본문 변경만 반영하고 submitted_at·ai_status 는 건드리지 않는다.
+  def update_as_draft
+    if !draft_body_present?(@report, incoming: report_params)
+      render :edit, status: :unprocessable_entity
+    elsif @report.update(report_params)
+      redirect_to edit_report_path(@report), notice: "임시 저장했어요. 이어서 쓸 수 있어요."
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  # 빈 초안은 만들지 않는다. Report 에는 body presence 검증이 없어(사진 초안은 본문 없이 태어난다)
+  # 이 가드가 없으면 아무것도 안 쓰고 누른 "임시 저장"이 빈 '작성 중' 글을 목록에 쌓는다.
+  def draft_body_present?(report, incoming: nil)
+    body = incoming ? incoming[:body] : report.body
+    return true if body.present?
+
+    report.errors.add(:body, "를 조금이라도 쓴 뒤에 임시 저장할 수 있어요.")
+    false
   end
 
   # 작성자가 본문을 바꿔 다시 낸 경우에만 재첨삭.
