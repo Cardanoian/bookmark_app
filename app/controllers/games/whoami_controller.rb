@@ -32,22 +32,28 @@ module Games
       authorize @quiz, :show?
     end
 
-    # reveal_hint=공개 요청마다 **서버 카운터 1 증가**(attempt.hint_reveals). 응답은 다음 힌트만
-    # (다시 show 로 렌더). 잔여 힌트수·정답은 노출하지 않는다. 클라이언트 주장 힌트수는 무시된다.
+    # reveal_hint=공개 요청마다 **서버 카운터 1 증가**(attempt.hint_reveals). Turbo 요청에는 해당
+    # 문항의 힌트 카드만 교체해 아직 제출하지 않은 답안 입력값을 보존하고, 일반 HTML 요청은 show 로
+    # 되돌린다. 잔여 힌트수·정답은 노출하지 않는다. 클라이언트 주장 힌트수는 무시된다.
     def reveal_hint
-      attempt = current_user.quiz_attempts.find(params[:attempt])
-      authorize attempt, :update?
-      question = attempt.quiz.quiz_questions.find(params[:question_id])
+      @attempt = current_user.quiz_attempts.find(params[:attempt])
+      authorize @attempt, :update?
+      @question = @attempt.quiz.quiz_questions.find(params[:question_id])
 
-      reveals = (attempt.hint_reveals || {}).dup
-      key = question.id.to_s
+      reveals = (@attempt.hint_reveals || {}).dup
+      key = @question.id.to_s
       revealed = reveals[key].to_i
-      if revealed < question.hints_list.length
+      if revealed < @question.hints_list.length
         reveals[key] = revealed + 1
-        attempt.update!(hint_reveals: reveals)
+        @attempt.update!(hint_reveals: reveals)
       end
 
-      redirect_to games_whoami_path(attempt)
+      @question_number = @attempt.quiz.quiz_questions.index(@question) + 1
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to games_whoami_path(@attempt) }
+      end
     end
   end
 end

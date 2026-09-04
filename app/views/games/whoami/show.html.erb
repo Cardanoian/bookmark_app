@@ -22,28 +22,7 @@
       힌트만 서버 상태에서 렌더한다 — 정답·다음 힌트·잔여 힌트수는 노출하지 않는다. %>
   <div class="space-y-4">
     <% @quiz.quiz_questions.each_with_index do |question, index| %>
-      <% revealed = @attempt.revealed_count(question) %>
-      <% hints = question.hints_list %>
-      <div class="card">
-        <p class="text-sm font-semibold text-ink"><%= index + 1 %>번 정답을 맞혀 보세요</p>
-
-        <ul class="mt-2 space-y-1">
-          <% hints.first(revealed).each do |hint| %>
-            <li class="card-muted rounded-lg px-3 py-2 text-sm text-ink"><%= ui_icon :lightbulb, class_name: "h-4 w-4" %> <%= hint %></li>
-          <% end %>
-          <% if revealed.zero? %>
-            <li class="text-sm text-muted">아직 힌트를 보지 않았어요. 바로 맞히면 점수가 가장 높아요!</li>
-          <% end %>
-        </ul>
-
-        <% if revealed < hints.length %>
-          <%= button_to "힌트 더 보기", games_whoami_reveal_hint_path(attempt: @attempt.id),
-                params: { question_id: question.id },
-                class: "btn btn-secondary btn-sm mt-2" %>
-        <% else %>
-          <p class="mt-2 text-sm text-muted">힌트를 모두 봤어요.</p>
-        <% end %>
-      </div>
+      <%= render "hint_card", attempt: @attempt, question: question, question_number: index + 1 %>
     <% end %>
   </div>
 

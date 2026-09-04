@@ -1,0 +1,3 @@
+<%= turbo_stream.replace dom_id(@question, :hint_card) do %>
+  <%= render "hint_card", attempt: @attempt, question: @question, question_number: @question_number %>
+<% end %>

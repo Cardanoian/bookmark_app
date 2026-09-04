@@ -94,6 +94,19 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
     assert_equal 3, finalized.score
   end
 
+  test "revealing a whoami hint with Turbo only replaces that question's hint card" do
+    _quiz, attempt = start_whoami
+    question = attempt.quiz.quiz_questions.second
+
+    post games_whoami_reveal_hint_path(attempt: attempt.id),
+      params: { question_id: question.id }, as: :turbo_stream
+
+    assert_response :success
+    target = ActionView::RecordIdentifier.dom_id(question, :hint_card)
+    assert_select "turbo-stream[action='replace'][target=?]", target, count: 1
+    assert_equal 1, attempt.reload.revealed_count(question)
+  end
+
   test "a forged/stale client hint count cannot lower the penalty (C1 replay guard)" do
     quiz, attempt = start_whoami
     q1 = quiz.quiz_questions.first

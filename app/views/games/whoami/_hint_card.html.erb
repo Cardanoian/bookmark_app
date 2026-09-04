@@ -1,0 +1,24 @@
+<%# Turbo Stream이 공개한 문항만 교체한다. 답안 폼은 이 DOM 경계 밖에 두어 입력값을 보존한다. %>
+<% revealed = attempt.revealed_count(question) %>
+<% hints = question.hints_list %>
+
+<div id="<%= dom_id(question, :hint_card) %>" class="card">
+  <p class="text-sm font-semibold text-ink"><%= question_number %>번 정답을 맞혀 보세요</p>
+
+  <ul class="mt-2 space-y-1">
+    <% hints.first(revealed).each do |hint| %>
+      <li class="card-muted rounded-lg px-3 py-2 text-sm text-ink"><%= ui_icon :lightbulb, class_name: "h-4 w-4" %> <%= hint %></li>
+    <% end %>
+    <% if revealed.zero? %>
+      <li class="text-sm text-muted">아직 힌트를 보지 않았어요. 바로 맞히면 점수가 가장 높아요!</li>
+    <% end %>
+  </ul>
+
+  <% if revealed < hints.length %>
+    <%= button_to "힌트 더 보기", games_whoami_reveal_hint_path(attempt: attempt.id),
+          params: { question_id: question.id },
+          class: "btn btn-secondary btn-sm mt-2" %>
+  <% else %>
+    <p class="mt-2 text-sm text-muted">힌트를 모두 봤어요.</p>
+  <% end %>
+</div>
