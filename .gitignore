@@ -68,3 +68,9 @@ __pycache__
 /android/keystore.properties
 /android/*.jks
 /android/*.keystore
+# 빌드된 APK/AAB. `/android/**/build/` 가 gradle 기본 출력 경로는 이미 덮지만, 제출용으로 루트에
+# 복사해 두는 판본(`chaekgalpi-android-v1.0.0-release.apk` 등)은 그 밖이라 따로 무시한다.
+# 저장소에 넣지 않는 이유: 17MB 대 바이너리이고 소스에서 재생성 가능하며, 서명된 산출물은
+# 저장소가 아니라 제출 패키지로 관리한다(android/README.md §release 서명).
+/android/*.apk
+/android/*.aab
