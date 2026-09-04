@@ -740,7 +740,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### Navigation
 
-**Top Navigation** — 브랜드 옐로 스티키 밴드(배경 `{colors.brand-yellow}`, 하단 경계 `{colors.brand-yellow-deep}` 1px). 좌측에 앱 아이콘 로고 + 다크 잉크 워드마크(`{colors.ink}`), 우측에 계정 컨트롤(이름 "○○님"·마이페이지[학생 전용]·로그아웃[전 역할])을 싣는다. 계정 버튼은 옐로 위에서도 공통 버튼 체계가 이어지도록 연파랑 `{colors.blue-soft}` 필 + `{colors.blue-pressed}` 전경 + 옅은 그림자를 쓴다(구 흰 필 제거). 전 역할 공통 적용, 흰 바디와 또렷이 구분. 높이 ~56px(모바일 48px).
+**Top Navigation** — 브랜드 옐로 스티키 밴드(배경 `{colors.brand-yellow}`, 하단 경계 `{colors.brand-yellow-deep}` 1px). 좌측에 앱 아이콘 로고 + 다크 잉크 워드마크(`{colors.ink}`), 우측에 계정 컨트롤(이름 "○○님"·마이페이지[학생 전용]·로그아웃[전 역할])을 싣는다. 계정 버튼은 브랜드 블루 `{colors.brand-blue}` 필 + `{colors.on-primary}` 전경(`btn-primary`)이다 — 흰 필은 밋밋했고 연파랑 `{colors.blue-soft}` 필은 옐로 위에서 바래 보였으며, 검은·흰 버튼은 쓰지 않기로 했다(2026-09-04). 채도 있는 블루는 옐로의 보색이라 밴드 위에서 또렷이 선다. 전 역할 공통 적용, 흰 바디와 또렷이 구분. 높이 ~56px(모바일 48px).
 
 **`app-header`** — 전역 브랜드 헤더 밴드. 배경 `{colors.brand-yellow}`, 하단 보더 `{colors.brand-yellow-deep}`, `sticky`(top:0, z-index 30), 내부 컨텐츠는 `{shell-max-wide}` 중앙정렬 + `<main>`과 동일 유틸 거터.
 
@@ -839,7 +839,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 ### 공통 컴포넌트 클래스 (`@layer components`)
 반복 빈도 높은 패턴만 클래스화(모든 조합 추상화하지 않음). HTML의 Tailwind 유틸이 항상 덮어쓸 수 있음.
 - **페이지 셸**: `.page-shell`(width:100%+중앙정렬) + 폭 변형 `.page-shell-wide` / `-content` / `-reading` / `-form`. **상한은 4종 모두 1536px 로, 레이아웃 `<main>`(`max-w-[1536px]`)과 같다** — 좁은 상한(content 1280·form 960·reading 840)이 독후감·도서·폼 화면을 과도하게 조여 좌우 여백만 남기던 문제를 해소한 것(2026-07-28). 변형 클래스는 화면 성격의 의미 표식으로 남겨 두어, 개별 화면만 다시 좁힐 때 `--shell-max-*` 한 곳에서 되돌린다. **가로 거터·세로 리듬은 레이아웃 `<main>`이 소유**(셸에 패딩 없음 — 이중 패딩 방지). 헤더: `.page-header`/`.page-title`/`.page-subtitle`/`.page-actions`(`.page-title`은 좌측 3px `{colors.brand-yellow}` 악센트 바로 강조 지점을 표시).
-- **버튼**: `.btn` + `.btn-primary`(검은 필=저장·제출·확정 및 교직원 주요 행동)/`-yellow`(학생 시작·참여)/`-blue`(동기화·검토 등 정보성 도구)/`-secondary`(흰 캔버스 아웃라인=취소·뒤로·보조 탐색)/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치이며 hover/active/disabled 상태를 모두 제공한다. 한 행동 묶음의 컬러 필 버튼은 1개를 원칙으로 한다.
+- **버튼**: `.btn` + `.btn-primary`(브랜드 블루 필=저장·제출·확정 및 교직원 주요 행동, 옐로 헤더 밴드 위 계정 컨트롤)/`-yellow`(학생 시작·참여)/`-blue`(동기화·검토 등 정보성 도구)/`-secondary`(연파랑 필=취소·뒤로·보조 탐색)/`-subtle`/`-danger`/`-icon` + 크기 `.btn-sm`/`-lg`/`-block`. 최소 44px 터치이며 hover/active/disabled 상태를 모두 제공한다. 한 행동 묶음의 컬러 필 버튼은 1개를 원칙으로 한다.
 - **카드**: `.card`(16px 헤어라인)/`.card-feature`(32px)/`.card-muted`/`.stat-card`(+`__value`/`__label`). 기본 카드에는 따뜻한 페이지 배경에서 흰 표면을 구분하는 2단계 저강도 그림자를 적용하고, 학생 핵심 진입 카드만 yellow/lavender/coral/mint 표면 유틸로 강조한다.
 - **폼**: `.form-label`/`.form-input`/`.form-select`/`.form-textarea`/`.form-hint`/`.form-error`(포커스 시 브랜드 블루 보더).
 - **배지**: `.badge` + `-neutral`/`-yellow`/`-success`/`-info`/`-warning`/`-danger` + 크기 변형 `.badge-sm`(여백만 좁힌 컴팩트 — 글자는 기본과 같은 13px, 좁은 도서 카드용)/`.badge-lg`(15px, 도서 상세 메타). 초등 전학년 가독성 하한 때문에 배지 글자는 13px 아래로 내리지 않는다.

@@ -2,7 +2,8 @@
     좌: [뒤로가기(학생·자식 화면만)] + 로고(/icon.png)+워드마크
     우: 학생 계정 컨트롤(이름·마이페이지·로그아웃)
     계정 컨트롤·뒤로가기 모두 학생 한정으로 밴드에 통합(구 _student_header 대체). 밴드 자체는 전 역할 공통.
-    옐로 밴드 위 버튼은 연파랑(btn-secondary) 필/원형으로 브랜드 블루 계열을 유지한다. %>
+    옐로 밴드 위 버튼은 브랜드 블루(btn-primary) 필이다. 흰 필은 밋밋하고 연파랑 필은 옐로 위에서 바래
+    보였으며, 검은·흰 버튼은 쓰지 않기로 했다(2026-09-04). 채도 있는 블루는 옐로의 보색이라 밴드 위에서 또렷이 선다. %>
 <header class="app-header app-header--sticky">
   <div class="app-header__inner px-4 sm:px-6 lg:px-8">
     <%= link_to root_path, class: "app-wordmark", aria: { label: "책갈피 홈" } do %>
@@ -19,7 +20,7 @@
         <div class="flex shrink-0 items-center gap-2">
           <% if current_user.student? %>
           <%= link_to profile_path,
-                class: "btn btn-secondary btn-sm shrink-0 px-3 shadow-sm",
+                class: "btn btn-primary btn-sm shrink-0 px-3",
                 aria: { current: (current_page?(profile_path) ? "page" : nil), label: "마이페이지" } do %>
             <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21a8 8 0 0 0-16 0" />
@@ -29,7 +30,7 @@
           <% end %>
           <% end %>
           <%= button_to "로그아웃", session_path, method: :delete,
-                class: "btn btn-secondary btn-sm shrink-0 shadow-sm" %>
+                class: "btn btn-primary btn-sm shrink-0" %>
         </div>
       </div>
     <% end %>
