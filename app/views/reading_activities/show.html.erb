@@ -81,7 +81,7 @@
         <%# 학생 출제 기여(전국 공유 문제은행 §4.1) — 이 책 문제를 직접 낸다. 승인 후 전국 풀 편입. %>
         <div class="border-t border-hairline-soft pt-2">
           <%= link_to new_quiz_contribution_path(book_id: @book.id),
-                class: "inline-flex items-center gap-1 text-sm font-medium text-brand-blue underline" do %>
+                class: "btn btn-secondary btn-sm" do %>
             <%= ui_icon :writing, class_name: "h-4 w-4" %> <span>이 책 문제 내기</span>
           <% end %>
           <p class="text-sm text-steel">내가 낸 문제는 선생님이 확인한 뒤 친구들에게 보여 줘요.</p>

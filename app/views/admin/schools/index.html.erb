@@ -24,7 +24,7 @@
             <td class="py-2 pr-4 text-slate"><%= school.region %></td>
             <td class="py-2 pr-4 text-slate"><%= school.active? ? "운영" : "비활성" %></td>
             <td class="py-2 pr-4 text-slate"><%= school.neis_code %></td>
-            <td class="py-2 text-right"><%= link_to "수정", edit_admin_school_path(school), class: "text-sm text-brand-blue hover:underline" %></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_school_path(school), class: "btn btn-secondary btn-sm" %></td>
           </tr>
         <% end %>
       </tbody>

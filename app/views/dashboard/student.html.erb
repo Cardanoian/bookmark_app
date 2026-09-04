@@ -124,7 +124,7 @@
             <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-mint text-moss-dark"><%= ui_icon :discussion, class_name: "h-4 w-4" %></span>
             우리 반 책 이야기
           </h2>
-          <%= link_to text_icon("토론방 가기", :arrow_right), topics_path, class: "inline-flex items-center gap-1 text-sm text-brand-blue underline" %>
+          <%= link_to text_icon("토론방 가기", :arrow_right), topics_path, class: "btn btn-secondary btn-sm" %>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <% topics.each do |topic| %>
@@ -152,7 +152,7 @@
           <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-surface-yellow text-yellow-dark"><%= ui_icon :medal, class_name: "h-4 w-4" %></span>
           친구들의 우수작
         </h2>
-        <%= link_to text_icon("우수작 게시판 가기", :arrow_right), board_posts_path, class: "inline-flex items-center gap-1 text-sm text-brand-blue underline" %>
+        <%= link_to text_icon("우수작 게시판 가기", :arrow_right), board_posts_path, class: "btn btn-secondary btn-sm" %>
       </div>
       <div class="grid gap-3 sm:grid-cols-3">
         <%= render partial: "board_posts/board_post", collection: featured_posts, as: :board_post %>

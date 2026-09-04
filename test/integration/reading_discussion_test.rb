@@ -164,6 +164,16 @@ class ReadingDiscussionTest < ActionDispatch::IntegrationTest
   end
 
   # ── ⑤ 진입점 노출 ────────────────────────────────────────────────
+  test "student dashboard styles the discussion entry point as a secondary button" do
+    Topic.create!(scope: :classroom, classroom: @class1, title: "우리 반 책 이야기")
+    login_as @student1
+
+    get root_path
+
+    assert_response :success
+    assert_select "a.btn.btn-secondary.btn-sm[href=?]", topics_path, text: /토론방 가기/
+  end
+
   test "reading activity page shows a book-anchored discussion entry point" do
     Topic.create!(scope: :classroom, classroom: @class1, title: "책토론", book: @book)
     login_as @student1

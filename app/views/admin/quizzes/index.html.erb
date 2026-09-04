@@ -19,7 +19,7 @@
             <td class="py-2 pr-4 text-slate"><%= quiz.scope %></td>
             <td class="py-2 pr-4 text-slate"><%= quiz.quiz_questions.size %></td>
             <td class="py-2 pr-4"><span class="badge <%= quiz.published? ? "badge-success" : "badge-neutral" %>"><%= quiz.published? ? "공개" : "비공개" %></span></td>
-            <td class="py-2 text-right"><%= link_to "수정", edit_admin_quiz_path(quiz), class: "text-sm text-brand-blue hover:underline" %></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_quiz_path(quiz), class: "btn btn-secondary btn-sm" %></td>
           </tr>
         <% end %>
       </tbody>

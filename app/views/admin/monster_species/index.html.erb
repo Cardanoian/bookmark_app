@@ -21,7 +21,7 @@
             <td class="py-2 pr-4 text-slate"><%= species.element %></td>
             <td class="py-2 pr-4 text-slate"><%= species.rarity %></td>
             <td class="py-2 pr-4 text-slate"><%= species.evolves_from&.name %></td>
-            <td class="py-2 text-right"><%= link_to "수정", edit_admin_monster_species_path(species), class: "text-sm text-brand-blue hover:underline" %></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_monster_species_path(species), class: "btn btn-secondary btn-sm" %></td>
           </tr>
         <% end %>
       </tbody>

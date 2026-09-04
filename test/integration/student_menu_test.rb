@@ -74,8 +74,9 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "section#featured-board-posts" do
       assert_select "h2", text: /친구들의 우수작/
-      assert_select "a[href=?]", board_posts_path
+      assert_select "a.btn.btn-secondary.btn-sm[href=?]", board_posts_path
       assert_select "a[href=?]", board_post_path(report.board_post), text: @book.title
+      assert_select "a.btn.btn-secondary.btn-sm[href=?]", board_post_path(report.board_post), text: /읽어보기/
     end
   end
 

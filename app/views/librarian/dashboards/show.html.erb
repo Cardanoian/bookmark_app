@@ -30,7 +30,7 @@
   <section class="card">
     <div class="mb-3 flex items-center justify-between">
       <h2 class="text-lg font-semibold text-ink">인기 도서 (대출)</h2>
-      <%= link_to "관리", librarian_loans_path, class: "text-sm font-medium text-moss-dark hover:underline" %>
+      <%= link_to "관리", librarian_loans_path, class: "btn btn-secondary btn-sm" %>
     </div>
     <% if @loans.any? %>
       <ol class="space-y-1 text-sm">
@@ -54,7 +54,7 @@
   <section class="card">
     <div class="mb-3 flex items-center justify-between">
       <h2 class="text-lg font-semibold text-ink">이달의 책·행사</h2>
-      <%= link_to "새 행사", new_librarian_event_path, class: "text-sm font-medium text-moss-dark hover:underline" %>
+      <%= link_to "새 행사", new_librarian_event_path, class: "btn btn-secondary btn-sm" %>
     </div>
     <% if @events.any? %>
       <ul class="divide-y divide-hairline-soft text-sm">

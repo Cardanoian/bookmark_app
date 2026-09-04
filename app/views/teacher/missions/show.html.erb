@@ -40,7 +40,7 @@
     <%= link_to "수정", edit_teacher_mission_path(@mission), class: "btn btn-secondary btn-sm" %>
     <%= button_to "삭제", teacher_mission_path(@mission), method: :delete,
           form: { data: { turbo_confirm: "이 미션을 삭제할까요? 학생 진행·보상 기록도 함께 사라져요." } }, class: "btn btn-danger btn-sm" %>
-    <%= link_to "목록", teacher_missions_path, class: "text-sm text-steel" %>
+    <%= link_to "목록", teacher_missions_path, class: "btn btn-secondary btn-sm" %>
   </div>
 
   <%# 학생 진행 현황(발행 후). batch 로 N+1 없이 집계. %>

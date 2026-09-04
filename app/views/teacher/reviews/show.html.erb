@@ -97,7 +97,7 @@
         <% unless @report.reviewed? %>
           <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
         <% end %>
-        <%= link_to "목록으로 돌아가기", teacher_reviews_path, class: "text-sm text-steel" %>
+        <%= link_to "목록으로 돌아가기", teacher_reviews_path, class: "btn btn-secondary" %>
       </div>
     </section>
   </div>

@@ -18,7 +18,7 @@
             <td class="py-2 pr-4 font-mono text-ink"><%= link_to badge.key, admin_badge_path(badge), class: "hover:underline" %></td>
             <td class="py-2 pr-4"><%= badge.name %></td>
             <td class="py-2 pr-4 text-slate"><%= badge.condition_desc %></td>
-            <td class="py-2 text-right"><%= link_to "수정", edit_admin_badge_path(badge), class: "text-sm text-brand-blue hover:underline" %></td>
+            <td class="py-2 text-right"><%= link_to "수정", edit_admin_badge_path(badge), class: "btn btn-secondary btn-sm" %></td>
           </tr>
         <% end %>
       </tbody>
