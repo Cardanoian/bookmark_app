@@ -21,7 +21,7 @@
         <% [ [ "all", "모두", @total_count ], [ "pending", "미검토", @pending_count ], [ "reviewed", "검토완료", @reviewed_count ] ].each do |value, label, count| %>
           <%= link_to "#{label} #{count}", teacher_reviews_path(status: value),
                 aria: { current: (@status == value ? "page" : nil) },
-                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status == value ? "bg-primary text-white" : "text-steel hover:bg-surface"}" %>
+                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status == value ? "bg-brand-blue text-white" : "text-steel hover:bg-surface"}" %>
         <% end %>
       </nav>
 

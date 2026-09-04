@@ -15,7 +15,7 @@
         <% [ [ nil, "전체" ], [ "draft", "초안" ], [ "published", "발행" ], [ "cancelled", "취소" ], [ "archived", "보관" ] ].each do |value, label| %>
           <%= link_to label, teacher_missions_path(status: value),
                 aria: { current: (@status_filter == value ? "page" : nil) },
-                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status_filter == value ? "bg-primary text-white" : "text-steel hover:bg-surface"}" %>
+                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status_filter == value ? "bg-brand-blue text-white" : "text-steel hover:bg-surface"}" %>
         <% end %>
       </nav>
 
@@ -37,9 +37,9 @@
                 </span>
               </span>
               <div class="flex shrink-0 items-center gap-2">
-                <%= link_to "보기", teacher_mission_path(mission), class: "text-sm text-brand-blue" %>
+                <%= link_to "보기", teacher_mission_path(mission), class: "btn btn-secondary btn-sm" %>
                 <% if mission.draft? %>
-                  <%= link_to "수정", edit_teacher_mission_path(mission), class: "text-sm text-slate" %>
+                  <%= link_to "수정", edit_teacher_mission_path(mission), class: "btn btn-secondary btn-sm" %>
                   <%= button_to "삭제", teacher_mission_path(mission), method: :delete,
                         form: { data: { turbo_confirm: "초안을 삭제할까요?" } },
                         class: "btn btn-sm btn-danger" %>

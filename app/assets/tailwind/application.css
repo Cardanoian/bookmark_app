@@ -48,6 +48,13 @@
   --color-brand-blue: #4262ff;
   --color-blue-450: #5b76fe;
   --color-blue-pressed: #2a41b6;
+  /* 연파랑 필 3단(기본·호버·프레스) — 브랜드 블루를 흰색에 12/20/28% 섞은 틴트.
+     btn-secondary·btn-icon 배경 전용이며 전경은 blue-pressed(대비 7:1). 블랙 필 프라이머리와
+     흰 아웃라인 세컨더리가 버튼 위계를 흑백으로만 갈라 밋밋하다는 피드백(2026-09-04)으로
+     버튼 계열을 블루 한 가족으로 모으면서 추가했다. */
+  --color-blue-soft: #e8ecff;
+  --color-blue-soft-deep: #d9e0ff;
+  --color-blue-soft-pressed: #cad3ff;
 
   /* 6속성 파스텔 (몬스터 도감 매핑) */
   --color-brand-coral: #ff9999;
@@ -283,12 +290,16 @@
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
       opacity 0.15s ease;
   }
+  /* 프라이머리 = 브랜드 블루 필. 예전에는 블랙 필(--color-primary)이었으나 흑백 버튼이
+     밋밋해 보인다는 피드백(2026-09-04)으로 블루로 바꿨다. 그래서 지금은 .btn-blue 와 같은
+     모습이며, .btn-blue 는 기존 마크업 호환용으로 남긴다. --color-primary 자체는 텍스트·
+     다크 배너·푸터가 계속 쓰므로 토큰은 그대로 두고 버튼 변형만 바꾼다. */
   .btn-primary {
-    background-color: var(--color-primary);
+    background-color: var(--color-brand-blue);
     color: var(--color-on-primary);
   }
   .btn-primary:active {
-    background-color: var(--color-ink-deep);
+    background-color: var(--color-blue-pressed);
   }
   .btn-yellow {
     background-color: var(--color-brand-yellow);
@@ -304,13 +315,15 @@
   .btn-blue:active {
     background-color: var(--color-blue-pressed);
   }
+  /* 세컨더리 = 연파랑 필(보더 없음). 예전의 흰 아웃라인 필을 같은 이유로 교체했다.
+     목록 행의 보기·편집 같은 이동 액션과 취소·검색 같은 보조 액션이 여기에 온다. */
   .btn-secondary {
-    background-color: var(--color-canvas);
-    color: var(--color-ink);
-    border-color: var(--color-hairline-strong);
+    background-color: var(--color-blue-soft);
+    color: var(--color-blue-pressed);
+    border-color: transparent;
   }
   .btn-secondary:active {
-    background-color: var(--color-hairline-soft);
+    background-color: var(--color-blue-soft-pressed);
   }
   .btn-subtle {
     background-color: var(--color-surface);
@@ -328,7 +341,7 @@
   }
   @media (hover: hover) {
     .btn-primary:hover {
-      background-color: var(--color-charcoal);
+      background-color: var(--color-blue-450);
     }
     .btn-yellow:hover {
       background-color: var(--color-brand-yellow-deep);
@@ -337,8 +350,7 @@
       background-color: var(--color-blue-450);
     }
     .btn-secondary:hover {
-      background-color: var(--color-surface);
-      border-color: var(--color-hairline-strong);
+      background-color: var(--color-blue-soft-deep);
     }
     .btn-subtle:hover {
       background-color: var(--color-hairline-soft);
@@ -364,9 +376,9 @@
     height: 2.75rem;
     padding: 0;
     border-radius: 9999px;
-    background-color: var(--color-canvas);
-    color: var(--color-ink);
-    border-color: var(--color-hairline);
+    background-color: var(--color-blue-soft);
+    color: var(--color-blue-pressed);
+    border-color: transparent;
   }
   .btn-sm {
     min-height: 2.25rem;

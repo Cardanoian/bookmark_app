@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Chaekgalpi-design-system
-description: 「책갈피」는 초등학교 전학년 독후감·독서 습관 플랫폼으로, 자신감 있고 다정한 브랜드 보이스를 가진다 — 따뜻한 중립 페이지 위 흰 카드와 시그니처 카나리아 옐로({colors.brand-yellow}) 워드마크가 중심을 잡고, 실제 반려 몬스터 도감의 6속성 색을 반영한 파스텔 피처 틴트(로즈·틸·코랄·옐로·민트·라벤더)가 게이미피케이션 화면에 리듬을 준다. 학생의 시작·참여 행동은 옐로, 저장·제출과 교직원 주요 행동은 블랙, 정보성 도구 행동은 블루로 구분하며, 5역할(학생·담임·교무·사서·총괄) 표면을 하나의 토큰 체계로 지원한다. 모든 타이포는 한국어 폰트 Pretendard 기반(self-host).
+description: 「책갈피」는 초등학교 전학년 독후감·독서 습관 플랫폼으로, 자신감 있고 다정한 브랜드 보이스를 가진다 — 따뜻한 중립 페이지 위 흰 카드와 시그니처 카나리아 옐로({colors.brand-yellow}) 워드마크가 중심을 잡고, 실제 반려 몬스터 도감의 6속성 색을 반영한 파스텔 피처 틴트(로즈·틸·코랄·옐로·민트·라벤더)가 게이미피케이션 화면에 리듬을 준다. 학생의 시작·참여 행동은 옐로, 저장·제출·교직원 주요 행동과 정보성 도구 행동은 블루 필, 보조·이동 행동은 연파랑 필로 구분하며, 5역할(학생·담임·교무·사서·총괄) 표면을 하나의 토큰 체계로 지원한다. 모든 타이포는 한국어 폰트 Pretendard 기반(self-host).
 
 colors:
   primary: "#1c1c1e"
@@ -13,6 +13,9 @@ colors:
   brand-blue: "#4262ff"
   blue-450: "#5b76fe"
   blue-pressed: "#2a41b6"
+  blue-soft: "#e8ecff"
+  blue-soft-deep: "#d9e0ff"
+  blue-soft-pressed: "#cad3ff"
   brand-coral: "#ff9999"
   coral-light: "#ffc6c6"
   coral-dark: "#600000"
@@ -177,13 +180,13 @@ spacing:
 
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.brand-blue}"
     textColor: "{colors.on-primary}"
     typography: "{typography.button-md}"
     rounded: "{rounded.full}"
     padding: "12px 24px"
   button-primary-pressed:
-    backgroundColor: "{colors.charcoal}"
+    backgroundColor: "{colors.blue-pressed}"
     textColor: "{colors.on-primary}"
   button-primary-disabled:
     backgroundColor: "{colors.hairline}"
@@ -201,12 +204,14 @@ components:
     rounded: "{rounded.full}"
     padding: "12px 24px"
   button-secondary:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.blue-soft}"
+    textColor: "{colors.blue-pressed}"
     typography: "{typography.button-md}"
     rounded: "{rounded.full}"
     padding: "12px 24px"
-    border: "1px solid {colors.hairline-strong}"
+  button-secondary-pressed:
+    backgroundColor: "{colors.blue-soft-pressed}"
+    textColor: "{colors.blue-pressed}"
   button-on-dark:
     backgroundColor: "{colors.on-dark}"
     textColor: "{colors.primary}"
@@ -225,11 +230,10 @@ components:
     typography: "{typography.body-sm-medium}"
     padding: "0"
   button-icon-circular:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.blue-soft}"
+    textColor: "{colors.blue-pressed}"
     rounded: "{rounded.full}"
     size: 40px
-    border: "1px solid {colors.hairline}"
   card-base:
     backgroundColor: "{colors.canvas}"
     rounded: "{rounded.xl}"
@@ -477,13 +481,13 @@ components:
 
 ## Overview
 
-「책갈피」는 자신감 있고 다정한 브랜드 보이스로 자신을 드러낸다. 학생 홈은 흰 캔버스를 배경으로, 좌상단의 작은 카나리아 옐로 워드마크와 블랙 필 프라이머리 CTA(예: "독후감 쓰기"), 아웃라인 필 세컨더리("책 찾기")가 열고, 그 아래로 반려 몬스터·성장 카드·5축 방사형 같은 실제 제품 화면 목업이 시각적 무게를 담당한다. 더 깊은 화면(게이미피케이션·상점·랭킹)에서는 시스템이 활짝 열린다 — 파스텔 피처 카드(로즈·틸·코랄·옐로)가 반려 몬스터 도감의 **6속성 색**을 반영하고, 우수작·성장 스토리 카드가 같은 틴트로 각 장면을 구분한다.
+「책갈피」는 자신감 있고 다정한 브랜드 보이스로 자신을 드러낸다. 학생 홈은 흰 캔버스를 배경으로, 좌상단의 작은 카나리아 옐로 워드마크와 블루 필 프라이머리 CTA(예: "독후감 쓰기"), 연파랑 필 세컨더리("책 찾기")가 열고, 그 아래로 반려 몬스터·성장 카드·5축 방사형 같은 실제 제품 화면 목업이 시각적 무게를 담당한다. 더 깊은 화면(게이미피케이션·상점·랭킹)에서는 시스템이 활짝 열린다 — 파스텔 피처 카드(로즈·틸·코랄·옐로)가 반려 몬스터 도감의 **6속성 색**을 반영하고, 우수작·성장 스토리 카드가 같은 틴트로 각 장면을 구분한다.
 
-Pretendard가 80px 히어로 디스플레이부터 11px 마이크로 라벨까지 모든 타이포 표면을 지탱한다. Pretendard의 균형 잡힌 한글 자소와 넓은 웨이트 폭은 다정한 제품 사진·친근한 포지셔닝과 자연스럽게 어울린다. 블랙 필 프라이머리 버튼(`{rounded.full}`)이 마케팅·학생 CTA를 지배하고, 시그니처 카나리아 옐로({colors.brand-yellow})는 **워드마크·상단 프로모 배너·"옐로 태그" 피처 칩·레벨/포인트 강조**에만 쓰며 프라이머리 CTA로는 쓰지 않는다. 학생 화면이 파스텔로 밝게 열리는 동안, 담임·교무·사서·총괄 콘솔은 흰 카드와 옅은 헤어라인으로 차분하게 정돈된다.
+Pretendard가 80px 히어로 디스플레이부터 11px 마이크로 라벨까지 모든 타이포 표면을 지탱한다. Pretendard의 균형 잡힌 한글 자소와 넓은 웨이트 폭은 다정한 제품 사진·친근한 포지셔닝과 자연스럽게 어울린다. 블루 필 프라이머리 버튼(`{rounded.full}`)이 마케팅·학생 CTA를 지배하고, 시그니처 카나리아 옐로({colors.brand-yellow})는 **워드마크·상단 프로모 배너·"옐로 태그" 피처 칩·레벨/포인트 강조**에만 쓰며 프라이머리 CTA로는 쓰지 않는다. 학생 화면이 파스텔로 밝게 열리는 동안, 담임·교무·사서·총괄 콘솔은 흰 카드와 옅은 헤어라인으로 차분하게 정돈된다.
 
 **핵심 특징:**
 - 흰 캔버스 + 카나리아 옐로({colors.brand-yellow}) 워드마크 = 알아보기 쉬운 오프닝 시그니처 — 전역 상단에는 브랜드 옐로 헤더 밴드가 놓여 흰 바디와 또렷이 구분되는 것이 이 오프닝의 시그니처다
-- 블랙 필 프라이머리 CTA({colors.primary} + `{rounded.full}`)가 지배적 인터랙션 요소
+- 블루 필 프라이머리 CTA({colors.brand-blue} + `{rounded.full}`)가 지배적 인터랙션 요소 — 블랙 필·흰 아웃라인뿐이던 흑백 버튼 위계는 밋밋하다는 피드백으로 2026-09-04 에 블루 한 가족(블루 필·연파랑 필)으로 바꿨다
 - 반려 몬스터 도감 **6속성 색**을 반영한 파스텔 피처 카드(옐로·로즈·코랄·틸·민트)
 - 모든 UI 표면에 Pretendard(한글 self-host) — 기하학적이고 살짝 둥근 성격
 - 실제 제품 화면(몬스터·성장 카드·방사형) 목업을 피처 일러스트로 사용
@@ -512,7 +516,8 @@ Pretendard가 80px 히어로 디스플레이부터 11px 마이크로 라벨까�
 - **Yellow Light** ({colors.yellow-light}): 태그 칩·상상 속성 틴트용 옅은 옐로 배경
 - **Yellow Dark** ({colors.yellow-dark}): 옐로 태그 전경 텍스트(다크 올리브)
 - **Brand Blue** ({colors.brand-blue}): 인라인 링크·강조 카드 보더·지식 속성 액션색
-- **Blue Pressed** ({colors.blue-pressed}): 링크 프레스 상태
+- **Blue Pressed** ({colors.blue-pressed}): 링크·프라이머리 버튼 프레스 상태, 연파랑 필 위 전경
+- **Blue Soft / Blue Soft Deep / Blue Soft Pressed** ({colors.blue-soft} · {colors.blue-soft-deep} · {colors.blue-soft-pressed}): 세컨더리·아이콘 버튼의 연파랑 필 배경(기본·호버·프레스)
 - **Brand Coral / Coral Light / Coral Dark** ({colors.brand-coral} · {colors.coral-light} · {colors.coral-dark}): 따뜻한 콜아웃·피처 카드 배경·태그 전경(딥 와인)
 - **Brand Rose / Rose Light** ({colors.brand-rose} · {colors.rose-light}): 감성 속성 피처 카드 배경
 - **Brand Teal / Teal Light / Moss Dark** ({colors.brand-teal} · {colors.teal-light} · {colors.moss-dark}): 자연 속성 카드 배경·딥 그린 텍스트
@@ -643,15 +648,15 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 
 ### Buttons
 
-**`button-primary`** — 블랙 필 프라이머리 CTA, 지배적 액션("독후감 쓰기", "책 찾기").
-- 배경 `{colors.primary}`, 텍스트 `{colors.on-primary}`, 타이포 `{typography.button-md}`, 패딩 `12px 24px`, 라운드 `{rounded.full}`.
-- 프레스 `button-primary-pressed`는 `{colors.charcoal}`로, 비활성 `button-primary-disabled`는 `{colors.hairline}` 배경 + `{colors.muted}` 텍스트.
+**`button-primary`** — 블루 필 프라이머리 CTA, 지배적 액션("독후감 쓰기", "저장", "학생 추가"). 2026-09-04 이전에는 블랙 필(`{colors.primary}`)이었다.
+- 배경 `{colors.brand-blue}`, 텍스트 `{colors.on-primary}`, 타이포 `{typography.button-md}`, 패딩 `12px 24px`, 라운드 `{rounded.full}`.
+- 프레스 `button-primary-pressed`는 `{colors.blue-pressed}`로, 비활성 `button-primary-disabled`는 `{colors.hairline}` 배경 + `{colors.muted}` 텍스트.
 
 **`button-yellow`** — 브랜드 강조 순간용 옐로 필. 배경 `{colors.brand-yellow}`, 텍스트 `{colors.primary}`.
 
-**`button-blue`** — 인라인 액션 콜아웃용 블루 필. 배경 `{colors.brand-blue}`, 텍스트 `{colors.on-primary}`.
+**`button-blue`** — 인라인 액션 콜아웃용 블루 필. 배경 `{colors.brand-blue}`, 텍스트 `{colors.on-primary}`. 프라이머리가 블루로 바뀐 뒤로는 `button-primary`와 같은 모습이며 기존 마크업 호환용으로 남긴다.
 
-**`button-secondary`** — 세컨더리 아웃라인 필("책 찾기"). 배경 투명, 텍스트 `{colors.ink}`, 보더 `1px solid {colors.hairline-strong}`.
+**`button-secondary`** — 세컨더리 연파랑 필("책 찾기", "취소", 목록 행의 보기·편집). 배경 `{colors.blue-soft}`, 텍스트 `{colors.blue-pressed}`, 보더 없음. 프레스 `button-secondary-pressed`는 `{colors.blue-soft-pressed}`. 2026-09-04 이전에는 흰 아웃라인 필이었다.
 
 **`button-on-dark`** — 다크 CTA 배너용 화이트 필. 배경 `{colors.on-dark}`, 텍스트 `{colors.primary}`.
 
@@ -659,7 +664,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 
 **`button-link`** — 인라인 텍스트 링크. 텍스트 `{colors.brand-blue}`, 타이포 `{typography.body-sm-medium}`.
 
-**`button-icon-circular`** — 40×40px 원형 유틸 버튼(아동 터치 타깃 상향). 배경 `{colors.canvas}`, 보더 `1px solid {colors.hairline}`, 라운드 `{rounded.full}`.
+**`button-icon-circular`** — 40×40px 원형 유틸 버튼(아동 터치 타깃 상향). 배경 `{colors.blue-soft}`, 전경 `{colors.blue-pressed}`, 보더 없음, 라운드 `{rounded.full}`.
 
 ### Cards & Containers
 
@@ -685,7 +690,7 @@ system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif
 
 ### Tabs
 
-**`pill-tab`** + **`pill-tab-active`** — 필 탭 내비. 비활성=흰 배경+`{colors.steel}` 텍스트, 활성=`{colors.primary}` 배경+흰 텍스트.
+**`pill-tab`** + **`pill-tab-active`** — 필 탭 내비. 비활성=흰 배경+`{colors.steel}` 텍스트, 활성=`{colors.brand-blue}` 배경+흰 텍스트.
 
 **`toggle-two-state`** — 2상태 필 토글(예: 주간/월간, 학급/전교). 배경 `{colors.surface}`, 라운드 `{rounded.full}`, 패딩 `4px`.
 
@@ -755,7 +760,7 @@ RAILS_PLAN §12가 요구하는 「책갈피」 고유 표면을 동일 토큰 �
 
 ### Do
 - `{colors.brand-yellow}`는 워드마크·상단 프로모 배너·"옐로 태그" 칩·레벨/포인트 강조에만
-- `{colors.primary}`(블랙)를 모든 표면의 지배적 CTA로
+- `{colors.brand-blue}`(블루 필)를 모든 표면의 지배적 CTA로 — 블랙 `{colors.primary}`는 텍스트·다크 배너·푸터에만
 - 파스텔 피처 카드(옐로·로즈·코랄·틸)를 흰 피처 카드와 같은 뷰포트에서 짝지어 6속성 리듬을 만들기
 - 모든 버튼·필 탭·상태 배지·진행 바에 `{rounded.full}`
 - 파스텔 피처·몬스터 카드에 `{rounded.xxxl}`(28px)

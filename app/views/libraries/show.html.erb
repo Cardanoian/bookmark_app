@@ -13,7 +13,7 @@
     <% [ [ nil, "전체" ], [ "reports", "독후감 있음" ], [ "games", "게임 기록 있음" ] ].each do |value, label| %>
       <%= link_to label, library_path(kind: value),
             aria: { current: (@kind == value ? "page" : nil) },
-            class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@kind == value ? "bg-primary text-white" : "text-steel hover:bg-surface"}" %>
+            class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@kind == value ? "bg-brand-blue text-white" : "text-steel hover:bg-surface"}" %>
     <% end %>
   </nav>
 

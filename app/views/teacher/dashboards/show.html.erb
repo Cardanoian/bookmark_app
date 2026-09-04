@@ -155,7 +155,7 @@
       <div class="card">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-ink">검토 목록</h2>
-          <%= link_to "전체 보기", teacher_reviews_path, class: "text-sm font-medium text-brand-blue" %>
+          <%= link_to "전체 보기", teacher_reviews_path, class: "btn btn-secondary btn-sm" %>
         </div>
         <% if @review_queue.any? %>
           <ul class="divide-y divide-hairline-soft">
@@ -166,7 +166,7 @@
                 </span>
                 <span class="flex items-center gap-2">
                   <%= level_badge(report.level) %>
-                  <%= link_to "검토", teacher_review_path(report), class: "text-sm font-medium text-brand-blue" %>
+                  <%= link_to "검토", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
                 </span>
               </li>
             <% end %>

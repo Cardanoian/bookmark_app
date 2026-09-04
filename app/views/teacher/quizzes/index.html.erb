@@ -24,7 +24,7 @@
                 </span>
               </span>
               <div class="flex shrink-0 items-center gap-2">
-                <%= link_to "편집", edit_teacher_quiz_path(quiz), class: "text-sm text-brand-blue" %>
+                <%= link_to "편집", edit_teacher_quiz_path(quiz), class: "btn btn-secondary btn-sm" %>
                 <%= button_to "삭제", teacher_quiz_path(quiz), method: :delete,
                       form: { data: { turbo_confirm: "삭제할까요?" } },
                       class: "btn btn-sm btn-danger" %>
