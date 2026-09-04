@@ -70,8 +70,8 @@ android {
         applicationId = "net.chaekgalpi.app"
         minSdk = 28      // Hotwire Native Android 하한. 기준 기기 SM-P610 은 API 29 출시라 여유 통과.
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

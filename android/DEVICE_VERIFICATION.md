@@ -34,7 +34,7 @@ Chrome 버전            :
 화면 해상도 / 배율      :
 네트워크 종류           :
 APK SHA-256            :          ← 아래 명령으로 확인
-versionName / Code     :          ← 현재 1.0.0 / 1
+versionName / Code     :          ← 현재 1.0.1 / 2
 서버 배포 commit        :          ← 현재 운영: 배포 동결 판본
 테스트 일시 / 수행자     :
 ```
@@ -46,7 +46,7 @@ adb shell dumpsys package com.google.android.webview | grep -m1 versionName
 
 **APK 해시** (제출본과 설치본이 같은지 확인하는 유일한 근거)
 ```bash
-sha256sum chaekgalpi-android-v1.0.0-release.apk
+sha256sum chaekgalpi-android-v1.0.1-release.apk
 adb shell pm path net.chaekgalpi.app   # 설치본 경로 확인 후 pull 해서 대조해도 된다
 ```
 

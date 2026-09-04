@@ -150,10 +150,10 @@ keyPassword=<비밀번호>
 
 ```bash
 ./gradlew clean test lintRelease assembleRelease
-cp app/build/outputs/apk/release/app-release.apk chaekgalpi-android-v1.0.0-release.apk
+cp app/build/outputs/apk/release/app-release.apk chaekgalpi-android-v1.0.1-release.apk
 
-"$BT/apksigner" verify --verbose --print-certs chaekgalpi-android-v1.0.0-release.apk
-sha256sum chaekgalpi-android-v1.0.0-release.apk
+"$BT/apksigner" verify --verbose --print-certs chaekgalpi-android-v1.0.1-release.apk
+sha256sum chaekgalpi-android-v1.0.1-release.apk
 ```
 
 **확인할 것 4가지** — `apksigner` 가 "Verifies" 를 찍었다고 끝이 아니다.
@@ -164,7 +164,7 @@ sha256sum chaekgalpi-android-v1.0.0-release.apk
 2. **debug 빌드가 아닌가** — 아래가 **비어야** 한다. debug APK 로 시험하면 `application-debuggable`
    이 나오는 것으로 검사 자체가 동작하는지 확인할 수 있다.
    ```bash
-   "$BT/aapt2" dump badging chaekgalpi-android-v1.0.0-release.apk | grep -i "debuggable\|testOnly"
+   "$BT/aapt2" dump badging chaekgalpi-android-v1.0.1-release.apk | grep -i "debuggable\|testOnly"
    ```
 3. **`testOnly` 가 아닌가** — 위 출력에 나오면 `adb install -t` 로만 설치되어 심사장에서
    파일 관리자로 설치할 수 없다.
@@ -187,7 +187,7 @@ sha256sum chaekgalpi-android-v1.0.0-release.apk
 
 ```text
 책갈피_Android_제출/
-├─ chaekgalpi-android-v1.0.0-release.apk
+├─ chaekgalpi-android-v1.0.1-release.apk
 ├─ APK_설치_및_체험안내.pdf
 └─ SHA256.txt
 ```
@@ -199,7 +199,10 @@ sha256sum chaekgalpi-android-v1.0.0-release.apk
 
 - release 후보마다 **`versionCode` 를 +1** 한다. 되돌리지 않는다.
 - 배포한 APK 보다 낮은 `versionCode` 로는 일반 업데이트 설치가 되지 않는다.
-- `versionName` 은 사람이 읽는 값(`1.0.0`), `versionCode` 는 단조 증가하는 정수다.
+- `versionName` 은 사람이 읽는 값(`1.0.1`), `versionCode` 는 단조 증가하는 정수다.
+  **`versionCode` 에는 소수점을 쓸 수 없다** — 매니페스트의 정수 필드이고 Gradle Kotlin DSL 에서도 `Int` 라
+  `versionCode = 1.1` 은 컴파일되지 않는다. 소수점으로 올리고 싶은 것은 언제나 `versionName` 쪽이다.
+- 이력: `1 / 1.0.0`(첫 대회 제출본) → **`2 / 1.0.1`**(원자료 내보내기 XLSX 전환 판).
 
 ---
 
