@@ -110,6 +110,19 @@ class DownloadNamingTest {
         )
     }
 
+    // 교사 원자료 내보내기는 CSV 에서 XLSX 로 바뀌었다. 라우팅으로 잡은 다운로드는 응답 헤더가
+    // 없어 URL 마지막 조각(`reports_xlsx`)밖에 없으므로, MIME 보완이 없으면 확장자 없이 저장된다.
+    @Test fun `엑셀 MIME 이면 xlsx 를 붙인다`() {
+        assertEquals(
+            "reports_xlsx.xlsx",
+            DownloadNaming.fileName(
+                null,
+                "https://chaekgalpi.net/teacher/exports/reports_xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        )
+    }
+
     @Test fun `확장자가 있으면 서버가 준 것을 존중한다`() {
         assertEquals(
             "exports.txt",

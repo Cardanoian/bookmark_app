@@ -1,34 +1,37 @@
-# 교사 문서 출력 — CSV(P6.3). 담임 학급 독후감의 사전·사후 5축 비교 원자료.
+# 교사 문서 출력 — 엑셀(P6.3). 담임 학급 독후감의 사전·사후 5축 비교 원자료.
 # 대회요건(연구06): 원본(사전) 5축 + 고쳐쓰기(사후) 5축 + 향상도를 학생별로 내보낸다.
-# 외부 의존(gem) 없이 RFC 4180 규칙으로 직접 인코딩한다.
+#
+# 예전에는 같은 표를 CSV 로 손수 인코딩해 내보냈다(RFC 4180 직접 구현 + 엑셀 한글 깨짐 방지 BOM).
+# 쉼표·따옴표가 든 책 제목은 그 인코더가 정확히 처리했지만, **책 제목·학생 이름이 학생 자유 입력**
+# 이라 `=HYPERLINK("http://…","눌러보세요")` 같은 값이 CSV 를 여는 순간 엑셀 수식이 되는 표면이
+# 남아 있었다. XLSX 는 셀 타입이 분리돼 있어 문자열 셀이 수식으로 해석되지 않으므로 그 표면이
+# 구조적으로 사라진다(부수 효과로 BOM 꼼수와 인코딩 협상도 없어지고, 점수가 숫자로 들어간다).
 class Teacher::ExportsController < Teacher::BaseController
-  # Excel 한글 깨짐 방지용 UTF-8 BOM.
-  BOM = "﻿"
+  SHEET_NAME = "5축 사전사후".freeze
+  FILENAME_PREFIX = "reports_5axis".freeze
 
-  def reports_csv
+  def reports_xlsx
     reports = Report.where(classroom_id: teacher_classrooms.select(:id), revision_of_id: nil)
                     .includes(:user, :book, :revisions)
                     .order(:user_id, :created_at)
-    csv = build_csv(reports)
+    workbook = Exports::XlsxWriter.build(
+      headers: header_row,
+      rows: reports.map { |report| data_row(report, latest_revision(report)) },
+      sheet_name: SHEET_NAME
+    )
     audit!(
-      "teacher.reports_csv_download",
+      "teacher.reports_xlsx_download",
       school_id: Current.user.school_id,
       metadata: { report_count: reports.size, classroom_ids: teacher_classrooms.pluck(:id) }
     )
 
-    send_data csv,
-              type: "text/csv; charset=utf-8",
-              filename: "reports_5axis_#{Date.current}.csv",
+    send_data workbook,
+              type: Exports::XlsxWriter::CONTENT_TYPE,
+              filename: "#{FILENAME_PREFIX}_#{Date.current}.xlsx",
               disposition: "attachment"
   end
 
   private
-
-  def build_csv(reports)
-    rows = [ header_row ]
-    reports.each { |report| rows << data_row(report, latest_revision(report)) }
-    BOM + rows.map { |row| encode_row(row) }.join("\r\n") + "\r\n"
-  end
 
   def header_row
     [
@@ -57,17 +60,5 @@ class Teacher::ExportsController < Teacher::BaseController
 
   def latest_revision(report)
     report.revisions.max_by(&:created_at)
-  end
-
-  # RFC 4180: 콤마·따옴표·개행이 포함된 필드는 따옴표로 감싸고 내부 따옴표는 이중화.
-  def encode_row(fields)
-    fields.map { |field| encode_field(field) }.join(",")
-  end
-
-  def encode_field(field)
-    value = field.to_s
-    return value unless value.match?(/[",\r\n]/)
-
-    %("#{value.gsub('"', '""')}")
   end
 end

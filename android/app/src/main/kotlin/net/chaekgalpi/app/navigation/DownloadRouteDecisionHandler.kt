@@ -12,7 +12,7 @@ import net.chaekgalpi.app.MainActivity
  * **왜 필요한가 (실측)**: 표시가 없으면 교사 CSV 링크는 Turbo 가 가로채 방문으로 처리한다.
  * CSV 응답은 HTML 이 아니므로 `visitRequestFailedWithNonHttpStatusCode` 로 끝나고, 화면에는
  * "화면을 불러오지 못했어요"만 남는다. 그런데 방문 요청 자체는 서버까지 갔기 때문에
- * **`teacher.reports_csv_download` 감사 로그가 기록된다** — 아무도 받지 못한 파일이 내려받아진 것으로
+ * **`teacher.reports_xlsx_download` 감사 로그가 기록된다** — 아무도 받지 못한 파일이 내려받아진 것으로
  * 남는 상태였다. WebView 의 DownloadListener 는 이 경로에서 아예 호출되지 않는다.
  *
  * **왜 URL 패턴을 Kotlin 에 넣지 않는가**: 대상 경로가 늘어날 때 APK 를 다시 배포해야 한다.

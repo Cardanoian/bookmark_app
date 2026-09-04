@@ -1,4 +1,5 @@
 require "cgi"
+require "nokogiri"
 require "tempfile"
 require "zip"
 
@@ -38,7 +39,44 @@ module XlsxTestHelper
     tempfile
   end
 
+  # 우리가 **내보낸** XLSX(Exports::XlsxWriter)를 되읽는다. 반환은 행 배열의 배열이며,
+  # 값이 없는 칸은 nil 이다. 문자열 셀(inlineStr)과 숫자 셀(<v>)만 다룬다 — writer 가 그 둘만 쓴다.
+  def read_xlsx_sheet(binary, entry: "xl/worksheets/sheet1.xml")
+    xml = read_xlsx_entry(binary, entry)
+    document = Nokogiri::XML(xml)
+    document.remove_namespaces!
+
+    document.css("sheetData > row").map do |row|
+      cells = {}
+      row.css("c").each do |cell|
+        index = column_index(cell["r"].to_s[/\A[A-Z]+/].to_s)
+        cells[index] = if cell["t"] == "inlineStr"
+          cell.at_css("is > t")&.text
+        else
+          cell.at_css("v")&.text
+        end
+      end
+      cells.empty? ? [] : (0..cells.keys.max).map { |index| cells[index] }
+    end
+  end
+
+  def read_xlsx_entry(binary, entry)
+    contents = nil
+    Zip::File.open_buffer(StringIO.new(binary.b)) { |zip| contents = zip.read(entry) }
+    contents
+  end
+
+  def xlsx_entry_names(binary)
+    names = nil
+    Zip::File.open_buffer(StringIO.new(binary.b)) { |zip| names = zip.entries.map(&:name) }
+    names
+  end
+
   private
+
+  def column_index(name)
+    name.each_char.reduce(0) { |sum, char| sum * 26 + (char.ord - 64) } - 1
+  end
 
   def column_name(index)
     name = +""

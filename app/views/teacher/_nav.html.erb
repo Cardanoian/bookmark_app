@@ -1,4 +1,6 @@
-<%# 교사 콘솔 네비(반응형). local: active (심볼). 데스크톱=좌측 사이드바, 모바일=상단 펼침 목록 %>
+<%# 교사 콘솔 네비(반응형). local: active (심볼). 데스크톱=좌측 사이드바, 모바일=상단 펼침 목록
+    원자료 내려받기 전용 항목은 두지 않는다 — 목적지가 "문서 출력"과 같은 화면(#raw-export 앵커)
+    이라 메뉴만 둘로 보일 뿐이었고, 그 카드는 화면 맨 위 첫 카드라 앵커 없이도 바로 보인다. %>
 <% nav_items = [
      [ :dashboard, "대시보드", :home, teacher_dashboard_path ],
      [ :reviews, "검토", :document, teacher_reviews_path ],
@@ -32,12 +34,6 @@
           <% end %>
         </li>
       <% end %>
-      <li>
-        <%= link_to teacher_prints_path(anchor: "csv-export"),
-              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-hairline-soft px-3 py-2 text-slate" do %>
-          <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
-        <% end %>
-      </li>
     </ul>
   </nav>
 </details>
@@ -56,12 +52,6 @@
           <% end %>
         </li>
       <% end %>
-      <li>
-        <%= link_to teacher_prints_path(anchor: "csv-export"),
-              class: "flex min-h-[2.75rem] items-center gap-2 rounded-xl px-3 py-2 text-slate hover:bg-surface" do %>
-          <%= ui_icon :download, class_name: "h-4 w-4" %> CSV 내보내기
-        <% end %>
-      </li>
     </ul>
   </nav>
 </aside>

@@ -28,15 +28,16 @@ class AuditLogsTest < ActionDispatch::IntegrationTest
     assert_no_match "new123", AuditLog.all.map(&:metadata).to_json
   end
 
-  test "teacher CSV download is audited without storing the CSV body" do
+  test "teacher xlsx download is audited without storing the workbook body" do
     Report.create!(user: @student, classroom: @classroom, book_title: "감사책")
     login_as @teacher
 
-    get teacher_exports_reports_csv_path
+    get teacher_exports_reports_xlsx_path
 
     assert_response :success
-    log = AuditLog.find_by!(action: "teacher.reports_csv_download")
+    log = AuditLog.find_by!(action: "teacher.reports_xlsx_download")
     assert_equal 1, log.metadata["report_count"]
+    assert_not log.metadata.key?("workbook")
     assert_not log.metadata.key?("csv")
   end
 

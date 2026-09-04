@@ -25,12 +25,12 @@
     },
     {
       "patterns": [
-        "^/teacher/exports/reports_csv$"
+        "^/teacher/exports/reports_xlsx$"
       ],
       "properties": {
         "download": true,
-        "download_mime": "text/csv",
-        "download_filename": "5축_사전사후.csv"
+        "download_mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "download_filename": "5축_사전사후.xlsx"
       }
     },
     {

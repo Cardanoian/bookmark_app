@@ -31,7 +31,8 @@
         <div>
           <h1 class="page-title">문서 출력</h1>
           <p class="mt-1 text-sm text-slate">
-            표창장·가정통신문·독서 포트폴리오·학급 성장 리포트를 인쇄용으로 열 수 있어요.
+            표창장·가정통신문·독서 포트폴리오·학급 성장 리포트를 인쇄용으로 열 수 있고,
+            <strong>5축 원자료 엑셀 파일</strong> 도 여기에서 내려받아요.
             문서를 연 뒤 위쪽 <strong>인쇄하기</strong> 버튼을 누르면 인쇄하거나 PDF 로 저장할 수 있어요.
           </p>
         </div>
@@ -49,40 +50,46 @@
         <% end %>
       <% end %>
 
-      <%# 원자료 CSV — **학급 분기 밖**에 둔다. 이 파일은 담당 학급이 없으면 아래 empty_state 로
-          낙하하는데, exports#reports_csv 는 담임 학급 **전체**를 내보내는 학급-무관 산출물이라
-          학급 유무와 무관하게 닿을 수 있어야 한다(교사 네비의 CSV 링크가 이 섹션으로 오므로,
-          안쪽에 두면 학급 없는 교사가 CSV 경로를 통째로 잃는다).
+      <%# 원자료 엑셀 — **학급 분기 밖**에 둔다. 이 파일은 담당 학급이 없으면 아래 empty_state 로
+          낙하하는데, exports#reports_xlsx 는 담임 학급 **전체**를 내보내는 학급-무관 산출물이라
+          학급 유무와 무관하게 닿을 수 있어야 한다(안쪽에 두면 학급 없는 교사가 내려받기 경로를
+          통째로 잃는다 — 교사 네비에 별도 항목이 없어진 뒤로 이 화면이 유일한 진입점이다).
 
           링크는 `doc_link` 를 쓰지 않고 평범한 link_to 로 둔다. doc_link 는 웹에서 target="_blank"
-          를 붙이는데 CSV 는 새 탭에서 "여는" 문서가 아니라 내려받는 파일이다. 그리고 이 마크업
+          를 붙이는데 이 파일은 새 탭에서 "여는" 문서가 아니라 내려받는 파일이다. 그리고 이 마크업
           (target 없음·data-turbo 없음)이 앱에서 이미 검증된 형태다 — Android 셸은 링크 마크업이
-          아니라 원격 Path Configuration 의 URL 패턴(^/teacher/exports/reports_csv$)으로 다운로드를
+          아니라 원격 Path Configuration 의 URL 패턴(^/teacher/exports/reports_xlsx$)으로 다운로드를
           판정하므로, Turbo 방문이 제안되어야 그 핸들러가 잡는다. data-turbo="false" 를 붙이면
           그 훅이 사라져 파일명·MIME 설정을 잃는다(2026-09-03 에뮬레이터 실측). %>
-      <section id="csv-export" class="card space-y-3" data-controller="clipboard">
+      <section id="raw-export" class="card space-y-3" data-controller="clipboard disclosure">
         <h2 class="flex items-center gap-1.5 font-semibold text-ink">
-          <%= ui_icon :download, class_name: "h-5 w-5" %> 5축 원자료 CSV (사전·사후)
+          <%= ui_icon :download, class_name: "h-5 w-5" %> 5축 원자료 엑셀 (사전·사후)
         </h2>
         <p class="text-sm text-steel">
           학생별로 <strong class="font-semibold text-ink">처음 쓴 글</strong>과
           <strong class="font-semibold text-ink">고쳐 쓴 글</strong>의 5축 점수·등급·향상도를 표로 내려받아요.
-          엑셀로 열어 봐도 되고, <strong class="font-semibold text-ink">AI에게 파일을 주고 학급의 성장을 분석</strong>하게 할 수도 있어요.
+          엑셀에서 바로 열리고, <strong class="font-semibold text-ink">AI에게 파일을 주고 학급의 성장을 분석</strong>하게 할 수도 있어요.
         </p>
 
-        <div>
-          <%= link_to icon_text(:download, "CSV 내려받기"), teacher_exports_reports_csv_path,
-                class: "btn btn-primary" %>
+        <%# 두 버튼은 한 줄에 나란히 둔다. 아이콘은 icon-inverse 로 흰색으로 뒤집는다 —
+            스프라이트 아이콘은 잉크색이 박혀 있어 어두운 버튼 위에서 그냥 두면 보이지 않는다. %>
+        <div class="flex flex-wrap items-center gap-2">
+          <%= link_to icon_text(:download, "엑셀 내려받기", icon_class: "h-4 w-4 icon-inverse"),
+                teacher_exports_reports_xlsx_path, class: "btn btn-primary" %>
+          <button type="button" class="btn btn-blue group"
+                  data-action="disclosure#toggle" data-disclosure-target="toggle"
+                  aria-expanded="false" aria-controls="ai-prompt-example">
+            <span>AI에게 물어볼 문장 예시 보기</span>
+            <%= ui_icon :chevron_down,
+                  class_name: "h-4 w-4 icon-inverse transition-transform group-aria-expanded:rotate-180" %>
+          </button>
         </div>
 
-        <details class="text-sm text-slate">
-          <summary class="min-h-[2.75rem] cursor-pointer list-none font-medium text-brand-blue">
-            AI에게 물어볼 문장 예시 보기
-          </summary>
-          <p class="mt-2 text-steel">아래 문장을 복사해 CSV 파일과 함께 AI에게 주세요.</p>
+        <div id="ai-prompt-example" data-disclosure-target="panel" class="text-sm text-slate">
+          <p class="text-steel">아래 문장을 복사해 엑셀 파일과 함께 AI에게 주세요.</p>
           <div class="mt-2 flex items-start gap-2">
             <textarea readonly rows="5" data-clipboard-target="source"
-                      class="form-textarea flex-1 text-sm">첨부한 CSV는 초등학생들의 독후감을 5개 축(내용·감상·삶·구성·맞춤법)으로 채점한 자료입니다. '사전_'은 처음 쓴 글, '사후_'는 고쳐 쓴 글의 점수예요.
+                      class="form-textarea flex-1 text-sm">첨부한 엑셀 파일은 초등학생들의 독후감을 5개 축(내용·감상·삶·구성·맞춤법)으로 채점한 자료입니다. '사전_'은 처음 쓴 글, '사후_'는 고쳐 쓴 글의 점수예요.
 1) 학급 전체가 어느 축에서 가장 많이 늘었고 어느 축이 제자리인지 알려 주세요.
 2) 향상도가 낮은 학생을 골라, 그 학생에게 어떤 지도가 필요할지 축별로 제안해 주세요.
 3) 다음 달 독서 수업에서 강조하면 좋을 활동 3가지를 추천해 주세요.
@@ -90,7 +97,7 @@
             <button type="button" class="btn btn-secondary btn-sm shrink-0"
                     data-action="clipboard#copy" data-clipboard-target="button">복사</button>
           </div>
-        </details>
+        </div>
       </section>
 
       <% if @classroom.nil? %>

@@ -242,8 +242,10 @@ Rails.application.routes.draw do
       member { post :reverse }
     end
 
-    # 문서 출력(대회요건 연구06 원자료 CSV + 인쇄용 HTML)
-    get "exports/reports_csv", to: "exports#reports_csv", as: :exports_reports_csv
+    # 문서 출력(대회요건 연구06 원자료 엑셀 + 인쇄용 HTML)
+    # 예전 경로는 `exports/reports_csv` 였다. CSV 를 걷어내면서 경로도 형식을 따라 바꿨으므로,
+    # 앱의 다운로드 판정(원격 Path Configuration 의 URL 패턴)도 함께 바뀌어야 한다.
+    get "exports/reports_xlsx", to: "exports#reports_xlsx", as: :exports_reports_xlsx
     # index = 문서 출력 진입 화면(교사 네비 "문서 출력"). 4종 문서는 여기서만 링크된다.
     resources :prints, only: [ :index ] do
       collection do
