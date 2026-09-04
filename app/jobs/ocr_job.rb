@@ -2,7 +2,7 @@
 # 실패·빈 응답이면 GeminiClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
 # 영구히 묶이지 않게 한다. (§9.3, P3.4)
 #
-# OCR 만 Gemini(gemini-3.5-flash-lite)를 쓴다 — 첨삭·진위·퀴즈 등 나머지 AI 잡은 Claude 다.
+# OCR 만 Gemini(gemini-3.5-flash-lite)를 쓴다 — 첨삭·퀴즈 등 나머지 AI 잡은 Claude 다.
 # 따라서 이 잡의 키·게이트 판정도 Gemini 키를 본다(`Ai::OcrService` 주석 참고).
 class OcrJob < ApplicationJob
   queue_as :default

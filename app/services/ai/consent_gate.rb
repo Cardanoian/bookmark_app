@@ -8,7 +8,7 @@ module Ai
   #
   # ⚠️ 신규 AI 서비스가 학생 원문을 외부 모델로 보낸다면(book 기반 무-PII 경로가 아니라면) 반드시 이
   # 게이트를 경유해야 한다 — `grep ConsentGate` 1회로 학생 PII → 외부 AI 전 경로를 감사할 수 있다.
-  # 현재 경유 경로: ReviewService(첨삭)·VerifyService(진위)·SequelFeedbackService(뒷이야기)·OcrJob(손글씨).
+  # 현재 경유 경로: ReviewService(첨삭)·SequelFeedbackService(뒷이야기)·OcrJob(손글씨).
   module ConsentGate
     def self.llm_allowed?(user, client:)
       client.configured? && user&.ai_consented?

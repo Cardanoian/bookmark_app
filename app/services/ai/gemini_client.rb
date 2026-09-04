@@ -7,7 +7,7 @@ module Ai
   # whether to fall back (규칙기반 첨삭) or disable a feature (사진 OCR).
   #
   # **용도는 손글씨 OCR 하나뿐이다.** 이 앱의 기본 AI 제공자는 Anthropic Claude(`Ai::ClaudeClient`)이고,
-  # 5축 첨삭·진위검증·뒷이야기·줄거리·퀴즈 초안·퀴즈 검수는 전부 거기로 간다. Gemini 는 Claude Haiku 의
+  # 5축 첨삭·뒷이야기·줄거리·퀴즈 초안·퀴즈 검수는 전부 거기로 간다. Gemini 는 Claude Haiku 의
   # 손글씨 인식 품질이 실사용에서 쓸 수 없는 수준이라 **OCR 경로만** 되돌린 것이다(`Ai::OcrService`).
   # 새 AI 기능을 붙일 때 기본 선택지는 `ClaudeClient` 이며, 이 클라이언트를 재사용하지 않는다.
   #

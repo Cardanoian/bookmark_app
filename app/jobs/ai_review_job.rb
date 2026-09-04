@@ -16,7 +16,6 @@ class AiReviewJob < ApplicationJob
       fix: review[:fix],
       grow: review[:grow]
     )
-    report.similarity = Ai::VerifyService.max_similarity(report)
     report.improvement = (report.avg - report.prev_avg).round(2) if report.revision_of_id? && report.prev_avg.present?
 
     # 멱등 포인트: 이 독후감이 이미 지급한 것과의 차액만 반영해 재첨삭 파밍을 막는다.

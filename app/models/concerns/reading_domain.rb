@@ -419,16 +419,6 @@ module ReadingDomain
     {"text": "전사한 본문 전체"}
   PROMPT
 
-  # 진위·표절 의심 보조 프롬프트 — 교사 보조용, JSON {suspicion, reasons[]}. 학년군 무관.
-  VERIFY_PROMPT = <<~PROMPT.freeze
-    당신은 초등학생 독후감의 진위와 표절 가능성을 교사가 판단하도록 돕는 보조자입니다.
-    최종 판정을 내리지 말고, 의심 정도와 근거만 제시하세요.
-    suspicion 은 0.0(정상)~1.0(강한 의심) 사이의 실수로 표현하고,
-    reasons 에는 그렇게 본 근거를 짧은 한국어 문장으로 담으세요.
-
-    반드시 아래 JSON 스키마만 반환하고 다른 설명은 붙이지 마세요.
-    {"suspicion": 0.0, "reasons": ["근거 문장"]}
-  PROMPT
 
   # 학년(정수)으로 학년군 키를 판별. 미상(nil/0)·5·6 → :g56(기본, 기존 동작 보존).
   def self.band_for(grade)

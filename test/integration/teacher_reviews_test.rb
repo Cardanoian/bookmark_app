@@ -113,7 +113,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
   end
 
   # 승인은 reviewed_at 을 덮어쓰고 뱃지·진화·미션·챌린지·몬스터 해금 캐스케이드를 재실행하므로,
-  # 목록에서 도달 가능해진 검토완료 상세에는 노출하지 않는다(저장·진위 확인은 유지).
+  # 목록에서 도달 가능해진 검토완료 상세에는 노출하지 않는다(저장은 유지).
   test "the show page hides the approve button once the report is reviewed" do
     login_as @teacher
 
@@ -122,7 +122,6 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
 
     get teacher_review_path(@reviewed_report)
     assert_select "form[action=?]", approve_teacher_review_path(@reviewed_report), count: 0
-    assert_select "form[action=?]", verify_teacher_review_path(@reviewed_report)
     assert_match "이미 승인한 독후감이에요", response.body
   end
 
@@ -189,12 +188,6 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
       "승인 시점에 first(독후감 1편) 뱃지가 부여돼야 한다"
   end
 
-  test "verify exposes the similarity signal to the teacher" do
-    login_as @teacher
-    post verify_teacher_review_path(@report)
-    assert_response :success
-    assert_match "진위", response.body
-  end
 
   test "batch_approve approves all selected reports" do
     other = Report.create!(user: @student, classroom: @classroom, book_title: "책2", ai_status: :done, reviewed: false, submitted_at: Time.current)

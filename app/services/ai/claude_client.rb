@@ -165,7 +165,7 @@ module Ai
 
     def connection
       @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 30 }) do |faraday|
-        # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(진위검증/퀴즈 초안
+        # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(퀴즈 초안
         # 생성) 양쪽에서 쓰인다. timeout 은 재시도(최대 2회)·간헐 지연까지 덮도록 30s 로 둔다.
         # 재시도 상태코드는 Anthropic 규약: 429(rate limit)·500(api_error)·529(overloaded).
         # POST 는 retry 미들웨어 기본값(멱등 메서드)에 없으므로 명시해야 실제로 재시도된다.

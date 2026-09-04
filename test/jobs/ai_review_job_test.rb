@@ -39,7 +39,7 @@ class AiReviewJobTest < ActiveJob::TestCase
     end
   end
 
-  test "transitions pending to done, awards points, and sets similarity (fallback, no network)" do
+  test "transitions pending to done and awards points (fallback, no network)" do
     assert @report.pending?
     points_before = @user.points
 
@@ -49,9 +49,6 @@ class AiReviewJobTest < ActiveJob::TestCase
     assert @report.done?
     assert_not_nil @report.level
     assert_not_nil @report.avg
-    assert_not_nil @report.similarity
-    assert_operator @report.similarity, :>=, 0.0
-    assert_operator @report.similarity, :<=, 1.0
     assert_operator @user.reload.points, :>, points_before
   end
 

@@ -10,10 +10,7 @@
           <h1 class="page-title">
             <%= @report.book&.title.presence || @report.book_title %>
           </h1>
-          <p class="page-subtitle">
-            <%= @report.user.name %> ·
-            유사도 <%= @report.similarity.present? ? "#{(@report.similarity * 100).round}%" : "-" %>
-          </p>
+          <p class="page-subtitle"><%= @report.user.name %></p>
         </div>
         <%= level_badge(@report.level) %>
       </header>
@@ -31,42 +28,6 @@
         <%= render "reports/rubric", report: @report %>
       </section>
 
-      <%# 결과는 두 축이 독립이다: (1) AI 판정 — 키·동의·응답에 따라 없을 수 있다.
-          (2) 학급 내 유사도 — 순수 Ruby 계산이라 **언제나 유효**하다.
-          예전에는 무키·미동의·API실패가 전부 같은 "판단 보류" 한 단어로 뭉개져, 교사는 버튼이
-          고장 난 것인지 정상인데 판단을 유보한 것인지 알 수 없었다. ai_status 로 사유를 밝힌다. %>
-      <% if @verify.present? %>
-        <section class="card border-brand-red-dark bg-brand-red space-y-2">
-          <h2 class="text-sm font-semibold text-coral-dark">진위·표절 보조 결과</h2>
-
-          <% label, badge = Ai::VerifyService.suspicion_label(@verify[:suspicion]) %>
-          <% if label %>
-            <p class="text-sm text-coral-dark">
-              AI 의심 정도: <span class="badge <%= badge %>"><%= label %></span>
-            </p>
-          <% else %>
-            <p class="text-sm text-coral-dark">
-              <%= case @verify[:ai_status]
-                  when :not_configured then "AI 키가 설정되지 않아 AI 판정은 건너뛰었어요. 아래 유사도만 참고하세요."
-                  when :no_consent     then "이 학생은 보호자 AI 활용 동의가 없어 글을 AI에 보내지 않았어요. 아래 유사도만 참고하세요."
-                  when :failed         then "AI 판정에 실패했어요. 잠시 뒤 다시 눌러 주세요."
-                  else                      "AI가 판단을 유보했어요. 아래 유사도를 참고하세요."
-                  end %>
-            </p>
-          <% end %>
-
-          <p class="text-sm text-coral-dark">
-            학급 내 최대 유사도: <strong class="font-semibold"><%= (@verify[:similarity].to_f * 100).round %>%</strong>
-            <span class="text-xs">(같은 학급 다른 독후감과 겹치는 낱말 비율 — 항상 계산돼요)</span>
-          </p>
-
-          <% if @verify[:reasons].present? %>
-            <ul class="list-inside list-disc text-sm text-coral-dark">
-              <% @verify[:reasons].each do |reason| %><li><%= reason %></li><% end %>
-            </ul>
-          <% end %>
-        </section>
-      <% end %>
 
       <%= form_with model: @report, url: teacher_review_path(@report), method: :patch, class: "card space-y-4 bg-surface-featured" do |f| %>
         <h2 class="text-lg font-semibold text-brand-blue">5축 조정 · 코멘트</h2>
@@ -124,7 +85,7 @@
 
       <%# 승인은 reviewed_at 을 덮어쓰고 뱃지·진화·미션·챌린지·몬스터 해금 캐스케이드를 통째로
           재실행하므로, 검토완료 글에는 노출하지 않는다(목록 검토완료 탭에서 이 화면에 도달 가능).
-          저장·진위 확인은 그대로 — 승인 후 정정은 의도된 기능이고 update 가 학생 화면에 라이브 반영한다. %>
+          저장은 그대로 — 승인 후 정정은 의도된 기능이고 update 가 학생 화면에 라이브 반영한다. %>
       <% if @report.reviewed? %>
         <div class="state-banner state-banner--success">
           이미 승인한 독후감이에요<% if @report.reviewed_at %> (<%= @report.reviewed_at.strftime("%Y.%m.%d") %> 승인)<% end %>.
@@ -136,15 +97,8 @@
         <% unless @report.reviewed? %>
           <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
         <% end %>
-        <%= button_to "진위 확인", verify_teacher_review_path(@report), method: :post, class: "btn btn-secondary" %>
         <%= link_to "목록으로 돌아가기", teacher_reviews_path, class: "text-sm text-steel" %>
       </div>
-      <%# 버튼 라벨 네 글자만으로는 무엇이 일어나는지 알 수 없었다(설명이 0줄이었다). %>
-      <p class="mt-2 text-sm text-steel">
-        <strong class="font-medium text-slate">진위 확인</strong>은 같은 학급 다른 독후감과 낱말이 얼마나 겹치는지 계산하고,
-        보호자 AI 동의가 있으면 베껴 쓴 정황이 있는지도 살펴봐요.
-        <strong class="font-medium text-slate">결과는 참고용이고 판단은 선생님이 하세요.</strong>
-      </p>
     </section>
   </div>
 </div>

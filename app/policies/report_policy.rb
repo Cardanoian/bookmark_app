@@ -63,7 +63,7 @@ class ReportPolicy < ApplicationPolicy
     record.reviewed? || record.shared?
   end
 
-  # 검토·승인·진위 확인은 학급 담임(또는 superadmin)만.
+  # 검토·승인은 학급 담임(또는 superadmin)만.
   def review?
     return false unless user
 
@@ -75,10 +75,6 @@ class ReportPolicy < ApplicationPolicy
   # 요청·batch_approve 의 id 배열 위조에 대해 정책에서도 fail-closed 로 막는다.
   def approve?
     review? && record.submitted?
-  end
-
-  def verify?
-    review?
   end
 
   private

@@ -18,8 +18,7 @@
         <% end %>
       </span>
       <span class="block text-xs text-steel">
-        평균 <%= report.avg %> ·
-        유사도 <%= report.similarity.present? ? "#{(report.similarity * 100).round}%" : "-" %>
+        평균 <%= report.avg %>
         <% if report.reviewed? && report.reviewed_at %>
           · <%= report.reviewed_at.strftime("%Y.%m.%d") %> 승인
         <% end %>

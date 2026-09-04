@@ -1,5 +1,5 @@
 class Teacher::ReviewsController < ApplicationController
-  before_action :set_report, only: [ :show, :update, :approve, :verify ]
+  before_action :set_report, only: [ :show, :update, :approve ]
   # index·batch_approve 는 ensure_reviewer! 역할 게이트로 담임 목록을 스코프한다(개별 리소스 authorize 없음).
   skip_after_action :verify_authorized, only: [ :index, :batch_approve ]
 
@@ -51,15 +51,6 @@ class Teacher::ReviewsController < ApplicationController
     discovered = finalize_approval(@report)
     redirect_to teacher_reviews_path,
                 notice: with_discovery("#{@report.user.name} 학생의 독후감을 승인했어요.", discovered)
-  end
-
-  # 진위·표절 보조(교사용). 결과를 화면에 노출(P3.11).
-  def verify
-    authorize @report, :verify?
-
-    result = Ai::VerifyService.new.call(@report)
-    @verify = result.merge(similarity: Ai::VerifyService.max_similarity(@report))
-    render :show
   end
 
   def batch_approve
