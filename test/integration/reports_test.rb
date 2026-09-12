@@ -190,7 +190,8 @@ class ReportsTest < ActionDispatch::IntegrationTest
 
     get edit_report_path(revision)
     assert_response :success
-    assert_select "form[data-controller='report-edit']", 1
+    # 자동 저장(report-autosave)이 함께 붙으므로 단어 단위(~=)로 찾는다.
+    assert_select "form[data-controller~='report-edit']", 1
     assert_select "textarea[data-report-edit-target='body']", 1
     assert_select "input[type=submit][data-report-edit-target='submit']", 1
   end
@@ -201,7 +202,7 @@ class ReportsTest < ActionDispatch::IntegrationTest
     login_as @student
     get new_report_path(input_mode: :keyboard)
     assert_response :success
-    assert_select "form[data-controller='report-edit']", count: 0
+    assert_select "form[data-controller~='report-edit']", count: 0
   end
 
   test "completing a review appends a row to the classroom review queue" do

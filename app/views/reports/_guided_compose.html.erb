@@ -15,9 +15,11 @@
   <%# 안전 폴백: 학년군 미지원·worker-1 미완성 등으로 질문 세트가 없으면 일반 폼으로 낙하한다. %>
   <%= render "reports/form", report: @report %>
 <% else %>
-  <%# user-id-value 는 localStorage 키를 사용자별로 가르는 용도였는데, 자동 저장을 없애면서
-      저장소 자체가 사라져 더는 필요하지 않다. %>
-  <div class="space-y-6" data-controller="report-guide">
+  <%# 저장은 안쪽 _form 의 report-autosave 가 서버 초안으로 한다(2026-09-12 자동 저장 되살림).
+      report-autosave:created 는 첫 저장이 초안을 만들었다는 신호 — "질문 없이 바로 쓰기"를
+      그 초안으로 돌린다(report_guide_controller#draftCreated). %>
+  <div class="space-y-6" data-controller="report-guide"
+       data-action="report-autosave:created->report-guide#draftCreated report-autosave:status->report-guide#showStatus">
     <%# 안내 문구 좌측 / "질문 없이 바로 쓰기" 우측. 좁은 화면에서는 flex-wrap 으로 아래에 떨어진다.
         **skipLink 타깃이 필수다** — 이 카드는 questions 컨테이너 **밖**이라, 타깃 없이 두면
         "초안 만들기"로 질문을 접은 뒤에도 버튼이 남는다. 아이가 그걸 누르면 GET 이동이라
@@ -49,8 +51,9 @@
           <% if q[:hint].present? %>
             <p class="form-hint"><%= ui_icon :sparkle, class_name: "h-4 w-4" %> <%= q[:hint] %></p>
           <% end %>
+          <%# input 마다 sync — 답을 숨은 본문 필드로 옮겨 자동 저장이 질문 단계에서도 저장하게 한다. %>
           <%= tag.textarea nil,
-                data: { report_guide_target: "answer" },
+                data: { report_guide_target: "answer", action: "input->report-guide#sync" },
                 aria: { label: q[:question] },
                 placeholder: q[:example],
                 rows: 3,
@@ -74,12 +77,18 @@
         <button type="button" class="btn btn-primary" data-action="report-guide#assemble">
           <%= ui_icon :writing %> 초안 만들기
         </button>
-        <%# 답변을 조립해 **서버 초안**으로 저장한다(제출 아님). 자동 저장을 없앤 대신 두는
-            명시적 저장 경로라, 여기서 누르면 목록에 '작성 중'으로 남아 다음에 이어 쓸 수 있다. %>
+        <%# 답변을 조립해 **서버 초안**으로 저장한다(제출 아님). 자동 저장이 있어도 남기는 명시적
+            저장 손잡이라, 여기서 누르면 목록에 '작성 중'으로 남아 다음에 이어 쓸 수 있다. %>
         <button type="button" class="btn btn-secondary" data-action="report-guide#saveDraft">
           <%= ui_icon :save %> 임시 저장
         </button>
       </div>
+
+      <%# 자동 저장 상태. 답을 쓰는 동안은 _form(과 그 안의 상태 문구)이 숨겨져 있어 여기 따로 둔다.
+          report-guide#showStatus 가 report-autosave:status 알림으로 바꾼다. %>
+      <p class="form-hint" role="status" aria-live="polite" data-report-guide-target="status">
+        답을 쓰면 자동으로 저장돼요.
+      </p>
 
     </div>
 

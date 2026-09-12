@@ -155,6 +155,14 @@ class Report < ApplicationRecord
     submitted_at.nil?
   end
 
+  # 자동 저장(과 임시 저장 버튼)을 붙일 초안인지. **사진(OCR) 초안의 첫 제출 화면은 뺀다** — 그
+  # 화면은 "제출하기를 눌러야 선생님 첨삭이 시작돼요"를 못박고 있어, '저장했어요' 표시가 아이에게
+  # '다 됐다'로 읽히면 첨삭이 영영 안 붙는다(09-04 에 임시 저장 버튼을 뺀 것과 같은 이유).
+  # 고쳐쓰기 초안은 원본이 사진이어도 대상이다 — 이미 글자로 옮겨진 본문을 고치는 화면이라서다.
+  def autosave_eligible?
+    draft? && !(ocr? && !revision?)
+  end
+
   # 표시할 OCR 원본 사진(ActiveStorage::Attached::One 또는 nil). 고쳐쓰기(revise)는 부모의
   # `input_mode` 는 복사하지만 photo 는 승계하지 않으므로, 사진이 없으면 `revision_of` 체인을
   # 거슬러 올라가 최초 촬영본(root)을 찾는다 — 그래야 교사가 고쳐쓴 글도 원문 사진과 대조할 수 있다.

@@ -46,12 +46,17 @@ class ReportsController < ApplicationController
 
     if save_draft?
       # 임시 저장 — 제출하지 않는다(submitted_at 미기록 → 교사 큐에 안 올라가고 AI 첨삭도 안 돈다).
-      return render :new, status: :unprocessable_entity unless draft_body_present?(@report)
+      # 자동 저장(report-autosave)도 같은 경로를 JSON 으로 부른다. 첫 자동 저장이 초안을 만들고,
+      # 그 뒤로는 응답의 update_url 로 같은 초안을 갱신한다.
+      return render_draft_invalid(:new) unless draft_body_present?(@report)
 
       if @report.save
-        redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요."
+        respond_to do |format|
+          format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요." }
+          format.json { render_draft_saved(status: :created) }
+        end
       else
-        render :new, status: :unprocessable_entity
+        render_draft_invalid(:new)
       end
     elsif @report.save
       submit_for_review(@report)
@@ -73,13 +78,18 @@ class ReportsController < ApplicationController
     # "임시 저장" 버튼이 곧 "제출하기"가 되어 AI 첨삭이 돌고 교사 큐에 올라간다.
     return update_as_draft if save_draft?
 
+    # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
+    was_draft = @report.draft?
+
     if @report.update(report_params)
-      if resubmit?
-        submit_for_review(@report)
-        redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
-      elsif first_review? && @report.body.present?
+      # 첫 제출을 먼저 본다. 자동 저장된 새 초안을 내면서 본문을 조금 더 고쳤다고 "고쳐 썼어요"라고
+      # 안내하면, 고쳐쓰기를 한 적 없는 아이에게 틀린 말이 된다.
+      if first_review? && @report.body.present?
         submit_for_review(@report)
         redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
+      elsif resubmit?(was_draft)
+        submit_for_review(@report)
+        redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
       else
         redirect_to @report, notice: "독후감을 저장했어요."
       end
@@ -238,13 +248,50 @@ class ReportsController < ApplicationController
   end
 
   # 초안 저장(제출 아님). 본문 변경만 반영하고 submitted_at·ai_status 는 건드리지 않는다.
+  #
+  # 두 가드는 자동 저장이 생기면서 필요해졌다.
+  # · 작성자 본인만 — 초안은 아이의 쓰는 중인 글이다. 정책은 담임의 update 도 허용하지만,
+  #   임시 저장·자동 저장 화면은 작성 학생에게만 있다.
+  # · 아직 내지 않은 글만 — 다른 탭에서 방금 제출한 글을 남은 탭의 자동 저장이 덮어쓰면,
+  #   교사가 보는 본문과 AI 첨삭 대상이 어긋난다. 제출된 글의 본문은 제출 경로로만 바뀐다.
   def update_as_draft
+    raise Pundit::NotAuthorizedError unless @report.user_id == Current.user.id
+    return reject_draft_save_after_submit unless @report.draft?
+
     if !draft_body_present?(@report, incoming: report_params)
-      render :edit, status: :unprocessable_entity
+      render_draft_invalid(:edit)
     elsif @report.update(report_params)
-      redirect_to edit_report_path(@report), notice: "임시 저장했어요. 이어서 쓸 수 있어요."
+      respond_to do |format|
+        format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 이어서 쓸 수 있어요." }
+        format.json { render_draft_saved }
+      end
     else
-      render :edit, status: :unprocessable_entity
+      render_draft_invalid(:edit)
+    end
+  end
+
+  # 자동 저장 응답. 폼이 다음 저장부터 같은 초안을 갱신하도록 update_url 을, 새로고침해도 이어
+  # 쓰도록 edit_url 을 준다. book_id 는 원격 검색으로 고른 책이 초안을 만들며 등록된 경우를 위한
+  # 것이다 — 폼의 숨은 book_id 는 비어 있으므로, 이 값을 심지 않으면 다음 저장이 연결을 끊는다.
+  def render_draft_saved(status: :ok)
+    render json: { id: @report.id,
+                   update_url: report_path(@report),
+                   edit_url: edit_report_path(@report),
+                   book_id: @report.book_id,
+                   saved_at: @report.updated_at.iso8601 }, status: status
+  end
+
+  def render_draft_invalid(template)
+    respond_to do |format|
+      format.html { render template, status: :unprocessable_entity }
+      format.json { render json: { errors: @report.errors.full_messages }, status: :unprocessable_entity }
+    end
+  end
+
+  def reject_draft_save_after_submit
+    respond_to do |format|
+      format.html { redirect_to @report, alert: "이미 제출한 글이라 임시 저장할 수 없어요." }
+      format.json { render json: { error: "already_submitted" }, status: :conflict }
     end
   end
 
@@ -258,9 +305,23 @@ class ReportsController < ApplicationController
     false
   end
 
-  # 작성자가 본문을 바꿔 다시 낸 경우에만 재첨삭.
-  def resubmit?
-    Current.user.id == @report.user_id && @report.saved_change_to_body?
+  # 작성자가 실제로 고친 글을 낸 경우에만 재첨삭.
+  #
+  # **고쳐쓰기 초안은 "이번 요청에서 본문이 바뀌었나"로 판정하면 안 된다.** 자동 저장이 본문을
+  # 미리 저장해 두므로 '수정하기'를 누르는 요청 자체에는 본문 변경이 없을 수 있고, 그러면 고쳐 쓴
+  # 글이 선생님께 영영 가지 않는다. 그래서 초안이면 원본(revision_of) 본문과 비교한다 — 원본과
+  # 같으면 여전히 재첨삭을 건너뛴다(revise 의 "동일 본문 AI 재호출 낭비" 방지 유지).
+  # 이미 낸 글을 다시 고친 경우만 이번 요청의 변경을 본다.
+  def resubmit?(was_draft)
+    return false unless Current.user.id == @report.user_id
+    return @report.saved_change_to_body? unless was_draft && @report.revision?
+
+    normalized_body(@report.body) != normalized_body(@report.revision_of&.body)
+  end
+
+  # 브라우저는 textarea 줄바꿈을 CRLF 로 보낸다. 앞뒤 공백·줄바꿈 차이만으로 "고쳤다"고 보지 않는다.
+  def normalized_body(text)
+    text.to_s.gsub(/\r\n?/, "\n").strip
   end
 
   # 아직 AI 첨삭 이력이 없고(고쳐쓰기 아님) 본인 글이면 첫 제출로 간주(OCR 초안 등).
