@@ -21,7 +21,7 @@ module Ai
         system_instruction: ReadingDomain.rubric_prompt(band),
         response_json: true
       )
-      normalize(response)
+      normalize(response, band)
     rescue ClaudeClient::NotConfigured, ClaudeClient::ApiError, InvalidResponse
       fallback_review(report, band)
     end
@@ -42,19 +42,22 @@ module Ai
       report.book&.title || report.book_title
     end
 
-    def normalize(response)
+    # fix·grow 는 학년군 상한(ReadingDomain.feedback_limits)까지만 남긴다. 프롬프트가 "중요한 것부터,
+    # 최대 N개"를 지시하지만 모델이 넘길 수 있어, 한두 가지에 집중하게 하는 계약을 여기서 보장한다.
+    def normalize(response, band)
       raise InvalidResponse, "response was not a Hash" unless response.is_a?(Hash)
 
       rubric = normalize_rubric(response["rubric"])
       level = response["level"].to_s.upcase
       raise InvalidResponse, "invalid level #{level.inspect}" unless ReadingDomain::LEVEL_POINTS.key?(level)
 
+      limits = ReadingDomain.feedback_limits(band)
       {
         level: level,
         rubric: rubric,
         praise: Array(response["praise"]).map(&:to_s),
-        fix: Array(response["fix"]).map(&:to_s),
-        grow: normalize_grow(response["grow"]),
+        fix: Array(response["fix"]).map(&:to_s).first(limits[:fix]),
+        grow: normalize_grow(response["grow"]).first(limits[:grow]),
         pts: ReadingDomain::LEVEL_POINTS.fetch(level)
       }
     end

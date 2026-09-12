@@ -91,6 +91,176 @@ class ReadingDomainTest < ActiveSupport::TestCase
     end
   end
 
+  # ── 성취기준 원문 대조(교육부 고시 제2022-33호 [별책 5], 2026-09-13) ─────────────────────
+  def curriculum_descriptions(band)
+    ReadingDomain::CURRICULUM_STANDARDS_BY_BAND.fetch(band).values.flatten(1).to_h
+  end
+
+  # 원문: [4국05-01]=인물과 이야기의 흐름을 중심으로 감상, [4국05-02]=자신의 경험을 바탕으로 작품 속
+  # 세계와 현실 세계를 비교. 이전 값은 두 설명이 원문과 달라 content·life 매핑이 뒤바뀌어 있었다.
+  test "g34 content/life axes follow the official meaning of [4국05-01]/[4국05-02]" do
+    codes = ReadingDomain.achievement_standards(:g34)
+    descriptions = curriculum_descriptions(:g34)
+
+    assert_equal "[4국05-01]", codes[:content], "내용 이해 축은 인물과 이야기의 흐름 기준"
+    assert_equal "[4국05-02]", codes[:life], "삶과 연결 축은 경험 바탕 비교 기준"
+    assert_equal "인물과 이야기의 흐름을 중심으로 작품을 감상한다.", descriptions.fetch("[4국05-01]")
+    assert_equal "자신의 경험을 바탕으로 작품 속 세계와 현실 세계를 비교하여 작품을 감상한다.",
+                 descriptions.fetch("[4국05-02]")
+    assert_equal "감각적 표현에 유의하여 작품을 감상하고, 감각적 표현을 활용하여 자신의 생각이나 감정을 표현한다.",
+                 descriptions.fetch(codes[:emotion])
+  end
+
+  # 원문 [6국05-06]은 "문학을 통해 자신과 삶을 성찰한다"(의역)가 아니다. 맞춤법 축은 문장 성분 호응
+  # ([6국04-04])이 아니라 단어·문장·띄어쓰기를 바르게 고치는 [6국04-06](이전 목록에서 누락)이 맞다.
+  test "g56 life/spelling axes use the official [6국05-06]/[6국04-06] sentences" do
+    codes = ReadingDomain.achievement_standards(:g56)
+    descriptions = curriculum_descriptions(:g56)
+
+    assert_equal "[6국04-06]", codes[:spelling]
+    assert_equal "글과 담화에 쓰인 단어 및 문장, 띄어쓰기를 민감하게 살펴 바르게 고치는 태도를 지닌다.",
+                 descriptions.fetch("[6국04-06]")
+    assert_equal "[6국05-06]", codes[:life]
+    assert_equal "작품을 읽고 자신의 삶과 연관 지어 성찰하는 태도를 지닌다.", descriptions.fetch("[6국05-06]")
+  end
+
+  # 고시의 영역별 성취기준 개수 스냅샷 — 코드가 빠지거나(이전 [6국04-06] 누락) 없는 코드가 끼면 실패한다.
+  test "allowlist domains hold exactly the official number of consecutive codes" do
+    official_counts = {
+      g12: { "읽기" => 5, "쓰기" => 4, "문법" => 3, "문학" => 4 },
+      g34: { "읽기" => 6, "쓰기" => 5, "문법" => 5, "문학" => 5 },
+      g56: { "읽기" => 5, "쓰기" => 6, "문법" => 6, "문학" => 6 }
+    }
+    domain_no = { "읽기" => "02", "쓰기" => "03", "문법" => "04", "문학" => "05" }
+
+    official_counts.each do |band, counts|
+      grade = { g12: 2, g34: 4, g56: 6 }.fetch(band)
+      domains = ReadingDomain::CURRICULUM_STANDARDS_BY_BAND.fetch(band)
+      assert_equal counts.keys, domains.keys, "#{band} 영역 구성"
+      counts.each do |domain, count|
+        expected = (1..count).map { |n| format("[%d국%s-%02d]", grade, domain_no.fetch(domain), n) }
+        assert_equal expected, domains.fetch(domain).map(&:first), "#{band}/#{domain} 코드 목록"
+      end
+    end
+  end
+
+  # 성취기준.md 는 상수의 앱 안 사본이다. 한쪽만 고치면 "출처" 문서와 프롬프트 allowlist 가 갈린다.
+  test "성취기준.md carries the same sentences as CURRICULUM_STANDARDS_BY_BAND" do
+    md = Rails.root.join("app/views/monsters/성취기준.md").read
+    md_sentences = md.scan(/- (\[\d국\d{2}-\d{2}\]) (.+)$/).to_h
+
+    ReadingDomain::BANDS.each do |band|
+      curriculum_descriptions(band).each do |code, description|
+        assert_equal description, md_sentences[code], "#{code} 문장이 성취기준.md 와 다름"
+      end
+    end
+  end
+
+  # ── 학생 대면 첨삭 규칙(베타 리뷰 지적 1~5) ────────────────────────────────────────
+  CHILD_FACING_RULE_BLOCKS = %i[
+    REVIEW_NON_ATTEMPT_RULES REVIEW_GROUNDING_RULES BOOK_FACT_RULES CHILD_VOICE_RULES REVIEW_EXAMPLE
+  ].freeze
+
+  test "rubric_prompt carries every child-facing rule block for every band" do
+    ReadingDomain::BANDS.each do |band|
+      prompt = ReadingDomain.rubric_prompt(band)
+
+      CHILD_FACING_RULE_BLOCKS.each do |name|
+        assert_includes prompt, ReadingDomain.const_get(name), "#{band} 프롬프트에 #{name} 누락"
+      end
+      assert_includes prompt, ReadingDomain.build_feedback_limit_rules(band), "#{band} 개수 상한 누락"
+    end
+  end
+
+  # 규칙 블록의 핵심 문장 — 문구가 흐려져 규칙이 사라지는 회귀를 막는다.
+  test "child-facing rule blocks state the concrete rules reviewers asked for" do
+    # 1) 원문 그대로 인용 + 지적 전 자기 점검 + 같은 문장 제안 삭제
+    grounding = ReadingDomain::REVIEW_GROUNDING_RULES
+    assert_includes grounding, "학생이 쓴 그대로 옮기세요"
+    assert_includes grounding, "한 글자도 바꾸지 말고"
+    assert_includes grounding, "이미 마침표(.)로 나뉜 문장이면 나누자고 하지 마세요"
+    assert_includes grounding, "학생이 쓴 문장과 같거나 거의 같으면 그 항목은 빼세요"
+    assert_includes grounding, "어디인지(인용), 왜 고치면 좋은지(까닭), 무엇을 하면 되는지(할 일 한 가지)"
+
+    # 2) 무의미 입력 → 칭찬 없음·최저점·다시 써 달라는 부탁 하나, 서툰 진짜 글은 예외
+    gate = ReadingDomain::REVIEW_NON_ATTEMPT_RULES
+    assert_includes gate, "자음·모음만 늘어놓은 글"
+    assert_includes gate, "'테스트테스트테스트'"
+    assert_includes gate, "책과 분명히 관계없는 글"
+    assert_includes gate, "독후감이 아니면 칭찬하지 마세요"
+    assert_includes gate, "praise 와 grow 는 빈 배열 []"
+    assert_includes gate, "rubric 다섯 축은 모두 0점"
+    assert_includes gate, "짧거나 맞춤법이 많이 틀려도 책에 대해 쓰려고 한 흔적이 있으면 독후감입니다"
+
+    # 3) 호칭 금지·해요체 일관·쉬운 말
+    voice = ReadingDomain::CHILD_VOICE_RULES
+    assert_includes voice, "'당신', '학생', '귀하'"
+    assert_includes voice, "부르는 말 없이 바로 말하세요"
+    assert_includes voice, "해요체로만"
+    assert_includes voice, "합쇼체"
+    assert_includes voice, "이 지시문의 말투를 따라 하지 마세요"
+
+    # 4) 책 내용 단정 금지 — 질문으로 묻기
+    facts = ReadingDomain::BOOK_FACT_RULES
+    assert_includes facts, "줄거리·인물 이름·사건·결말을 사실처럼 쓰지 마세요"
+    assert_includes facts, "질문으로 물어보세요"
+    assert_includes facts, "'어떤 장면에서 그렇게 느꼈나요?'"
+  end
+
+  # 무의미 입력 게이트는 채점 지시보다 앞에 와야 모델이 먼저 걸러낸다. 규칙·예시는 JSON 스키마 앞.
+  test "rubric_prompt puts the non-attempt gate before scoring and the writing rules before the schema" do
+    ReadingDomain::BANDS.each do |band|
+      prompt = ReadingDomain.rubric_prompt(band)
+      gate_at = prompt.index(ReadingDomain::REVIEW_NON_ATTEMPT_RULES)
+      scoring_at = prompt.index("다음 5개 축을 각각 0~5의 정수로 채점하세요.")
+      schema_at = prompt.index("반드시 아래 JSON 스키마만 반환")
+
+      assert gate_at < scoring_at, "#{band} 게이트가 채점 지시 뒤에 있음"
+      assert prompt.index(ReadingDomain::REVIEW_EXAMPLE) < schema_at, "#{band} 예시가 스키마 뒤에 있음"
+      assert prompt.index(ReadingDomain::CHILD_VOICE_RULES) < schema_at, "#{band} 말투 규칙이 스키마 뒤에 있음"
+    end
+  end
+
+  # 5) 한 번에 한두 가지 — fix·grow 상한. g12 는 tone "고칠 점은 딱 한 가지만"과 같은 1개.
+  test "feedback limits keep suggestions to one or two and match the g12 tone" do
+    assert_equal ReadingDomain::BANDS.sort, ReadingDomain::FEEDBACK_LIMITS_BY_BAND.keys.sort
+    ReadingDomain::FEEDBACK_LIMITS_BY_BAND.each do |band, limits|
+      assert_includes 1..2, limits[:fix], "#{band} fix 상한"
+      assert_includes 1..2, limits[:grow], "#{band} grow 상한"
+
+      rules = ReadingDomain.build_feedback_limit_rules(band)
+      assert_includes rules, "fix 는 최대 #{limits[:fix]}개, grow 는 최대 #{limits[:grow]}개"
+      assert_includes rules, "가장 중요한 것부터"
+      assert_includes rules, "fix 와 grow 에 같은 내용을 되풀이하지 마세요"
+    end
+
+    assert_equal 1, ReadingDomain.feedback_limits(:g12)[:fix]
+    assert_includes ReadingDomain::PROMPT_META[:g12][:tone], "고칠 점은 딱 한 가지만"
+    assert_equal ReadingDomain.feedback_limits(:g56), ReadingDomain.feedback_limits(:nope), "미지원 band → g56"
+  end
+
+  # 새 규칙 블록은 학년군 무관 상수라 세 밴드 프롬프트에 모두 들어간다 — 코드가 섞이면 누출 가드를 우회한다.
+  test "child-facing rule blocks never contain 성취기준 codes" do
+    blocks = CHILD_FACING_RULE_BLOCKS.map { |name| ReadingDomain.const_get(name) }
+    blocks += ReadingDomain::BANDS.map { |band| ReadingDomain.build_feedback_limit_rules(band) }
+    blocks.each { |text| refute_match(/\[\d국\d{2}-\d{2}\]/, text) }
+  end
+
+  # 뷰·교사 편집이 의존하는 응답 스키마는 그대로여야 한다.
+  test "rubric_prompt keeps the response JSON schema unchanged" do
+    ReadingDomain::BANDS.each do |band|
+      prompt = ReadingDomain.rubric_prompt(band)
+      rep = ReadingDomain.achievement_standards(band)[:life]
+
+      assert_includes prompt, '"level": "A|B|C"'
+      assert_includes prompt, '"rubric": { "content": 0, "emotion": 0, "life": 0, "structure": 0, "spelling": 0 }'
+      assert_includes prompt, '"praise": ["잘한 점 문장"]'
+      assert_includes prompt, '"fix": ["보완하면 좋을 점 문장"]'
+      assert_includes prompt, %("grow": [ { "text": "성장 제안 문장", "standard_code": "#{rep}" } ])
+      assert_includes prompt, '"pts": 0'
+    end
+  end
+
   # 학년 눈높이 봉쇄(핵심 회귀 가드): 3학년에게 6학년 성취기준을 제시하는 문제 방지.
   # 각 밴드 프롬프트는 자기 밴드 allowlist 만 담고, 다른 학년군의 브래킷 성취기준 코드는 절대 포함하지 않는다.
   test "rubric_prompt embeds the band allowlist and never references another band's 성취기준 codes" do

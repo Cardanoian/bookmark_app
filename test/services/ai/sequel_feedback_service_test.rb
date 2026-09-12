@@ -88,4 +88,30 @@ class Ai::SequelFeedbackServiceTest < ActiveSupport::TestCase
     assert_includes prompt_text, @sequel.body
     assert_includes client.system_instruction, "격려"
   end
+
+  # 베타 리뷰: '테스트테스트…'에 "뒷이야기를 이어 쓰고 싶었던 마음이 잘 전해져요"라고 칭찬했다.
+  # 뒷이야기가 아닌 글은 칭찬 없이 1~2문장으로 진짜 이어쓰기를 부탁해야 한다(서툰 진짜 글은 예외).
+  test "system instruction refuses to praise non-stories and asks for a real continuation" do
+    prompt = Ai::SequelFeedbackService::SYSTEM_INSTRUCTION
+
+    assert_includes prompt, "자음·모음만 늘어놓은 글"
+    assert_includes prompt, "'테스트테스트테스트'"
+    assert_includes prompt, "뒷이야기가 아니면 칭찬하지 않는다"
+    assert_includes prompt, "글에 없는 마음이나 노력을 짐작해서 칭찬하지도 않는다"
+    assert_includes prompt, "1~2문장으로, 이야기가 어떻게 이어질지 직접 써 달라고"
+    assert_includes prompt, "이야기를 이어 쓰려고 한 흔적이 있으면 뒷이야기로 보고"
+  end
+
+  # 말투(호칭 금지·해요체)와 책 내용 단정 금지는 첨삭 프롬프트와 같은 규칙을 공유한다.
+  test "system instruction shares the child voice and book-fact rules with the review prompt" do
+    prompt = Ai::SequelFeedbackService::SYSTEM_INSTRUCTION
+
+    assert_includes prompt, ReadingDomain::CHILD_VOICE_RULES
+    assert_includes prompt, ReadingDomain::BOOK_FACT_RULES
+    assert_includes prompt, "'당신'"
+    assert_includes prompt, "해요체로만"
+    assert_includes prompt, "작은따옴표(' ') 안에 한 글자도 바꾸지 말고 그대로"
+    assert_includes prompt, "점수·등급·별점을 절대 매기지 않는다"
+    assert_includes prompt, '{"comment": "<격려 코멘트>"}', "응답 스키마 불변"
+  end
 end
