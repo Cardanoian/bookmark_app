@@ -619,8 +619,9 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
   end
 
   # 첫 저장 응답을 잃은 사이 다른 탭이 그 초안을 저장해도, 첫 화면의 재시도는 제 초안을 찾는다(L1) —
-  # 표를 "마지막으로 쓴 화면"이 아니라 "만든 화면"으로 찾는다.
-  test "첫 저장 응답을 잃은 사이 다른 탭이 저장해도 첫 화면의 재시도는 초안을 새로 만들지 않는다" do
+  # 표를 "마지막으로 쓴 화면"이 아니라 "만든 화면"으로 찾는다. 찾은 뒤에는 **다른 탭의 글을 덮지 않는다**
+  # (4차 리뷰 H-A — 버전을 모르는 이어 쓰기가 그 글을 덮던 틈).
+  test "첫 저장 응답을 잃은 사이 다른 탭이 저장해도 첫 화면의 재시도는 초안을 새로 만들지도, 덮지도 않는다" do
     login_as @student
     first = { save_draft: "1", draft_version: "", autosave_key: "creator-tab", autosave_seq: 1,
               report: { book_id: @book.id, book_title: @book.title, body: "쓰기 시작한 글" } }
@@ -634,7 +635,10 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     assert_no_difference -> { Report.count } do
       post reports_path, params: first.deep_merge(autosave_seq: 2, report: { body: "첫 화면의 재시도" }), headers: JSON_HEADERS
     end
-    assert_equal draft.id, response.parsed_body["id"]
+    assert_response :conflict
+    assert_equal "stale", response.parsed_body["error"]
+    assert_equal edit_report_path(draft), response.parsed_body["edit_url"], "새로 고치면 최신 글이 열리도록 주소를 알려 준다"
+    assert_equal "다른 탭에서 이어 쓴 글", draft.reload.body
   end
 
   # 같은 표의 첫 저장 두 개가 거의 동시에 들어오면, 먼저 찾아본 순간에는 없던 초안을 다른 요청이 먼저 만든다.
@@ -652,6 +656,113 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     draft = @student.reports.sole
     assert_equal draft.id, response.parsed_body["id"]
     assert_equal "늦게 들어온 첫 저장", draft.body
+  end
+
+
+  # --- 4차 코드 리뷰(bce37c8) 후속 ---
+
+  test "같은 화면의 동시 첫 저장이라도 앞선 순번이 뒤 순번의 저장을 되돌리지 않는다" do
+    login_as @student
+    with_competing_insert(seq: 9) do
+      post reports_path, params: { save_draft: "1", draft_version: "", autosave_key: "race-key", autosave_seq: 2,
+                                   report: { book_id: @book.id, book_title: @book.title, body: "앞선 순번의 첫 저장" } },
+                         headers: JSON_HEADERS
+    end
+    assert_response :conflict
+    assert_equal "먼저 들어온 첫 저장", @student.reports.sole.body
+  end
+
+  # 첫 저장 응답을 잃은 태블릿 화면에서 '제출하기'를 누르면(새 글 폼이라 create 로 간다) 그사이 집에서 쓴
+  # 글이 옛 글로 덮여 제출됐다(4차 리뷰 H-A). 쓴 글을 보여 주며 한 번 더 확인받는다.
+  test "첫 저장 응답을 잃은 새 글 화면의 제출은 그사이 다른 곳에서 쓴 글을 바로 덮지 않는다" do
+    login_as @student
+    base = { draft_version: "", autosave_key: "tablet-tab", opened_as_draft: "1",
+             report: { book_id: @book.id, book_title: @book.title } }
+    post reports_path, params: base.deep_merge(save_draft: "1", autosave_seq: 1, report: { body: "태블릿에서 쓴 첫 줄" }), headers: JSON_HEADERS
+    draft = @student.reports.sole
+    patch report_path(draft), params: { save_draft: "1", draft_version: draft.draft_version, autosave_key: "home-computer", autosave_seq: 57,
+                                        report: { body: "집에서 이어 쓴 긴 글" } }, headers: JSON_HEADERS
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      post reports_path, params: base.deep_merge(autosave_seq: 11, report: { body: "태블릿에서 쓴 첫 줄" })
+    end
+    assert_response :conflict
+    assert draft.reload.draft?
+    assert_equal "집에서 이어 쓴 긴 글", draft.body
+    assert_select "[role=alert]", /다른 탭이나 기기에서 이 글을 더 고쳤어요/
+    assert_select "#report_body_field", text: "태블릿에서 쓴 첫 줄"
+  end
+
+  test "담임이 고친 초안도 학생 첫 화면의 재시도가 덮지 못한다" do
+    login_as @student
+    first = { save_draft: "1", draft_version: "", autosave_key: "student-first", autosave_seq: 1,
+              report: { book_id: @book.id, book_title: @book.title, body: "학생이 쓴 첫 줄" } }
+    post reports_path, params: first, headers: JSON_HEADERS
+    draft = @student.reports.sole
+    delete session_path
+
+    login_as @teacher
+    patch report_path(draft), params: { opened_as_draft: "1", draft_version: draft.draft_version, report: { body: "담임이 고친 글" } }
+    delete session_path
+
+    login_as @student
+    post reports_path, params: first.merge(autosave_seq: 3), headers: JSON_HEADERS
+    assert_response :conflict
+    assert_equal "담임이 고친 글", draft.reload.body
+  end
+
+  # 사진 첫 제출 화면에는 버전 칸이 없어(판독 잡이 수정 시각을 바꾼다) "초안일 때 연 화면" 보호가 빠졌었다.
+  # 집에서 내고 승인까지 받은 글을 그 화면의 '제출하기'가 판독 원문으로 덮고 승인을 풀었다(4차 리뷰 H-B).
+  test "사진 첫 제출 화면의 제출도 그사이 낸·승인된 글을 바꾸지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: "사진 책",
+                           input_mode: :ocr, body: "사진에서 읽은 글", ai_status: :done)
+    login_as @student
+    get edit_report_path(draft)
+    assert_select "input[name='opened_as_draft'][value='1']", 1
+    assert_select "input[name='draft_version']", 0, "판독 잡이 수정 시각을 바꾸므로 사진 첫 제출 화면에는 버전 칸이 없다"
+
+    draft.update!(body: "집에서 고쳐 낸 글", submitted_at: Time.current, reviewed: true, reviewed_at: Time.current,
+                  rubric: { content: 3, emotion: 3, life: 3, structure: 3, spelling: 3 }, teacher_comment: "좋아요")
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      patch report_path(draft), params: { opened_as_draft: "1", report: { body: "사진에서 읽은 글" } }
+    end
+    assert_response :conflict
+    draft.reload
+    assert draft.reviewed?
+    assert_equal "좋아요", draft.teacher_comment
+    assert_equal "집에서 고쳐 낸 글", draft.body
+  end
+
+  # 입력 오류로 다시 그린 화면도 저장 안 된 글을 보여 준다 — 떠날 때 붙잡는다(4차 리뷰 L-B).
+  test "입력 오류로 다시 그린 편집 화면은 저장 안 됨으로 시작한다" do
+    draft = keyboard_draft
+    login_as @student
+
+    patch report_path(draft), params: { opened_as_draft: "1", draft_version: draft.draft_version,
+                                        report: { book_id: "", book_title: "", body: "제목을 지우고 낸 글" } }
+    assert_response :unprocessable_entity
+    assert_select "form[data-report-autosave-unsaved-value='true']", 1
+  end
+
+  test "담임이 받는 충돌 안내는 학생 기준 문구가 아니다" do
+    draft = keyboard_draft
+    seen = draft.draft_version
+    travel 1.minute do
+      draft.update!(body: "학생이 그사이 더 쓴 글")
+    end
+    login_as @teacher
+
+    patch report_path(draft), params: { opened_as_draft: "1", draft_version: seen, report: { body: "담임이 고친 글" } }
+    assert_response :conflict
+    assert_select "[role=alert]", /학생이 그사이 이 글을 더 썼어요/
+    assert_select "[role=alert]", { text: /다른 탭이나 기기에서/, count: 0 }
+
+    draft.update!(submitted_at: Time.current)
+    patch report_path(draft), params: { opened_as_draft: "1", draft_version: draft.draft_version, report: { body: "담임이 고친 글" } }
+    assert_response :conflict
+    assert_select "[role=alert]", /학생이 그사이 이 글을 제출했어요/
+    assert_select "[role=alert]", { text: /고쳐쓰기/, count: 0 }
   end
 
   # --- 확인과 갱신 사이의 틈(리뷰 #11) ---
@@ -724,10 +835,12 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
   end
 
   # 새 글이 저장되기 직전, 같은 표로 다른 요청이 먼저 만든 초안을 끼워 넣는다.
-  def with_competing_insert
+  # 끼워 넣는 초안은 같은 화면의 다른 요청이 만든 것이다 — 만든 화면·마지막으로 쓴 화면이 이 표이고 순번은 seq.
+  def with_competing_insert(seq: 1)
     ReportInsertRaceHook.before_insert = lambda do |report|
       Report.create!(user: report.user, classroom: report.classroom, book_title: report.book_title,
-                     body: "먼저 들어온 첫 저장", input_mode: :keyboard, autosave_key: report.autosave_key)
+                     body: "먼저 들어온 첫 저장", input_mode: :keyboard, autosave_key: report.autosave_key,
+                     autosave_writer_key: report.autosave_key, autosave_seq: seq)
     end
     yield
   ensure

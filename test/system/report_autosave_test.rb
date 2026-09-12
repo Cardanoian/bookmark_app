@@ -430,6 +430,78 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
 
+
+  # --- 4차 코드 리뷰(bce37c8) 후속 ---
+
+  # 브라우저가 요청 순번(입력 횟수)을 싣지 않으면 모든 요청이 0 이 되어, 늦게 도착한 옛 요청을 가르지 못한다(M-A).
+  test "자동 저장과 임시 저장은 입력 횟수를 요청 순번으로 싣는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    install_autosave_matcher
+    execute_script(<<~JS)
+      window.__autosaveSeqs = []
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        if (isAutosave(init) && init.body instanceof FormData) window.__autosaveSeqs.push(init.body.get("autosave_seq"))
+        return original(input, init)
+      }
+    JS
+
+    field = find("#report_body_field")
+    field.send_keys("a")
+    eventually { draft.reload.autosave_seq == 1 }
+    field.send_keys("bc")
+    eventually { draft.reload.autosave_seq == 3 }
+    assert_equal %w[1 3], evaluate_script("window.__autosaveSeqs")
+
+    field.send_keys("d")
+    click_on "임시 저장" # 자동 저장 전에 누른다 — 제출 직전의 입력 횟수가 실린다.
+    assert_text "임시 저장했어요"
+    assert_equal 4, draft.reload.autosave_seq
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 첫 저장 응답을 잃은 태블릿이 다시 연결되기만 해도 그사이 집에서 쓴 글을 덮었다(H-A). 이제는 멈추고,
+  # 새로 고치면 최신 글이 열리도록 주소만 그 초안으로 바꾼다.
+  test "첫 저장 응답을 잃은 사이 다른 곳에서 더 쓴 초안은 재시도가 덮지 않고, 주소를 그 초안으로 바꾼다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    lose_first_autosave_response
+
+    find("#report_body_field").fill_in with: "태블릿에서 쓴 첫 줄"
+    assert_selector "[data-report-autosave-target='status']", text: /잠시 뒤 다시 저장할게요/, wait: SAVE_WAIT
+    draft = @student.reports.sole # 서버는 이미 만들었다
+    draft.update!(body: "집에서 이어 쓴 긴 글", autosave_writer_key: "home-computer-1", autosave_seq: 57)
+
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+    assert_current_path edit_report_path(draft)
+    assert_equal "집에서 이어 쓴 긴 글", draft.reload.body
+    assert_equal 1, @student.reports.count
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 입력 오류로 다시 그린 화면도 저장 안 된 글을 보여 준다. 떠나는 순간 조용히 저장하고 보내 주면 같은
+  # 이유로 또 거절돼 잃는다 — 붙잡는다(L-B).
+  test "입력 오류로 다시 그린 화면은 떠날 때 붙잡는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+
+    find("#report_book_title").fill_in with: ""
+    find("#report_body_field").send_keys(" 제목을 지우고 더 쓴 글")
+    click_on "임시 저장"
+    assert_selector "[role=alert]", text: /책/
+    assert_equal "쓰다 만 글이에요. 제목을 지우고 더 쓴 글", find("#report_body_field").value
+    assert dispatch_beforeunload, "저장 안 된 글을 보여 주는 화면이라 떠날 때 붙잡는다"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
   private
 
   # 긴 글을 키 입력으로 치면 수십 초가 걸린다. 값을 넣고 입력 이벤트를 흘린다(자동 저장은 input 을 듣는다).

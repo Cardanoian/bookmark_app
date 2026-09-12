@@ -386,13 +386,23 @@ class ReportsController < ApplicationController
   # 화면"이 달라 여전히 거절한다. 같은 화면이라도 **그 저장보다 앞선 순번**의 요청은 거절한다(3차 리뷰
   # M1) — 서버에서 오래 막힌 옛 저장이 재시도 뒤에 처리되거나, 자동 저장이 날아가는 중에 누른 임시 저장이
   # 먼저 처리되면, 늦게 온 옛 요청이 새 글을 되돌렸다. 같은 순번은 응답만 잃고 다시 보낸 같은 내용이라 받는다.
+  #
+  # **새 글 화면이 만든 초안을 잇는 요청**(continue_report — 첫 저장 재시도·첫 저장을 기다린 제출·동시 첫
+  # 저장)은 새 글 폼의 버전 칸이 빈 값이라 버전을 모른다. 그래서 버전 없이 받던 때는, 첫 저장 응답을 잃은
+  # 태블릿이 다시 연결되기만 해도 그사이 집에서(또는 담임이) 쓴 더 새 글을 덮었다(4차 리뷰 H-A). 이 경우는
+  # "마지막으로 쓴 것이 이 화면이고 앞선 순번이 아닐 때"만 받는다.
   def stale_draft_version?
     sent = params[:draft_version].presence
-    return false if sent.nil? || sent == @report.draft_version
+    return @continuing_from_create ? !same_writer_in_order? : false if sent.nil?
+    return false if sent == @report.draft_version
 
+    !same_writer_in_order?
+  end
+
+  # 마지막으로 이 초안에 쓴 것이 이 화면이고, 이 요청이 그 저장보다 앞선 순번이 아닌가.
+  def same_writer_in_order?
     key = autosave_key_param
-    same_writer = key.present? && key == @report.autosave_writer_key
-    !(same_writer && autosave_seq_param >= @report.autosave_seq.to_i)
+    key.present? && key == @report.autosave_writer_key && autosave_seq_param >= @report.autosave_seq.to_i
   end
 
   # JSON(자동 저장)은 409 로 멈추게 한다. HTML(임시 저장 버튼·제출)은 **이 화면에서 쓴 글을 그대로 둔 채**
@@ -401,7 +411,8 @@ class ReportsController < ApplicationController
   # 이 화면에서는 자동 저장을 끈다 — 입력만으로 다른 곳의 글을 덮지 않게(_form 의 conflict).
   def reject_stale_draft_save
     respond_to do |format|
-      format.json { render json: { error: "stale" }, status: :conflict }
+      # edit_url — 새 글 화면에서 멈췄으면 브라우저가 주소만 이 초안으로 바꿔, 새로 고치면 최신 글이 열리게.
+      format.json { render json: { error: "stale", edit_url: edit_report_path(@report) }, status: :conflict }
       format.html do
         @report.assign_attributes(report_params)
         @draft_conflict = true
@@ -446,10 +457,11 @@ class ReportsController < ApplicationController
     key && Current.user.reports.find_by(autosave_key: key)
   end
 
-  # create 로 온 요청을 이미 있는 글의 update 로 처리한다(인가·제출 판정·잠금이 모두 update 에 있다).
-  # 새 글 화면의 버전 표는 비어 있어 버전 검사는 걸리지 않는다.
+  # create 로 온 요청을 이미 있는 글의 update 로 처리한다(인가·버전·잠금·제출 판정이 모두 update 에 있다).
+  # 새 글 화면의 버전 칸은 비어 있으므로 stale_draft_version? 이 이 표시를 보고 화면·순번으로 판단한다.
   def continue_report(report)
     @report = report
+    @continuing_from_create = true
     update
   end
 
@@ -493,9 +505,11 @@ class ReportsController < ApplicationController
     end
   end
 
-  # 초안일 때 연 폼에서 온 요청인가. 버전 칸(draft_version)은 자동 저장 대상 초안의 폼에만 있다(새 글은 빈 값).
+  # 초안일 때 연 폼에서 온 요청인가. 초안 폼에는 모두 `opened_as_draft` 표시가 있다(_form). 버전 칸만 보던
+  # 때는 버전 칸이 없는 **사진 첫 제출 화면**이 빠져, 집에서 내고 승인까지 받은 글을 그 화면의 '제출하기'가
+  # 판독 원문으로 덮고 승인을 풀었다(4차 리뷰 H-B). 표시가 생기기 전에 연 화면을 위해 버전 칸도 본다.
   def opened_as_draft?
-    params.key?(:draft_version)
+    params[:opened_as_draft].present? || params.key?(:draft_version)
   end
 
   # 빈 초안은 만들지 않는다. Report 에는 body presence 검증이 없어(사진 초안은 본문 없이 태어난다)

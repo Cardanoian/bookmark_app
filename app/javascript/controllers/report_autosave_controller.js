@@ -48,9 +48,6 @@ export default class extends Controller {
     // 저장이 날아가는 동안 더 쓴 글은 version > savedVersion 으로 남아 다음 저장이 가져간다.
     this.version = 0
     this.savedVersion = 0
-    // 충돌 화면(서버가 저장하지 않고 되돌려 보낸 글을 보여 줌)은 처음부터 '저장 안 됨'이다 — 떠날 때
-    // 붙잡아야 한다(3차 리뷰 M3). 자동 저장은 꺼져 있으니 저장하지 않고 경고만 한다.
-    if (this.unsavedValue) this.version = 1
     this.inflight = null
     this.inflightCreating = false
     this.queued = false
@@ -66,6 +63,14 @@ export default class extends Controller {
     this.lastChanceUsed = false
     this.debounceTimer = null
     this.firstPendingAt = null
+    // 서버가 저장하지 않고 되돌려 보낸 글을 보여 주는 화면(충돌·입력 오류)은 처음부터 '저장 안 됨'이다 —
+    // 떠날 때 붙잡아야 한다(3차 리뷰 M3, 4차 리뷰 L-B). 떠나는 순간 조용히 저장하고 보내 주면 안 된다(입력
+    // 오류 화면은 같은 이유로 또 거절될 수 있다) — `rejected` 로 시작해, 아이가 고쳐 저장에 성공하면 풀린다.
+    // 위의 초기값(`rejected = false` 등)을 모두 정한 뒤에 둔다 — 앞에 두면 그 줄이 도로 끈다.
+    if (this.unsavedValue) {
+      this.version = 1
+      this.rejected = true
+    }
     // 새 글 화면 주소. 첫 저장이 서버에 알려, 이 주소로 다시 오면(새로고침·뒤로 가기·앱이 다시 엶)
     // 빈 새 글 대신 초안을 연다. 떠나는 순간의 저장에서는 location 이 이미 다음 화면이라 지금 잡아 둔다.
     this.origin = window.location.pathname + window.location.search
@@ -349,6 +354,10 @@ export default class extends Controller {
       return
     }
     if (response.status === 409) {
+      // 새 글 화면에서 멈췄으면(첫 저장 응답을 잃은 사이 다른 곳이 그 초안을 더 썼다) 주소만 그 초안으로
+      // 바꾼다 — 새로 고치면 빈 새 글이 아니라 최신 글이 열린다. 폼은 그대로 둔다(버전을 모르는 채 PATCH
+      // 로 바꾸면 버튼 한 번에 그 글을 덮는다).
+      if (data?.edit_url && sent.creating && !this.disconnected && this.element.isConnected) this.replaceLocation(data.edit_url)
       this.stop(data?.error === "stale"
         ? "다른 곳에서 이 글을 더 고쳤어요. 화면을 새로 고치면 최신 글을 볼 수 있어요."
         : "이미 제출한 글이에요. 화면을 새로 고쳐 주세요.")

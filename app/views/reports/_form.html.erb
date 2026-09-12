@@ -31,8 +31,9 @@
              "turbo:submit-end->report-autosave#submitEnded",
      report_autosave_enabled_value: autosave,
      report_autosave_submit_label_value: submit_label,
-     report_autosave_unsaved_value: conflict || submitted_conflict
+     report_autosave_unsaved_value: conflict || submitted_conflict || report.errors.any?
    } %>
+<%# 입력 오류(422)로 다시 그린 화면도 저장 안 된 글을 보여 준다 — 충돌 화면처럼 '저장 안 됨'에서 시작한다(4차 리뷰 L-B). %>
 <%# 고쳐쓰기 초안은 "원본에서 실제로 고쳤나"로 '수정하기'를 연다(서버 resubmit? 과 같은 기준).
     페이지를 연 순간의 본문을 기준으로 삼으면, 자동 저장된 글을 다시 열었을 때 이미 고친 글인데도
     버튼이 잠겨 선생님께 낼 수 없다. %>
@@ -54,14 +55,20 @@
       input_mode 를 따르므로(고정값 아님) edit 로 재사용될 때 OCR 초안의 ocr 모드를 훼손하지 않는다. %>
   <%= f.hidden_field :input_mode %>
   <%# 표는 자동 저장뿐 아니라 임시 저장 버튼·제출에도 실린다(서버 stale_draft_version?·opened_as_draft?).
+      · opened_as_draft — "초안일 때 연 화면"이라는 표시. **모든 초안 폼**(새 글·사진 첫 제출·담임이 연 학생
+        초안 포함)에 둔다 — 그사이 다른 곳에서 글을 냈으면 이 화면에서는 바꾸지 못한다(3차 리뷰 H1). 버전
+        칸으로만 가르던 때는 버전 칸이 없는 사진 첫 제출 화면이 빠졌다(4차 리뷰 H-B).
       · draft_version — "내가 마지막으로 본 초안"(Report#draft_version). 저장할 때마다 report-autosave 가
         새 값으로 바꾸고, 새 글은 빈 값으로 두었다가 첫 저장이 채운다. **담임이 연 학생 초안에도 둔다** —
-        그래야 담임의 저장도 학생이 그사이 더 쓴 글을 덮지 않는다. 이 칸이 있다는 것 자체가 "초안일 때 연
-        화면"이라는 표시라, 그사이 제출된 글은 이 화면에서 바꾸지 못한다(3차 리뷰 H1).
+        그래야 담임의 저장도 학생이 그사이 더 쓴 글을 덮지 않는다. 사진 첫 제출 화면에는 두지 않는다 —
+        판독 잡이 본문을 채우며 수정 시각을 바꿔, 판독 뒤 첫 제출이 거짓 충돌로 막히기 때문이다.
       · autosave_key — 이 편집 화면의 표. report-autosave 가 화면을 열 때 만든다(스크립트가 없으면 빈 값).
         같은 화면이 다시 보낸 요청을 알아보는 데 쓴다 — 첫 저장 재시도가 초안을 또 만들지 않고, 응답만
         잃은 저장이 "다른 곳에서 고쳤어요"로 거절되지 않게.
       · autosave_seq — 그 화면 안에서 요청을 보낸 순번(입력 횟수). 늦게 도착한 옛 요청을 가른다(M1). %>
+  <% if report.draft? %>
+    <%= hidden_field_tag :opened_as_draft, "1", id: nil, autocomplete: "off" %>
+  <% end %>
   <% if report.autosave_eligible? %>
     <%= hidden_field_tag :draft_version, (report.draft_version if report.persisted?),
           id: nil, autocomplete: "off", data: { report_autosave_target: "version" } %>
@@ -70,12 +77,20 @@
     <%= hidden_field_tag :autosave_key, nil, id: nil, autocomplete: "off", data: { report_autosave_target: "key" } %>
     <%= hidden_field_tag :autosave_seq, nil, id: nil, autocomplete: "off", data: { report_autosave_target: "seq" } %>
   <% end %>
+  <%# 충돌 안내는 누가 연 화면인지에 따라 다르게 쓴다. 담임에게 "다른 탭이나 기기에서"는 틀린 말이고(실제로는
+      학생이 그사이 더 썼거나 냈다), 담임에게는 고쳐쓰기 권한이 없다(4차 리뷰 L-C). %>
+  <% own_report = report.user_id == current_user&.id %>
   <% if conflict %>
     <div class="state-banner state-banner--error" role="alert">
       <%= ui_icon :warning %>
       <span>
-        다른 탭이나 기기에서 이 글을 더 고쳤어요. 아래는 이 화면에서 쓴 글이에요.
-        이 글로 바꾸려면 아래 버튼을 한 번 더 누르세요.
+        <% if own_report %>
+          다른 탭이나 기기에서 이 글을 더 고쳤어요. 아래는 이 화면에서 쓴 글이에요.
+          이 글로 바꾸려면 아래 버튼을 한 번 더 누르세요.
+        <% else %>
+          학생이 그사이 이 글을 더 썼어요. 아래는 이 화면에서 고친 글이에요.
+          버튼을 한 번 더 누르면 학생이 쓴 최신 글이 이 글로 바뀌어요.
+        <% end %>
         <%= link_to "최신 글 보기", edit_report_path(report), class: "underline font-semibold" %>
         (이 화면에서 쓴 내용은 사라지니 필요하면 먼저 복사해 두세요.)
       </span>
@@ -85,8 +100,13 @@
     <div class="state-banner state-banner--error" role="alert">
       <%= ui_icon :warning %>
       <span>
-        이 글은 다른 탭이나 기기에서 이미 제출했어요. 아래는 이 화면에서 쓴 글이에요 — 필요하면 복사해 두세요.
-        더 고치려면 <%= link_to "글 보러 가기", report_path(report), class: "underline font-semibold" %>에서 ‘고쳐쓰기’를 눌러요.
+        <% if own_report %>
+          이 글은 다른 탭이나 기기에서 이미 제출했어요. 아래는 이 화면에서 쓴 글이에요 — 필요하면 복사해 두세요.
+          더 고치려면 <%= link_to "글 보러 가기", report_path(report), class: "underline font-semibold" %>에서 ‘고쳐쓰기’를 눌러요.
+        <% else %>
+          학생이 그사이 이 글을 제출했어요. 아래는 이 화면에서 고친 글이에요 — 필요하면 복사해 두세요.
+          <%= link_to "글 보러 가기", report_path(report), class: "underline font-semibold" %>
+        <% end %>
       </span>
     </div>
   <% end %>
