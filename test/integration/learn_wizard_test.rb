@@ -71,4 +71,42 @@ class LearnWizardTest < ActionDispatch::IntegrationTest
     get learn_index_path
     assert_redirected_to new_session_path
   end
+
+  # 성취기준은 학생 학년군 것만 보여 준다 — 1~4학년에게 5~6학년 코드를 보이지 않는다.
+  test "shows the achievement standard of the student's own grade band" do
+    { 2 => %w[[2국02-05] [2국02-03]], 3 => %w[[4국02-06] [4국02-02]] }.each do |grade, (step1, step2)|
+      classroom = Classroom.create!(school: @school, grade: grade, class_no: 9)
+      student = User.create!(school: @school, classroom: classroom, name: "위저드#{grade}학년", password: "password")
+      login_as student
+
+      get learn_index_path
+      assert_includes response.body, step1
+      assert_not_includes response.body, "[6국", "#{grade}학년에게 5~6학년 성취기준을 보이지 않는다"
+
+      post advance_learn_index_path, params: { step: 1, answer: "책 고르기 답" }
+      follow_redirect!
+      assert_includes response.body, step2
+      delete session_path
+    end
+  end
+
+  test "a student without a classroom sees the lowest grade band, not 5~6" do
+    student = User.create!(school: @school, name: "학급없는학생", password: "password")
+    login_as student
+
+    get learn_index_path
+    assert_includes response.body, "[2국02-05]"
+    assert_not_includes response.body, "[6국"
+  end
+
+  # 단계마다 세 학년군 코드가 모두 있고, 각 코드가 그 학년군 첨삭 목록(고시 원문) 안에 있다.
+  test "every step has a standard from each band's own curriculum list" do
+    LearnController::STEPS.each do |step|
+      assert_equal %i[g12 g34 g56], step[:codes].keys
+      step[:codes].each do |band, code|
+        allowed = ReadingDomain::CURRICULUM_STANDARDS_BY_BAND.fetch(band).values.flatten(1).map(&:first)
+        assert_includes allowed, code, "#{step[:title]} #{band}"
+      end
+    end
+  end
 end
