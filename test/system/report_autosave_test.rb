@@ -87,8 +87,6 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     assert_current_path %r{\A/reports/\d+/edit\z}
     draft = @student.reports.sole
     assert_equal answer, draft.body
-    # "질문 없이 바로 쓰기"는 새 빈 글이 아니라 이 초안으로 간다.
-    assert_equal edit_report_path(draft), URI(find("a[data-report-guide-target='skipLink']")[:href]).path
 
     click_on "초안 만들기"
     click_on "제출하기"
@@ -99,7 +97,121 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
 
+  # --- 2026-09-13 리뷰 후속: 예전 테스트는 모두 "저장했어요"를 기다린 뒤에 움직여 위험 경로를 못 봤다 ---
+
+  test "질문형 작성: 첫 저장 전에 '질문 없이 바로 쓰기'를 눌러도 쓴 답이 폼에 남고 한 편만 생긴다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, guided: 1, report: { book_id: @book.id, book_title: @book.title })
+
+    answer = "마틸다가 도서관에 혼자 가는 장면이 좋았어요."
+    first("textarea[data-report-guide-target='answer']").fill_in with: answer
+    click_on "질문 없이 바로 쓰기"
+
+    # 새 빈 글로 이동하지 않고 이 자리에서 폼이 열린다 — 쓴 답이 본문에 있다.
+    assert_equal answer, find("#report_body_field").value
+    assert_no_selector "a[data-report-guide-target='skipLink']"
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_current_path %r{\A/reports/\d+/edit\z}
+
+    click_on "제출하기"
+    draft = @student.reports.sole
+    assert_current_path report_path(draft)
+    assert draft.reload.submitted?
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  test "새 글: 첫 저장이 날아가는 중에 '제출하기'를 누르면 기다렸다가 그 초안으로 한 편만 낸다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    delay_autosave_requests(2500)
+
+    find("#report_body_field").fill_in with: "마틸다처럼 저도 책을 좋아해요."
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    click_on "제출하기"
+
+    # 저장이 끝나기 전에는 버튼을 잠그고 기다린다(연타해도 제출이 쌓이지 않는다).
+    assert_selector "[data-report-autosave-target='status']", text: "저장하는 중이에요. 끝나면 바로 낼게요."
+    assert_selector "input[type=submit][value='제출하기'][disabled]"
+    assert_current_path %r{\A/reports/\d+\z}, wait: SAVE_WAIT
+    assert_equal 1, @student.reports.count, "첫 저장이 만든 초안을 PATCH 로 내야 한다(create 로 한 편 더 생기면 안 된다)"
+    assert @student.reports.sole.submitted?
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  test "오래된 탭: 다른 곳에서 더 고친 초안은 덮지 않고 멈추며, 쓴 글은 저장 안 됨으로 남는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "학교에서 쓴 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+
+    # 이 화면을 연 뒤에 다른 기기에서 더 썼다.
+    draft.update!(body: "학교에서 쓴 글이에요. 집에서 더 쓴 글이에요.")
+
+    find("#report_body_field").send_keys(" 옛 탭")
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+    assert_equal "학교에서 쓴 글이에요. 집에서 더 쓴 글이에요.", draft.reload.body
+    assert autosave_controller_state("dirty"), "저장 못 한 글은 떠날 때 붙잡아야 한다"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 다른 탭에서 로그아웃하거나 다른 계정으로 로그인하면 옛 보안 토큰으로 보낸 저장이 422 를 받는다
+  # (test 환경은 CSRF 검사가 꺼져 있어 응답을 흉내 낸다). 예전에는 이 422 를 '저장 끝'으로 처리해
+  # "책 제목과 내용을 확인해 주세요"라는 틀린 안내와 함께 떠날 때 경고도 없이 글을 잃었다.
+  test "보안 토큰이 바뀐 422 는 저장 끝이 아니다 — 멈추고 새로 고치게 하며 떠날 때 붙잡는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    answer_autosave_with(status: 422, body: { status: 422, error: "Unprocessable Entity" })
+
+    find("#report_body_field").send_keys(" 더 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /화면을 새로 고쳐 주세요/, wait: SAVE_WAIT
+    assert_no_selector "[data-report-autosave-target='status']", text: /책 제목과 내용을 확인해/
+    assert autosave_controller_state("dirty")
+    assert autosave_controller_state("stopped")
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
   private
+
+  # 자동 저장(Accept: application/json)의 **응답만** 늦춘다 — 요청은 곧바로 서버에 닿아 초안이 생기고,
+  # 브라우저는 그 사실을 늦게 안다(느린 학교 망). 이 사이에 제출이 기다리지 않으면 create 로 한 편이
+  # 더 생긴다. 요청을 늦추면 제출이 먼저 끝나 버려 이 위험을 못 본다. Turbo 의 제출(HTML)은 그대로 둔다.
+  def delay_autosave_requests(ms)
+    execute_script(<<~JS, ms)
+      const delay = arguments[0]
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        const json = new Headers(init.headers || {}).get("Accept") === "application/json"
+        const request = original(input, init)
+        return json ? request.then((response) => new Promise((resolve) => setTimeout(() => resolve(response), delay))) : request
+      }
+    JS
+  end
+
+  # 자동 저장 요청에 서버 대신 정해 둔 응답을 돌려준다.
+  def answer_autosave_with(status:, body:)
+    execute_script(<<~JS, status, body.to_json)
+      const [status, body] = [arguments[0], arguments[1]]
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        const json = new Headers(init.headers || {}).get("Accept") === "application/json"
+        if (!json) return original(input, init)
+        return Promise.resolve(new Response(body, { status, headers: { "content-type": "application/json" } }))
+      }
+    JS
+  end
+
+  def autosave_controller_state(name)
+    evaluate_script(<<~JS)
+      Stimulus.getControllerForElementAndIdentifier(
+        document.querySelector("form[data-controller~='report-autosave']"), "report-autosave").#{name}
+    JS
+  end
 
   # reports_guided_compose_test 와 같은 브라우저 로그인. 마지막 assert_current_path 는 세션 쿠키가
   # 심길 때까지 기다리는 필수 대기점이다(test/CLAUDE.md "브라우저 로그인 3계약").

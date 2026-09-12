@@ -49,12 +49,14 @@ export default class extends Controller {
     bodyField.dispatchEvent(new Event("input", { bubbles: true }))
   }
 
-  // 첫 자동 저장으로 초안이 생겼다(report-autosave:created). "질문 없이 바로 쓰기"가 새 빈 글이
-  // 아니라 **이 초안**으로 가게 한다 — 안 그러면 누르는 순간 '작성 중' 글이 두 편 생기고, 지금까지
-  // 쓴 답은 다른 글에 남는다.
-  draftCreated(event) {
-    const editUrl = event.detail?.editUrl
-    if (editUrl && this.hasSkipLinkTarget) this.skipLinkTarget.setAttribute("href", editUrl)
+  // "질문 없이 바로 쓰기" — 새 화면으로 가지 않고 이 자리에서 폼을 연다. 지금까지 쓴 답은 본문에
+  // 이어 붙여 둔다(이미 초안으로 저장됐을 수도 있는 그 글이다). 예전처럼 빈 새 글로 이동하면, 첫
+  // 자동 저장이 끝나기 전에 누른 경우 답이 든 초안과 빈 새 글이 따로 생겼다. 답이 없으면 빈 폼이다.
+  skip(event) {
+    event.preventDefault()
+    this.sync()
+    this.assembled = true
+    this.showForm()
   }
 
   // 자동 저장 상태(report-autosave:status)를 질문 영역에도 보여 준다 — 답을 쓰는 동안은 폼(과 그
@@ -85,22 +87,28 @@ export default class extends Controller {
       if (firstAnswer) firstAnswer.focus()
       return false
     }
-    if (this.hasNoticeTarget) this.noticeTarget.classList.add("hidden")
 
     bodyField.value = body
     bodyField.dispatchEvent(new Event("input", { bubbles: true }))
     bodyField.dispatchEvent(new Event("change", { bubbles: true }))
     this.assembled = true
+    this.showForm()
+    return true
+  }
 
+  // 질문 패널을 접고 제출 폼을 드러낸다(초안 만들기·질문 없이 바로 쓰기 공용).
+  showForm() {
     if (this.hasQuestionsTarget) this.questionsTarget.classList.add("hidden")
     if (this.hasFormTarget) this.formTarget.classList.remove("hidden")
+    if (this.hasNoticeTarget) this.noticeTarget.classList.add("hidden")
     // "질문 없이 바로 쓰기"는 상단 카드(questions 컨테이너 밖)에 있어 질문을 접어도 살아남는다.
-    // 조립 후 남겨 두면 아이가 눌렀을 때 GET 이동이라 방금 만든 본문이 통째로 사라진다.
+    // 폼이 이미 열렸으니 더 누를 일이 없다.
     if (this.hasSkipLinkTarget) this.skipLinkTarget.classList.add("hidden")
 
+    const bodyField = this.bodyField
+    if (!bodyField) return
     bodyField.scrollIntoView({ behavior: "smooth", block: "center" })
     bodyField.focus()
-    return true
   }
 
   // 질문 화면의 "임시 저장" — 답변을 본문으로 조립한 뒤 제출 폼의 save_draft 버튼을 눌러

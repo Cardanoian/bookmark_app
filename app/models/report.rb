@@ -159,8 +159,25 @@ class Report < ApplicationRecord
   # 화면은 "제출하기를 눌러야 선생님 첨삭이 시작돼요"를 못박고 있어, '저장했어요' 표시가 아이에게
   # '다 됐다'로 읽히면 첨삭이 영영 안 붙는다(09-04 에 임시 저장 버튼을 뺀 것과 같은 이유).
   # 고쳐쓰기 초안은 원본이 사진이어도 대상이다 — 이미 글자로 옮겨진 본문을 고치는 화면이라서다.
+  # 원본을 지운 고쳐쓰기 초안(revision_of_id 가 nil)도 원본의 rubric 을 물려받아 여기 든다.
   def autosave_eligible?
-    draft? && !(ocr? && !revision?)
+    draft? && !(ocr? && !revision? && rubric.blank?)
+  end
+
+  # 선생님께 **처음** 내는 글인지(편집 화면의 '제출하기' 표시와 ReportsController 의 첫 제출 판정이
+  # 함께 쓴다). 첨삭 받은 적 없는 글(OCR 초안·자동 저장된 새 초안)과, **원본을 지운 고쳐쓰기 초안**이다.
+  # 원본을 지우면 revision_of_id 는 nil 이 되지만(has_many :revisions, dependent: :nullify) rubric 은
+  # 원본에서 복사돼 남는다 — rubric 만 보면 "이미 첨삭 받은 글"로 오인해, '수정하기'를 눌러도
+  # 선생님께 가지 않고 다시 열면 버튼까지 잠겼다(2026-09-13 리뷰에서 재현).
+  def first_submission?
+    !revision? && (rubric.blank? || draft?)
+  end
+
+  # 자동 저장이 "내가 마지막으로 본 초안"을 서버에 알리는 표. 다른 탭·기기가 그사이 초안을 더 고쳤으면
+  # 값이 달라져 서버가 저장을 거절한다(ReportsController#stale_draft_version?). 초 단위로는 같은 초 안의
+  # 두 저장을 가르지 못하므로 마이크로초까지 쓴다.
+  def draft_version
+    updated_at&.utc&.iso8601(6)
   end
 
   # 표시할 OCR 원본 사진(ActiveStorage::Attached::One 또는 nil). 고쳐쓰기(revise)는 부모의

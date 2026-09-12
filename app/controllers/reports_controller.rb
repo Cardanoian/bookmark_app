@@ -2,6 +2,10 @@ class ReportsController < ApplicationController
   before_action :set_report, only: [ :show, :edit, :update, :destroy, :revise, :share ]
 
   PER_PAGE = 20
+  # 자동 저장이 새 글 화면에서 만든 초안을 그 화면 주소로 다시 열어 주는 기간. 새로고침·뒤로 가기·
+  # 앱이 화면을 다시 여는 경우만 덮으면 된다 — 며칠 뒤 같은 책으로 새 글을 쓰려는 아이를 옛 초안으로
+  # 끌고 가지 않게 짧게 둔다(마지막 저장 기준이라 계속 쓰는 동안은 이어진다).
+  AUTOSAVE_ORIGIN_TTL = 2.hours
 
   # 학생은 자기 글, 교사는 담당 학급 글(정책 스코프). 무제한 목록을 페이지네이션한다.
   # 필터(book_id/book_title/reviewed)는 반드시 policy_scope 위에만 얹어 위조 파라미터로 남의 글이
@@ -36,6 +40,12 @@ class ReportsController < ApplicationController
     @guided = ReadingDomain.guided_questions(ReadingDomain.guided_band_for(Current.user.classroom&.grade))
     @report = Current.user.reports.new(prefill_attributes)
     authorize @report
+
+    # 이 새 글 화면에서 자동 저장이 이미 초안을 만들었으면(새로고침·뒤로 가기·앱이 화면을 다시 엶)
+    # 빈 새 글 대신 그 초안을 연다. 안 그러면 아이가 빈 폼에 다시 쓰며 '작성 중' 글이 두 편 생긴다.
+    # 앱은 자동 저장이 바꾼 주소(history.replace)를 모르고 처음 주소로 화면을 다시 연다.
+    draft = autosaved_draft_from_here
+    redirect_to edit_report_path(draft), notice: "쓰던 글을 이어서 열었어요." if draft
   end
 
   def create
@@ -53,7 +63,10 @@ class ReportsController < ApplicationController
       if @report.save
         respond_to do |format|
           format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요." }
-          format.json { render_draft_saved(status: :created) }
+          format.json do
+            remember_autosave_origin(@report)
+            render_draft_saved(status: :created)
+          end
         end
       else
         render_draft_invalid(:new)
@@ -81,7 +94,9 @@ class ReportsController < ApplicationController
     # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
     was_draft = @report.draft?
 
-    if @report.update(report_params)
+    # 원격 검색으로 고른 책도 여기서 등록한다. 자동 저장이 첫 저장에서 초안을 만든 뒤로는 제출이
+    # create 가 아니라 이 update 로 오므로, 여기서 빠지면 첫 저장 뒤에 고른 원격 책은 끝내 연결되지 않는다.
+    if @report.update(report_params_with_registered_book)
       # 첫 제출을 먼저 본다. 자동 저장된 새 초안을 내면서 본문을 조금 더 고쳤다고 "고쳐 썼어요"라고
       # 안내하면, 고쳐쓰기를 한 적 없는 아이에게 틀린 말이 된다.
       if first_review? && @report.body.present?
@@ -249,18 +264,22 @@ class ReportsController < ApplicationController
 
   # 초안 저장(제출 아님). 본문 변경만 반영하고 submitted_at·ai_status 는 건드리지 않는다.
   #
-  # 두 가드는 자동 저장이 생기면서 필요해졌다.
+  # 세 가드는 자동 저장이 생기면서 필요해졌다.
   # · 작성자 본인만 — 초안은 아이의 쓰는 중인 글이다. 정책은 담임의 update 도 허용하지만,
-  #   임시 저장·자동 저장 화면은 작성 학생에게만 있다.
+  #   임시 저장·자동 저장은 작성 학생에게만 켠다(_form).
   # · 아직 내지 않은 글만 — 다른 탭에서 방금 제출한 글을 남은 탭의 자동 저장이 덮어쓰면,
   #   교사가 보는 본문과 AI 첨삭 대상이 어긋난다. 제출된 글의 본문은 제출 경로로만 바뀐다.
+  # · 자동 저장은 마지막으로 본 초안일 때만 — 어제 열어 둔 태블릿 탭에 한 글자만 쳐도, 그사이 집에서
+  #   더 쓴 본문이 옛 본문으로 통째로 덮였다(2026-09-13 리뷰).
   def update_as_draft
     raise Pundit::NotAuthorizedError unless @report.user_id == Current.user.id
     return reject_draft_save_after_submit unless @report.draft?
+    return reject_stale_draft_save if stale_draft_version?
 
-    if !draft_body_present?(@report, incoming: report_params)
+    attrs = report_params_with_registered_book
+    if !draft_body_present?(@report, incoming: attrs)
       render_draft_invalid(:edit)
-    elsif @report.update(report_params)
+    elsif @report.update(attrs)
       respond_to do |format|
         format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 이어서 쓸 수 있어요." }
         format.json { render_draft_saved }
@@ -271,14 +290,49 @@ class ReportsController < ApplicationController
   end
 
   # 자동 저장 응답. 폼이 다음 저장부터 같은 초안을 갱신하도록 update_url 을, 새로고침해도 이어
-  # 쓰도록 edit_url 을 준다. book_id 는 원격 검색으로 고른 책이 초안을 만들며 등록된 경우를 위한
+  # 쓰도록 edit_url 을 준다. book_id 는 원격 검색으로 고른 책이 저장하며 등록된 경우를 위한
   # 것이다 — 폼의 숨은 book_id 는 비어 있으므로, 이 값을 심지 않으면 다음 저장이 연결을 끊는다.
+  # draft_version 은 다음 저장이 "내가 본 초안이 아직 최신인가"를 묻는 표다(stale_draft_version?).
   def render_draft_saved(status: :ok)
     render json: { id: @report.id,
                    update_url: report_path(@report),
                    edit_url: edit_report_path(@report),
                    book_id: @report.book_id,
+                   draft_version: @report.draft_version,
                    saved_at: @report.updated_at.iso8601 }, status: status
+  end
+
+  # 자동 저장(JSON)이 보낸 초안 버전이 지금 것과 다르면 그사이 다른 탭·기기가 이 초안을 더 고친 것이다.
+  # 임시 저장 버튼·제출(HTML)은 보지 않는다 — 아이가 지금 화면의 글로 하겠다고 직접 누른 것이라서다.
+  # 버전을 싣지 않은 요청(자동 저장 도입 전 스크립트가 남은 화면)은 예전처럼 받는다.
+  def stale_draft_version?
+    request.format.json? && params[:draft_version].present? && params[:draft_version] != @report.draft_version
+  end
+
+  def reject_stale_draft_save
+    render json: { error: "stale" }, status: :conflict
+  end
+
+  # 자동 저장이 새 글 화면(/reports/new?…)에서 초안을 만들었다 — 그 화면 주소를 기억해 new 가 같은
+  # 주소로 다시 오면 초안을 열어 준다(autosaved_draft_from_here). 주소는 브라우저가 연결된 순간의
+  # 것을 싣는다(떠나는 순간에 저장하면 location 이 이미 다음 화면이다). 하나만 기억해 쿠키를 키우지 않는다.
+  def remember_autosave_origin(report)
+    origin = params[:autosave_origin].to_s
+    return unless origin == new_report_path || origin.start_with?("#{new_report_path}?")
+
+    session[:autosave_origin] = { "path" => origin, "report_id" => report.id }
+  end
+
+  def autosaved_draft_from_here
+    memo = session[:autosave_origin]
+    return unless memo.is_a?(Hash) && memo["path"] == request.fullpath
+
+    draft = Current.user.reports.find_by(id: memo["report_id"])
+    return draft if draft&.draft? && draft.updated_at >= AUTOSAVE_ORIGIN_TTL.ago
+
+    # 이미 냈거나 지웠거나 오래된 초안이면 잊는다 — 다음 새 글은 정말 새 글이다.
+    session.delete(:autosave_origin)
+    nil
   end
 
   def render_draft_invalid(template)
@@ -297,8 +351,9 @@ class ReportsController < ApplicationController
 
   # 빈 초안은 만들지 않는다. Report 에는 body presence 검증이 없어(사진 초안은 본문 없이 태어난다)
   # 이 가드가 없으면 아무것도 안 쓰고 누른 "임시 저장"이 빈 '작성 중' 글을 목록에 쌓는다.
+  # 본문 칸을 싣지 않은 요청(책만 바꾼 저장)은 저장된 본문을 본다 — 없는 칸을 빈 본문으로 읽지 않는다.
   def draft_body_present?(report, incoming: nil)
-    body = incoming ? incoming[:body] : report.body
+    body = incoming&.key?(:body) ? incoming[:body] : report.body
     return true if body.present?
 
     report.errors.add(:body, "를 조금이라도 쓴 뒤에 임시 저장할 수 있어요.")
@@ -324,10 +379,10 @@ class ReportsController < ApplicationController
     text.to_s.gsub(/\r\n?/, "\n").strip
   end
 
-  # 아직 AI 첨삭 이력이 없고(고쳐쓰기 아님) 본인 글이면 첫 제출로 간주(OCR 초안 등).
-  # revise 초안은 revision_of_id 가 있어 제외되므로 "동일 본문 재첨삭 스킵"이 유지된다.
-  # rubric 은 JSON 컬럼이라 nil·빈해시 모두 blank? true(미첨삭 판정).
+  # 본인 글의 첫 제출인지(Report#first_submission? — 첨삭 받은 적 없는 글, 원본을 지운 고쳐쓰기 초안).
+  # 원본이 있는 revise 초안은 제외되므로 "동일 본문 재첨삭 스킵"이 유지된다.
+  # update 는 submitted_at 을 건드리지 않으므로 저장 뒤에 불러도 draft? 는 저장 전과 같다.
   def first_review?
-    Current.user.id == @report.user_id && @report.revision_of_id.nil? && @report.rubric.blank?
+    Current.user.id == @report.user_id && @report.first_submission?
   end
 end

@@ -227,6 +227,39 @@ class ReportTest < ActiveSupport::TestCase
     assert_not build_report(input_mode: :ocr, book_title: "무사진").tap(&:save!).display_photo?
   end
 
+  # 자동 저장 대상·첫 제출 판정(2026-09-13 리뷰 후속). 원본을 지운 고쳐쓰기 초안은 revision_of_id 가
+  # nil 이지만 원본의 rubric 을 물려받는다 — "첨삭 받은 적 없는 사진 초안"과 가르는 기준이 rubric 이다.
+  test "autosave_eligible? excludes only the first-submit screen of a photo draft" do
+    rubric = { content: 3, emotion: 3, life: 2, structure: 3, spelling: 4 }
+    parent = build_report(submitted_at: 1.day.ago, rubric: rubric).tap(&:save!)
+
+    assert build_report.autosave_eligible?, "키보드 초안"
+    assert_not build_report(input_mode: :ocr).autosave_eligible?, "사진 초안의 첫 제출 화면"
+    assert build_report(input_mode: :ocr, revision_of: parent, rubric: rubric).autosave_eligible?, "사진 원본의 고쳐쓰기"
+    assert build_report(input_mode: :ocr, rubric: rubric).autosave_eligible?, "원본을 지운 사진 고쳐쓰기"
+    assert_not build_report(submitted_at: Time.current).autosave_eligible?, "이미 낸 글"
+  end
+
+  test "first_submission? covers never-reviewed reports and orphaned revision drafts" do
+    rubric = { content: 3, emotion: 3, life: 2, structure: 3, spelling: 4 }
+    parent = build_report(submitted_at: 1.day.ago, rubric: rubric).tap(&:save!)
+
+    assert build_report.first_submission?, "첨삭 받은 적 없는 초안"
+    assert build_report(rubric: rubric).first_submission?, "원본을 지운 고쳐쓰기 초안"
+    assert_not build_report(revision_of: parent, rubric: rubric).first_submission?, "원본이 있는 고쳐쓰기 초안"
+    assert_not build_report(rubric: rubric, submitted_at: Time.current).first_submission?, "이미 첨삭 받은 글"
+  end
+
+  test "draft_version changes on every save with microsecond precision" do
+    report = build_report.tap(&:save!)
+    first = report.draft_version
+    assert_match(/\.\d{6}Z\z/, first)
+
+    report.update!(body: "더 쓴 글")
+    assert_not_equal first, report.draft_version
+    assert_equal report.draft_version, Report.find(report.id).draft_version, "저장 직후 값과 다시 읽은 값이 같다"
+  end
+
   private
 
   def build_report(attrs = {})

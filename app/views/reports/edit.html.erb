@@ -9,7 +9,7 @@
     </h1>
   </header>
 
-  <% first_submit = @report.persisted? && @report.rubric.blank? && !@report.revision? %>
+  <% first_submit = @report.persisted? && @report.first_submission? %>
 
   <% if @report.ocr? %>
     <div id="ocr_reading_status" aria-live="polite" class="mb-4">
