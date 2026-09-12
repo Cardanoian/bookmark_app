@@ -176,7 +176,80 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
 
+  # 브라우저는 keepalive 요청 본문을 64KiB 까지만 보낸다(넘으면 보내지도 않고 곧바로 실패). 예전에는
+  # 아주 긴 글을 쓰고 창을 닫으면 떠나는 순간의 저장이 조용히 실패하고 경고도 없었다(리뷰 #12).
+  test "아주 긴 글은 떠날 때 keepalive 없이 보내고 붙잡는다 — 머물면 저장이 끝난다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    record_autosave_requests
+
+    long_text = "마틸다가 책을 읽는다. " * 2_500 # 한글 약 2만 자 — UTF-8 로 64KiB 를 넘는다
+    type_into_body(long_text)
+    assert dispatch_beforeunload, "keepalive 로 보낼 수 없는 글은 떠날 때 붙잡아야 한다"
+
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_equal [ false ], recorded_keepalive_flags, "한도를 넘는 글은 보통 요청으로 보낸다(keepalive 면 곧바로 실패)"
+    assert_equal long_text.strip, draft.reload.body.strip
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  test "보통 길이의 글은 떠날 때 keepalive 로 조용히 저장하고 붙잡지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    record_autosave_requests
+
+    type_into_body("쓰다 만 글이에요. 떠나기 직전에 한 줄 더 썼어요.")
+    assert_not dispatch_beforeunload, "잘 돌고 있으면 떠나는 순간 저장만 하고 붙잡지 않는다"
+
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_equal [ true ], recorded_keepalive_flags
+    assert_equal "쓰다 만 글이에요. 떠나기 직전에 한 줄 더 썼어요.", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
   private
+
+  # 긴 글을 키 입력으로 치면 수십 초가 걸린다. 값을 넣고 입력 이벤트를 흘린다(자동 저장은 input 을 듣는다).
+  def type_into_body(text)
+    execute_script(<<~JS, text)
+      const field = document.querySelector("#report_body_field")
+      field.value = arguments[0]
+      field.dispatchEvent(new Event("input", { bubbles: true }))
+    JS
+  end
+
+  # 창을 닫는 순간(beforeunload)을 흉내 낸다. 반환값 = 떠나기 전에 붙잡았는가(preventDefault).
+  def dispatch_beforeunload
+    evaluate_script(<<~JS)
+      (() => {
+        const event = new Event("beforeunload", { cancelable: true })
+        window.dispatchEvent(event)
+        return event.defaultPrevented
+      })()
+    JS
+  end
+
+  # 자동 저장 요청(Accept JSON)마다 keepalive 를 썼는지 기록한다(요청은 그대로 서버로 간다).
+  def record_autosave_requests
+    execute_script(<<~JS)
+      window.__autosaveKeepalive = []
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        if (new Headers(init.headers || {}).get("Accept") === "application/json") window.__autosaveKeepalive.push(!!init.keepalive)
+        return original(input, init)
+      }
+    JS
+  end
+
+  def recorded_keepalive_flags
+    evaluate_script("window.__autosaveKeepalive")
+  end
 
   # 자동 저장(Accept: application/json)의 **응답만** 늦춘다 — 요청은 곧바로 서버에 닿아 초안이 생기고,
   # 브라우저는 그 사실을 늦게 안다(느린 학교 망). 이 사이에 제출이 기다리지 않으면 create 로 한 편이

@@ -66,7 +66,7 @@ class OcrJobTest < ActiveJob::TestCase
   # "사진에서 글자를 읽고 있어요" 배너가 그대로 남아, 글자가 채워졌는데도 아직 처리 중이라고
   # 말한다 — 학생이 제출하기를 누를 이유를 못 느끼고 떠나면 초안인 채로 남아 첨삭이 영영 안 붙는다.
   test "broadcasts both the body and the submit prompt when OCR succeeds" do
-    assert_turbo_stream_broadcasts([ @user, :report_editor ], count: 2) do
+    assert_turbo_stream_broadcasts([ @report, :report_editor ], count: 2) do
       stub_new(Ai::OcrService, OcrStub.new("인식된 손글씨 본문")) do
         OcrJob.perform_now(@report)
       end
@@ -75,6 +75,29 @@ class OcrJobTest < ActiveJob::TestCase
     status_html = OcrJob.new.send(:ocr_ready_status_html)
     assert_includes status_html, 'id="ocr_reading_status"'
     assert_includes status_html, "제출하기"
+  end
+
+  # 사용자 단위 채널이던 시절, 같은 학생이 다른 탭에 열어 둔 **다른 초안**의 본문까지 이 판독 결과로
+  # 바뀌었고 자동 저장이 그 엉뚱한 본문을 그 초안에 저장했다(2026-09-13 리뷰 #9). 방송은 이 글의 채널로만 간다.
+  test "broadcasts only to this report's editor, not to the student's other drafts" do
+    other_draft = Report.create!(user: @user, classroom: @classroom, book_title: "다른 책",
+                                 body: "다른 탭에서 쓰는 글", input_mode: :keyboard)
+
+    assert_no_turbo_stream_broadcasts([ other_draft, :report_editor ]) do
+      assert_no_turbo_stream_broadcasts([ @user, :report_editor ]) do
+        stub_new(Ai::OcrService, OcrStub.new("인식된 손글씨 본문")) do
+          OcrJob.perform_now(@report)
+        end
+      end
+    end
+    assert_equal "다른 탭에서 쓰는 글", other_draft.reload.body
+  end
+
+  test "the failure notice also goes only to this report's editor" do
+    assert_turbo_stream_broadcasts([ @report, :report_editor ], count: 1) do
+      OcrJob.perform_now(@report)
+    end
+    assert @report.reload.failed?
   end
 
   test "does not run OCR (no Claude call) for a student without AI consent (P1-1)" do

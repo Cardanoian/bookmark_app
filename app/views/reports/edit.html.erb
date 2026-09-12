@@ -1,7 +1,9 @@
 <% content_for :title, "독후감 수정 · 책갈피" %>
 
 <div class="page-shell page-shell-form">
-  <%= turbo_stream_from current_user, :report_editor %>
+  <%# OcrJob 이 이 글의 본문·판독 상태를 채우는 채널. **글 단위**다 — 사용자 단위였을 때는 다른 탭에
+      열어 둔 다른 초안의 본문까지 이 사진의 판독 결과로 바뀌었고, 자동 저장이 그 글을 그대로 저장했다. %>
+  <%= turbo_stream_from @report, :report_editor %>
 
   <header class="page-header">
     <h1 class="page-title">

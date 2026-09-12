@@ -40,20 +40,23 @@ class OcrJob < ApplicationJob
 
   private
 
-  # OCR 초안 → 작성자의 에디터 본문을 교체한다(사진→텍스트 실시간, P3.4).
+  # OCR 초안 → 그 글의 편집 화면 본문을 교체한다(사진→텍스트 실시간, P3.4).
+  # 채널은 **글 단위**([report, :report_editor], reports/edit 가 구독)다. 예전의 사용자 단위 채널은
+  # 같은 학생이 다른 탭에 열어 둔 다른 초안의 본문까지 이 판독 결과로 바꿨고, 자동 저장이 켜진 뒤로는
+  # 다음 입력 때 그 엉뚱한 본문이 그 초안에 조용히 저장됐다(2026-09-13 리뷰 #9).
   # 본문만 바꾸면 compose 화면의 "읽고 있어요" 배너가 그대로 남아, 글자가 채워졌는데도 화면은
   # 계속 처리 중이라고 말한다 — 학생이 제출하기를 누를 이유를 못 느끼고 떠나면 초안인 채로
   # 남는다(첨삭이 영영 안 붙던 결함의 시작점). 그래서 상태 영역도 함께 교체해 남은 행동을
   # 명시한다. 마크업은 edit 뷰의 done 분기와 동일하게 맞춘다.
   def broadcast_ocr_ready(report)
     report.broadcast_replace_to(
-      [ report.user, :report_editor ],
+      [ report, :report_editor ],
       target: "report_body_field",
       partial: "reports/body_field",
       locals: { report: report }
     )
     report.broadcast_replace_to(
-      [ report.user, :report_editor ],
+      [ report, :report_editor ],
       target: "ocr_reading_status",
       html: ocr_ready_status_html
     )
@@ -81,7 +84,7 @@ class OcrJob < ApplicationJob
     return unless report
 
     report.broadcast_replace_to(
-      [ report.user, :report_editor ],
+      [ report, :report_editor ],
       target: "ocr_reading_status",
       html: ocr_failed_status_html
     )

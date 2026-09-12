@@ -1,5 +1,18 @@
 require "test_helper"
 
+# 동시 요청 흉내(2026-09-13 리뷰 #11). 컨트롤러가 행을 잠그기 **직전에** 다른 요청이 먼저 끝났다고 치고
+# 행을 바꾼다. 잠근 뒤 다시 읽어 판단하지 않으면 이 변경을 못 보고 그 위에 옛 본문을 쓴다.
+# 훅이 없으면 아무 일도 하지 않는다(ActiveStorage variant 시임과 같은 테스트 전용 시임).
+module ReportLockRaceHook
+  mattr_accessor :before_lock
+
+  def lock!(*)
+    ReportLockRaceHook.before_lock&.call(self)
+    super
+  end
+end
+Report.prepend(ReportLockRaceHook)
+
 # 독후감 자동 저장(2026-09-12 되살림 — docs/improve/베타피드백_통합정리.md §5-1, WR-1).
 #
 # 브라우저의 report-autosave 컨트롤러는 임시 저장과 같은 save_draft 경로를 JSON 으로 부른다.
@@ -349,7 +362,74 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     assert_select "input[name='draft_version']", 0
   end
 
+  # --- 확인과 갱신 사이의 틈(리뷰 #11) ---
+
+  test "자동 저장이 초안을 읽은 뒤 잠그기 전에 제출이 끝났으면 그 위에 쓰지 않는다" do
+    draft = keyboard_draft
+    login_as @student
+
+    submitted_meanwhile = ->(report) { Report.where(id: report.id).update_all(body: "방금 낸 글", submitted_at: Time.current) }
+    with_write_before_lock(submitted_meanwhile) do
+      patch report_path(draft), params: { save_draft: "1", draft_version: draft.draft_version, report: { body: "뒤늦게 닿은 자동 저장" } },
+                                headers: JSON_HEADERS
+    end
+
+    assert_response :conflict
+    assert_equal "already_submitted", response.parsed_body["error"]
+    assert_equal "방금 낸 글", draft.reload.body, "선생님께 간 글이 뒤늦은 자동 저장으로 바뀌면 안 된다"
+  end
+
+  test "같은 초안의 두 저장이 겹치면 늦게 잠근 쪽은 stale 로 거절된다" do
+    draft = keyboard_draft
+    seen = draft.draft_version
+    login_as @student
+
+    other_tab_saved = ->(report) { Report.where(id: report.id).update_all(body: "다른 탭이 방금 저장한 글", updated_at: 1.second.from_now) }
+    with_write_before_lock(other_tab_saved) do
+      patch report_path(draft), params: { save_draft: "1", draft_version: seen, report: { body: "같은 버전을 들고 온 저장" } },
+                                headers: JSON_HEADERS
+    end
+
+    assert_response :conflict
+    assert_equal "stale", response.parsed_body["error"]
+    assert_equal "다른 탭이 방금 저장한 글", draft.reload.body
+  end
+
+  # 본문 저장과 제출 기록이 따로 커밋되던 때는 그 사이에 끼어든 자동 저장이 "아직 초안"을 보고 옛 본문을
+  # 썼다. 제출도 같은 잠금을 잡아 다시 읽고, 본문·제출 기록을 한 번에 쓴다.
+  test "제출도 행을 잠그고 다시 읽은 뒤 본문과 제출 기록을 함께 쓴다" do
+    draft = keyboard_draft
+    login_as @student
+
+    locked = false
+    autosave_meanwhile = lambda do |report|
+      locked = true
+      Report.where(id: report.id).update_all(body: "직전에 닿은 자동 저장")
+    end
+    with_write_before_lock(autosave_meanwhile) do
+      assert_enqueued_with job: AiReviewJob do
+        patch report_path(draft), params: { report: { body: "제출하며 쓴 최종 글" } }
+      end
+    end
+
+    assert locked, "제출도 자동 저장과 같은 잠금을 잡아야 둘이 번갈아 끼어들지 않는다"
+    draft.reload
+    assert draft.submitted?
+    assert_equal "제출하며 쓴 최종 글", draft.body
+  end
+
   private
+
+  # 컨트롤러가 행을 잠그기 직전에 한 번만 change 를 실행한다(다른 요청이 먼저 끝난 상황).
+  def with_write_before_lock(change)
+    ReportLockRaceHook.before_lock = lambda do |report|
+      ReportLockRaceHook.before_lock = nil
+      change.call(report)
+    end
+    yield
+  ensure
+    ReportLockRaceHook.before_lock = nil
+  end
 
   def with_memory_cache
     original = Rails.cache

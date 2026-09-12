@@ -28,6 +28,9 @@ class LiveUpdateSubscriptionsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-cable-stream-source", 1
+    # 이 글의 채널이어야 한다. 학생 단위 채널이면 다른 탭의 다른 초안 본문까지 판독 결과로 바뀐다.
+    assert_select "turbo-cable-stream-source[signed-stream-name=?]",
+                  Turbo::StreamsChannel.signed_stream_name([ report, :report_editor ])
   end
 
   test "몬스터 도감이 활성 몬스터 변경을 구독한다" do

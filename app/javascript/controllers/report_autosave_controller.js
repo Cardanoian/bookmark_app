@@ -13,6 +13,7 @@ import { Controller } from "@hotwired/stimulus"
 // · 입력이 멈추고 2초 뒤 저장하고, 쉬지 않고 쓰는 중이면 20초마다 한 번은 저장한다. 새 글의 첫
 //   저장은 첫 입력 0.8초 뒤에 바로 한다(초안이 생기기 전에 새로고침하면 빈 새 글로 돌아가므로).
 //   화면을 떠날 때(Turbo 이동·새로고침·창 닫기·앱이 화면을 닫음·탭 전환)는 그 자리에서 한 번 더(keepalive).
+//   keepalive 한도(64KiB)를 넘는 아주 긴 글은 보통 요청으로 보내고, 창을 닫을 때는 붙잡는다.
 // · 저장은 한 번에 하나(single-flight). 새 글의 첫 저장이 초안을 만들면 폼을 그 초안의 PATCH 로
 //   바꾼다 — 안 바꾸면 '제출하기'가 create 로 한 편을 더 만든다. 첫 저장이 날아가는 중에 제출을
 //   누르면 끝날 때까지 기다렸다가 PATCH 로 낸다(기다리는 동안 버튼을 잠근다).
@@ -28,6 +29,9 @@ const DEBOUNCE_MS = 2000
 const FIRST_SAVE_DELAY_MS = 800
 const MAX_WAIT_MS = 20000
 const REQUEST_TIMEOUT_MS = 15000
+// 브라우저는 keepalive 요청 본문을 한 문서에서 합쳐 64KiB 까지만 보낸다(넘으면 보내지도 않고 곧바로
+// 실패한다). 한글은 한 글자에 3바이트라 약 2만 자를 넘는 글이 걸린다. 어림값에 여유를 두고 자른다.
+const KEEPALIVE_MAX_BYTES = 60 * 1024
 const RETRY_DELAYS_MS = [ 5000, 15000, 30000, 60000 ]
 const LEAVE_WARNING = "아직 저장하지 못한 내용이 있어요. 이 화면을 나갈까요?"
 const RELOAD_HINT = "쓴 글을 복사해 둔 뒤 화면을 새로 고쳐 주세요."
@@ -172,13 +176,14 @@ export default class extends Controller {
     const version = this.version
     const creating = this.creating
     const sentBook = this.bookSnapshot
-    const payload = new FormData(this.element)
-    payload.set("save_draft", "1")
-    if (creating) payload.set("autosave_origin", this.origin)
+    const payload = this.buildPayload(creating)
+    // 한도를 넘는 글은 keepalive 없이 보낸다(Turbo 이동·탭 전환에서는 문서가 남아 있어 끝까지 간다).
+    // 창을 닫는 순간에는 끊길 수 있으므로 handleBeforeUnload 가 먼저 붙잡는다.
+    const useKeepalive = keepalive && this.payloadBytes(payload) <= KEEPALIVE_MAX_BYTES
     this.showStatus("저장 중…")
 
     this.inflightCreating = creating
-    this.inflight = this.request(payload, keepalive)
+    this.inflight = this.request(payload, useKeepalive)
       .then((response) => this.handleResponse(response, { version, creating, sentBook }))
       .catch(() => this.handleFailure())
       .finally(() => this.afterSave())
@@ -194,12 +199,17 @@ export default class extends Controller {
   // 새로고침·창 닫기. 자동 저장이 제대로 돌고 있으면 한 번 더 저장하고 붙잡지 않는다. 저장이
   // 날아가는 중이거나(문서가 내려가면 그 요청은 끊길 수 있다) 실패·멈춤·검증 실패·오프라인·경고 전용
   // 폼이거나, 첫 저장을 기다리는 제출이 아직 안 나갔으면 붙잡는다.
+  // **아주 긴 글**은 keepalive 한도를 넘어 떠나는 순간의 저장이 곧바로 실패하므로(예전에는 경고 없이
+  // 잃었다), 보통 요청으로 먼저 보내 두고 붙잡는다 — 아이가 '머물기'를 고르면 그 저장이 끝난다.
   handleBeforeUnload(event) {
     if (this.submissionSent || !this.dirty) return
 
     if (!this.submitting && this.canSaveSilently) {
-      this.save({ keepalive: true })
-      return
+      if (this.fitsKeepalive) {
+        this.save({ keepalive: true })
+        return
+      }
+      this.save()
     }
     event.preventDefault()
     event.returnValue = ""
@@ -255,6 +265,28 @@ export default class extends Controller {
 
   field(name) {
     return this.element.querySelector(`input[name='${name}']`)
+  }
+
+  buildPayload(creating) {
+    const payload = new FormData(this.element)
+    payload.set("save_draft", "1")
+    if (creating) payload.set("autosave_origin", this.origin)
+    return payload
+  }
+
+  get fitsKeepalive() {
+    return this.payloadBytes(this.buildPayload(this.creating)) <= KEEPALIVE_MAX_BYTES
+  }
+
+  // multipart 본문 크기 어림값 — 칸마다 경계·머리글 몫 128바이트 + 이름·값의 UTF-8 바이트 수.
+  payloadBytes(payload) {
+    const encoder = new TextEncoder()
+    let bytes = 0
+    for (const [ name, value ] of payload.entries()) {
+      bytes += 128 + encoder.encode(name).length
+      bytes += typeof value === "string" ? encoder.encode(value).length : value.size
+    }
+    return bytes
   }
 
   request(payload, keepalive) {

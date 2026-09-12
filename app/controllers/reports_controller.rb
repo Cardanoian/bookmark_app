@@ -91,25 +91,44 @@ class ReportsController < ApplicationController
     # "임시 저장" 버튼이 곧 "제출하기"가 되어 AI 첨삭이 돌고 교사 큐에 올라간다.
     return update_as_draft if save_draft?
 
-    # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
-    was_draft = @report.draft?
-
     # 원격 검색으로 고른 책도 여기서 등록한다. 자동 저장이 첫 저장에서 초안을 만든 뒤로는 제출이
     # create 가 아니라 이 update 로 오므로, 여기서 빠지면 첫 저장 뒤에 고른 원격 책은 끝내 연결되지 않는다.
-    if @report.update(report_params_with_registered_book)
+    # 등록은 바깥 검색 API 를 부를 수 있어 잠그기 전에 한다.
+    attrs = report_params_with_registered_book
+
+    # 본문 저장과 제출 기록(submitted_at)을 **한 잠금 안에서** 한다. 둘이 따로 커밋되던 때는 그 사이에
+    # 끼어든 자동 저장(update_as_draft)이 "아직 초안"을 보고 옛 본문을 써, 선생님께 옛 글이 갔다.
+    # AI 첨삭 예약은 잠금(트랜잭션)이 끝난 뒤에 한다 — 커밋 전에 잡이 돌면 제출 전 상태를 읽는다.
+    outcome = @report.with_lock do
+      # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
+      # 잠근 뒤 다시 읽은 값이라 같은 순간 먼저 끝난 요청의 결과를 본다.
+      was_draft = @report.draft?
+      next :invalid unless @report.update(attrs)
+
       # 첫 제출을 먼저 본다. 자동 저장된 새 초안을 내면서 본문을 조금 더 고쳤다고 "고쳐 썼어요"라고
       # 안내하면, 고쳐쓰기를 한 적 없는 아이에게 틀린 말이 된다.
       if first_review? && @report.body.present?
-        submit_for_review(@report)
-        redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
+        record_submission!(@report)
+        :first_submission
       elsif resubmit?(was_draft)
-        submit_for_review(@report)
-        redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
+        record_submission!(@report)
+        :resubmission
       else
-        redirect_to @report, notice: "독후감을 저장했어요."
+        :saved
       end
-    else
+    end
+
+    case outcome
+    when :invalid
       render :edit, status: :unprocessable_entity
+    when :first_submission
+      AiReviewJob.perform_later(@report)
+      redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
+    when :resubmission
+      AiReviewJob.perform_later(@report)
+      redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
+    else
+      redirect_to @report, notice: "독후감을 저장했어요."
     end
   end
 
@@ -237,6 +256,13 @@ class ReportsController < ApplicationController
   # 재제출은 시각을 갱신하지 않는다 — 술어(`submitted?`)에는 갱신이 불필요하고, 덮어쓰면
   # "언제 처음 냈는가"라는 되살릴 수 없는 사실만 잃는다.
   def submit_for_review(report)
+    record_submission!(report)
+    AiReviewJob.perform_later(report)
+  end
+
+  # 제출 기록(DB 쓰기만). update 는 이것을 본문 저장과 같은 잠금 안에서 부르고, AI 첨삭 예약은
+  # 잠금이 끝난 뒤에 따로 한다(submit_for_review 는 둘을 이어 부르는 create 용).
+  def record_submission!(report)
     report.update!(ai_status: :pending, reviewed: false, reviewed_at: nil,
                    submitted_at: report.submitted_at || Time.current,
                    teacher_feedback: nil, teacher_rubric: nil, teacher_comment: nil)
@@ -244,7 +270,6 @@ class ReportsController < ApplicationController
     # **미검토 본문이 게시판에 그대로 공개된 채** 남는다(ReportPolicy#share? 의 승인 게이트를
     # 우회하는 유일한 구멍이었다). 공유 중이 아니면 no-op.
     unshare!(report) if report.shared?
-    AiReviewJob.perform_later(report)
   end
 
   # 공유 해제 + 게시물 파기. share 액션의 취소 분기와 submit_for_review 가 공용한다.
@@ -271,21 +296,34 @@ class ReportsController < ApplicationController
   #   교사가 보는 본문과 AI 첨삭 대상이 어긋난다. 제출된 글의 본문은 제출 경로로만 바뀐다.
   # · 자동 저장은 마지막으로 본 초안일 때만 — 어제 열어 둔 태블릿 탭에 한 글자만 쳐도, 그사이 집에서
   #   더 쓴 본문이 옛 본문으로 통째로 덮였다(2026-09-13 리뷰).
+  #
+  # 두 가드는 **잠근 뒤 다시 읽은 상태로 한 번 더** 본다. 잠그기 전의 판정만 믿으면, 읽은 뒤 저장하기
+  # 전 사이에 끝난 제출·다른 탭의 저장을 못 보고 그 위에 옛 본문을 쓴다(확인과 갱신 사이의 틈, 리뷰 #11).
+  # 제출(update)도 같은 잠금 안에서 본문과 submitted_at 을 함께 쓰므로 둘이 번갈아 끼어들지 않는다.
   def update_as_draft
     raise Pundit::NotAuthorizedError unless @report.user_id == Current.user.id
+    # 잠그기 전에 먼저 한 번 본다 — 거절될 요청으로 원격 책을 등록하지 않게.
     return reject_draft_save_after_submit unless @report.draft?
     return reject_stale_draft_save if stale_draft_version?
 
     attrs = report_params_with_registered_book
-    if !draft_body_present?(@report, incoming: attrs)
-      render_draft_invalid(:edit)
-    elsif @report.update(attrs)
+    outcome = @report.with_lock do
+      next :submitted unless @report.draft?
+      next :stale if stale_draft_version?
+      next :invalid unless draft_body_present?(@report, incoming: attrs)
+
+      @report.update(attrs) ? :saved : :invalid
+    end
+
+    case outcome
+    when :submitted then reject_draft_save_after_submit
+    when :stale then reject_stale_draft_save
+    when :invalid then render_draft_invalid(:edit)
+    else
       respond_to do |format|
         format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 이어서 쓸 수 있어요." }
         format.json { render_draft_saved }
       end
-    else
-      render_draft_invalid(:edit)
     end
   end
 
