@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_13_000002) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -528,6 +528,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_000001) do
     t.integer "ai_status", default: 0, null: false
     t.string "autosave_key", limit: 64
     t.string "autosave_origin_digest", limit: 64
+    t.integer "autosave_seq"
+    t.string "autosave_writer_key", limit: 64
     t.float "avg"
     t.text "body"
     t.integer "book_id"

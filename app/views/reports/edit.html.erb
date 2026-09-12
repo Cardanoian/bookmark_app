@@ -39,5 +39,6 @@
     </div>
   <% end %>
 
-  <%= render "reports/form", report: @report, first_submit: first_submit, conflict: @draft_conflict %>
+  <%= render "reports/form", report: @report, first_submit: first_submit, conflict: @draft_conflict,
+                              submitted_conflict: @submitted_conflict %>
 </div>

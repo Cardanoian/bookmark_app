@@ -69,6 +69,13 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
     book = Book.find_by(isbn: isbn)
     assert_not_nil book, "remote_isbn 으로 Book 이 등록돼야 한다"
     assert_equal book.id, draft.book_id, "등록된 원격 책이 draft.book_id 로 링크돼야 한다"
+    # 사진을 올린 것만으로는 아직 초안이다 — 정식 도서 목록에는 제출할 때 올린다(2026-09-13 자동 저장 리뷰 L3).
+    assert book.searched?, "올려 두고 내지 않은 사진 초안의 책까지 정식 도서가 되면 안 된다"
+
+    draft.update!(body: "사진에서 읽어 낸 글이에요.", ai_status: :done) # OcrJob 판독 완료
+    patch report_path(draft), params: { report: { body: draft.body } }
+    assert draft.reload.submitted?
+    assert book.reload.recommended?, "낸 글의 책은 정식 도서 목록에 오른다"
   end
 
   # 등록 실패(무키·캐시 미스) + book_title 존재 → Book 미생성이지만 book_title 로 가드 통과.

@@ -321,6 +321,8 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     assert_current_path reports_path
 
     eventually { draft.reload.body == "쓰다 만 글이에요. 떠나기 직전에 쓴 글" }
+    # 떠난 뒤에는 타이머로 다시 보내지 않고, 떠나는 순간용 요청(keepalive)으로 딱 한 번 보낸다.
+    assert_equal [ false, true ], evaluate_script("window.__autosaveKeepalive")
   rescue Selenium::WebDriver::Error::WebDriverError => e
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
@@ -339,11 +341,91 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
 
     assert_text "다른 탭이나 기기에서 이 글을 더 고쳤어요"
     assert_equal "학교에서 쓴 글이에요. 옛 탭", find("#report_body_field").value, "이 화면에서 쓴 글은 그대로 보여 준다"
+    assert dispatch_beforeunload, "저장 안 된 글을 보여 주는 화면이라 떠날 때 붙잡는다(3차 리뷰 M3)"
     assert_equal "학교에서 쓴 글이에요. 집에서 더 쓴 글이에요.", draft.reload.body
 
     click_on "임시 저장" # 한 번 더 누르면 이 화면의 글로 바꾼다.
     assert_text "임시 저장했어요"
     assert_equal "학교에서 쓴 글이에요. 옛 탭", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+
+  # --- 3차 코드 리뷰(b67c678) 후속: 되돌려도 통과하던 브라우저 계약 ---
+
+  # 떠난 뒤 실패한 저장은 한 번만 다시 보낸다. 재시도 타이머까지 걸면 떠난 화면의 옛 글을 몇 초 뒤 또 보낸다.
+  test "떠난 뒤에는 실패해도 재시도 타이머를 걸지 않는다 — 딱 한 번만 다시 보낸다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_first_autosave_after(1000, count: 2) # 떠난 뒤의 한 번까지 끊긴다(연결이 아예 없는 상황)
+
+    find("#report_body_field").send_keys(" 떠나기 직전에 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    # 이제부터 걸리는 긴 타이머(재시도 간격은 5초 이상)를 적는다. 재시도 간격이 실패마다 벌어져(5→15초)
+    # 요청 수만 세려면 수십 초를 기다려야 해서, 타이머가 걸리는지를 직접 본다.
+    execute_script(<<~JS)
+      window.__longTimers = []
+      const originalSetTimeout = window.setTimeout
+      window.setTimeout = (callback, delay, ...rest) => {
+        if (delay >= 5000) window.__longTimers.push(delay)
+        return originalSetTimeout(callback, delay, ...rest)
+      }
+    JS
+    click_on "취소"
+    assert_current_path reports_path
+
+    eventually { evaluate_script("window.__autosaveKeepalive.length") == 2 } # 떠난 뒤의 한 번까지 끊겼다
+    sleep 1.5 # 두 번째 실패가 처리될 시간
+    assert_equal [], evaluate_script("window.__longTimers"), "떠난 화면이 재시도 타이머를 걸면 옛 글을 몇 초 뒤 또 보낸다"
+    assert_equal 2, evaluate_script("window.__autosaveKeepalive.length")
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 실패 뒤에는 입력마다 보내지 않고 벌려 둔 재시도(5초)가 최신 글을 가져간다(2차 리뷰 #9).
+  test "저장이 실패한 뒤 더 입력해도 재시도 간격을 지키고, 재시도가 최신 글을 저장한다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_first_autosave_after(0)
+
+    field = find("#report_body_field")
+    field.send_keys(" 첫 줄")
+    assert_selector "[data-report-autosave-target='status']", text: /잠시 뒤 다시 저장할게요/, wait: SAVE_WAIT
+    field.send_keys(" 그리고 둘째 줄")
+
+    sleep 3 # 입력이 멈추고 2초가 지났다 — 예전에는 여기서 곧바로 다시 보냈다.
+    assert_equal 1, evaluate_script("window.__autosaveKeepalive.length"), "실패 뒤 입력이 재시도 간격을 건너뛰면 안 된다"
+
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_equal "쓰다 만 글이에요. 첫 줄 그리고 둘째 줄", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 제출이 나가는 중에 쓴 글도 '저장 안 됨'으로 센다 — 제출이 실패하면 저장·경고 대상이어야 한다(2차 리뷰 #8).
+  test "제출이 나가는 중에 쓴 글도 저장 안 된 글로 센다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+
+    dirty = evaluate_script(<<~JS)
+      (() => {
+        const form = document.querySelector("form[data-controller~='report-autosave']")
+        const controller = Stimulus.getControllerForElementAndIdentifier(form, "report-autosave")
+        controller.submitting = true
+        const field = document.querySelector("#report_body_field")
+        field.value += " 제출 중에 쓴 글"
+        field.dispatchEvent(new Event("input", { bubbles: true }))
+        return controller.dirty
+      })()
+    JS
+    assert dirty
   rescue Selenium::WebDriver::Error::WebDriverError => e
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
@@ -410,16 +492,20 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     JS
   end
 
-  # 첫 자동 저장은 서버에 닿지 못하고 ms 뒤 끊긴다. 그다음부터는 그대로.
-  def fail_first_autosave_after(ms)
+  # 앞의 자동 저장 count 개는 서버에 닿지 못하고 ms 뒤 끊긴다. 그다음부터는 그대로.
+  # 자동 저장마다 keepalive 를 썼는지 window.__autosaveKeepalive 에 적는다(요청 수도 이걸로 센다).
+  def fail_first_autosave_after(ms, count: 1)
     install_autosave_matcher
-    execute_script(<<~JS, ms)
-      const delay = arguments[0]
-      let failed = false
+    execute_script(<<~JS, ms, count)
+      const [delay, failures] = [arguments[0], arguments[1]]
+      let failed = 0
+      window.__autosaveKeepalive = []
       const original = window.fetch
       window.fetch = (input, init = {}) => {
-        if (!isAutosave(init) || failed) return original(input, init)
-        failed = true
+        if (!isAutosave(init)) return original(input, init)
+        window.__autosaveKeepalive.push(!!init.keepalive)
+        if (failed >= failures) return original(input, init)
+        failed += 1
         return new Promise((_, reject) => setTimeout(() => reject(new TypeError("연결이 끊겼다")), delay))
       }
     JS

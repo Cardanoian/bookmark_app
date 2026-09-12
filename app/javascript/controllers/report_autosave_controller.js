@@ -40,14 +40,17 @@ const RELOAD_HINT = "쓴 글을 복사해 둔 뒤 화면을 새로 고쳐 주세
 const BOOK_FIELDS = [ "report[book_id]", "report[remote_isbn]", "report[book_title]" ]
 
 export default class extends Controller {
-  static targets = [ "status", "version", "key" ]
-  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" } }
+  static targets = [ "status", "version", "key", "seq" ]
+  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" }, unsaved: Boolean }
 
   connect() {
     // 입력마다 version 을 올리고, 저장이 끝나면 그 저장이 담은 version 을 savedVersion 에 적는다.
     // 저장이 날아가는 동안 더 쓴 글은 version > savedVersion 으로 남아 다음 저장이 가져간다.
     this.version = 0
     this.savedVersion = 0
+    // 충돌 화면(서버가 저장하지 않고 되돌려 보낸 글을 보여 줌)은 처음부터 '저장 안 됨'이다 — 떠날 때
+    // 붙잡아야 한다(3차 리뷰 M3). 자동 저장은 꺼져 있으니 저장하지 않고 경고만 한다.
+    if (this.unsavedValue) this.version = 1
     this.inflight = null
     this.inflightCreating = false
     this.queued = false
@@ -131,6 +134,8 @@ export default class extends Controller {
       event.preventDefault()
       return
     }
+    // Turbo 는 이 뒤에 폼을 읽어 보낸다 — 이 제출의 순번을 지금 적는다.
+    this.stampSeq()
 
     this.clearTimers()
     this.submitting = true
@@ -286,7 +291,14 @@ export default class extends Controller {
     return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
   }
 
+  // 이 요청의 순번(= 지금까지의 입력 횟수)을 숨은 칸에 적는다. 서버는 같은 화면이라도 이미 저장한 것보다
+  // 앞선 순번의 요청은 받지 않는다 — 늦게 도착한 옛 요청이 새 글을 되돌리지 않게(3차 리뷰 M1).
+  stampSeq() {
+    if (this.hasSeqTarget) this.seqTarget.value = String(this.version)
+  }
+
   buildPayload(creating) {
+    this.stampSeq()
     const payload = new FormData(this.element)
     payload.set("save_draft", "1")
     if (creating) payload.set("autosave_origin", this.origin)
