@@ -52,14 +52,19 @@ class StudentLibraryQuery
   end
 
   # { book_id => { total:, approved:, last_at: } }
+  # last_at = 그 책 독후감의 마지막 활동 시각. 낸 글은 **제출 시각**, 아직 안 낸 초안은 처음 저장한 시각
+  # (created_at)이다 — 자동 저장 이후 created_at 은 "처음 쓰기 시작한 시각"이라, 월요일에 쓰기 시작해
+  # 수요일에 낸 책이 월요일 활동으로 보이지 않게 한다. 집계(MAX)는 SQLite 가 UTC 문자열로 돌려주므로
+  # 속성 타입으로 캐스팅한다(String#to_time 은 서버 로컬 시간대로 읽어 날짜가 9시간 어긋난다).
   def report_stats_by_book
     rows = @user.reports.where.not(book_id: nil)
                 .group(:book_id)
                 .pluck(:book_id,
                        Arel.sql("COUNT(*)"),
                        Arel.sql("SUM(CASE WHEN reviewed THEN 1 ELSE 0 END)"),
-                       Arel.sql("MAX(created_at)"))
-    rows.to_h { |book_id, total, approved, last_at| [ book_id, { total: total, approved: approved.to_i, last_at: to_time(last_at) } ] }
+                       Arel.sql("MAX(COALESCE(submitted_at, created_at))"))
+    datetime = Report.type_for_attribute(:submitted_at)
+    rows.to_h { |book_id, total, approved, last_at| [ book_id, { total: total, approved: approved.to_i, last_at: datetime.deserialize(last_at) } ] }
   end
 
   # { book_id => { count:, last_at: } }
@@ -79,18 +84,19 @@ class StudentLibraryQuery
   end
 
   # 책 미연결 독후감을 정규화 제목으로 그룹핑(레거시). 문자열만으로 실제 Book 과 합치지 않는다.
+  # 마지막 활동 시각은 report_stats_by_book 과 같은 기준(제출 시각, 초안은 created_at).
   def build_legacy_groups
     rows = @user.reports.where(book_id: nil).where.not(book_title: [ nil, "" ])
-                .pluck(:book_title, :reviewed, :created_at)
-    grouped = rows.group_by { |title, _reviewed, _at| title.to_s.squish }
+                .pluck(:book_title, :reviewed, :submitted_at, :created_at)
+    grouped = rows.group_by { |title, *| title.to_s.squish }
     grouped.filter_map do |title, entries|
       next if title.blank?
 
       LegacyGroup.new(
         title: title,
         report_total: entries.size,
-        report_approved: entries.count { |_t, reviewed, _at| reviewed },
-        last_activity_at: entries.map { |_t, _r, at| to_time(at) }.compact.max
+        report_approved: entries.count { |_t, reviewed, *| reviewed },
+        last_activity_at: entries.map { |_t, _r, submitted_at, created_at| submitted_at || created_at }.compact.max
       )
     end.sort_by { |g| g.last_activity_at || Time.at(0) }.reverse
   end

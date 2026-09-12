@@ -156,13 +156,15 @@ class StudentHomeQuery
   # 같은 학급 최근 30일 승인 독후감의 book_id 집계 상위(순위 순). popular_books·more_popular_books? 공용.
   # COUNT 동점의 SQLite 비결정 순서는 페이징에서 같은 책이 두 페이지에 나오거나 사라지게 하므로
   # book_id 로 타이브레이크해 회전을 결정적으로 만든다.
+  # "최근 30일"은 **제출 시각**으로 잰다 — 자동 저장 이후 created_at 은 "처음 쓰기 시작한 시각"이라,
+  # 한 달 넘게 붙들고 있다가 이번 주에 낸 글이 빠진다(submitted_at 없는 레거시 행은 created_at 폴백).
   def popular_book_ids
     @popular_book_ids ||= begin
       classroom_id = @user.classroom_id
       if classroom_id
         Report.where(classroom_id: classroom_id, reviewed: true)
               .where.not(book_id: nil)
-              .where(created_at: 30.days.ago..)
+              .where(Arel.sql("COALESCE(reports.submitted_at, reports.created_at)").between(30.days.ago..))
               .group(:book_id)
               .order(Arel.sql("COUNT(*) DESC, book_id ASC"))
               .limit(POPULAR_POOL_LIMIT)

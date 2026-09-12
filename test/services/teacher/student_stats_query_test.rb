@@ -80,10 +80,27 @@ class Teacher::StudentStatsQueryTest < ActiveSupport::TestCase
   end
 
   test "last activity takes the later of report submission and game play" do
-    create_report(reviewed: true, created_at: 3.days.ago)
+    create_report(reviewed: true, created_at: 3.days.ago, submitted_at: 3.days.ago)
     GamePlay.create!(user: @student, book: @book, game_type: :quiz, played_on: Date.current - 1)
 
     assert_equal Date.current - 1, row_for(@student).last_activity_on
+  end
+
+  # 자동 저장(2026-09-12)은 쓰기 시작하자마자 초안 행을 만든다. 최근 활동일은 **낸 날**이고,
+  # 내지 않은 초안은 활동이 아니다(표의 active?·"아직 시작하지 않은 학생"과 같은 경계).
+  test "last activity uses the submission date and ignores unsubmitted drafts" do
+    create_report(created_at: 5.days.ago, submitted_at: 2.days.ago) # 5일 전에 쓰기 시작해 2일 전에 냄
+    create_report(created_at: Time.current, submitted_at: nil)     # 오늘 쓰기 시작한 초안
+
+    assert_equal 2.days.ago.in_time_zone(Teacher::StudentStatsQuery::ZONE).to_date, row_for(@student).last_activity_on
+  end
+
+  test "a student with only unsubmitted drafts has no last activity" do
+    create_report(submitted_at: nil)
+
+    row = row_for(@student)
+    assert_nil row.last_activity_on
+    assert_not row.active?
   end
 
   test "students without activity report zeros and no last activity" do

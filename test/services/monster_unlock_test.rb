@@ -100,7 +100,9 @@ class MonsterUnlockTest < ActiveSupport::TestCase
       day = base + (i < 7 ? i : 0)
       level = i < 5 ? "A" : "B"      # a_grades:5
       improvement = i < 2 ? 1.5 : 0  # revisions:2 (dex 20 조건)
-      report(reviewed: true, book: nil, created_at: day.to_time, level: level, improvement: improvement)
+      # streak_days 는 제출한 글의 제출일을 센다(미제출 초안 제외) — 승인 글은 제출된 글이다.
+      report(reviewed: true, book: nil, created_at: day.to_time, submitted_at: day.to_time,
+             level: level, improvement: improvement)
     end
     # game_books:12 = 서로 다른 책 12권을 quiz 로 플레이(distinct_games=1 로 유지해 dex 21/23 오분해금 방지).
     12.times do |i|

@@ -90,6 +90,30 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     assert_equal experience_before + 20, @student.reload.experience
   end
 
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다. 미션 시작 전에 쓰기 시작한 글이라도 기간
+  # 안에 내고 승인받으면 완료·보상돼야 한다 — 승인 트리거(EvaluateProgress)가 created_at 으로 후보
+  # 미션을 고르면 이 미션을 건너뛰고, 진행도 계산기도 기간 밖으로 본다.
+  test "미션 시작 전에 쓰기 시작한 글도 기간 안에 제출·승인되면 완료·보상된다" do
+    login_as @student
+    post reports_path, params: { save_draft: "1", report: { book_title: "미리 쓴 책", body: "미션 전에 쓰기 시작" } },
+                       headers: { "Accept" => "application/json" }
+    draft = @student.reports.order(:created_at).last
+    assert draft.draft?, "자동 저장은 제출이 아니다"
+    draft.update_columns(created_at: 2.days.ago) # 미션 시작일(오늘) 전에 쓰기 시작
+
+    patch report_path(draft), params: { report: { body: "미션 기간에 마무리해서 냈어요." } }
+    assert draft.reload.submitted?, "제출하기로 낸 글"
+    delete session_path
+
+    login_as @teacher
+    post approve_teacher_review_path(draft)
+    assert draft.reload.reviewed?
+
+    part = MissionParticipation.find_by(mission: @mission, user: @student)
+    assert part.completed_at.present?, "쓰기 시작한 날이 아니라 낸 날(기간 안)로 판정해 완료돼야 한다"
+    assert_equal 100, part.reward_points_awarded
+  end
+
   private
 
   # 학생이 book 을 연결한 독후감을 제출하고 교사가 승인한다.

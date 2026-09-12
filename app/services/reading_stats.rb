@@ -9,6 +9,12 @@ class ReadingStats
     game_plays distinct_games game_books
   ].freeze
 
+  ZONE = ActiveSupport::TimeZone["Asia/Seoul"]
+
+  # 독후감의 제출 시각(submitted_at, 레거시 행은 created_at 폴백). 자동 저장 이후 created_at 은
+  # "처음 쓰기 시작한 시각"이라 제출일 지표(max_daily_reports)는 이 식으로 잰다.
+  SUBMITTED_AT = Arel.sql("COALESCE(reports.submitted_at, reports.created_at)")
+
   def initialize(user)
     @user = user
   end
@@ -27,19 +33,22 @@ class ReadingStats
     @reports ||= approved_reports.count
   end
 
-  # 하루 최다 독후감(역대 최댓값). 승인 독후감을 앱 시간대(Asia/Seoul) 제출일(created_at)별로
+  # 하루 최다 독후감(역대 최댓값). 승인 독후감을 앱 시간대(Asia/Seoul) **제출일**별로
   # 묶어 그날의 **처음 인정된 서로 다른 책 수**를 세고, 일자별 값의 최댓값을 취한다.
-  # 같은 책으로 쓴 승인 독후감이 여러 날에 걸쳐 있어도 가장 먼저 작성한 한 편만 인정한다.
+  # 같은 책으로 쓴 승인 독후감이 여러 날에 걸쳐 있어도 가장 먼저 제출한 한 편만 인정한다.
   # 카탈로그 연결 글은 Book.title, 자유 입력 글은 book_title을 정규화해 같은 책을 판별하므로
   # book_id 연결 여부가 섞여도 중복 인정하지 않는다(monster_unlocks.md §일일 판정). 없으면 0.
+  # 날짜는 created_at 이 아니라 제출 시각(SUBMITTED_AT)이다 — 자동 저장이 첫 저장에서 초안을 만들어
+  # created_at 은 "처음 쓰기 시작한 날"이 됐다. 승인 글은 항상 제출된 글이라 폴백은 레거시 행 방어다.
   def max_daily_reports
     @max_daily_reports ||= begin
       rows = approved_reports.left_outer_joins(:book)
-                             .order("reports.created_at ASC", "reports.id ASC")
-                             .pluck("reports.created_at", "reports.book_id", "reports.book_title", "books.title")
+                             .order(SUBMITTED_AT.asc, Report.arel_table[:id].asc)
+                             .pluck("reports.submitted_at", "reports.created_at",
+                                    "reports.book_id", "reports.book_title", "books.title")
       first_report_per_book = rows.uniq { |row| report_book_key(row) }
-      by_day = first_report_per_book.group_by do |created_at, _book_id, _book_title, _catalog_title|
-        created_at.in_time_zone("Asia/Seoul").to_date
+      by_day = first_report_per_book.group_by do |submitted_at, created_at, *|
+        (submitted_at || created_at).in_time_zone(ZONE).to_date
       end
       by_day.values.map(&:size).max || 0
     end
@@ -74,10 +83,13 @@ class ReadingStats
     @revisions ||= approved_reports.where("improvement > 0").count
   end
 
-  # 최장 연속 제출일(연속 독서 스트릭). 제출일(created_at) 기준 연속 달력일의 최대 길이.
+  # 최장 연속 제출일(연속 독서 스트릭). **제출한 글**의 제출일(Asia/Seoul) 기준 연속 달력일의 최대 길이.
+  # 미제출 초안은 세지 않는다 — 자동 저장(2026-09-12)은 쓰기 시작하자마자 초안 행을 만들므로, 전체
+  # reports 의 created_at 을 세면 하루 몇 글자 써 두고 내지 않아도 스트릭(몬스터 진화·해금 조건)이
+  # 쌓인다. 고쳐쓰기도 제출한 날은 제출일로 센다(승인 여부 무관 — 이 지표는 "꾸준히 냈는가"다).
   def streak_days
     @streak_days ||= begin
-      dates = @user.reports.pluck(:created_at).compact.map(&:to_date).uniq.sort
+      dates = @user.reports.submitted.pluck(:submitted_at).map { |at| at.in_time_zone(ZONE).to_date }.uniq.sort
       longest_consecutive_run(dates)
     end
   end
@@ -177,7 +189,7 @@ class ReadingStats
   end
 
   def report_book_key(row)
-    _created_at, book_id, book_title, catalog_title = row
+    _submitted_at, _created_at, book_id, book_title, catalog_title = row
     normalized_title = (catalog_title.presence || book_title).to_s.squish.downcase
     return [ :book_title, normalized_title ] if normalized_title.present?
 

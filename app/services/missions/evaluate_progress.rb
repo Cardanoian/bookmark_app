@@ -10,10 +10,13 @@ module Missions
     # 독후감 교사 승인 직후. 원본(고쳐쓰기 제외) 승인 report 만.
     # M4: report.classroom_id(불변 스탬프)의 participation 을 타깃(unassigned 여부 무관) —
     # approved_reports_count 도 classroom_id 로 COUNT 하므로 count==trigger parity 가 성립한다.
+    # 후보 미션을 고르는 날짜도 ProgressCalculator::SUBMITTED_AT 과 같은 **제출 시각**이다 — created_at
+    # (자동 저장의 첫 저장 시각)으로 고르면 시작 전에 쓰기 시작한 글의 승인이 그 미션을 건드리지 못해
+    # 계산기는 완료로 보는데 보상은 백스톱 잡(ReevaluateJob)까지 밀린다.
     def on_report_approved(report)
       return unless report.reviewed? && report.revision_of_id.nil?
 
-      date = report.created_at.in_time_zone(ProgressCalculator::ZONE).to_date
+      date = (report.submitted_at || report.created_at).in_time_zone(ProgressCalculator::ZONE).to_date
       report_candidates(classroom_id: report.classroom_id, date: date).each { |p| @rewarder.reward!(p) }
     end
 

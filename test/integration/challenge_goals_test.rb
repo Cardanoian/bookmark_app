@@ -73,9 +73,9 @@ class ChallengeGoalsTest < ActionDispatch::IntegrationTest
   test "참여 전에 쓴 독후감은 집계되지 않는다" do
     challenge = school_challenge(reward: 40)
 
-    # 챌린지 기간(7일 전 시작) 안이지만 참여 이전인 독후감.
+    # 챌린지 기간(7일 전 시작) 안이지만 참여 이전에 **낸** 독후감(집계 기준은 제출 시각).
     early = approve_report_for(@student, title: "참여 전 책")
-    early.update_columns(created_at: 3.days.ago)
+    early.update_columns(created_at: 3.days.ago, submitted_at: 3.days.ago)
     experience_before = @student.reload.experience
 
     part = join_challenge(@student, challenge)
@@ -92,6 +92,37 @@ class ChallengeGoalsTest < ActionDispatch::IntegrationTest
     approve_report_for(@student, title: "참여 후 책")
     assert part.reload.completed_at.present?
     assert_equal experience_before + 40, @student.reload.experience
+  end
+
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다(created_at = 쓰기 시작한 시각). 참여 전에
+  # 쓰기 시작한 글이라도 참여 **후에** 제출·승인되면 참여 후 활동이다 — created_at 으로 재면 빠진다.
+  test "참여 전에 쓰기 시작해 참여 후에 제출·승인한 독후감은 집계된다" do
+    challenge = school_challenge(reward: 40)
+
+    login_as @student
+    post reports_path, params: { save_draft: "1", report: { book_title: "미리 쓴 책", body: "참여 전에 쓰기 시작" } },
+                       headers: { "Accept" => "application/json" }
+    draft = @student.reports.order(:created_at).last
+    assert draft.draft?, "자동 저장은 제출이 아니다"
+    draft.update_columns(created_at: 1.hour.ago) # 참여보다 확실히 앞서게
+    delete session_path
+
+    part = join_challenge(@student, challenge)
+    assert_operator draft.created_at, :<, part.joined_at, "초안은 참여 전에 생겼다"
+
+    login_as @student
+    patch report_path(draft), params: { report: { body: "챌린지에 참여하고 마무리해서 냈어요." } }
+    assert draft.reload.submitted?
+    assert_operator draft.submitted_at, :>, part.joined_at, "제출은 참여 후"
+    delete session_path
+
+    login_as @teacher
+    post approve_teacher_review_path(draft)
+    delete session_path
+
+    part.reload
+    assert part.completed_at.present?, "참여 후에 낸 글이라 완료돼야 한다"
+    assert_equal 40, part.reward_points_awarded
   end
 
   test "참여 전에 플레이한 게임은 집계되지 않는다" do

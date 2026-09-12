@@ -419,7 +419,9 @@ class DemoSeeder
         shared: false
       )
       report.save!
-      report.update_columns(created_at: created, updated_at: created)
+      # 데모 독후감은 모두 학생이 '제출한' 글이다. submitted_at 이 비면 Report.submitted 를 쓰는 곳
+      # (교사 검토 큐·대시보드·연속 제출일·최근 활동일·챌린지 순위)에서 미제출 초안으로 빠진다.
+      report.update_columns(created_at: created, updated_at: created, submitted_at: created)
 
       st[:report_points] += report.points_awarded.to_i
       st[:reports] << report

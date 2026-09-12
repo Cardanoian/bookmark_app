@@ -65,6 +65,23 @@ class GrowthsTest < ActionDispatch::IntegrationTest
     assert_select "polygon[stroke-dasharray]", 0
   end
 
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다 — created_at 은 "쓰기 시작한 시각"이다.
+  # 시계열은 **낸 순서**다: 먼저 쓰기 시작했어도 나중에 낸 글이 '최근 글'이고, 날짜도 낸 날로 보인다.
+  test "growth orders reports by submission time, not by when writing started" do
+    started_first = create_report(book_title: "먼저 시작해 나중에 낸 책", rubric: scores(4), reviewed: true,
+                                  created_at: 5.days.ago, submitted_at: 1.day.ago)
+    create_report(book_title: "나중에 시작해 먼저 낸 책", rubric: scores(2), reviewed: true,
+                  created_at: 3.days.ago, submitted_at: 2.days.ago)
+
+    get growth_path
+
+    assert_response :success
+    assert_match "최근 「#{started_first.book_title}」", response.body
+    assert_match "가장 많이 성장", response.body, "2점 → 4점: 나중에 낸 글이 최근 글이라 성장으로 읽힌다"
+    assert_match 1.day.ago.strftime("%-m월 %-d일"), response.body, "마지막 기록은 낸 날"
+    assert_no_match 5.days.ago.strftime("%-m월 %-d일"), response.body, "쓰기 시작한 날은 보이지 않는다"
+  end
+
   test "growth has an empty state before an approved scored report exists" do
     get growth_path
 

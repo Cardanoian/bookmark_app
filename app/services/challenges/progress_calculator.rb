@@ -3,12 +3,19 @@ module Challenges
   #   - 경계: 미션은 학급(reports.classroom_id)으로 좁히지만, 챌린지는 전국/학교 스코프라 **뷰어 학생
   #     본인의 활동 전체**를 센다(스코프 적격 여부는 EvaluateProgress 가 후보를 좁힐 때 판단).
   #   - 기간: **참여 시점(participation.joined_at) ~ window_end**. 하한은 challenge.window_start
-  #     (starts_on 또는 생성일)와 참여 시각 중 **늦은 쪽**이라 참여 전에 쓴 독후감·플레이한 게임은
+  #     (starts_on 또는 생성일)와 참여 시각 중 **늦은 쪽**이라 참여 전에 낸 독후감·플레이한 게임은
   #     집계되지 않는다("챌린지 참여 후 활동만 인정"). participation 이 없으면(미참여) 전부 0 이다.
+  #     독후감은 **제출 시각**으로 잰다(SUBMITTED_AT) — 참여 전에 쓰기 시작해 참여 후에 낸 글은 인정한다.
   # 목표별 지정 도서('여러 책' any-of): goal.books 가 있으면 그 목록 중 어느 책의 독후감/game_plays 든
   # `where(book_id: [...])` 로 합산하고, 비면 아무 책이나 집계한다.
   class ProgressCalculator
     ZONE = ActiveSupport::TimeZone["Asia/Seoul"]
+
+    # 독후감의 제출 시각(Missions::ProgressCalculator::SUBMITTED_AT 미러). 자동 저장(2026-09-12)은 첫
+    # 저장에서 초안 행을 만들므로 created_at 은 "처음 쓰기 시작한 시각"이다 — 그걸로 재면 참여 전에
+    # 쓰기 시작해 참여 후에 제출·승인된 글이 "참여 전 활동"으로 빠진다. submitted_at 이 없는 행은
+    # created_at 폴백(마이그레이션 20260728000003 이 기존 제출 행을 백필).
+    SUBMITTED_AT = Arel.sql("COALESCE(reports.submitted_at, reports.created_at)")
 
     # participation 은 필수 키워드다 — 빠뜨리면 조용히 '전 기간 집계'로 되돌아가므로 호출부가
     # 참여 원장을 반드시 넘기게 강제한다(미참여는 nil 을 명시적으로 넘긴다).
@@ -63,7 +70,7 @@ module Challenges
     def approved_reports_count(goal)
       (@approved_reports_count ||= {})[goal.id] ||= begin
         book_ids = goal.books.map(&:id)
-        scope = @user.reports.where(reviewed: true, revision_of_id: nil).where(created_at: window_range)
+        scope = @user.reports.where(reviewed: true, revision_of_id: nil).where(SUBMITTED_AT.between(window_range))
         scope = scope.where(book_id: book_ids) if book_ids.any?
         scope.count
       end
@@ -86,7 +93,7 @@ module Challenges
     end
 
     # 참여 시각(또는 창 시작 00:00 Asia/Seoul 중 늦은 쪽) ~ 종료일+1 00:00(상한 배타).
-    # window_end 가 nil 이면 상한 없음. reports.created_at 은 datetime 이라 참여 '시각'까지 정밀 비교한다.
+    # window_end 가 nil 이면 상한 없음. 독후감 제출 시각(SUBMITTED_AT)은 datetime 이라 참여 '시각'까지 정밀 비교한다.
     def window_range
       e = @challenge.window_end
       lower = [ window_start_at, @participation&.joined_at ].compact.max

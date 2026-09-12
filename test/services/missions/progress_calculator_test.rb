@@ -24,9 +24,10 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
     mission
   end
 
-  def report(created_at:, reviewed: true, revision_of: nil, classroom: @classroom, book: nil)
+  # submitted_at 을 생략하면 submitted_at 없는 레거시 행 — 기간 판정이 created_at 으로 폴백한다.
+  def report(created_at:, submitted_at: nil, reviewed: true, revision_of: nil, classroom: @classroom, book: nil)
     Report.create!(user: @student, classroom: classroom, book: book, book_title: "책",
-                   reviewed: reviewed, revision_of: revision_of, created_at: created_at)
+                   reviewed: reviewed, revision_of: revision_of, created_at: created_at, submitted_at: submitted_at)
   end
 
   def calc(participation = @participation)
@@ -61,6 +62,22 @@ class Missions::ProgressCalculatorTest < ActiveSupport::TestCase
     report(created_at: start_midnight)
     report(created_at: end_last)
     assert_equal 2, calc.call[:goals].first[:current]
+  end
+
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다 — created_at 은 "쓰기 시작한 시각"이다.
+  # 기간은 제출 시각으로 잰다: 시작 전에 쓰기 시작해 기간 안에 낸 글은 인정, 기간 안에 시작해
+  # 종료 뒤에 낸 글은 제외. 단건·batch 가 같은 기준이어야 한다.
+  test "기간은 쓰기 시작한 시각이 아니라 제출 시각으로 판정한다(단건·batch)" do
+    zone = Missions::ProgressCalculator::ZONE
+    start_midnight = zone.local(@mission.start_date.year, @mission.start_date.month, @mission.start_date.day)
+    after_end = zone.local(@mission.end_date.year, @mission.end_date.month, @mission.end_date.day) + 1.day + 1.hour
+    2.times { report(created_at: start_midnight - 1.day, submitted_at: start_midnight + 1.hour) } # 인정
+    report(created_at: start_midnight + 1.hour, submitted_at: after_end)                         # 제외
+
+    # 쓰기 시작한 시각으로 재면 1(기간 안에 시작한 마지막 글)이다.
+    assert_equal 2, calc.call[:goals].first[:current]
+    batch = Missions::ProgressCalculator.batch(@mission, participations: [ @participation ])
+    assert_equal 2, batch[@student.id][:goals].first[:current]
   end
 
   test "타 학급 스탬프 독후감은 approved_reports 에서 제외" do

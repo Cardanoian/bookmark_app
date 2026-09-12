@@ -7,11 +7,18 @@ module Missions
   #
   # 목표 인정 규칙(§8.7):
   #   approved_reports = reports.classroom_id(불변 스탬프) == mission.classroom_id + reviewed +
-  #     원본(revision_of_id nil) + created_at 한국날짜가 기간 내. 멤버십은 스탬프가 보증하므로
+  #     원본(revision_of_id nil) + **제출 시각** 한국날짜가 기간 내. 멤버십은 스탬프가 보증하므로
   #     participation 기간 clamp 불필요(전학 후에도 그 학급 report 는 인정 — count==trigger parity).
   #   game_plays = game_plays.played_on 이 기간 ∩ participation 배정기간 내(스탬프 없어 clamp 필수).
   class ProgressCalculator
     ZONE = ActiveSupport::TimeZone["Asia/Seoul"]
+
+    # 독후감의 제출 시각. **created_at 으로 재면 안 된다** — 자동 저장(2026-09-12)은 첫 저장에서
+    # 초안 행을 만들므로 created_at 은 "처음 쓰기 시작한 시각"이다. 미션 시작 전에 쓰기 시작해
+    # 기간 안에 낸 글이 빠지고, 기간 안에 시작해 끝난 뒤에 낸 글이 들어간다. submitted_at 이 없는
+    # 행은 created_at 으로 폴백한다(마이그레이션 20260728000003 이 기존 제출 행을 백필했으므로
+    # 승인 글에서는 사실상 걸리지 않는다). EvaluateProgress#on_report_approved 의 후보 날짜도 같은 기준이다.
+    SUBMITTED_AT = Arel.sql("COALESCE(reports.submitted_at, reports.created_at)")
 
     def initialize(mission, user, participation: nil)
       @mission = mission
@@ -46,7 +53,8 @@ module Missions
       game_book_ids   = game_goal ? game_goal.books.map(&:id) : []
 
       report_scope = Report.where(classroom_id: mission.classroom_id, reviewed: true, revision_of_id: nil,
-                                  user_id: user_ids, created_at: window_range(mission))
+                                  user_id: user_ids)
+                           .where(SUBMITTED_AT.between(window_range(mission)))
       report_scope = report_scope.where(book_id: report_book_ids) if report_book_ids.any?
       report_counts = report_scope.group(:user_id).count
 
@@ -68,7 +76,7 @@ module Missions
       end
     end
 
-    # 시작일 00:00(Asia/Seoul) ~ (종료일+1) 00:00, 상한 배타. reports.created_at(datetime) 경계.
+    # 시작일 00:00(Asia/Seoul) ~ (종료일+1) 00:00, 상한 배타. 독후감 제출 시각(SUBMITTED_AT, datetime) 경계.
     def self.window_range(mission)
       s = mission.start_date
       e = mission.end_date
@@ -101,7 +109,7 @@ module Missions
         book_ids = goal.books.map(&:id)
         scope = @user.reports
           .where(classroom_id: @mission.classroom_id, reviewed: true, revision_of_id: nil)
-          .where(created_at: self.class.window_range(@mission))
+          .where(SUBMITTED_AT.between(self.class.window_range(@mission)))
         scope = scope.where(book_id: book_ids) if book_ids.any?
         scope.count
       end

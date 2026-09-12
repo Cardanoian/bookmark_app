@@ -211,8 +211,12 @@ module Teacher
 
     # ---- 최근 활동 ----------------------------------------------------------
 
+    # 마지막 **제출** 시각. 미제출 초안은 활동으로 치지 않는다 — 자동 저장(2026-09-12)은 쓰기
+    # 시작하자마자 초안 행을 만들고 그 created_at 은 "처음 쓰기 시작한 시각"이라, created_at 최댓값을
+    # 쓰면 제출한 적 없는 학생에게도 '최근 활동'이 찍히고(표의 `active?`·"아직 시작하지 않은 학생"과
+    # 어긋남) 며칠 붙들고 있다가 낸 글은 시작한 날로 보인다. 고쳐쓰기를 낸 날도 활동이다.
     def last_report_at
-      @last_report_at ||= grouped { Report.where(user_id: ids).group(:user_id).maximum(:created_at) }
+      @last_report_at ||= grouped { Report.submitted.where(user_id: ids).group(:user_id).maximum(:submitted_at) }
     end
 
     def last_played_on

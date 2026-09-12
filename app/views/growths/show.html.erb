@@ -23,7 +23,7 @@
     <div class="stat-card">
       <span class="stat-card__label">마지막 기록</span>
       <span class="stat-card__value text-lg">
-        <%= @timeline.latest ? @timeline.latest.report.created_at.strftime("%-m월 %-d일") : "—" %>
+        <%= @timeline.latest ? @timeline.latest.submitted_at.strftime("%-m월 %-d일") : "—" %>
       </span>
     </div>
   </section>
@@ -106,7 +106,7 @@
             <%= link_to report_path(entry.report), class: "group block" do %>
               <div class="mb-1 flex items-baseline justify-between gap-2">
                 <span class="min-w-0 truncate text-sm font-medium text-slate group-hover:underline">
-                  <%= entry.report.created_at.strftime("%-m월 %-d일") %> ·
+                  <%= entry.submitted_at.strftime("%-m월 %-d일") %> ·
                   <%= entry.report.book&.title.presence || entry.report.book_title %>
                 </span>
                 <span class="shrink-0 text-sm font-bold text-brand-blue"><%= entry.average %></span>
@@ -137,7 +137,7 @@
                   <td class="px-2 py-3">
                     <%= link_to report_path(entry.report), class: "font-medium text-ink hover:underline" do %>
                       <span class="block"><%= entry.report.book&.title.presence || entry.report.book_title %></span>
-                      <span class="block text-xs font-normal text-steel"><%= entry.report.created_at.to_date %></span>
+                      <span class="block text-xs font-normal text-steel"><%= entry.submitted_at.to_date %></span>
                     <% end %>
                   </td>
                   <% ReadingDomain::RUBRIC_AXES.each do |axis| %>

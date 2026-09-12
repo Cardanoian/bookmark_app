@@ -115,4 +115,20 @@ class StudentHomeQueryTest < ActiveSupport::TestCase
 
     assert query_with_pool([]).more_discovery_books?
   end
+
+  # --- 우리 반 인기 도서: "최근 30일"은 제출 시각으로 잰다 ---
+
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다 — created_at 은 "쓰기 시작한 시각"이다.
+  # 한 달 넘게 붙들고 있다가 이번 주에 낸 글도 최근 30일 인기에 든다.
+  test "popular_books counts approved reports by submission time within the last 30 days" do
+    classmate = User.create!(school: @school, classroom: @classroom, name: "반친구", password: "password")
+    late = Book.create!(title: "오래 붙들고 쓴 책", author: "작가", category: :recommended)
+    stale = Book.create!(title: "예전에 낸 책", author: "작가", category: :recommended)
+    Report.create!(user: classmate, classroom: @classroom, book: late, reviewed: true,
+                   created_at: 40.days.ago, submitted_at: 5.days.ago)
+    Report.create!(user: classmate, classroom: @classroom, book: stale, reviewed: true,
+                   created_at: 40.days.ago, submitted_at: 35.days.ago)
+
+    assert_equal [ late ], query_with_pool([]).popular_books
+  end
 end

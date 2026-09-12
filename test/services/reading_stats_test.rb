@@ -151,6 +151,28 @@ class ReadingStatsTest < ActiveSupport::TestCase
     assert_equal 1, @stats.max_daily_reports
   end
 
+  # 자동 저장(2026-09-12)은 첫 저장에서 초안 행을 만든다 — created_at 은 "쓰기 시작한 시각"이고
+  # 하루 최다 독후감은 **제출일**로 묶는다.
+  test "max_daily_reports groups by submission date, not the day writing started" do
+    b = ->(n) { Book.create!(title: n, category: :recommended) }
+    submitted = Time.utc(2026, 6, 3, 3) # KST 12:00 06-03
+    report(reviewed: true, created_at: Time.utc(2026, 6, 1, 3), submitted_at: submitted, book: b.("먼저 시작한 책"))
+    report(reviewed: true, created_at: Time.utc(2026, 6, 2, 3), submitted_at: submitted, book: b.("나중 시작한 책"))
+    # 쓰기 시작한 날로 묶으면 날마다 1권(=1)이지만, 둘 다 06-03 에 냈다.
+    assert_equal 2, @stats.max_daily_reports
+  end
+
+  test "max_daily_reports keeps the earliest submitted report of a book, not the earliest started" do
+    book = Book.create!(title: "같은 책", category: :recommended)
+    # A: 06-01 에 쓰기 시작했지만 06-03 에 냈다 / B: 06-02 에 쓰고 바로 냈다 → 먼저 낸 B 가 이 책의 인정분.
+    report(reviewed: true, created_at: Time.utc(2026, 6, 1, 3), submitted_at: Time.utc(2026, 6, 3, 3), book: book)
+    report(reviewed: true, created_at: Time.utc(2026, 6, 2, 3), submitted_at: Time.utc(2026, 6, 2, 3), book: book)
+    report(reviewed: true, created_at: Time.utc(2026, 6, 3, 3), submitted_at: Time.utc(2026, 6, 3, 3),
+           book: Book.create!(title: "다른 책", category: :recommended))
+    # A 를 인정분으로 고르면 06-03 이 2권이 된다. 먼저 낸 B 를 골라야 06-02·06-03 이 각 1권이다.
+    assert_equal 1, @stats.max_daily_reports
+  end
+
   test "max_daily_reports is zero when there are no approved reports" do
     report(reviewed: false, book_title: "미승인", book: nil)
     assert_equal 0, @stats.max_daily_reports
@@ -279,8 +301,25 @@ class ReadingStatsTest < ActiveSupport::TestCase
   test "streak_days computes longest consecutive submission run" do
     base = Date.new(2026, 6, 1)
     [ 0, 1, 2, 4, 5 ].each do |offset|
-      report(created_at: base + offset)
+      report(created_at: base + offset, submitted_at: base + offset)
     end
+    assert_equal 3, @stats.streak_days
+  end
+
+  # 자동 저장(2026-09-12)은 쓰기 시작하자마자 초안 행을 만든다. 써 두기만 하고 내지 않은 날은
+  # 스트릭(몬스터 진화·해금 조건)에 들지 않는다.
+  test "streak_days ignores unsubmitted drafts" do
+    base = Date.new(2026, 6, 1)
+    report(created_at: base, submitted_at: base)
+    report(created_at: base + 1, submitted_at: base + 1)
+    report(created_at: base + 2) # 셋째 날은 초안만(submitted_at 없음)
+    assert_equal 2, @stats.streak_days
+  end
+
+  test "streak_days counts the day a report was submitted, not the day writing started" do
+    started = Date.new(2026, 6, 1)
+    # 셋 다 첫날 쓰기 시작했지만(자동 저장) 하루에 한 편씩 냈다 → 제출일 3일 연속.
+    [ 0, 1, 2 ].each { |offset| report(created_at: started, submitted_at: started + offset) }
     assert_equal 3, @stats.streak_days
   end
 

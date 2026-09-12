@@ -96,8 +96,8 @@ class RankingBoardTest < ActiveSupport::TestCase
 
   test "challenge ranking counts participation reports" do
     challenge = Challenge.create!(title: "겨울 챌린지")
-    2.times { |i| Report.create!(user: @s1, classroom: @class1, book_title: "챌#{i}", challenge_id: challenge.id) }
-    Report.create!(user: @s2, classroom: @class1, book_title: "챌", challenge_id: challenge.id)
+    2.times { |i| challenge_report(@s1, challenge, "챌#{i}") }
+    challenge_report(@s2, challenge, "챌")
 
     ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
 
@@ -107,12 +107,26 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 1, ranking.second.score
   end
 
+  # 참여 직후 첫 글의 첫 자동 저장이 challenge_id 를 단 초안 행을 만든다(ReportsController#link_participation).
+  # 내지 않은 초안은 순위 점수가 아니다.
+  test "challenge ranking ignores unsubmitted drafts" do
+    challenge = Challenge.create!(title: "겨울 챌린지")
+    challenge_report(@s1, challenge, "낸 글")
+    challenge_report(@s1, challenge, "쓰는 중", submitted_at: nil)
+    challenge_report(@s2, challenge, "쓰는 중", submitted_at: nil)
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal [ @s1 ], ranking.map(&:subject), "초안만 있는 학생은 순위에 없다"
+    assert_equal 1, ranking.first.score, "초안은 참여 독후감 수에 들지 않는다"
+  end
+
   # P2.7 — counts 에 담긴 user_id 가 조회에서 빠지면(유저 삭제/스코프 제외) subject 가 nil 인
   # Entry 가 생겨 뷰의 entry.subject.name 에서 크래시한다. nil subject 는 제외되어야 한다.
   test "challenge ranking skips entries whose user is missing without crashing" do
     challenge = Challenge.create!(title: "겨울 챌린지")
-    2.times { |i| Report.create!(user: @s1, classroom: @class1, book_title: "챌#{i}", challenge_id: challenge.id) }
-    Report.create!(user: @s2, classroom: @class1, book_title: "챌", challenge_id: challenge.id)
+    2.times { |i| challenge_report(@s1, challenge, "챌#{i}") }
+    challenge_report(@s2, challenge, "챌")
 
     # @s2 의 User 레코드만 제거해 report 를 고아로 만든다 → users[@s2.id] == nil 인 실제 상황 재현.
     # FK 검사는 커밋까지 지연되고(disable_referential_integrity), 테스트 트랜잭션은 롤백되므로 안전.
@@ -321,6 +335,12 @@ class RankingBoardTest < ActiveSupport::TestCase
   end
 
   private
+
+  # 챌린지에 연결된 독후감. 기본은 제출된 글이다(submitted_at: nil 이면 자동 저장 초안).
+  def challenge_report(student, challenge, title, submitted_at: Time.current)
+    Report.create!(user: student, classroom: student.classroom, book_title: title,
+                   challenge_id: challenge.id, submitted_at: submitted_at)
+  end
 
   def enable_seasons!
     AppSetting.set("feature_flags", { "ranking_seasons" => true })

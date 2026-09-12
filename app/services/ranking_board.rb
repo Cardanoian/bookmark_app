@@ -116,11 +116,13 @@ class RankingBoard
     entries
   end
 
-  # 챌린지 참여 순위(참여 독후감 수 기준).
+  # 챌린지 참여 순위(**제출한** 참여 독후감 수 기준). 미제출 초안은 세지 않는다 — 참여 직후 첫 글의
+  # 첫 자동 저장이 challenge_id 를 달고 초안 행을 만들므로(ReportsController#link_participation),
+  # 초안까지 세면 몇 글자 써 두기만 해도 순위가 오른다.
   def challenge_ranking(challenge)
     return [] unless challenge
 
-    counts = Report.where(challenge_id: challenge.id).group(:user_id).count
+    counts = Report.submitted.where(challenge_id: challenge.id).group(:user_id).count
     users = User.where(id: counts.keys, role: :student).index_by(&:id)
     # users[user_id] 가 nil(유저 삭제/스코프 제외)이면 subject 가 nil 인 Entry 가 만들어져
     # 뷰의 entry.subject.name 에서 크래시한다 → nil subject 는 건너뛴다(P2.7).
