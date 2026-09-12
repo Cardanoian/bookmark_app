@@ -1,4 +1,4 @@
-<%# 독후감 작성·수정 폼. local: report, (선택) first_submit %>
+<%# 독후감 작성·수정 폼. local: report, (선택) first_submit, (선택) conflict %>
 <%# 기존 글(고쳐쓰기/수정)만 dirty-check 대상: 본문이 달라져야 저장 활성화.
     새 글은 위저드 초안이 프리필될 수 있어 컨트롤러를 붙이지 않는다.
     OCR 초안의 첫 제출(first_submit)도 마찬가지로 컨트롤러를 떼어 낸다 — OCR이 로드 전에
@@ -11,8 +11,13 @@
     사진 초안의 첫 제출 화면 제외)이고 **글쓴이 본인이 연 화면**일 때뿐이다. 담임도 "이어서 쓰기"로
     학생 초안의 편집 화면에 들어올 수 있는데, 서버는 담임의 초안 저장을 403 으로 막는다 — 켜 두면
     입력할 때마다 거절당하며 저장 문구만 헛돈다. 그 밖의 폼(사진 첫 제출·이미 낸 글 수정·담임)에서는
-    저장 없이 "저장 안 한 내용이 있어요" 이탈 경고만 한다. %>
-<% autosave = report.autosave_eligible? && report.user_id == current_user&.id %>
+    저장 없이 "저장 안 한 내용이 있어요" 이탈 경고만 한다.
+    conflict(ReportsController#reject_stale_draft_save): 다른 탭·기기가 더 고친 초안을 이 화면의 글로
+    저장·제출하려 한 직후다. 쓴 글은 그대로 보여 주고 버튼(임시 저장·제출)은 남기되 자동 저장은 끈다 —
+    입력만으로 다른 곳의 글을 덮지 않고, 버튼을 한 번 더 누르는 것만 "이 글로 바꾸기"가 되게. %>
+<% conflict = local_assigns.fetch(:conflict, false) %>
+<% draft_controls = report.autosave_eligible? && report.user_id == current_user&.id %>
+<% autosave = draft_controls && !conflict %>
 <% form_data = {
      controller: [ ("report-edit" if dirty_check), "report-autosave" ].compact.join(" "),
      action: "input->report-autosave#changed book:selected->report-autosave#changed " \
@@ -27,7 +32,7 @@
 <% form_data[:report_edit_baseline_value] = report.revision_of&.body.to_s if dirty_check && report.draft? && report.revision? %>
 <%# 자동 저장 화면은 Turbo 스냅샷을 남기지 않는다. 뒤로 가기가 옛 스냅샷(빈 질문 칸)을 되살려
     그 위에 쓰면 서버에 저장된 초안이 적은 내용으로 덮인다 — 돌아올 때마다 서버의 최신 초안을 받는다. %>
-<% turbo_exempts_page_from_cache if autosave %>
+<% turbo_exempts_page_from_cache if draft_controls %>
 <%# 앱 전용: 새 글 제출 뒤 뒤로가기가 **입력값이 그대로 남은 작성 폼**으로 돌아간다(에뮬레이터 실측).
     거기서 그대로 다시 제출하면 같은 독후감이 한 편 더 생긴다 — 실제로 2편이 생기는 것을 확인했고,
     학생 포인트·경험치·미션 진행이 이중 집계되며 교사 검토 큐에도 같은 글이 두 번 뜬다.
@@ -41,11 +46,27 @@
       _form 으로 복원되게 한다(book_title 만 남아 mode_chooser 로 새는 회귀 차단). 값은 모델의
       input_mode 를 따르므로(고정값 아님) edit 로 재사용될 때 OCR 초안의 ocr 모드를 훼손하지 않는다. %>
   <%= f.hidden_field :input_mode %>
-  <%# 자동 저장이 "내가 마지막으로 본 초안"을 서버에 알리는 표(Report#draft_version). 저장할 때마다
-      report-autosave 가 새 값으로 바꾸고, 새 글은 빈 값으로 두었다가 첫 저장이 채운다. %>
-  <% if autosave %>
+  <%# 두 표는 자동 저장뿐 아니라 임시 저장 버튼·제출에도 실린다(서버 stale_draft_version?).
+      · draft_version — "내가 마지막으로 본 초안"(Report#draft_version). 저장할 때마다 report-autosave 가
+        새 값으로 바꾸고, 새 글은 빈 값으로 두었다가 첫 저장이 채운다.
+      · autosave_key — 이 편집 화면의 표. report-autosave 가 화면을 열 때 만든다(스크립트가 없으면 빈 값).
+        같은 화면이 다시 보낸 요청을 알아보는 데 쓴다 — 첫 저장 재시도가 초안을 또 만들지 않고, 응답만
+        잃은 저장이 "다른 곳에서 고쳤어요"로 거절되지 않게. %>
+  <% if draft_controls %>
     <%= hidden_field_tag :draft_version, (report.draft_version if report.persisted?),
           id: nil, autocomplete: "off", data: { report_autosave_target: "version" } %>
+    <%= hidden_field_tag :autosave_key, nil, id: nil, autocomplete: "off", data: { report_autosave_target: "key" } %>
+  <% end %>
+  <% if conflict %>
+    <div class="state-banner state-banner--error" role="alert">
+      <%= ui_icon :warning %>
+      <span>
+        다른 탭이나 기기에서 이 글을 더 고쳤어요. 아래는 이 화면에서 쓴 글이에요.
+        이 글로 바꾸려면 ‘임시 저장’이나 ‘<%= submit_label %>’를 한 번 더 누르세요.
+        <%= link_to "최신 글 보기", edit_report_path(report), class: "underline font-semibold" %>
+        (이 화면에서 쓴 내용은 사라지니 필요하면 먼저 복사해 두세요.)
+      </span>
+    </div>
   <% end %>
   <% if report.errors.any? %>
     <div class="state-banner state-banner--error" role="alert">
@@ -105,7 +126,7 @@
         아이가 직접 확인할 수 있는 손잡이이기 때문이다.
         report-edit 의 submit 타깃을 달지 않아 dirty-check 와 무관하게 항상 누를 수 있다.
         담임에게는 보이지 않는다(서버가 담임의 초안 저장을 막는다 — 위 `autosave` 주석). %>
-    <% if autosave %>
+    <% if draft_controls %>
       <%= f.submit "임시 저장", name: "save_draft", class: "btn btn-secondary" %>
     <% end %>
     <%= link_to "취소", reports_path, class: "btn btn-secondary" %>

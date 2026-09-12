@@ -6,6 +6,8 @@ class ReportsController < ApplicationController
   # 앱이 화면을 다시 여는 경우만 덮으면 된다 — 며칠 뒤 같은 책으로 새 글을 쓰려는 아이를 옛 초안으로
   # 끌고 가지 않게 짧게 둔다(마지막 저장 기준이라 계속 쓰는 동안은 이어진다).
   AUTOSAVE_ORIGIN_TTL = 2.hours
+  # 편집 화면이 여는 순간 만드는 표(Report#autosave_key)의 모양. 브라우저의 UUID(36자) 또는 16진 32자.
+  AUTOSAVE_KEY_FORMAT = /\A[\w-]{8,64}\z/
 
   # 학생은 자기 글, 교사는 담당 학급 글(정책 스코프). 무제한 목록을 페이지네이션한다.
   # 필터(book_id/book_title/reviewed)는 반드시 policy_scope 위에만 얹어 위조 파라미터로 남의 글이
@@ -49,8 +51,16 @@ class ReportsController < ApplicationController
   end
 
   def create
+    # 같은 편집 화면이 다시 보낸 요청이면(첫 자동 저장이 시간 초과로 끊겨 재시도, 첫 저장을 기다리던
+    # 제출) 새로 만들지 않고 그 화면이 이미 만든 초안을 잇는다. 서버는 저장을 마쳤는데 브라우저만
+    # 응답을 못 받은 경우 초안이 두 편 생겼다(2차 리뷰 #4). 표는 화면이 열릴 때 만들어 모든 요청에 싣는다.
+    existing = report_for_autosave_key
+    return continue_report(existing) if existing
+
     @report = Current.user.reports.new(report_params_with_registered_book)
     @report.classroom = Current.user.classroom
+    @report.autosave_key = autosave_key_param
+    @report.autosave_origin_digest = autosave_origin_digest if save_draft?
     link_participation(@report)
     authorize @report
 
@@ -63,10 +73,7 @@ class ReportsController < ApplicationController
       if @report.save
         respond_to do |format|
           format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요." }
-          format.json do
-            remember_autosave_origin(@report)
-            render_draft_saved(status: :created)
-          end
+          format.json { render_draft_saved(status: :created) }
         end
       else
         render_draft_invalid(:new)
@@ -77,6 +84,13 @@ class ReportsController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotUnique => e
+    # 같은 표의 첫 저장 두 개가 동시에 들어와 한쪽이 먼저 만들었다(유일 인덱스가 둘째를 막음) —
+    # 그 초안을 잇는다. reports 의 유일 인덱스는 이 표 하나뿐이다.
+    existing = report_for_autosave_key
+    raise e unless existing
+
+    continue_report(existing)
   end
 
   def edit
@@ -100,6 +114,10 @@ class ReportsController < ApplicationController
     # 끼어든 자동 저장(update_as_draft)이 "아직 초안"을 보고 옛 본문을 써, 선생님께 옛 글이 갔다.
     # AI 첨삭 예약은 잠금(트랜잭션)이 끝난 뒤에 한다 — 커밋 전에 잡이 돌면 제출 전 상태를 읽는다.
     outcome = @report.with_lock do
+      # 초안을 연 뒤 다른 탭·기기가 더 고쳤으면 이 화면의 글로 덮어 내지 않는다(2차 리뷰 #3 —
+      # 자동 저장만 막던 때는 "다른 곳에서 고쳤어요"를 본 아이가 누르는 '제출하기'가 우회로였다).
+      next :stale if @report.draft? && stale_draft_version?
+
       # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
       # 잠근 뒤 다시 읽은 값이라 같은 순간 먼저 끝난 요청의 결과를 본다.
       was_draft = @report.draft?
@@ -119,6 +137,8 @@ class ReportsController < ApplicationController
     end
 
     case outcome
+    when :stale
+      reject_stale_draft_save
     when :invalid
       render :edit, status: :unprocessable_entity
     when :first_submission
@@ -217,17 +237,15 @@ class ReportsController < ApplicationController
   # 원격 책의 remote_isbn 이 있으면 Books::SearchService#register(캐시-우선)로 등록해 book_id 로
   # 링크한다. register 는 raise 하지 않고 nil 로 degrade 하므로(무키·미일치·실패), 실패 시
   # book_id 공란인 채 book_title 폴백으로 저장된다(save 를 막거나 롤백하지 않는다).
-  # 등록된 책은 `promote_from_search!`로 정식 카탈로그(recommended)로 즉시 승격한다 — 검색해서
-  # 독후감을 쓴 책은 일회성 캐시가 아니라 실제로 읽힌 책이므로 검색·게임·발견에 바로 노출한다.
+  # 정식 카탈로그(recommended) 승격은 여기서 하지 않고 **제출할 때** 한다(record_submission!) —
+  # 검색해서 독후감을 낸 책은 실제로 읽힌 책이라 검색·게임·발견에 바로 노출하지만, 자동 저장이 생긴 뒤로는
+  # 이 등록이 쓰다 버린 초안에서도 일어난다(2차 리뷰 #12). 초안 동안은 검색 캐시(searched)로 연결만 한다.
   # remote_isbn 은 books/reports 컬럼이 아니므로 permit 하지 않고 params.dig 로만 소비한다.
   def report_params_with_registered_book
     permitted = report_params
     if permitted[:book_id].blank? && (isbn = params.dig(:report, :remote_isbn)).present?
       book = Books::SearchService.new.register(isbn)
-      if book
-        book.promote_from_search!
-        permitted[:book_id] = book.id
-      end
+      permitted[:book_id] = book.id if book
     end
     permitted
   end
@@ -270,6 +288,8 @@ class ReportsController < ApplicationController
     # **미검토 본문이 게시판에 그대로 공개된 채** 남는다(ReportPolicy#share? 의 승인 게이트를
     # 우회하는 유일한 구멍이었다). 공유 중이 아니면 no-op.
     unshare!(report) if report.shared?
+    # 검색으로 고른 책은 낸 순간 정식 카탈로그로 올린다(report_params_with_registered_book 주석). no-op 이면 무해.
+    report.book&.promote_from_search!
   end
 
   # 공유 해제 + 게시물 파기. share 액션의 취소 분기와 submit_for_review 가 공용한다.
@@ -294,8 +314,11 @@ class ReportsController < ApplicationController
   #   임시 저장·자동 저장은 작성 학생에게만 켠다(_form).
   # · 아직 내지 않은 글만 — 다른 탭에서 방금 제출한 글을 남은 탭의 자동 저장이 덮어쓰면,
   #   교사가 보는 본문과 AI 첨삭 대상이 어긋난다. 제출된 글의 본문은 제출 경로로만 바뀐다.
-  # · 자동 저장은 마지막으로 본 초안일 때만 — 어제 열어 둔 태블릿 탭에 한 글자만 쳐도, 그사이 집에서
-  #   더 쓴 본문이 옛 본문으로 통째로 덮였다(2026-09-13 리뷰).
+  # · 마지막으로 본 초안일 때만 — 어제 열어 둔 태블릿 탭에 한 글자만 쳐도, 그사이 집에서 더 쓴 본문이
+  #   옛 본문으로 통째로 덮였다(2026-09-13 리뷰). 임시 저장 버튼도 같다(2차 리뷰 #3).
+  #
+  # 저장할 때마다 이 화면의 표(autosave_key)를 남긴다 — 다음 요청이 "마지막으로 쓴 것이 나"인지 알 수
+  # 있게(stale_draft_version?). 표 없이 온 저장(스크립트 없는 화면)은 표를 지워 옛 표가 남지 않게 한다.
   #
   # 두 가드는 **잠근 뒤 다시 읽은 상태로 한 번 더** 본다. 잠그기 전의 판정만 믿으면, 읽은 뒤 저장하기
   # 전 사이에 끝난 제출·다른 탭의 저장을 못 보고 그 위에 옛 본문을 쓴다(확인과 갱신 사이의 틈, 리뷰 #11).
@@ -312,7 +335,9 @@ class ReportsController < ApplicationController
       next :stale if stale_draft_version?
       next :invalid unless draft_body_present?(@report, incoming: attrs)
 
-      @report.update(attrs) ? :saved : :invalid
+      @report.assign_attributes(attrs)
+      claim_autosave_key(@report)
+      @report.save ? :saved : :invalid
     end
 
     case outcome
@@ -340,37 +365,78 @@ class ReportsController < ApplicationController
                    saved_at: @report.updated_at.iso8601 }, status: status
   end
 
-  # 자동 저장(JSON)이 보낸 초안 버전이 지금 것과 다르면 그사이 다른 탭·기기가 이 초안을 더 고친 것이다.
-  # 임시 저장 버튼·제출(HTML)은 보지 않는다 — 아이가 지금 화면의 글로 하겠다고 직접 누른 것이라서다.
-  # 버전을 싣지 않은 요청(자동 저장 도입 전 스크립트가 남은 화면)은 예전처럼 받는다.
+  # 초안 버전(Report#draft_version)이 지금 것과 다르면 그사이 다른 탭·기기가 이 초안을 더 고친 것이다.
+  # 자동 저장(JSON)뿐 아니라 임시 저장 버튼·제출(HTML)도 본다(2차 리뷰 #3). 버전을 싣지 않은 요청
+  # (자동 저장이 꺼진 화면)은 예전처럼 받는다.
+  #
+  # **마지막으로 쓴 것이 이 화면이면 버전이 뒤처져도 받는다**(2차 리뷰 #2). 서버가 저장을 마친 뒤
+  # 응답만 끊기면(시간 초과·연결 끊김) 화면의 버전 표는 옛 값이라, 그 재시도를 거절하면 탭 하나만
+  # 쓰는데도 "다른 곳에서 고쳤어요"로 멈췄다. 다른 탭·기기가 사이에 저장했으면 표가 달라 여전히 거절한다.
   def stale_draft_version?
-    request.format.json? && params[:draft_version].present? && params[:draft_version] != @report.draft_version
+    sent = params[:draft_version].presence
+    return false if sent.nil? || sent == @report.draft_version
+
+    key = autosave_key_param
+    !(key && key == @report.autosave_key)
   end
 
+  # JSON(자동 저장)은 409 로 멈추게 한다. HTML(임시 저장 버튼·제출)은 **이 화면에서 쓴 글을 그대로 둔 채**
+  # 편집 화면을 다시 그린다 — 버전 표에는 서버의 최신 값이 실리므로, 아이가 버튼을 한 번 더 누르면 이
+  # 화면의 글로 바꾸겠다는 뜻이 된다. 최신 글을 보려면 편집 화면을 새로 연다(안내 배너에 링크).
+  # 이 화면에서는 자동 저장을 끈다 — 입력만으로 다른 곳의 글을 덮지 않게(_form 의 conflict).
   def reject_stale_draft_save
-    render json: { error: "stale" }, status: :conflict
+    respond_to do |format|
+      format.json { render json: { error: "stale" }, status: :conflict }
+      format.html do
+        @report.assign_attributes(report_params)
+        @draft_conflict = true
+        render :edit, status: :conflict
+      end
+    end
   end
 
-  # 자동 저장이 새 글 화면(/reports/new?…)에서 초안을 만들었다 — 그 화면 주소를 기억해 new 가 같은
-  # 주소로 다시 오면 초안을 열어 준다(autosaved_draft_from_here). 주소는 브라우저가 연결된 순간의
-  # 것을 싣는다(떠나는 순간에 저장하면 location 이 이미 다음 화면이다). 하나만 기억해 쿠키를 키우지 않는다.
-  def remember_autosave_origin(report)
+  # 모든 폼 요청이 싣는 이 편집 화면의 표(report-autosave 가 화면을 열 때 만든다). 모양이 틀리면 없는 것으로 본다.
+  def autosave_key_param
+    params[:autosave_key].to_s[AUTOSAVE_KEY_FORMAT]
+  end
+
+  # 이 화면의 표를 글에 남긴다. 화면 하나는 글 하나만 다루므로 같은 표가 다른 글에 있을 리 없지만,
+  # 조작된 요청이 유일 인덱스를 건드려 500 이 나지 않게 그때는 표를 비운다.
+  def claim_autosave_key(report)
+    key = autosave_key_param
+    key = nil if key && Current.user.reports.where(autosave_key: key).where.not(id: report.id).exists?
+    report.autosave_key = key
+  end
+
+  # 같은 표로 이미 만든 글(첫 저장 재시도·첫 저장을 기다린 제출).
+  def report_for_autosave_key
+    key = autosave_key_param
+    key && Current.user.reports.find_by(autosave_key: key)
+  end
+
+  # create 로 온 요청을 이미 있는 글의 update 로 처리한다(인가·제출 판정·잠금이 모두 update 에 있다).
+  # 새 글 화면의 버전 표는 비어 있어 버전 검사는 걸리지 않는다.
+  def continue_report(report)
+    @report = report
+    update
+  end
+
+  # 자동 저장의 첫 create 가 실어 온 새 글 화면 주소(/reports/new?…)의 지문. 새 글 화면 주소가 아니면
+  # 기억하지 않는다. 원문이 아니라 지문을 초안 행에 둔다 — 단계 학습은 본문 전체를 주소에 실어 넘겨,
+  # 원문을 세션 쿠키에 넣던 때는 쿠키 한도(4KB)를 넘어 첫 저장이 500 으로 끝나고 재시도마다 초안이
+  # 늘었다(2차 리뷰 #1). 쿠키에 두면 동시에 나간 다른 요청이 옛 쿠키를 되써 기억이 사라지기도 했다(#11).
+  def autosave_origin_digest
     origin = params[:autosave_origin].to_s
     return unless origin == new_report_path || origin.start_with?("#{new_report_path}?")
 
-    session[:autosave_origin] = { "path" => origin, "report_id" => report.id }
+    Digest::SHA256.hexdigest(origin)
   end
 
+  # 이 새 글 화면에서 자동 저장이 만든, 아직 내지 않은 최근 초안. 낸 글·지운 글, 마지막 저장에서
+  # AUTOSAVE_ORIGIN_TTL 이 지난 초안은 대상이 아니다 — 다음 새 글은 정말 새 글이다.
   def autosaved_draft_from_here
-    memo = session[:autosave_origin]
-    return unless memo.is_a?(Hash) && memo["path"] == request.fullpath
-
-    draft = Current.user.reports.find_by(id: memo["report_id"])
-    return draft if draft&.draft? && draft.updated_at >= AUTOSAVE_ORIGIN_TTL.ago
-
-    # 이미 냈거나 지웠거나 오래된 초안이면 잊는다 — 다음 새 글은 정말 새 글이다.
-    session.delete(:autosave_origin)
-    nil
+    Current.user.reports.where(submitted_at: nil, autosave_origin_digest: Digest::SHA256.hexdigest(request.fullpath))
+           .where(updated_at: AUTOSAVE_ORIGIN_TTL.ago..).order(updated_at: :desc).first
   end
 
   def render_draft_invalid(template)

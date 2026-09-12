@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_30_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_13_000001) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -526,6 +526,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_30_000003) do
 
   create_table "reports", force: :cascade do |t|
     t.integer "ai_status", default: 0, null: false
+    t.string "autosave_key", limit: 64
+    t.string "autosave_origin_digest", limit: 64
     t.float "avg"
     t.text "body"
     t.integer "book_id"
@@ -558,6 +560,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_30_000003) do
     t.index ["level"], name: "index_reports_on_level"
     t.index ["reviewed"], name: "index_reports_on_reviewed"
     t.index ["revision_of_id"], name: "index_reports_on_revision_of_id"
+    t.index ["user_id", "autosave_key"], name: "index_reports_on_user_id_and_autosave_key", unique: true, where: "autosave_key IS NOT NULL"
+    t.index ["user_id", "autosave_origin_digest"], name: "index_reports_on_user_id_and_autosave_origin_digest", where: "autosave_origin_digest IS NOT NULL"
     t.index ["user_id", "created_at"], name: "index_reports_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_reports_on_user_id"
   end

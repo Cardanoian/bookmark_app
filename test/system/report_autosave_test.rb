@@ -213,6 +213,141 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
   end
 
+
+  # --- 2차 코드 리뷰(e411848) 후속: 브라우저 쪽 계약 ---
+
+  # 새 글 화면 주소를 서버에 알리는 이름·값이 어긋나면 서버 테스트는 통과해도 기능은 죽는다(#6-d).
+  test "새 글: 자동 저장 뒤 처음 새 글 주소로 다시 오면 빈 새 글 대신 그 초안이 열린다" do
+    login_via_browser
+    origin = new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    visit origin
+
+    text = "앱에서 다른 화면에 다녀와도 이어서 쓸 수 있어요."
+    find("#report_body_field").fill_in with: text
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    draft = @student.reports.sole
+
+    visit origin # 앱은 자동 저장이 바꾼 주소를 모르고 처음 주소로 화면을 다시 연다.
+    assert_current_path edit_report_path(draft)
+    assert_text "쓰던 글을 이어서 열었어요."
+    assert_equal text, find("#report_body_field").value
+    assert_equal 1, @student.reports.count
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 첫 저장 중에 책 제목을 고치면, 늦게 온 응답이 옛 책 id 를 숨은 칸에 도로 심었다(#6-b).
+  test "첫 저장 중에 책 제목을 고치면 늦게 온 응답이 옛 책을 다시 연결하지 않는다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    delay_autosave_requests(2500)
+
+    find("#report_body_field").fill_in with: "마틸다 다음 권도 읽고 싶어요."
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    find("#report_book_title").send_keys(" 2권")
+
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_equal "", find("input[name='report[book_id]']", visible: :all).value, "아이가 바꾼 책을 옛 책으로 되돌리면 안 된다"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 응답 없는 저장 하나가 다음 저장과 제출을 한없이 붙잡지 않게 시간 제한을 둔다(#6-c).
+  test "자동 저장 요청에는 시간 제한 신호가 실린다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    execute_script(<<~JS)
+      window.__autosaveSignals = []
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        if (isAutosave(init)) window.__autosaveSignals.push(init.signal instanceof AbortSignal)
+        return original(input, init)
+      }
+    JS
+    install_autosave_matcher
+
+    find("#report_body_field").send_keys(" 더 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_equal [ true ], evaluate_script("window.__autosaveSignals")
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 서버는 저장했는데 응답만 끊긴 경우 — 같은 화면의 재시도는 "다른 곳에서 고쳤어요"로 멈추지 않는다(#2).
+  test "응답만 잃은 저장의 재시도는 거짓 충돌 없이 저장된다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    lose_first_autosave_response
+
+    find("#report_body_field").send_keys(" 한 줄 더")
+    assert_selector "[data-report-autosave-target='status']", text: /잠시 뒤 다시 저장할게요/, wait: SAVE_WAIT
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_no_text "다른 곳에서 이 글을 더 고쳤어요"
+    assert_equal "쓰다 만 글이에요. 한 줄 더", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 첫 저장(create)의 응답을 잃어도 서버는 이미 초안을 만들었다. 재시도가 초안을 또 만들지 않는다(#4).
+  test "새 글: 첫 저장의 응답을 잃어도 재시도가 초안을 한 편 더 만들지 않는다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    lose_first_autosave_response
+
+    find("#report_body_field").fill_in with: "마틸다가 도서관에 가는 장면이 좋았어요."
+    assert_selector "[data-report-autosave-target='status']", text: /잠시 뒤 다시 저장할게요/, wait: SAVE_WAIT
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_current_path %r{\A/reports/\d+/edit\z}
+    assert_equal 1, @student.reports.count
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # 저장이 날아가는 중에 다른 화면으로 가고 그 저장이 끊기면 마지막 입력이 경고 없이 사라졌다(#5).
+  test "저장 중에 다른 화면으로 가고 그 저장이 끊겨도, 떠난 뒤 한 번 더 보내 글을 지킨다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_first_autosave_after(1500)
+
+    find("#report_body_field").send_keys(" 떠나기 직전에 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    click_on "취소"
+    assert_current_path reports_path
+
+    eventually { draft.reload.body == "쓰다 만 글이에요. 떠나기 직전에 쓴 글" }
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
+  # "다른 곳에서 고쳤어요" 뒤의 '임시 저장'이 다른 기기의 새 글을 덮던 우회로(#3).
+  test "다른 곳에서 고쳤다는 안내 뒤 임시 저장을 눌러도 바로 덮지 않고, 쓴 글을 보여 주며 한 번 더 묻는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "학교에서 쓴 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    draft.update!(body: "학교에서 쓴 글이에요. 집에서 더 쓴 글이에요.")
+
+    find("#report_body_field").send_keys(" 옛 탭")
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+    click_on "임시 저장"
+
+    assert_text "다른 탭이나 기기에서 이 글을 더 고쳤어요"
+    assert_equal "학교에서 쓴 글이에요. 옛 탭", find("#report_body_field").value, "이 화면에서 쓴 글은 그대로 보여 준다"
+    assert_equal "학교에서 쓴 글이에요. 집에서 더 쓴 글이에요.", draft.reload.body
+
+    click_on "임시 저장" # 한 번 더 누르면 이 화면의 글로 바꾼다.
+    assert_text "임시 저장했어요"
+    assert_equal "학교에서 쓴 글이에요. 옛 탭", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip "headless chrome(chromedriver)를 사용할 수 없어 시스템 테스트를 건너뜁니다: #{e.message}"
+  end
+
   private
 
   # 긴 글을 키 입력으로 치면 수십 초가 걸린다. 값을 넣고 입력 이벤트를 흘린다(자동 저장은 input 을 듣는다).
@@ -237,11 +372,12 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
 
   # 자동 저장 요청(Accept JSON)마다 keepalive 를 썼는지 기록한다(요청은 그대로 서버로 간다).
   def record_autosave_requests
+    install_autosave_matcher
     execute_script(<<~JS)
       window.__autosaveKeepalive = []
       const original = window.fetch
       window.fetch = (input, init = {}) => {
-        if (new Headers(init.headers || {}).get("Accept") === "application/json") window.__autosaveKeepalive.push(!!init.keepalive)
+        if (isAutosave(init)) window.__autosaveKeepalive.push(!!init.keepalive)
         return original(input, init)
       }
     JS
@@ -251,15 +387,63 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     evaluate_script("window.__autosaveKeepalive")
   end
 
+  # 페이지에 "자동 저장 요청인가"를 가리는 함수를 심는다(POST + Accept JSON — 책 자동 완성은 GET 이다).
+  def install_autosave_matcher
+    execute_script(<<~JS)
+      window.isAutosave = (init = {}) =>
+        (init.method || "GET").toUpperCase() === "POST" && new Headers(init.headers || {}).get("Accept") === "application/json"
+    JS
+  end
+
+  # 첫 자동 저장은 서버까지 가서 저장되지만 브라우저는 응답을 못 받는다(연결 끊김). 그다음부터는 그대로.
+  def lose_first_autosave_response
+    install_autosave_matcher
+    execute_script(<<~JS)
+      let lost = false
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        const request = original(input, init)
+        if (!isAutosave(init) || lost) return request
+        lost = true
+        return request.then(() => { throw new TypeError("응답을 잃었다") })
+      }
+    JS
+  end
+
+  # 첫 자동 저장은 서버에 닿지 못하고 ms 뒤 끊긴다. 그다음부터는 그대로.
+  def fail_first_autosave_after(ms)
+    install_autosave_matcher
+    execute_script(<<~JS, ms)
+      const delay = arguments[0]
+      let failed = false
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        if (!isAutosave(init) || failed) return original(input, init)
+        failed = true
+        return new Promise((_, reject) => setTimeout(() => reject(new TypeError("연결이 끊겼다")), delay))
+      }
+    JS
+  end
+
+  def eventually(timeout: SAVE_WAIT)
+    deadline = Time.current + timeout
+    until yield
+      raise Minitest::Assertion, "#{timeout}초 안에 조건을 만족하지 않았습니다" if Time.current > deadline
+
+      sleep 0.2
+    end
+  end
+
   # 자동 저장(Accept: application/json)의 **응답만** 늦춘다 — 요청은 곧바로 서버에 닿아 초안이 생기고,
   # 브라우저는 그 사실을 늦게 안다(느린 학교 망). 이 사이에 제출이 기다리지 않으면 create 로 한 편이
   # 더 생긴다. 요청을 늦추면 제출이 먼저 끝나 버려 이 위험을 못 본다. Turbo 의 제출(HTML)은 그대로 둔다.
   def delay_autosave_requests(ms)
+    install_autosave_matcher
     execute_script(<<~JS, ms)
       const delay = arguments[0]
       const original = window.fetch
       window.fetch = (input, init = {}) => {
-        const json = new Headers(init.headers || {}).get("Accept") === "application/json"
+        const json = isAutosave(init)
         const request = original(input, init)
         return json ? request.then((response) => new Promise((resolve) => setTimeout(() => resolve(response), delay))) : request
       }
@@ -268,11 +452,12 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
 
   # 자동 저장 요청에 서버 대신 정해 둔 응답을 돌려준다.
   def answer_autosave_with(status:, body:)
+    install_autosave_matcher
     execute_script(<<~JS, status, body.to_json)
       const [status, body] = [arguments[0], arguments[1]]
       const original = window.fetch
       window.fetch = (input, init = {}) => {
-        const json = new Headers(init.headers || {}).get("Accept") === "application/json"
+        const json = isAutosave(init)
         if (!json) return original(input, init)
         return Promise.resolve(new Response(body, { status, headers: { "content-type": "application/json" } }))
       }

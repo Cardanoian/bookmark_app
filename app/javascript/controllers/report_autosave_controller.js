@@ -17,6 +17,8 @@ import { Controller } from "@hotwired/stimulus"
 // · 저장은 한 번에 하나(single-flight). 새 글의 첫 저장이 초안을 만들면 폼을 그 초안의 PATCH 로
 //   바꾼다 — 안 바꾸면 '제출하기'가 create 로 한 편을 더 만든다. 첫 저장이 날아가는 중에 제출을
 //   누르면 끝날 때까지 기다렸다가 PATCH 로 낸다(기다리는 동안 버튼을 잠근다).
+// · 화면을 열 때 이 화면의 표(autosave_key)를 만들어 모든 요청에 싣는다. 서버가 같은 화면의 재전송을
+//   알아봐, 첫 저장 재시도가 초안을 또 만들지 않고 응답만 잃은 저장이 거짓 충돌로 멈추지 않는다.
 // · 저장할 때마다 "내가 본 초안"의 버전(draft_version)을 싣는다. 그사이 다른 탭·기기가 초안을 더
 //   고쳤으면 서버가 409 stale 로 거절하고, 여기서는 멈추고 새로 고치게 한다(옛 화면이 새 글을 덮지 않게).
 // · enabled=false(사진 첫 제출 화면·이미 낸 글 수정·담임이 연 학생 초안)면 저장하지 않고, 쓴 게
@@ -38,7 +40,7 @@ const RELOAD_HINT = "쓴 글을 복사해 둔 뒤 화면을 새로 고쳐 주세
 const BOOK_FIELDS = [ "report[book_id]", "report[remote_isbn]", "report[book_title]" ]
 
 export default class extends Controller {
-  static targets = [ "status", "version" ]
+  static targets = [ "status", "version", "key" ]
   static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" } }
 
   connect() {
@@ -58,11 +60,16 @@ export default class extends Controller {
     this.submissionSent = false
     this.awaitingSubmit = false
     this.disconnected = false
+    this.lastChanceUsed = false
     this.debounceTimer = null
     this.firstPendingAt = null
     // 새 글 화면 주소. 첫 저장이 서버에 알려, 이 주소로 다시 오면(새로고침·뒤로 가기·앱이 다시 엶)
     // 빈 새 글 대신 초안을 연다. 떠나는 순간의 저장에서는 location 이 이미 다음 화면이라 지금 잡아 둔다.
     this.origin = window.location.pathname + window.location.search
+    // 이 편집 화면의 표. 모든 요청(자동 저장·임시 저장·제출)에 실려, 서버가 "같은 화면이 다시 보낸
+    // 요청"을 알아본다 — 첫 저장 재시도가 초안을 또 만들지 않고, 응답만 잃은 저장이 "다른 곳에서
+    // 고쳤어요"로 거절되지 않는다. 화면을 열 때마다 새로 만든다.
+    if (this.hasKeyTarget) this.keyTarget.value = this.newKey()
 
     this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     this.handleBeforeVisit = this.handleBeforeVisit.bind(this)
@@ -94,10 +101,14 @@ export default class extends Controller {
   // 폼 안의 입력(본문·책 제목·책 고르기)마다 부른다. 질문형 작성은 report-guide 가 답을 본문
   // 필드로 옮기며 input 이벤트를 흘려 여기로 들어온다.
   changed() {
-    if (this.submitting) return
-
+    // 제출이 나가는 중에 쓴 글도 '저장 안 됨'으로 센다 — 제출이 네트워크 오류로 끝나면 다시 저장하고,
+    // 떠날 때 붙잡아야 한다(예전에는 세기 전에 돌아가 그 입력이 저장도 경고도 안 됐다).
     this.version += 1
+    if (this.submitting) return
     if (!this.enabledValue || this.stopped || this.disconnected) return
+    // 실패 뒤에는 벌려 둔 재시도 타이머(또는 online 이벤트)가 최신 글을 가져간다. 입력마다 보내면
+    // 서버 장애 때 요청이 몰리고 재시도 간격이 무의미해진다.
+    if (this.failures > 0) return
 
     if (this.creating) {
       // 새 글의 첫 저장은 뒤따르는 입력으로 미루지 않는다. 날아가는 중이면 끝난 뒤 afterSave 가 잇는다.
@@ -260,11 +271,19 @@ export default class extends Controller {
 
   // 책 칸(고른 책 id·원격 검색 isbn·제목)의 지금 값. 저장 응답의 책 id 를 심어도 되는지 가를 때 쓴다.
   get bookSnapshot() {
-    return BOOK_FIELDS.map((name) => this.field(name)?.value ?? "").join(" ")
+    return JSON.stringify(BOOK_FIELDS.map((name) => this.field(name)?.value ?? ""))
   }
 
   field(name) {
     return this.element.querySelector(`input[name='${name}']`)
+  }
+
+  // 화면 표. crypto.randomUUID 는 보안 연결(HTTPS·localhost)에서만 있어, 없으면 난수 16바이트를 쓴다.
+  newKey() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID()
+
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16))
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
   }
 
   buildPayload(creating) {
@@ -360,7 +379,7 @@ export default class extends Controller {
   handleFailure() {
     this.failures += 1
     clearTimeout(this.retryTimer)
-    // 떠난 화면에서는 다시 시도하지 않는다(떠나는 순간의 저장은 이미 보냈다).
+    // 떠난 화면에서는 재시도 타이머를 걸지 않는다(afterSave 가 한 번만 다시 보낸다).
     if (this.disconnected) return
     if (!navigator.onLine) {
       // online 이벤트가 다시 부른다.
@@ -378,14 +397,20 @@ export default class extends Controller {
     this.inflightCreating = false
     const again = this.queued || this.dirty
     this.queued = false
-    if (!again || this.submitting || this.stopped || this.rejected || this.failures > 0) return
 
-    // 화면을 떠난 뒤에는 타이머를 걸지 않는다 — 몇 초 뒤 떠난 화면의 옛 글을 보내게 된다. 떠나는
-    // 사이 더 쓴 글만 한 번 보낸다. 첫 저장이 방금 초안을 만들었다면 폼이 이미 PATCH 로 바뀌어 있다.
+    // 화면을 떠난 뒤에는 타이머를 걸지 않는다 — 몇 초 뒤 떠난 화면의 옛 글을 보내게 된다. 대신 **저장 못
+    // 한 글을 딱 한 번** keepalive 로 다시 보낸다: 떠나는 사이 더 쓴 글, 그리고 **떠난 뒤 실패한 저장**
+    // (예전에는 떠난 뒤 실패를 다시 보내지 않아, 저장이 날아가는 중에 '취소'를 누르고 그 저장이 끊기면
+    // 마지막 입력이 경고 없이 사라졌다 — 2차 리뷰 #5). 첫 저장이 실패했어도 같은 화면 표를 실어 가므로
+    // 서버가 이미 만든 초안이 있으면 그 초안을 잇는다(초안이 두 편 생기지 않는다).
     if (this.disconnected) {
-      if (!this.creating) this.save({ keepalive: true })
+      if (this.dirty && !this.lastChanceUsed && !this.submitting && !this.stopped && !this.rejected) {
+        this.lastChanceUsed = true
+        this.save({ keepalive: true })
+      }
       return
     }
+    if (!again || this.submitting || this.stopped || this.rejected || this.failures > 0) return
     this.scheduleSave(DEBOUNCE_MS)
   }
 
