@@ -40,6 +40,10 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
   JSON_HEADERS = { "Accept" => "application/json" }.freeze
+  # 다른 기기에서 내고 승인까지 받은 상태(5차 리뷰 F1).
+  APPROVED = { submitted_at: Time.current, ai_status: :done, reviewed: true, reviewed_at: Time.current,
+               rubric: { content: 3, emotion: 3, life: 3, structure: 3, spelling: 3 }, avg: 3.0, level: "B",
+               teacher_comment: "잘 썼어요" }.freeze
 
   setup do
     @school = School.create!(name: "자동저장학교")
@@ -765,6 +769,90 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     assert_select "[role=alert]", { text: /고쳐쓰기/, count: 0 }
   end
 
+  # --- 5차 코드 리뷰(ee11907) 후속 ---
+
+  # '이미 제출했어요' 화면은 버튼을 없앴지만 폼과 text 칸 하나(책 제목)가 남아, HTML 규칙상 Enter 가 폼을
+  # 제출한다. 그 화면에 `opened_as_draft` 가 빠져 있어 일반 수정으로 처리됐다 — 승인된 글이 옛 탭의 글로 덮이고
+  # 승인이 풀렸다(F1). 여기서는 그 화면이 보내는 칸을 그대로 다시 보내 암묵 제출을 흉내 낸다.
+  test "이미 제출 화면의 폼을 다시 보내도(Enter 암묵 제출) 승인된 글을 바꾸지 않는다" do
+    draft = keyboard_draft
+    login_as @student
+    get edit_report_path(draft)
+    seen = form_fields(response.body)
+    draft.update!(APPROVED.merge(body: "집에서 다 쓰고 낸 글"))
+
+    patch report_path(draft), params: seen.merge("report[body]" => "학교 태블릿의 옛 글")
+    assert_response :conflict
+    conflict = form_fields(response.body)
+    assert_equal "1", conflict["opened_as_draft"], "이미 제출 화면도 초안일 때 연 화면이다"
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      patch report_path(draft), params: conflict
+    end
+    assert_response :conflict
+    draft.reload
+    assert_equal "집에서 다 쓰고 낸 글", draft.body
+    assert draft.reviewed?
+    assert_equal "잘 썼어요", draft.teacher_comment
+  end
+
+  test "사진 첫 제출·담임 화면의 이미 제출 화면도 다시 보내면 거절한다" do
+    photo = Report.create!(user: @student, classroom: @classroom, book_title: "사진 책",
+                           input_mode: :ocr, body: "사진에서 읽은 글", ai_status: :done)
+    login_as @student
+    get edit_report_path(photo)
+    seen = form_fields(response.body)
+    photo.update!(APPROVED.merge(body: "집에서 고쳐 내고 승인받은 글"))
+    patch report_path(photo), params: seen
+    assert_response :conflict
+    patch report_path(photo), params: form_fields(response.body)
+    assert_response :conflict
+    assert photo.reload.reviewed?
+    assert_equal "집에서 고쳐 내고 승인받은 글", photo.body
+
+    draft = keyboard_draft
+    delete session_path
+    login_as @teacher
+    get edit_report_path(draft)
+    seen = form_fields(response.body)
+    travel 1.minute do
+      draft.update!(body: "학생이 집에서 다 쓰고 낸 글", submitted_at: Time.current)
+    end
+    patch report_path(draft), params: seen.merge("report[body]" => "담임이 옛 탭에서 고친 글")
+    assert_response :conflict
+    patch report_path(draft), params: form_fields(response.body)
+    assert_response :conflict
+    assert_equal "학생이 집에서 다 쓰고 낸 글", draft.reload.body
+  end
+
+  # 본문을 비우고 누른 '임시 저장'의 입력 오류 화면이 보낸 칸 대신 저장된 제목·본문을 보여 줬다(LOW-a) —
+  # 바꾼 제목이 조용히 사라지고, 저장된 글을 보여 주면서 떠날 때는 붙잡았다.
+  test "빈 본문 임시 저장의 입력 오류 화면은 보낸 칸을 그대로 보여 준다" do
+    draft = keyboard_draft
+    login_as @student
+
+    patch report_path(draft), params: { save_draft: "1", opened_as_draft: "1", draft_version: draft.draft_version,
+                                        report: { book_id: "", book_title: "새로 고친 제목", body: "" } }
+    assert_response :unprocessable_entity
+    assert_select "input[name='report[book_title]'][value=?]", "새로 고친 제목"
+    assert_select "#report_body_field", text: ""
+    assert_equal "쓰다 만 글이에요.", draft.reload.body, "저장하지는 않는다"
+  end
+
+  # 자동 저장이 "이미 제출한 글"로 멈추면 새로 고칠 곳을 알려 준다(LOW-b). 주소가 없던 때는 안내대로 새로
+  # 고치면 편집 화면이면 배너 없는 '수정하기' 폼이, 새 글 화면이면 빈 새 글이 열렸다.
+  test "이미 제출한 글에 온 자동 저장의 409 는 그 글 주소를 알려 준다" do
+    draft = keyboard_draft
+    draft.update!(submitted_at: Time.current)
+    login_as @student
+
+    patch report_path(draft), params: { save_draft: "1", draft_version: draft.draft_version, report: { body: "뒤늦은 저장" } },
+                              headers: JSON_HEADERS
+    assert_response :conflict
+    assert_equal "already_submitted", response.parsed_body["error"]
+    assert_equal report_path(draft), response.parsed_body["report_url"]
+  end
+
   # --- 확인과 갱신 사이의 틈(리뷰 #11) ---
 
   test "자동 저장이 초안을 읽은 뒤 잠그기 전에 제출이 끝났으면 그 위에 쓰지 않는다" do
@@ -858,6 +946,19 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
   def keyboard_draft
     Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
                    body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+  end
+
+  # 독후감 폼이 브라우저에서 보내는 칸(이름이 있고, 비활성이 아니고, 제출 버튼이 아닌 것) — Enter 암묵 제출과 같다.
+  def form_fields(html)
+    form = Nokogiri::HTML(html).at_css("form[data-controller~='report-autosave']")
+    fields = {}
+    form.css("input[name]").each do |input|
+      next if %w[submit button].include?(input["type"]) || input.key?("disabled")
+
+      fields[input["name"]] = input["value"].to_s
+    end
+    form.css("textarea[name]").each { |area| fields[area["name"]] = area.text.sub(/\A\n/, "") }
+    fields
   end
 
   # 승인된 원본에서 고쳐쓰기를 시작한 상태(revise 가 만든 초안).

@@ -335,9 +335,12 @@ class ReportsController < ApplicationController
     outcome = @report.with_lock do
       next :submitted unless @report.draft?
       next :stale if stale_draft_version?
-      next :invalid unless draft_body_present?(@report, incoming: attrs)
 
+      # 보낸 칸을 먼저 담는다 — 빈 본문으로 거절할 때도 입력 오류 화면이 보낸 제목·본문을 보여 주게(5차 리뷰
+      # LOW-a). 예전에는 담기 전에 거절해, 바꾼 제목이 조용히 사라지고 저장된 글을 보여 줬다.
       @report.assign_attributes(attrs)
+      next :invalid unless draft_body_present?(@report)
+
       stamp_autosave_writer(@report)
       @report.save ? :saved : :invalid
     end
@@ -487,7 +490,9 @@ class ReportsController < ApplicationController
   # (이미 낸 글을 이 화면의 글로 바꾸는 길을 두지 않는다 — 더 고치려면 글 화면의 '고쳐쓰기').
   def reject_draft_save_after_submit
     respond_to do |format|
-      format.json { render json: { error: "already_submitted" }, status: :conflict }
+      # report_url — 멈춘 화면이 "새로 고칠 곳"을 알게(5차 리뷰 LOW-b). 주소가 없던 때는 안내대로 새로 고치면
+      # 편집 화면이면 배너 없는 '수정하기' 폼이, 새 글 화면이면 빈 새 글이 열렸다.
+      format.json { render json: { error: "already_submitted", report_url: report_path(@report) }, status: :conflict }
       format.html do
         @report.assign_attributes(report_params)
         @submitted_conflict = true
@@ -505,10 +510,9 @@ class ReportsController < ApplicationController
 
   # 빈 초안은 만들지 않는다. Report 에는 body presence 검증이 없어(사진 초안은 본문 없이 태어난다)
   # 이 가드가 없으면 아무것도 안 쓰고 누른 "임시 저장"이 빈 '작성 중' 글을 목록에 쌓는다.
-  # 본문 칸을 싣지 않은 요청(책만 바꾼 저장)은 저장된 본문을 본다 — 없는 칸을 빈 본문으로 읽지 않는다.
-  def draft_body_present?(report, incoming: nil)
-    body = incoming&.key?(:body) ? incoming[:body] : report.body
-    return true if body.present?
+  # 보낸 칸을 담은 뒤에 본다 — 본문 칸을 싣지 않은 요청(책만 바꾼 저장)은 저장된 본문이 그대로 남아 있다.
+  def draft_body_present?(report)
+    return true if report.body.present?
 
     report.errors.add(:body, "를 조금이라도 쓴 뒤에 임시 저장할 수 있어요.")
     false

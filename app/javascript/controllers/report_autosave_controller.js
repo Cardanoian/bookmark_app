@@ -12,7 +12,9 @@ import { Controller } from "@hotwired/stimulus"
 //   글이 남지 않는다.
 // · 입력이 멈추고 2초 뒤 저장하고, 쉬지 않고 쓰는 중이면 20초마다 한 번은 저장한다. 새 글의 첫
 //   저장은 첫 입력 0.8초 뒤에 바로 한다(초안이 생기기 전에 새로고침하면 빈 새 글로 돌아가므로).
-//   화면을 떠날 때(Turbo 이동·새로고침·창 닫기·앱이 화면을 닫음·탭 전환)는 그 자리에서 한 번 더(keepalive).
+// · 떠날 때: Turbo 로 다른 화면에 가거나 다른 폼(로그아웃 등)을 낼 때는 **저장이 끝난 것을 확인한 뒤에** 간다 —
+//   이동·요청을 멈추고 저장한 다음 이어 가며, 저장이 거절·실패하면 묻는다(5차 리뷰 F2·R2·L1). 기다릴 수 없는
+//   경우(새로고침·창 닫기·앱이 화면을 닫음·탭 전환·뒤로 가기)는 그 자리에서 한 번 더 보낸다(keepalive).
 //   keepalive 한도(64KiB)를 넘는 아주 긴 글은 보통 요청으로 보내고, 창을 닫을 때는 붙잡는다.
 // · 저장은 한 번에 하나(single-flight). 새 글의 첫 저장이 초안을 만들면 폼을 그 초안의 PATCH 로
 //   바꾼다 — 안 바꾸면 '제출하기'가 create 로 한 편을 더 만든다. 첫 저장이 날아가는 중에 제출을
@@ -41,7 +43,8 @@ const BOOK_FIELDS = [ "report[book_id]", "report[remote_isbn]", "report[book_tit
 
 export default class extends Controller {
   static targets = [ "status", "version", "key", "seq" ]
-  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" }, unsaved: Boolean }
+  // locked: '이미 제출했어요' 화면 — 이 화면의 글로는 낼 수 없다(beforeSubmit).
+  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" }, unsaved: Boolean, locked: Boolean }
 
   connect() {
     // 입력마다 version 을 올리고, 저장이 끝나면 그 저장이 담은 version 을 savedVersion 에 적는다.
@@ -61,6 +64,11 @@ export default class extends Controller {
     this.awaitingSubmit = false
     this.disconnected = false
     this.lastChanceUsed = false
+    // leaving: 떠나기 전에 저장이 끝나기를 기다리는 중. leaveApproved: 저장했거나 아이가 "나갈래요"를 골랐다 —
+    // 이어 가는 이동·요청은 다시 붙잡지 않는다.
+    this.leaving = false
+    this.leaveApproved = false
+    this.pendingVisit = null
     this.debounceTimer = null
     this.firstPendingAt = null
     // 서버가 저장하지 않고 되돌려 보낸 글을 보여 주는 화면(충돌·입력 오류)은 처음부터 '저장 안 됨'이다 —
@@ -81,6 +89,7 @@ export default class extends Controller {
 
     this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     this.handleBeforeVisit = this.handleBeforeVisit.bind(this)
+    this.handleBeforeFetchRequest = this.handleBeforeFetchRequest.bind(this)
     this.handleVisibility = this.handleVisibility.bind(this)
     this.handleOnline = this.handleOnline.bind(this)
     this.flush = this.flush.bind(this)
@@ -90,6 +99,7 @@ export default class extends Controller {
     window.addEventListener("online", this.handleOnline)
     document.addEventListener("visibilitychange", this.handleVisibility)
     document.addEventListener("turbo:before-visit", this.handleBeforeVisit)
+    document.addEventListener("turbo:before-fetch-request", this.handleBeforeFetchRequest)
     // 복원 방문(뒤로 가기·앱이 화면을 닫고 이전 화면으로)은 before-visit 을 거치지 않는다.
     document.addEventListener("turbo:visit", this.flush)
   }
@@ -103,6 +113,7 @@ export default class extends Controller {
     window.removeEventListener("online", this.handleOnline)
     document.removeEventListener("visibilitychange", this.handleVisibility)
     document.removeEventListener("turbo:before-visit", this.handleBeforeVisit)
+    document.removeEventListener("turbo:before-fetch-request", this.handleBeforeFetchRequest)
     document.removeEventListener("turbo:visit", this.flush)
   }
 
@@ -134,6 +145,12 @@ export default class extends Controller {
   // 이미 있는 초안의 저장(PATCH)이 날아가는 중이면 기다리지 않는다 — 같은 글에 대한 요청이라 순서가
   // 바뀌어도 한 편이고, 제출이 먼저 닿으면 서버가 뒤늦은 자동 저장을 거절한다(이미 제출됨).
   beforeSubmit(event) {
+    // '이미 제출했어요' 화면은 이 화면의 글로 낼 수 없다. 버튼을 없애도 text 칸 하나(책 제목)에서 Enter 가 폼을
+    // 제출한다(5차 리뷰 F1) — 서버도 opened_as_draft 로 거절하지만 헛걸음 없이 여기서 멈춘다.
+    if (this.lockedValue) {
+      event.preventDefault()
+      return
+    }
     // 기다리는 동안 또 누르면 쌓지 않는다(연타마다 제출이 하나씩 쌓였다).
     if (this.awaitingSubmit) {
       event.preventDefault()
@@ -236,15 +253,45 @@ export default class extends Controller {
     event.returnValue = ""
   }
 
-  // Turbo 로 다른 화면에 갈 때. 문서가 그대로라 진행 중인 요청도 끝까지 가므로 막지 않고 저장만 한다.
+  // Turbo 로 다른 화면에 갈 때(링크·폼 제출 뒤 이동). **저장이 끝난 것을 확인한 뒤에** 떠난다 — 저장할 글이 있으면
+  // 이동을 멈추고 저장한 다음 다시 가고, 저장이 거절·실패하면 묻는다. 예전에는 "문서가 그대로라 요청이 끝까지
+  // 간다"며 날아가는 저장을 믿고 보내 줬는데, 그 저장이 입력 오류(422)·다른 기기의 저장(409)으로 거절되면 떠난
+  // 뒤라 되살릴 길이 없었다(5차 리뷰 F2·R2). 복원 방문(뒤로 가기)은 이 알림을 거치지 않는다(turbo:visit → flush).
   handleBeforeVisit(event) {
-    if (this.submissionSent || !this.dirty) return
+    if (this.submissionSent || this.leaveApproved || !this.dirty) return
 
-    if (!this.submitting && (this.canSaveSilently || this.inflight)) {
-      this.flush()
+    if (this.submitting || !this.enabledValue || this.stopped) {
+      if (!window.confirm(LEAVE_WARNING)) event.preventDefault()
       return
     }
-    if (!window.confirm(LEAVE_WARNING)) event.preventDefault()
+    event.preventDefault()
+    this.saveThenVisit(event.detail.url)
+  }
+
+  // 다른 폼의 제출(로그아웃 등)이 서버에 닿기 **전에** 저장을 끝낸다. 폼 제출은 이동 전 알림(before-visit)을 서버
+  // 응답 뒤에 보내므로 거기서는 늦다 — 로그아웃은 그때 이미 세션을 지워, 떠날 때 저장이 로그인 화면으로 돌려보내져
+  // 마지막 입력이 경고 없이 사라졌다(5차 리뷰 L1). Turbo 는 이 알림에서 요청을 멈췄다가 resume() 으로 이어 보낸다.
+  // 이 폼의 제출(제출하기·임시 저장)은 beforeSubmit 이, 화면 이동·미리 가져오기 같은 GET 은 before-visit 이 맡는다.
+  handleBeforeFetchRequest(event) {
+    const { fetchOptions, resume } = event.detail
+    if ((fetchOptions?.method || "GET").toUpperCase() === "GET") return
+    if (event.target instanceof Node && this.element.contains(event.target)) return
+    if (this.submissionSent || this.leaveApproved || !this.dirty) return
+
+    event.preventDefault()
+    const proceed = () => {
+      this.leaveApproved = true
+      resume()
+    }
+    // 아이가 머물기를 고르면 요청을 이어 보내지 않는다(다시 누르면 새 요청이 이 알림을 다시 거친다).
+    if (this.submitting || !this.enabledValue || this.stopped) {
+      if (window.confirm(LEAVE_WARNING)) proceed()
+      return
+    }
+    this.showStatus("저장하는 중이에요. 끝나면 이어서 할게요.")
+    this.saveNow().then((saved) => {
+      if (saved || window.confirm(LEAVE_WARNING)) proceed()
+    })
   }
 
   handleVisibility() {
@@ -256,6 +303,34 @@ export default class extends Controller {
   }
 
   // --- private ---
+
+  // 저장을 끝낸 뒤 url 로 간다. 기다리는 동안 다른 곳을 누르면 마지막에 누른 곳으로 간다.
+  async saveThenVisit(url) {
+    this.pendingVisit = url
+    if (this.leaving) return
+
+    this.leaving = true
+    this.showStatus("저장하는 중이에요. 끝나면 이동할게요.")
+    const saved = await this.saveNow()
+    this.leaving = false
+    if (this.disconnected) return
+    if (saved || window.confirm(LEAVE_WARNING)) {
+      this.leaveApproved = true
+      window.Turbo.visit(this.pendingVisit)
+    }
+  }
+
+  // 지금까지 쓴 글을 저장하고, 모두 저장됐는지 알려 준다(떠나기 전에 기다릴 때 쓴다). 날아가는 저장이 있으면 그
+  // 결과를 먼저 기다린다 — "요청이 끝까지 간다"는 "저장된다"가 아니다. 그래도 남은 글이 있으면(그 저장이 끊겼거나
+  // 거절됐거나, 기다리는 동안 더 썼다) 한 번 더 보낸다. 저장은 15초 안에 끝난다.
+  async saveNow() {
+    if (this.inflight) await this.inflight
+    if (this.dirty && this.enabledValue && !this.stopped && !this.submitting) {
+      this.save()
+      if (this.inflight) await this.inflight
+    }
+    return !this.dirty
+  }
 
   get dirty() {
     return this.version !== this.savedVersion
@@ -354,13 +429,20 @@ export default class extends Controller {
       return
     }
     if (response.status === 409) {
-      // 새 글 화면에서 멈췄으면(첫 저장 응답을 잃은 사이 다른 곳이 그 초안을 더 썼다) 주소만 그 초안으로
-      // 바꾼다 — 새로 고치면 빈 새 글이 아니라 최신 글이 열린다. 폼은 그대로 둔다(버전을 모르는 채 PATCH
-      // 로 바꾸면 버튼 한 번에 그 글을 덮는다).
-      if (data?.edit_url && sent.creating && !this.disconnected && this.element.isConnected) this.replaceLocation(data.edit_url)
-      this.stop(data?.error === "stale"
-        ? "다른 곳에서 이 글을 더 고쳤어요. 화면을 새로 고치면 최신 글을 볼 수 있어요."
-        : "이미 제출한 글이에요. 화면을 새로 고쳐 주세요.")
+      const here = !this.disconnected && this.element.isConnected
+      if (data?.error === "stale") {
+        // 새 글 화면에서 멈췄으면(첫 저장 응답을 잃은 사이 다른 곳이 그 초안을 더 썼다) 주소만 그 초안으로
+        // 바꾼다 — 새로 고치면 빈 새 글이 아니라 최신 글이 열린다. 폼은 그대로 둔다(버전을 모르는 채 PATCH
+        // 로 바꾸면 버튼 한 번에 그 글을 덮는다).
+        if (data.edit_url && sent.creating && here) this.replaceLocation(data.edit_url)
+        this.stop("다른 곳에서 이 글을 더 고쳤어요. 화면을 새로 고치면 최신 글을 볼 수 있어요.")
+        return
+      }
+      // 이미 제출됐다. 새로 고치면 그 글 화면(→ '고쳐쓰기')이 열리게 주소를 바꾸고 링크도 준다(5차 리뷰 LOW-b) —
+      // 예전에는 편집 화면이면 배너 없는 '수정하기' 폼이, 새 글 화면이면 빈 새 글이 열렸다.
+      if (data?.report_url && here) this.replaceLocation(data.report_url)
+      this.stop("이미 제출한 글이에요. 여기서 쓴 글은 복사해 두세요.",
+        data?.report_url && { href: data.report_url, text: "낸 글 보러 가기" })
       return
     }
     if (response.status === 422 && Array.isArray(data?.errors)) {
@@ -484,10 +566,10 @@ export default class extends Controller {
     }, delay)
   }
 
-  stop(message) {
+  stop(message, link = null) {
     this.stopped = true
     this.clearTimers()
-    this.showStatus(message, "error")
+    this.showStatus(message, "error", { link })
   }
 
   clearTimers() {
@@ -503,13 +585,21 @@ export default class extends Controller {
 
   // 상태 문구를 바꾸고 report-autosave:status 로도 알린다. 질문형 작성은 답을 쓰는 동안 이 폼이
   // 숨겨져 있어, report-guide 가 이 알림을 받아 질문 영역에 같은 상태를 보여 준다.
-  showStatus(text, tone = "hint", { time } = {}) {
+  // link({ href, text })는 문구 뒤에 붙는 링크다(상태 자리에만 — 질문 영역은 문구만 받는다).
+  showStatus(text, tone = "hint", { time, link } = {}) {
     if (this.disconnected) return
 
     this.dispatch("status", { detail: { text, tone, time } })
     if (!this.hasStatusTarget) return
 
     this.statusTarget.textContent = text
+    if (link) {
+      const anchor = document.createElement("a")
+      anchor.href = link.href
+      anchor.textContent = link.text
+      anchor.className = "underline font-semibold"
+      this.statusTarget.append(" ", anchor)
+    }
     this.statusTarget.classList.toggle("form-hint", tone !== "error")
     this.statusTarget.classList.toggle("form-error", tone === "error")
   }

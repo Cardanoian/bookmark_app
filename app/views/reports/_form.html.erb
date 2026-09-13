@@ -31,7 +31,8 @@
              "turbo:submit-end->report-autosave#submitEnded",
      report_autosave_enabled_value: autosave,
      report_autosave_submit_label_value: submit_label,
-     report_autosave_unsaved_value: conflict || submitted_conflict || report.errors.any?
+     report_autosave_unsaved_value: conflict || submitted_conflict || report.errors.any?,
+     report_autosave_locked_value: submitted_conflict
    } %>
 <%# 입력 오류(422)로 다시 그린 화면도 저장 안 된 글을 보여 준다 — 충돌 화면처럼 '저장 안 됨'에서 시작한다(4차 리뷰 L-B). %>
 <%# 고쳐쓰기 초안은 "원본에서 실제로 고쳤나"로 '수정하기'를 연다(서버 resubmit? 과 같은 기준).
@@ -66,7 +67,10 @@
         같은 화면이 다시 보낸 요청을 알아보는 데 쓴다 — 첫 저장 재시도가 초안을 또 만들지 않고, 응답만
         잃은 저장이 "다른 곳에서 고쳤어요"로 거절되지 않게.
       · autosave_seq — 그 화면 안에서 요청을 보낸 순번(입력 횟수). 늦게 도착한 옛 요청을 가른다(M1). %>
-  <% if report.draft? %>
+  <%# '이미 제출했어요' 화면(submitted_conflict)도 초안일 때 연 화면이다 — 그 글은 이미 제출돼 `draft?` 가 아니지만
+      이 표시를 빼면 안 된다. 버튼을 없애도 폼과 text 칸 하나(책 제목)가 남아 Enter(안드로이드 키보드 '이동')가
+      폼을 제출하고, 표시가 없으면 서버가 일반 수정으로 받아 승인된 글을 덮었다(5차 리뷰 F1). %>
+  <% if report.draft? || submitted_conflict %>
     <%= hidden_field_tag :opened_as_draft, "1", id: nil, autocomplete: "off" %>
   <% end %>
   <% if report.autosave_eligible? %>
