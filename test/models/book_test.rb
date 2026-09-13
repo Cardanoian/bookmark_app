@@ -12,6 +12,14 @@ class BookTest < ActiveSupport::TestCase
     assert Book.new.recommended?
   end
 
+  # 없는 분류 값(조작한 book[category]=bogus)은 예외(ArgumentError → 500)가 아니라 검증 오류가 된다.
+  test "an unknown category is a validation error instead of an exception" do
+    book = Book.new(title: "어린 왕자", isbn: TestBookIsbn.next)
+    assert_nothing_raised { book.category = "bogus" }
+    assert_not book.valid?
+    assert book.errors.of_kind?(:category, :inclusion)
+  end
+
   test "requires a title" do
     assert_not Book.new(title: nil).valid?
     assert Book.new(title: "어린 왕자").valid?

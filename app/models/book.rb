@@ -7,7 +7,8 @@ class Book < ApplicationRecord
   has_many :book_recommendations, dependent: :destroy
   has_many :recommendation_imports, through: :book_recommendations
 
-  enum :category, { recommended: 0, classic: 1, searched: 2 }, default: :recommended
+  # validate: 없는 값(조작한 book[category]=bogus)은 대입 때 ArgumentError(→ 500) 대신 검증 오류가 된다.
+  enum :category, { recommended: 0, classic: 1, searched: 2 }, default: :recommended, validate: true
 
   before_validation :normalize_isbn
   before_validation :upgrade_cover_url_to_https

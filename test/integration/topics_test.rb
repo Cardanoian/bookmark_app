@@ -21,6 +21,15 @@ class TopicsTest < ActionDispatch::IntegrationTest
     assert_redirected_to topic_path(topic)
   end
 
+  # 없는 범위 값(조작한 topic[scope]=bogus)은 500 이 아니라 만들지 않고 목록으로 돌려보낸다.
+  test "an unknown scope is rejected instead of raising" do
+    login_as @student1
+    assert_no_difference "Topic.count" do
+      post topics_path, params: { topic: { title: "조작한 범위", scope: "bogus" } }
+    end
+    assert_redirected_to topics_path
+  end
+
   test "student posts a forum message in their own classroom topic" do
     topic = Topic.create!(scope: :classroom, classroom: @class1, title: "토론")
     login_as @student1

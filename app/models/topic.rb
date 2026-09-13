@@ -4,7 +4,8 @@ class Topic < ApplicationRecord
   # 토론 주제 길이(공백 포함). 저학년도 읽기 쉬운 짧은 제목을 유도한다.
   TITLE_LENGTH = 2..60
 
-  enum :scope, { classroom: 0, school: 1 }, default: :classroom
+  # validate: 없는 값(조작한 topic[scope]=bogus)은 대입 때 ArgumentError(→ 500) 대신 검증 오류가 된다.
+  enum :scope, { classroom: 0, school: 1 }, default: :classroom, validate: true
 
   belongs_to :classroom, optional: true
   belongs_to :school, optional: true

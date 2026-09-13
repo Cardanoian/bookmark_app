@@ -38,6 +38,19 @@ class AdminContentTest < ActionDispatch::IntegrationTest
     assert_match "ISBN", response.body
   end
 
+  # 없는 분류 값(조작한 book[category]=bogus)은 500 이 아니라 검증 오류(422)이고 도서를 바꾸지 않는다.
+  test "book create and update reject an unknown category instead of raising" do
+    assert_no_difference -> { Book.count } do
+      post admin_books_path, params: { book: { title: "조작한 분류", isbn: TestBookIsbn.next, category: "bogus" } }
+    end
+    assert_response :unprocessable_entity
+
+    book = Book.create!(title: "분류 그대로", isbn: TestBookIsbn.next, category: :classic)
+    patch admin_book_path(book), params: { book: { category: "bogus" } }
+    assert_response :unprocessable_entity
+    assert book.reload.classic?
+  end
+
   test "badge create" do
     assert_difference -> { Badge.count }, 1 do
       post admin_badges_path, params: { badge: { key: "admin_badge", name: "관리뱃지" } }

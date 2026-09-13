@@ -10,6 +10,14 @@ class TopicTest < ActiveSupport::TestCase
     @topic = Topic.create!(scope: :classroom, classroom: @classroom, title: "카운터 토론")
   end
 
+  # 없는 범위 값(조작한 topic[scope]=bogus)은 예외(ArgumentError → 500)가 아니라 검증 오류가 된다.
+  test "an unknown scope is a validation error instead of an exception" do
+    topic = Topic.new(classroom: @classroom, title: "범위 확인")
+    assert_nothing_raised { topic.scope = "bogus" }
+    assert_not topic.valid?
+    assert topic.errors.of_kind?(:scope, :inclusion)
+  end
+
   test "creating a forum post increments the topic counter cache" do
     assert_difference -> { @topic.reload.forum_posts_count }, 1 do
       @topic.forum_posts.create!(user: @student, text: "첫 글")
