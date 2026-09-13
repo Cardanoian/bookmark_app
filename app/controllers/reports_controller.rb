@@ -83,6 +83,8 @@ class ReportsController < ApplicationController
         render_draft_invalid(:new)
       end
     else
+      return render_blank_submission(:new) if @report.body.blank?
+
       case insert_report
       when :duplicate then continue_report(report_for_autosave_key)
       when true
@@ -128,6 +130,9 @@ class ReportsController < ApplicationController
       # 잠근 뒤 다시 읽은 값이라 같은 순간 먼저 끝난 요청의 결과를 본다.
       was_draft = @report.draft?
       @report.assign_attributes(attrs)
+      # 글쓴이의 이 요청은 제출('제출하기'·'수정하기')이다 — 빈 글은 내지 않는다(render_blank_submission).
+      # 담임의 저장은 제출이 아니라 그대로 둔다.
+      next :blank if @report.body.blank? && Current.user.id == @report.user_id
       # 초안에 쓰면 "마지막으로 쓴 화면"을 이 요청으로 바꾼다 — 담임처럼 표 없이 쓴 저장은 비운다(M2).
       stamp_autosave_writer(@report) if was_draft
       next :invalid unless @report.save
@@ -150,6 +155,8 @@ class ReportsController < ApplicationController
       reject_draft_save_after_submit
     when :stale
       reject_stale_draft_save
+    when :blank
+      render_blank_submission(:edit)
     when :invalid
       render :edit, status: :unprocessable_entity
     when :first_submission
@@ -475,6 +482,17 @@ class ReportsController < ApplicationController
   def autosaved_draft_from_here
     Current.user.reports.where(submitted_at: nil, autosave_origin_digest: Digest::SHA256.hexdigest(request.fullpath))
            .where(updated_at: AUTOSAVE_ORIGIN_TTL.ago..).order(updated_at: :desc).first
+  end
+
+  # 빈 글은 내지 않는다. 책 제목 칸의 Enter 가 곧 제출이라(자동완성 필드) 제목만 고르고 Enter 를 누른 아이가
+  # 빈 글을 내 AI 첨삭이 돌고 교사 큐에 올랐고, 초안의 본문을 모두 지우고 누른 '제출하기'도 "고쳐 썼어요"로
+  # 제출됐다(2026-09-13, 자동 저장 5차 리뷰가 범위 밖으로 보고). 모델에는 body 검증이 없다 — 사진 초안은 본문
+  # 없이 태어난다. 로케일에 속성 이름이 없어(:body 는 "Body…"로 보인다) 문장 그대로 보이게 :base 에 단다.
+  # 다른 검증 오류(책 제목 등)도 함께 보이게 먼저 검증한다.
+  def render_blank_submission(template)
+    @report.validate
+    @report.errors.add(:base, "독후감 내용을 쓴 뒤에 낼 수 있어요.")
+    render template, status: :unprocessable_entity
   end
 
   def render_draft_invalid(template)

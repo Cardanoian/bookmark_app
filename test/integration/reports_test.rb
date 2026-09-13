@@ -25,6 +25,37 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_redirected_to report_path(report)
   end
 
+  # 빈 글은 내지 않는다. 책 제목 칸의 Enter 가 곧 제출이라(자동완성 필드), 제목만 고르고 Enter 를 누른 아이가
+  # 빈 글을 내 AI 첨삭이 돌고 교사 큐에 올랐다(자동 저장 5차 리뷰가 범위 밖으로 보고, 2026-09-13).
+  test "submitting a new report with a blank body is sent back without creating it" do
+    login_as @student
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      assert_no_difference -> { Report.count } do
+        post reports_path, params: { report: { book_title: "책", body: "  \r\n ", input_mode: "keyboard" } }
+      end
+    end
+    assert_response :unprocessable_entity
+    assert_select "[role=alert]", /독후감 내용을 쓴 뒤에 낼 수 있어요/
+    assert_select "input[name='report[book_title]'][value=?]", "책"
+  end
+
+  # 초안의 본문을 모두 지우고 '제출하기'·'수정하기'를 눌러도 빈 글을 내지 않는다(예전에는 본문이 바뀌었다며
+  # "고쳐 썼어요"로 제출됐다). 담임의 저장은 제출이 아니라 그대로 둔다.
+  test "clearing the body and submitting is sent back without submitting" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "쓰다 만 글", input_mode: :keyboard)
+    login_as @student
+
+    assert_no_enqueued_jobs only: AiReviewJob do
+      patch report_path(draft), params: { report: { body: "" } }
+    end
+    assert_response :unprocessable_entity
+    assert_select "[role=alert]", /독후감 내용을 쓴 뒤에 낼 수 있어요/
+    draft.reload
+    assert draft.draft?
+    assert_equal "쓰다 만 글", draft.body
+  end
+
   test "a student cannot view another student's report" do
     report = Report.create!(user: @other, classroom: @classroom, book_title: "남의 글")
     login_as @student
