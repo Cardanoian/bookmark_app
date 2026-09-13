@@ -132,16 +132,48 @@ class LearnWizardTest < ActionDispatch::IntegrationTest
     assert_nil session[:active_challenge_id], "표는 한 번만 쓴다"
   end
 
-  # 독후감은 학생만 쓴다(ReportPolicy#create?). 예전에도 담임이 마치면 새 글 화면에서 403 이었다.
-  test "a teacher finishing the wizard gets no report" do
+  # 단계 학습은 독후감을 쓰는 학생의 도구다(LearnPolicy — 앱 화면에 교직원 진입점도 없다). 진행이 DB 행이 된
+  # 뒤로는 담임이 몇 단계 답하다 마지막에 막히면(ReportPolicy#create?) 고아 진행 행이 남았다(B·C 리뷰).
+  test "the wizard is for students only" do
     teacher = User.create!(school: @school, name: "위저드담임", role: :teacher, password: "password")
     login_as teacher
+
+    get learn_index_path
+    assert_response :forbidden
+    post advance_learn_index_path, params: { step: 1, answer: "1단계 답" }
+    assert_response :forbidden
+    assert_not LearnWizardProgress.exists?(user: teacher)
+  end
+
+  # 학급이 없는 학생은 독후감을 만들 수 없다(Report 는 학급 필수). 영어 검증 문구("Classroom must exist")를
+  # 그대로 띄우지 않고 무엇을 해야 하는지 알려 주며, 쓴 답은 남긴다(B·C 리뷰).
+  test "a student without a classroom is told why the draft cannot be made" do
+    student = User.create!(school: @school, name: "학급없이마침", password: "password")
+    login_as student
     (1..4).each { |step| post advance_learn_index_path, params: { step: step, answer: "#{step}단계 답" } }
 
     assert_no_difference -> { Report.count } do
       post advance_learn_index_path, params: { step: 5, answer: "5단계 답" }
     end
-    assert_response :forbidden
+    assert_redirected_to learn_index_path
+    assert_match "학급", flash[:alert]
+    assert_no_match(/must exist/, flash[:alert])
+    assert_equal "5단계 답", LearnWizardProgress.find_by(user: student).answers["5"]
+  end
+
+  # 마지막 단계가 두 번 오면(연타·다른 탭) 두 번째는 이미 끝난 것이다. 진행 행을 빈 채로 새로 만들면
+  # "1단계 첫 줄이 비었어요"로 보여 다 쓴 아이가 답이 사라진 줄 안다(B·C 리뷰) — 쓰던 글 목록으로 보낸다.
+  test "finishing the wizard twice does not look like the answers vanished" do
+    login_as @student
+    (1..5).each { |step| post advance_learn_index_path, params: { step: step, answer: "#{step}단계 답" } }
+    assert_response :redirect
+
+    assert_no_difference -> { Report.count } do
+      post advance_learn_index_path, params: { step: 5, answer: "5단계 답" }
+    end
+    assert_redirected_to reports_path
+    assert_match "이미 마쳤어요", flash[:notice]
+    assert_not LearnWizardProgress.exists?(user: @student), "빈 진행 행을 새로 만들지 않는다"
   end
 
   test "wizard requires login" do

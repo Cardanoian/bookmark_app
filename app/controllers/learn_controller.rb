@@ -59,8 +59,8 @@ class LearnController < ApplicationController
   end
 
   # 진행 행은 트랜잭션 안에서 읽고 쓴다. SQLite 는 트랜잭션을 BEGIN IMMEDIATE 로 열어 쓰기 요청을 차례로
-  # 세우므로, 두 탭이 동시에 답을 보내도 서로의 답(JSON 을 통째로 쓴다)을 지우지 않고 마치기가 초안을 두 편
-  # 만들지 않는다. 행은 첫 답을 낼 때 만든다(보기만 해서는 만들지 않는다).
+  # 세우므로, 두 탭이 동시에 답을 보내도 서로의 답(JSON 을 통째로 쓴다)을 지우지 않는다(마치기도 같은 방식이라
+  # 초안을 두 편 만들지 않는다 — complete_wizard). 행은 첫 답을 낼 때 만든다(보기만 해서는 만들지 않는다).
   def with_progress
     LearnWizardProgress.transaction { yield LearnWizardProgress.find_or_create_by!(user: Current.user) }
   end
@@ -70,23 +70,30 @@ class LearnController < ApplicationController
   # 편집 화면은 이 초안의 자동 저장을 곧바로 켠다. 본문을 주소에 싣지 않으므로 길이 한도가 없다.
   #
   # 챌린지에 막 참여했으면 그 챌린지를 잇는다(link_participation — 예전에는 새 글 화면의 첫 저장이 했다).
-  # 1단계 첫 줄(책 제목)이 비면 초안을 만들 수 없어(Report 의 책 참조 검증) 1단계로 돌려보내고 답은 남긴다.
+  # 초안을 못 만드는 경우는 답을 남긴 채 위저드로 돌려보내고 까닭을 한국어로 알린다(모델 검증 문구는 영어다).
+  # · 1단계 첫 줄(책 제목)이 비었다 — Report 의 책 참조 검증. 1단계로 보낸다.
+  # · 학급이 없다 — Report 는 학급이 필수라 아이가 스스로 풀 수 없다. 선생님께 말하게 한다.
   def complete_wizard
     report = Current.user.reports.new(input_mode: :keyboard, classroom: Current.user.classroom)
     authorize report, :create? # 독후감은 학생만 쓴다
 
-    outcome = with_progress do |progress|
+    outcome = LearnWizardProgress.transaction do
+      # 진행 행이 없다 = 같은 위저드를 방금 다른 요청(연타·다른 탭)이 마쳐 초안을 만들고 지웠다. 여기서 빈 행을
+      # 새로 만들면 "1단계 첫 줄이 비었어요"로 보여, 다 쓴 아이가 답이 사라진 줄 안다(B·C 리뷰).
+      progress = LearnWizardProgress.find_by(user: Current.user)
+      next :already_done unless progress
+
       answers = progress.answers.merge(STEP_COUNT.to_s => params[:answer].to_s)
       report.book_title = answers["1"].to_s.strip.lines.first.to_s.strip
       report.body = compose_body(answers)
 
-      if report.book_title.blank?
-        progress.update!(step: 1, answers: answers)
-        next :no_title
+      problem = if report.book_title.blank? then :no_title
+      elsif report.classroom.nil? then :no_classroom
+      elsif !report.valid? then :invalid
       end
-      unless report.valid?
-        progress.update!(step: STEP_COUNT, answers: answers)
-        next :invalid
+      if problem
+        progress.update!(step: problem == :no_title ? 1 : STEP_COUNT, answers: answers)
+        next problem
       end
 
       link_participation(report)
@@ -99,10 +106,14 @@ class LearnController < ApplicationController
     when :created
       redirect_to edit_report_path(report),
                   notice: "단계 학습을 마쳤어요! 모은 내용을 '작성 중' 독후감으로 저장했어요. 다듬어서 제출해 보세요."
+    when :already_done
+      redirect_to reports_path, notice: "단계 학습은 이미 마쳤어요. '작성 중' 독후감을 이어서 써 보세요."
     when :no_title
       redirect_to learn_index_path, alert: "1단계 첫 줄에 읽은 책 제목을 적어 주세요. 쓴 답은 그대로 있어요."
+    when :no_classroom
+      redirect_to learn_index_path, alert: "아직 학급이 정해지지 않아 독후감을 만들 수 없어요. 선생님께 말씀드려 주세요. 쓴 답은 그대로 있어요."
     else
-      redirect_to learn_index_path, alert: report.errors.full_messages.to_sentence
+      redirect_to learn_index_path, alert: "독후감을 만들지 못했어요. 쓴 답은 그대로 있으니 잠시 뒤 다시 해 보세요."
     end
   end
 

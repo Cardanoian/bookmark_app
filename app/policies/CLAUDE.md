@@ -16,7 +16,7 @@
 - `forum_post_policy.rb` — 토론 글. 대상 토픽을 열람 가능(TopicPolicy#show?)한 사용자만 작성.
 - `forum_post_like_policy.rb` — 토론 글 좋아요. 생성은 대상 토픽 열람 가능(TopicPolicy#show?)한 사용자만, 취소는 본인 좋아요만.
 - `forum_post_report_policy.rb` — 토론 글 신고(reading_discussion). 대상 토픽 열람 가능(TopicPolicy#show?) + **자기 글이 아닐 때만** 신고(`record.forum_post.user_id != user.id`). (교사 수동 숨김은 정책이 아니라 `Teacher::ForumModerations`가 `owned_student!`로 저자 학급 경계를 강제.)
-- `learn_policy.rb` — 단계 학습 위저드. 로그인 사용자면 진행(index·advance).
+- `learn_policy.rb` — 단계 학습 위저드. **학생만**(index·advance, 2026-09-13) — 마치면 독후감 초안을 만들고(ReportPolicy#create? 도 학생만) 진행을 학생 행(`LearnWizardProgress`)에 남긴다. 로그인만 보던 때는 진행이 DB 행이 된 뒤 담임이 몇 단계 답하다 마지막에 막히면 고아 진행 행이 남았다. 앱 화면에 교직원 진입점은 없다.
 - `mission_policy.rb` — 미션. **`show?`는 역할별 학급 경계**(총괄=전체, 교사=담당 학급[`record.classroom.teacher_id == user.id`], 학생=자기 학급+발행[`record.classroom_id == user.classroom_id && record.published?`], 교무·사서=같은 학교) — 최상위 `MissionsController#show`(학생 미션 상세 열람)의 크로스-학급·크로스-학교 열람을 차단(report_policy role-case 미러; 교사는 `classroom_id` nil 이라 학생 규칙 재사용 금지). 참여(join)는 학생.
 - `monster_policy.rb` — 몬스터. 도감 열람은 로그인 사용자, 진화·대표지정·먹이주기는 보유자 본인만(owns_record?).
 - `purchase_policy.rb` — 구매. 학생 본인만 생성.
