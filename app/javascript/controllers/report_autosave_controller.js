@@ -68,6 +68,9 @@ export default class extends Controller {
     // (claimIntent). leavingMessage: 그 기다림 동안 저장 문구 대신 보여 줄 안내.
     this.intentSeq = 0
     this.leavingMessage = null
+    // abandonedVersion: 아이가 저장 못 한 글을 두고 떠나기로 한 순간의 version — 그때까지의 글은 붙잡지 않는다
+    // (needsGuard). 저장할 글(dirty)과는 따로 센다.
+    this.abandonedVersion = null
     this.debounceTimer = null
     this.firstPendingAt = null
     // 서버가 저장하지 않고 되돌려 보낸 글을 보여 주는 화면(충돌·입력 오류)은 처음부터 '저장 안 됨'이다 —
@@ -243,6 +246,11 @@ export default class extends Controller {
   // 잃었다), 보통 요청으로 먼저 보내 두고 붙잡는다 — 아이가 '머물기'를 고르면 그 저장이 끝난다.
   handleBeforeUnload(event) {
     if (this.submissionSent || !this.dirty) return
+    // 두고 떠나기로 한 글은 붙잡지 않되, 떠나는 순간 한 번 더 보내 본다.
+    if (!this.needsGuard) {
+      this.flush()
+      return
+    }
 
     if (!this.submitting && this.canSaveSilently) {
       if (this.fitsKeepalive) {
@@ -264,7 +272,7 @@ export default class extends Controller {
   // (`data-turbo-action="replace"`·`data-turbo-stream`)은 버려진다(6차 리뷰 F-7) — 지금 편집 화면의 링크는 모두
   // 기본 이동이라 차이가 없다. 이 화면에 그런 링크를 달면 여기서 옵션을 함께 넘기도록 고친다.
   handleBeforeVisit(event) {
-    if (this.submissionSent || !this.dirty) return
+    if (this.submissionSent || !this.needsGuard) return
 
     if (this.submitting || !this.enabledValue || this.stopped) {
       if (window.confirm(LEAVE_WARNING)) this.abandon()
@@ -284,7 +292,7 @@ export default class extends Controller {
     const { fetchOptions, resume } = event.detail
     if ((fetchOptions?.method || "GET").toUpperCase() === "GET") return
     if (event.target instanceof Node && this.element.contains(event.target)) return
-    if (this.submissionSent || !this.dirty) return
+    if (this.submissionSent || !this.needsGuard) return
 
     event.preventDefault()
     // 아이가 머물기를 고르면 요청을 이어 보내지 않는다(다시 누르면 새 요청이 이 알림을 다시 거친다).
@@ -313,6 +321,9 @@ export default class extends Controller {
   // 리뷰 F-1). 행동마다 번호를 받고, 기다림이 끝났을 때 자기 번호가 마지막일 때만 움직인다.
   claimIntent() {
     this.intentSeq += 1
+    // 앞서 기다리던 행동의 안내는 이제 맞지 않는다 — 밀려난 기다림이 비우지 못하고 끝나면, 그 뒤 모든 저장이
+    // "끝나면 이동할게요"를 띄웠다(7차 리뷰 F7-2).
+    this.leavingMessage = null
     return this.intentSeq
   }
 
@@ -335,13 +346,19 @@ export default class extends Controller {
     }
   }
 
-  // 아이가 저장하지 못한 글을 두고 떠나기로 했다. 이 행동이 마지막이 되고(기다리던 다른 행동은 하지 않는다), 지금
-  // 글을 '저장 안 됨'에서 빼 이어지는 이동을 또 붙잡지 않는다. 화면 전체에 "나가기로 했다" 표시를 남기지 않는 것이
-  // 요점이다 — 그 표시가 남으면 떠나지 못하고(로그아웃이 연결 문제로 실패) 남은 화면에서 뒤에 쓴 글까지 경고 없이
-  // 잃었다(F-3). 여기서는 지금까지의 글만 빼므로 그 뒤에 쓰면 다시 센다.
+  // 아이가 저장하지 못한 글을 두고 떠나기로 했다. 이 행동이 마지막이 되고(기다리던 다른 행동은 하지 않는다), 지금까지의
+  // 글은 이어지는 이동에서 다시 붙잡지 않는다(needsGuard). 화면 전체에 "나가기로 했다" 표시를 남기지 않는 것이 요점이다
+  // — 그 표시가 남으면 떠나지 못하고(로그아웃이 연결 문제로 실패) 남은 화면에서 뒤에 쓴 글까지 경고 없이 잃었다(F-3).
+  // 여기서는 지금까지의 글만 빼므로 그 뒤에 쓰면 다시 센다. **저장할 글(savedVersion)은 건드리지 않는다** — 그러면 떠나는
+  // 순간의 마지막 저장·재시도가 모두 꺼져, 연결이 돌아와도 그 글을 보내지 않았다(7차 리뷰 F7-1).
   abandon() {
     this.claimIntent()
-    this.savedVersion = this.version
+    this.abandonedVersion = this.version
+  }
+
+  // 떠날 때 붙잡아야 하는 글이 있는가 — 저장 안 된 글 중 두고 떠나기로 한 그 순간의 글은 뺀다.
+  get needsGuard() {
+    return this.dirty && this.version !== this.abandonedVersion
   }
 
   // 지금까지 쓴 글을 저장하고, 모두 저장됐는지 알려 준다(떠나기 전에 기다릴 때 쓴다). 날아가는 저장이 있으면 그

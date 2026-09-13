@@ -604,6 +604,11 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
 
     assert_equal "쓰다 만 글이에요. 제목을 지우고 더 쓴 글 다시 그린 화면에서 더 쓴 글", find("#report_body_field").value
     assert_equal "쓰다 만 글이에요.", draft.reload.body
+
+    # 머물기로 한 뒤에는 떠나는 안내가 남지 않는다 — 다음 저장은 "저장 중…"이다(7차 리뷰 테스트 공백).
+    find("#report_book_title").fill_in with: "마틸다"
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
   rescue Selenium::WebDriver::Error::WebDriverError => e
     skip_without_chrome(e)
   end
@@ -923,6 +928,110 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     assert_current_path root_path
     sleep 2
     assert_current_path root_path
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # --- 7차 코드 리뷰(f874531) 후속 ---
+
+  # '두고 떠나기'를 골라도 그 글의 저장 시도는 끄지 않는다 — 떠나는 순간 한 번 더 보낸다. 두고 떠나기가 "저장됨"으로
+  # 세던 때는 그 마지막 저장이 사라졌다(F7-1).
+  test "저장이 끊겨 두고 떠나기로 해도 떠나는 순간 한 번 더 보내 글을 지킨다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_first_autosave_after(1000, count: 2)
+
+    find("#report_body_field").send_keys(" 끊긴 채 떠난 글")
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    accept_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_on "취소" }
+
+    assert_current_path reports_path, wait: SAVE_WAIT
+    eventually { draft.reload.body == "쓰다 만 글이에요. 끊긴 채 떠난 글" }
+    assert_equal [ false, false, true ], evaluate_script("window.__autosaveKeepalive"), "두 번 끊긴 뒤 떠나는 순간 keepalive 로 한 번 더"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 기다리던 이동이 다른 행동(제출)에 밀리면 떠나는 안내도 걷는다 — 남으면 그 뒤 모든 저장이 "끝나면 이동할게요"를
+  # 띄웠다(F7-2).
+  test "밀려난 이동의 안내는 남지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    delay_autosave_requests(1500)
+    fail_next_form_submission
+
+    find("#report_body_field").send_keys(" 첫 줄")
+    click_on "취소"
+    assert_selector "[data-report-autosave-target='status']", text: /끝나면 이동할게요/
+    click_on "제출하기"
+    eventually { evaluate_script("window.__failedSubmissions") == 1 }
+    sleep 2 # 밀려난 이동의 기다림이 끝날 시간
+
+    find("#report_body_field").send_keys(" 제출이 실패한 뒤 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    assert_current_path edit_report_path(draft)
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 멈춘 화면(다른 기기의 글)에서 로그아웃을 누르고 '나가기'를 고르면 한 번만 묻는다 — 로그아웃 뒤의 이동을 또
+  # 붙잡지 않는다(7차 리뷰 테스트 공백).
+  test "멈춘 화면에서 로그아웃에 나가기를 고르면 한 번만 묻는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "학교에서 쓴 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    draft.update!(body: "집에서 더 쓴 글", autosave_writer_key: "home-computer-01", autosave_seq: 7)
+
+    find("#report_body_field").send_keys(" 태블릿 글")
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+    accept_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_button "로그아웃" }
+    assert_current_path new_session_path, wait: SAVE_WAIT
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 두고 떠나기로 한 글은 다시 붙잡지 않는다 — 로그아웃이 연결 문제로 실패해 화면에 남아도, 창을 닫거나 로그아웃을
+  # 다시 누를 때 또 묻지 않는다(그 뒤에 새로 쓴 글이 없으면). 저장할 글(dirty)과 붙잡을 글을 따로 센다(F7-1).
+  test "두고 떠나기로 한 글은 로그아웃이 실패해 남아도 다시 붙잡지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    find("#report_book_title").fill_in with: ""
+    find("#report_body_field").send_keys(" 제목을 지운 채 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /책 제목과 내용을 확인해/, wait: SAVE_WAIT
+    fail_next_form_submission
+
+    accept_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_button "로그아웃" }
+    eventually { evaluate_script("window.__failedSubmissions") == 1 }
+    assert_current_path edit_report_path(draft)
+    assert_not dispatch_beforeunload, "두고 떠나기로 한 글은 창을 닫을 때 다시 붙잡지 않는다"
+
+    click_button "로그아웃" # 다시 묻지 않고 로그아웃한다
+    assert_current_path new_session_path, wait: SAVE_WAIT
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 연결이 끊긴 채 떠나면 한 번 더 보내 보고 곧바로 묻는다 — 실패한 저장 뒤에 거듭 보내지 않는다(7차 리뷰 테스트 공백).
+  test "연결이 끊긴 채 떠나면 한 번만 더 보내 보고 묻는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_first_autosave_after(0, count: 10)
+
+    find("#report_body_field").send_keys(" 끊긴 채 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /잠시 뒤 다시 저장할게요/, wait: SAVE_WAIT
+    dismiss_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_on "취소" }
+
+    assert_equal 2, evaluate_script("window.__autosaveKeepalive.length"), "처음 저장 + 떠나기 전 한 번"
+    assert_current_path edit_report_path(draft)
   rescue Selenium::WebDriver::Error::WebDriverError => e
     skip_without_chrome(e)
   end

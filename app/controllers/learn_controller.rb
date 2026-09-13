@@ -98,7 +98,7 @@ class LearnController < ApplicationController
 
       link_participation(report)
       report.save!
-      consume_participation
+      consume_participation if report.challenge_id.present?
       progress.destroy!
       :created
     end
