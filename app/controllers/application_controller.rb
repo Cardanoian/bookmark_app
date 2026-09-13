@@ -103,15 +103,20 @@ class ApplicationController < ActionController::Base
     )
   end
 
-  # 챌린지 참여 후 첫 작성 글에 challenge_id 를 연결한다. 참여 플래그(ChallengesController#join 이 세션에
-  # 남김)는 여기서 소비한다(1회성). 새 글을 만드는 두 곳 — ReportsController#create 와 단계 학습을 마친
-  # LearnController — 이 함께 쓴다(챌린지 순위가 이 연결로 센다, RankingBoard#challenge_ranking).
+  # 챌린지 참여 후 첫 작성 글에 challenge_id 를 연결한다(참여 플래그는 ChallengesController#join 이 세션에 남김).
+  # 새 글을 만드는 두 곳 — ReportsController#create 와 단계 학습을 마친 LearnController — 이 함께 쓴다(챌린지
+  # 순위가 이 연결로 센다, RankingBoard#challenge_ranking). 플래그는 여기서 읽기만 하고, 글이 실제로 저장된 뒤에
+  # consume_participation 으로 지운다(1회성) — 빈 본문·입력 오류로 되돌아간 요청이 먼저 지우면 이어서 쓴 글이
+  # 챌린지에 연결되지 않았다(자동 저장 6차 리뷰 F-5).
   # [menu_refactor 심화 PR6] 미션 분기는 제거했다 — 미션은 세션 참여가 아니라 발행 시 자동 배정되고
   # 승인·게임 이벤트로 자동 진행되므로 reports.mission_id 연결이 필요 없다(챌린지 분기만 유지).
   def link_participation(report)
-    if (challenge_id = session.delete(:active_challenge_id))
-      report.challenge_id = challenge_id if Challenge.exists?(id: challenge_id)
-    end
+    challenge_id = session[:active_challenge_id]
+    report.challenge_id = challenge_id if challenge_id && Challenge.exists?(id: challenge_id)
+  end
+
+  def consume_participation
+    session.delete(:active_challenge_id)
   end
 
   # 독서 토론 기능 플래그(reading_discussion). 신고·모더레이션·금칙어 안전 스택을 함께 출하하므로

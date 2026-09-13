@@ -568,6 +568,7 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     assert_selector "[data-report-autosave-target='status']", text: /책 제목과 내용을 확인해/, wait: SAVE_WAIT
 
     delay_autosave_requests(1500)
+    count_autosave_requests
     find("#report_body_field").send_keys(" 그리고 더 쓴 글")
     assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
     dismiss_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_on "취소" }
@@ -575,6 +576,8 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     assert_current_path edit_report_path(draft)
     assert_equal "쓰다 만 글이에요. 제목을 지운 채 쓴 글 그리고 더 쓴 글", find("#report_body_field").value
     assert_equal "쓰다 만 글이에요.", draft.reload.body
+    # 날아가던 저장과 한 번 더 보낸 저장뿐 — 거절된 뒤에는 다시 보내도 같아 거기서 멈춘다.
+    assert_equal 2, evaluate_script("window.__autosaveCount")
 
     # "나갈래요"를 고르면 한 번만 묻고 떠난다(다시 가는 이동을 또 붙잡지 않는다).
     accept_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_on "취소" }
@@ -754,6 +757,176 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip_without_chrome(e)
   end
 
+  # --- 6차 코드 리뷰(6b2f4e6·9b10c5d) 후속: 떠나기 전에 기다리는 행동은 마지막 것 하나만 ---
+
+  # 링크를 누르고 저장을 기다리는 사이 로그아웃을 누르면, 예전에는 먼저 누른 링크가 기다린 뒤 가 버려 로그아웃이
+  # 취소됐다 — 공용 태블릿에 로그인이 남았다(F-1).
+  test "저장을 기다리는 사이 로그아웃을 누르면 로그아웃이 이긴다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    delay_autosave_requests(2500)
+
+    find("#report_body_field").send_keys(" 떠나기 전에 쓴 글")
+    click_on "취소"
+    assert_selector "[data-report-autosave-target='status']", text: /끝나면 이동할게요/
+    click_button "로그아웃"
+
+    assert_current_path new_session_path, wait: SAVE_WAIT
+    assert_equal "쓰다 만 글이에요. 떠나기 전에 쓴 글", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 같은 사이 '제출하기'를 누르면 제출이 이긴다 — 예전에는 먼저 누른 링크가 저장을 기다린 뒤 가며 제출을 끊었다
+  # (F-1). 제출 응답이 저장보다 늦게 오게 해, 기다림이 끝나는 순간 제출이 아직 날아가는 중이게 한다.
+  test "저장을 기다리는 사이 제출하기를 누르면 제출이 이긴다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    delay_autosave_requests(1500)
+    delay_form_submission_responses(3500)
+
+    find("#report_body_field").send_keys(" 다 쓴 글")
+    click_on "취소"
+    assert_selector "[data-report-autosave-target='status']", text: /끝나면 이동할게요/
+    click_on "제출하기"
+
+    assert_current_path report_path(draft), wait: SAVE_WAIT
+    assert_text "독후감을 제출했어요"
+    assert draft.reload.submitted?
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 첫 저장을 기다리는 제출 중에 링크를 누르고 '나가기'를 고르면, 첫 저장이 끝나도 제출하지 않는다 — 예전에는
+  # 기다리던 제출이 그 이동을 취소하고 글을 냈다(6차 리뷰가 범위 밖으로 보고, e411848 부터). 이동이 느리게 끝나게
+  # 해 첫 저장이 끝나는 순간 아직 이 화면에 있게 한다.
+  test "첫 저장을 기다리는 제출 중에 나가기를 고르면 제출하지 않는다" do
+    login_via_browser
+    visit new_report_path(input_mode: :keyboard, report: { book_id: @book.id, book_title: @book.title })
+    delay_autosave_requests(2000)
+    delay_visits_to(reports_path, 4000)
+
+    find("#report_body_field").fill_in with: "마틸다를 읽었어요."
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    click_on "제출하기"
+    assert_selector "[data-report-autosave-target='status']", text: "저장하는 중이에요. 끝나면 바로 낼게요."
+    accept_confirm(LEAVE_WARNING) { click_on "취소" }
+
+    assert_current_path reports_path, wait: SAVE_WAIT
+    draft = @student.reports.sole
+    assert draft.draft?, "나가기를 골랐으니 기다리던 제출은 하지 않는다"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 저장이 거절되는 화면에서 로그아웃을 두 번 누르면 확인창이 두 번 떴다(F-2). 마지막 요청만 묻는다.
+  test "저장할 수 없는 화면에서 로그아웃을 두 번 눌러도 한 번만 묻는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    find("#report_book_title").fill_in with: ""
+    find("#report_body_field").send_keys(" 제목을 지운 채 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /책 제목과 내용을 확인해/, wait: SAVE_WAIT
+    delay_autosave_requests(1500)
+    find("#report_body_field").send_keys(" 더")
+
+    dismiss_confirm(LEAVE_WARNING, wait: SAVE_WAIT) do
+      click_button "로그아웃"
+      click_button "로그아웃"
+    end
+    sleep 2 # 앞 요청의 기다림이 끝날 시간 — 확인창이 또 뜨면 다음 동작이 실패한다
+    assert_current_path edit_report_path(draft)
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 로그아웃이 연결 문제로 실패해 화면이 남으면, 그 뒤 이 화면이 멈췄을 때 떠나는 경고가 살아 있어야 한다.
+  # "나가기로 했다" 표시가 화면 전체에 남던 때는 묻지 않고 떠나 쓴 글을 잃었다(F-3).
+  test "로그아웃이 실패해 남은 화면에서도 떠날 때 경고가 살아 있다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    fail_next_form_submission
+
+    find("#report_body_field").send_keys(" 로그아웃 직전에 쓴 글")
+    click_button "로그아웃"
+    eventually { evaluate_script("window.__failedSubmissions") == 1 }
+    assert_current_path edit_report_path(draft)
+    assert_equal "쓰다 만 글이에요. 로그아웃 직전에 쓴 글", draft.reload.body
+
+    draft.update!(body: "다른 기기에서 더 쓴 글", autosave_writer_key: "other-device-0001", autosave_seq: 9)
+    find("#report_body_field").send_keys(" 태블릿에서 더 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+    dismiss_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { click_on "취소" }
+    assert_current_path edit_report_path(draft)
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 기다리는 동안 더 써도 저장이 잘 되면 묻지 않고 간다 — 예전에는 기다리는 중 입력을 실패로 보고 물었다(F-4).
+  test "저장을 기다리는 동안 더 써도 모두 저장하고 묻지 않고 간다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    delay_autosave_requests(1500)
+
+    find("#report_body_field").send_keys(" 첫 줄")
+    click_on "취소"
+    find("#report_body_field").send_keys(" 기다리며 쓴 글")
+    sleep 1.7 # 첫 저장이 끝나고 다음 저장이 날아가는 중
+    find("#report_body_field").send_keys(" 그리고 또")
+
+    assert_current_path reports_path, wait: SAVE_WAIT
+    assert_equal "쓰다 만 글이에요. 첫 줄 기다리며 쓴 글 그리고 또", draft.reload.body
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 저장을 기다리는 사이 뒤로 가기로 떠났으면, 기다림이 끝나도 떠난 화면이 먼저 누른 곳으로 가지 않는다.
+  test "저장을 기다리는 사이 뒤로 가기로 떠나면 기다리던 이동을 하지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit_via_turbo edit_report_path(draft)
+    delay_autosave_requests(2000)
+
+    find("#report_body_field").send_keys(" 떠나기 전에 쓴 글")
+    click_on "취소"
+    assert_selector "[data-report-autosave-target='status']", text: /끝나면 이동할게요/
+    page.go_back
+    assert_current_path root_path
+    sleep 2.5 # 기다림이 끝날 시간
+    assert_current_path root_path
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 뒤로 가기로 떠난 편집 화면에 늦게 온 "이미 제출" 409 가 지금 화면의 주소를 그 글로 바꾸지 않는다.
+  test "뒤로 가기로 떠난 편집 화면에 늦게 온 이미 제출 응답은 지금 화면의 주소를 바꾸지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit_via_turbo edit_report_path(draft)
+    draft.update!(submitted_at: Time.current)
+    delay_autosave_requests(1500)
+
+    find("#report_body_field").send_keys(" 뒤늦게 쓴 글")
+    assert_selector "[data-report-autosave-target='status']", text: "저장 중…", wait: SAVE_WAIT
+    page.go_back
+    assert_current_path root_path
+    sleep 2
+    assert_current_path root_path
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
   private
 
   # 크롬(chromedriver)을 쓸 수 없을 때만 건너뛴다. 예상 밖의 확인창(UnexpectedAlertOpenError)도 WebDriverError 라,
@@ -769,6 +942,47 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
   def visit_via_turbo(path)
     execute_script("Turbo.visit(arguments[0])", path)
     assert_current_path path.split("?").first, ignore_query: true
+  end
+
+  # 폼 제출(자동 저장이 아닌 POST)의 응답만 ms 늦춘다 — 요청은 곧바로 서버에 닿는다.
+  def delay_form_submission_responses(ms)
+    install_autosave_matcher
+    execute_script(<<~JS, ms)
+      const delay = arguments[0]
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        const request = original(input, init)
+        const submission = (init.method || "GET").toUpperCase() === "POST" && !isAutosave(init)
+        return submission ? request.then((response) => new Promise((resolve) => setTimeout(() => resolve(response), delay))) : request
+      }
+    JS
+  end
+
+  # 그 주소로 가는 Turbo 방문(GET)의 응답만 ms 늦춘다.
+  def delay_visits_to(path, ms)
+    execute_script(<<~JS, path, ms)
+      const [path, delay] = [arguments[0], arguments[1]]
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        const request = original(input, init)
+        const url = new URL(typeof input === "string" ? input : input.url, window.location.href)
+        const visit = (init.method || "GET").toUpperCase() === "GET" && url.pathname === path
+        return visit ? request.then((response) => new Promise((resolve) => setTimeout(() => resolve(response), delay))) : request
+      }
+    JS
+  end
+
+  # 자동 저장 요청 수를 센다(요청은 그대로 보낸다).
+  def count_autosave_requests
+    install_autosave_matcher
+    execute_script(<<~JS)
+      window.__autosaveCount = 0
+      const original = window.fetch
+      window.fetch = (input, init = {}) => {
+        if (isAutosave(init)) window.__autosaveCount += 1
+        return original(input, init)
+      }
+    JS
   end
 
   # Turbo 가 보내는 폼 제출(자동 저장이 아닌 POST)을 센다.

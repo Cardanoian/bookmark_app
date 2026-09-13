@@ -98,6 +98,7 @@ class LearnController < ApplicationController
 
       link_participation(report)
       report.save!
+      consume_participation
       progress.destroy!
       :created
     end

@@ -36,12 +36,12 @@ class ReportsTest < ActionDispatch::IntegrationTest
       end
     end
     assert_response :unprocessable_entity
-    assert_select "[role=alert]", /독후감 내용을 쓴 뒤에 낼 수 있어요/
+    assert_select "[role=alert]", /독후감 내용이 비어 있어요/
     assert_select "input[name='report[book_title]'][value=?]", "책"
   end
 
   # 초안의 본문을 모두 지우고 '제출하기'·'수정하기'를 눌러도 빈 글을 내지 않는다(예전에는 본문이 바뀌었다며
-  # "고쳐 썼어요"로 제출됐다). 담임의 저장은 제출이 아니라 그대로 둔다.
+  # "고쳐 썼어요"로 제출됐다).
   test "clearing the body and submitting is sent back without submitting" do
     draft = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "쓰다 만 글", input_mode: :keyboard)
     login_as @student
@@ -50,10 +50,46 @@ class ReportsTest < ActionDispatch::IntegrationTest
       patch report_path(draft), params: { report: { body: "" } }
     end
     assert_response :unprocessable_entity
-    assert_select "[role=alert]", /독후감 내용을 쓴 뒤에 낼 수 있어요/
+    assert_select "[role=alert]", /독후감 내용이 비어 있어요/
     draft.reload
     assert draft.draft?
     assert_equal "쓰다 만 글", draft.body
+  end
+
+  # 담임도 학생 글을 비워 저장하지 못한다(빈 본문 가드에 담임 예외를 두지 않는다 — 6차 리뷰).
+  test "a teacher cannot save a student's draft with a blank body" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: "책", body: "쓰다 만 글", input_mode: :keyboard)
+    login_as @teacher
+
+    patch report_path(draft), params: { report: { body: " " } }
+    assert_response :unprocessable_entity
+    assert_equal "쓰다 만 글", draft.reload.body
+  end
+
+  # 빈 본문으로 되돌려 보낼 때 다른 검증 오류(책 제목)도 함께 알린다 — 한 번에 고칠 것을 다 보여 준다(6차 리뷰).
+  test "a blank submission also shows the other validation errors" do
+    login_as @student
+
+    post reports_path, params: { report: { book_id: "", book_title: "", body: "", input_mode: "keyboard" } }
+    assert_response :unprocessable_entity
+    assert_select "[role=alert]", /독후감 내용이 비어 있어요/
+    assert_select "[role=alert]", /도서 또는 책 제목이 필요합니다/
+  end
+
+  # 챌린지에 참여하고 책 제목만 고른 뒤 Enter(빈 본문 제출 → 422)를 눌러도 참여 표는 남아, 이어서 쓴 글이
+  # 챌린지에 연결된다. 예전에는 되돌아간 요청이 표를 먼저 지워 그 글이 챌린지 순위에서 빠졌다(6차 리뷰 F-5).
+  test "a rejected blank submission keeps the challenge flag for the next report" do
+    challenge = Challenge.create!(title: "빈 글 챌린지", scope: :global)
+    login_as @student
+    post join_challenge_path(challenge)
+
+    post reports_path, params: { report: { book_title: "책", body: "", input_mode: "keyboard" } }
+    assert_response :unprocessable_entity
+    assert_equal challenge.id, session[:active_challenge_id]
+
+    post reports_path, params: { report: { book_title: "책", body: "이제 쓴 글", input_mode: "keyboard" } }
+    assert_equal challenge.id, @student.reports.sole.challenge_id
+    assert_nil session[:active_challenge_id], "글이 저장되면 표를 지운다(1회성)"
   end
 
   test "a student cannot view another student's report" do

@@ -184,6 +184,8 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     assert_select "input[name='save_draft']", 1
     assert_select "meta[name='turbo-cache-control'][content='no-cache']", 1,
                   "뒤로 가기가 옛 스냅샷을 되살려 저장된 초안을 덮지 않게 스냅샷을 남기지 않는다"
+    assert_select "meta[name='turbo-prefetch'][content='false']", 1,
+                  "떠나기 전에 저장을 끝내고 가므로, 저장 전에 미리 받아 둔 화면으로 그리지 않게 한다(6차 리뷰 F-6)"
   end
 
   test "고쳐쓰기 편집 화면은 원본 본문을 '수정하기' 판정 기준으로 넘긴다" do

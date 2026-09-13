@@ -64,11 +64,10 @@ export default class extends Controller {
     this.awaitingSubmit = false
     this.disconnected = false
     this.lastChanceUsed = false
-    // leaving: 떠나기 전에 저장이 끝나기를 기다리는 중. leaveApproved: 저장했거나 아이가 "나갈래요"를 골랐다 —
-    // 이어 가는 이동·요청은 다시 붙잡지 않는다.
-    this.leaving = false
-    this.leaveApproved = false
-    this.pendingVisit = null
+    // intentSeq: 떠나기 전에 기다리는 행동(이동·다른 폼의 요청·첫 저장을 기다리는 제출)의 번호 — 마지막 것만 한다
+    // (claimIntent). leavingMessage: 그 기다림 동안 저장 문구 대신 보여 줄 안내.
+    this.intentSeq = 0
+    this.leavingMessage = null
     this.debounceTimer = null
     this.firstPendingAt = null
     // 서버가 저장하지 않고 되돌려 보낸 글을 보여 주는 화면(충돌·입력 오류)은 처음부터 '저장 안 됨'이다 —
@@ -156,6 +155,8 @@ export default class extends Controller {
       event.preventDefault()
       return
     }
+    // 제출도 마지막 행동이다 — 저장을 기다리던 이동·다른 폼의 요청은 하지 않는다(claimIntent).
+    const intent = this.claimIntent()
     // Turbo 는 이 뒤에 폼을 읽어 보낸다 — 이 제출의 순번을 지금 적는다.
     this.stampSeq()
 
@@ -171,10 +172,11 @@ export default class extends Controller {
 
     // 저장은 REQUEST_TIMEOUT_MS 안에 끝난다(시간 초과도 끝난 것으로 본다). 실패했으면 폼은 그대로
     // create 라 제출이 새 글을 만든다 — 초안이 없었으니 한 편이다.
+    // 기다리는 사이 다른 행동(링크를 누르고 '나가기')을 골랐으면 내지 않는다 — 내면 그 이동을 취소한다.
     this.inflight.finally(() => {
       this.awaitingSubmit = false
       if (submitter) submitter.disabled = false
-      if (this.element.isConnected) this.element.requestSubmit(submitter)
+      if (this.element.isConnected && intent === this.intentSeq) this.element.requestSubmit(submitter)
     })
   }
 
@@ -218,7 +220,7 @@ export default class extends Controller {
     // 한도를 넘는 글은 keepalive 없이 보낸다(Turbo 이동·탭 전환에서는 문서가 남아 있어 끝까지 간다).
     // 창을 닫는 순간에는 끊길 수 있으므로 handleBeforeUnload 가 먼저 붙잡는다.
     const useKeepalive = keepalive && this.payloadBytes(payload) <= KEEPALIVE_MAX_BYTES
-    this.showStatus("저장 중…")
+    this.showStatus(this.leavingMessage ?? "저장 중…")
 
     this.inflightCreating = creating
     this.inflight = this.request(payload, useKeepalive)
@@ -257,15 +259,21 @@ export default class extends Controller {
   // 이동을 멈추고 저장한 다음 다시 가고, 저장이 거절·실패하면 묻는다. 예전에는 "문서가 그대로라 요청이 끝까지
   // 간다"며 날아가는 저장을 믿고 보내 줬는데, 그 저장이 입력 오류(422)·다른 기기의 저장(409)으로 거절되면 떠난
   // 뒤라 되살릴 길이 없었다(5차 리뷰 F2·R2). 복원 방문(뒤로 가기)은 이 알림을 거치지 않는다(turbo:visit → flush).
+  //
+  // 저장한 뒤에는 `Turbo.visit(url)` 로 다시 간다. Turbo 의 이동 전 알림에는 주소만 실려 링크의 다른 옵션
+  // (`data-turbo-action="replace"`·`data-turbo-stream`)은 버려진다(6차 리뷰 F-7) — 지금 편집 화면의 링크는 모두
+  // 기본 이동이라 차이가 없다. 이 화면에 그런 링크를 달면 여기서 옵션을 함께 넘기도록 고친다.
   handleBeforeVisit(event) {
-    if (this.submissionSent || this.leaveApproved || !this.dirty) return
+    if (this.submissionSent || !this.dirty) return
 
     if (this.submitting || !this.enabledValue || this.stopped) {
-      if (!window.confirm(LEAVE_WARNING)) event.preventDefault()
+      if (window.confirm(LEAVE_WARNING)) this.abandon()
+      else event.preventDefault()
       return
     }
     event.preventDefault()
-    this.saveThenVisit(event.detail.url)
+    const url = event.detail.url
+    this.saveThenLeave("끝나면 이동할게요", () => window.Turbo.visit(url))
   }
 
   // 다른 폼의 제출(로그아웃 등)이 서버에 닿기 **전에** 저장을 끝낸다. 폼 제출은 이동 전 알림(before-visit)을 서버
@@ -276,22 +284,18 @@ export default class extends Controller {
     const { fetchOptions, resume } = event.detail
     if ((fetchOptions?.method || "GET").toUpperCase() === "GET") return
     if (event.target instanceof Node && this.element.contains(event.target)) return
-    if (this.submissionSent || this.leaveApproved || !this.dirty) return
+    if (this.submissionSent || !this.dirty) return
 
     event.preventDefault()
-    const proceed = () => {
-      this.leaveApproved = true
-      resume()
-    }
     // 아이가 머물기를 고르면 요청을 이어 보내지 않는다(다시 누르면 새 요청이 이 알림을 다시 거친다).
     if (this.submitting || !this.enabledValue || this.stopped) {
-      if (window.confirm(LEAVE_WARNING)) proceed()
+      if (window.confirm(LEAVE_WARNING)) {
+        this.abandon()
+        resume()
+      }
       return
     }
-    this.showStatus("저장하는 중이에요. 끝나면 이어서 할게요.")
-    this.saveNow().then((saved) => {
-      if (saved || window.confirm(LEAVE_WARNING)) proceed()
-    })
+    this.saveThenLeave("끝나면 이어서 할게요", resume)
   }
 
   handleVisibility() {
@@ -304,30 +308,55 @@ export default class extends Controller {
 
   // --- private ---
 
-  // 저장을 끝낸 뒤 url 로 간다. 기다리는 동안 다른 곳을 누르면 마지막에 누른 곳으로 간다.
-  async saveThenVisit(url) {
-    this.pendingVisit = url
-    if (this.leaving) return
+  // 떠나기 전에 기다리는 행동은 **마지막 것 하나만** 한다 — Turbo 도 마지막 행동이 이긴다. 먼저 누른 링크가 저장을
+  // 기다린 뒤에 가 버리면, 그사이 누른 로그아웃을 Turbo 가 취소해 로그인이 남거나(공용 태블릿) 제출이 끊겼다(6차
+  // 리뷰 F-1). 행동마다 번호를 받고, 기다림이 끝났을 때 자기 번호가 마지막일 때만 움직인다.
+  claimIntent() {
+    this.intentSeq += 1
+    return this.intentSeq
+  }
 
-    this.leaving = true
-    this.showStatus("저장하는 중이에요. 끝나면 이동할게요.")
+  // 저장을 끝낸 뒤 go 를 한다(이동 또는 멈춰 둔 요청 이어 보내기). 그사이 다른 행동을 골랐거나 뒤로 가기로 이미
+  // 떠났으면 아무것도 하지 않는다 — 확인창도 띄우지 않는다(로그아웃을 두 번 누르면 두 번 묻던 것, F-2). 저장하지
+  // 못했으면 묻고, 나가기를 고르면 쓴 글을 두고 간다.
+  async saveThenLeave(hint, go) {
+    const intent = this.claimIntent()
+    this.leavingMessage = `저장하는 중이에요. ${hint}.`
+    this.showStatus(this.leavingMessage)
     const saved = await this.saveNow()
-    this.leaving = false
-    if (this.disconnected) return
-    if (saved || window.confirm(LEAVE_WARNING)) {
-      this.leaveApproved = true
-      window.Turbo.visit(this.pendingVisit)
+    if (this.disconnected || intent !== this.intentSeq) return
+
+    this.leavingMessage = null
+    if (saved) {
+      go()
+    } else if (window.confirm(LEAVE_WARNING)) {
+      this.abandon()
+      go()
     }
   }
 
+  // 아이가 저장하지 못한 글을 두고 떠나기로 했다. 이 행동이 마지막이 되고(기다리던 다른 행동은 하지 않는다), 지금
+  // 글을 '저장 안 됨'에서 빼 이어지는 이동을 또 붙잡지 않는다. 화면 전체에 "나가기로 했다" 표시를 남기지 않는 것이
+  // 요점이다 — 그 표시가 남으면 떠나지 못하고(로그아웃이 연결 문제로 실패) 남은 화면에서 뒤에 쓴 글까지 경고 없이
+  // 잃었다(F-3). 여기서는 지금까지의 글만 빼므로 그 뒤에 쓰면 다시 센다.
+  abandon() {
+    this.claimIntent()
+    this.savedVersion = this.version
+  }
+
   // 지금까지 쓴 글을 저장하고, 모두 저장됐는지 알려 준다(떠나기 전에 기다릴 때 쓴다). 날아가는 저장이 있으면 그
-  // 결과를 먼저 기다린다 — "요청이 끝까지 간다"는 "저장된다"가 아니다. 그래도 남은 글이 있으면(그 저장이 끊겼거나
-  // 거절됐거나, 기다리는 동안 더 썼다) 한 번 더 보낸다. 저장은 15초 안에 끝난다.
+  // 결과를 먼저 기다린다 — "요청이 끝까지 간다"는 "저장된다"가 아니다. 그래도 남은 글이 있으면 다시 보낸다: 그
+  // 저장이 끊겼거나, 기다리는 동안 더 썼다(저장이 잘 되는데도 묻던 것, F-4). 방금 보낸 저장이 거절·실패했으면 거기서
+  // 멈춘다 — 같은 이유로 또 거절되거나 연결이 없다. 저장은 15초 안에 끝난다.
   async saveNow() {
     if (this.inflight) await this.inflight
-    if (this.dirty && this.enabledValue && !this.stopped && !this.submitting) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (!this.dirty || !this.enabledValue || this.stopped || this.submitting) break
+      const failuresBefore = this.failures
       this.save()
-      if (this.inflight) await this.inflight
+      if (!this.inflight) break
+      await this.inflight
+      if (this.rejected || this.failures > failuresBefore) break
     }
     return !this.dirty
   }
