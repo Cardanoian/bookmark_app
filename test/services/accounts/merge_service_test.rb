@@ -31,6 +31,19 @@ class Accounts::MergeServiceTest < ActiveSupport::TestCase
     assert_empty violations, "병합 후 FK 위반이 없어야 한다: #{violations.inspect}"
   end
 
+  # 단계 학습 진행(learn_wizard_progresses)은 이관 대상이 아니다 — 쓰다 만 위저드이고, 세션 쿠키에 있던 때도
+  # 병합 확정의 reset_session 으로 사라지던 값이다. FK 가 CASCADE 라 placeholder 의 raw delete 를 막지 않는다.
+  test "placeholder 의 단계 학습 진행이 있어도 병합되고 진행은 함께 지워진다" do
+    populate!
+    LearnWizardProgress.create!(user: @new, step: 3, answers: { "1" => "올해 읽은 책" })
+    LearnWizardProgress.create!(user: @old, step: 2, answers: { "1" => "작년 읽은 책" })
+
+    assert run_merge.ok?
+    assert_not LearnWizardProgress.exists?(user_id: @new.id)
+    assert_equal 2, @old.reload.learn_wizard_progress.step, "생존자 자기 진행은 그대로"
+    assert_empty ActiveRecord::Base.connection.select_all("PRAGMA foreign_key_check").to_a
+  end
+
   test "placeholder 는 사라지고 생존자가 현재 학년도 신원을 승계한다" do
     populate!
     digest = @new.password_digest

@@ -229,15 +229,6 @@ class ReportsController < ApplicationController
     attrs
   end
 
-  # 챌린지 참여 후 첫 작성 글에 challenge_id 를 연결한다. 참여 플래그는 세션에서 소비(1회성).
-  # [menu_refactor 심화 PR6] 미션 분기는 제거했다 — 미션은 세션 참여가 아니라 발행 시 자동 배정되고
-  # 승인·게임 이벤트로 자동 진행되므로 reports.mission_id 연결이 필요 없다(챌린지 분기만 유지).
-  def link_participation(report)
-    if (challenge_id = session.delete(:active_challenge_id))
-      report.challenge_id = challenge_id if Challenge.exists?(id: challenge_id)
-    end
-  end
-
   def report_params
     permitted = params.require(:report).permit(:book_id, :book_title, :body, :input_mode, :photo, :drawing, :audio)
     permitted[:book_id] = resolved_book_id(permitted[:book_id]) if permitted.key?(:book_id)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_13_000003) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -325,6 +325,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_000002) do
     t.index ["user_id", "game_type", "book_id", "played_on"], name: "index_game_plays_daily_dedup_with_book", unique: true, where: "book_id IS NOT NULL"
     t.index ["user_id", "game_type", "played_on"], name: "index_game_plays_daily_dedup_without_book", unique: true, where: "book_id IS NULL"
     t.index ["user_id"], name: "index_game_plays_on_user_id"
+  end
+
+  create_table "learn_wizard_progresses", force: :cascade do |t|
+    t.json "answers", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.integer "step", default: 1, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_learn_wizard_progresses_on_user_id", unique: true
   end
 
   create_table "library_events", force: :cascade do |t|
@@ -736,6 +745,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_000002) do
   add_foreign_key "forum_posts", "users"
   add_foreign_key "game_plays", "books"
   add_foreign_key "game_plays", "users"
+  add_foreign_key "learn_wizard_progresses", "users", on_delete: :cascade
   add_foreign_key "library_events", "books", on_delete: :nullify
   add_foreign_key "library_events", "schools", on_delete: :nullify
   add_foreign_key "library_loans", "schools", on_delete: :nullify

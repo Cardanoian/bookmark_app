@@ -22,6 +22,8 @@ class User < ApplicationRecord
   has_many :game_plays, dependent: :destroy
   has_many :mission_participations, dependent: :destroy
   has_many :challenge_participations, dependent: :destroy
+  # 단계 학습 위저드 진행(한 행). DB FK 도 CASCADE 라 계정 연동의 raw delete 에서도 함께 지워진다.
+  has_one :learn_wizard_progress, dependent: :destroy
   has_many :audit_logs, foreign_key: :actor_id, dependent: :nullify, inverse_of: :actor
   has_many :recommendation_imports, foreign_key: :imported_by_id, dependent: :nullify,
                                     inverse_of: :imported_by

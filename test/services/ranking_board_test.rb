@@ -107,7 +107,7 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 1, ranking.second.score
   end
 
-  # 참여 직후 첫 글의 첫 자동 저장이 challenge_id 를 단 초안 행을 만든다(ReportsController#link_participation).
+  # 참여 직후 첫 글의 첫 자동 저장이 challenge_id 를 단 초안 행을 만든다(ApplicationController#link_participation).
   # 내지 않은 초안은 순위 점수가 아니다.
   test "challenge ranking ignores unsubmitted drafts" do
     challenge = Challenge.create!(title: "겨울 챌린지")

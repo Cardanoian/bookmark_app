@@ -1,6 +1,9 @@
 # 단계 학습 위저드 5단계(P5.5, RAILS_PLAN §13.3). 2022 개정 성취기준 코드를 단계마다 주입한다.
-# 진행 상태는 세션에 저장되어 이탈 후 복귀 시 복원되며, 완료하면 5단계 답안을 모아
-# 독후감 초안(reports#new 프리필)으로 연결한다.
+# 진행은 학생 행(LearnWizardProgress)에 저장되어 이탈하거나 다른 기기로 옮겨도 이어지고, 다섯 단계를
+# 마치면 답을 모아 미제출 독후감 초안을 만들어 그 편집 화면으로 보낸다(자동 저장이 곧바로 이어받는다).
+#
+# 2026-09-13 전에는 진행을 세션 쿠키에 쌓고 마칠 때 본문 전체를 새 글 주소에 실어 보냈다. 답을 합쳐
+# 한글 약 750자면 쿠키(4KB)가 넘쳐 500 이 났고, 약 1,100자면 Puma 주소 한도(쿼리 10KB)에 걸렸다.
 class LearnController < ApplicationController
   # 5단계 정의(순서 고정). codes = 학년군별 성취기준, prompt = 학생 안내 질문.
   #
@@ -27,62 +30,85 @@ class LearnController < ApplicationController
   def index
     authorize :learn, :index?
 
-    @step = current_step
+    progress = LearnWizardProgress.find_or_initialize_by(user: Current.user)
+    @step = progress.step.to_i.clamp(1, STEP_COUNT)
     @definition = STEPS[@step - 1]
     # 학년 미상(학급 없음)은 5~6학년이 아니라 최저 학년군으로 본다 — 질문형 작성과 같은 규칙.
     @standard_code = @definition[:codes].fetch(ReadingDomain.guided_band_for(Current.user.classroom&.grade))
-    @answers = wizard_answers
+    @answers = progress.answers
     @answer = @answers[@step.to_s].to_s
   end
 
-  # 현재 단계 답안을 저장하고 다음 단계로. 마지막 단계면 독후감 초안으로 완료.
+  # 현재 단계 답을 저장하고 다음 단계로. 마지막 단계면 답을 모아 독후감 초안을 만든다.
   def advance
     authorize :learn, :advance?
 
     step = submitted_step
-    store_answer(step, params[:answer].to_s)
+    return complete_wizard if step >= STEP_COUNT
 
-    if step >= STEP_COUNT
-      complete_wizard
-    else
-      wizard["step"] = step + 1
-      redirect_to learn_index_path
+    with_progress do |progress|
+      progress.update!(step: step + 1, answers: progress.answers.merge(step.to_s => params[:answer].to_s))
     end
+    redirect_to learn_index_path
   end
 
   private
-
-  def wizard
-    session[:learn_wizard] ||= { "step" => 1, "answers" => {} }
-  end
-
-  def wizard_answers
-    wizard["answers"] ||= {}
-  end
-
-  # 세션에 저장된 현재 단계(1..STEP_COUNT 범위로 보정).
-  def current_step
-    wizard["step"].to_i.clamp(1, STEP_COUNT)
-  end
 
   def submitted_step
     params[:step].to_i.clamp(1, STEP_COUNT)
   end
 
-  def store_answer(step, answer)
-    wizard_answers[step.to_s] = answer
+  # 진행 행은 트랜잭션 안에서 읽고 쓴다. SQLite 는 트랜잭션을 BEGIN IMMEDIATE 로 열어 쓰기 요청을 차례로
+  # 세우므로, 두 탭이 동시에 답을 보내도 서로의 답(JSON 을 통째로 쓴다)을 지우지 않고 마치기가 초안을 두 편
+  # 만들지 않는다. 행은 첫 답을 낼 때 만든다(보기만 해서는 만들지 않는다).
+  def with_progress
+    LearnWizardProgress.transaction { yield LearnWizardProgress.find_or_create_by!(user: Current.user) }
   end
 
-  # 5단계 답안을 모아 독후감 초안으로 reports#new 를 프리필한다. 세션 진행은 소비(초기화).
+  # 다섯 답을 모아 **미제출 독후감 초안**('작성 중')을 만들고 그 편집 화면으로 보낸다. 제출이 아니다 —
+  # submitted_at 이 없어 교사 큐·AI 첨삭 대상이 아니고, 아이가 편집 화면에서 다듬어 '제출하기'로 낸다.
+  # 편집 화면은 이 초안의 자동 저장을 곧바로 켠다. 본문을 주소에 싣지 않으므로 길이 한도가 없다.
+  #
+  # 챌린지에 막 참여했으면 그 챌린지를 잇는다(link_participation — 예전에는 새 글 화면의 첫 저장이 했다).
+  # 1단계 첫 줄(책 제목)이 비면 초안을 만들 수 없어(Report 의 책 참조 검증) 1단계로 돌려보내고 답은 남긴다.
   def complete_wizard
-    answers = wizard_answers
-    book_title = answers["1"].to_s.strip.lines.first.to_s.strip
-    body = STEPS.each_with_index.map do |definition, index|
+    report = Current.user.reports.new(input_mode: :keyboard, classroom: Current.user.classroom)
+    authorize report, :create? # 독후감은 학생만 쓴다
+
+    outcome = with_progress do |progress|
+      answers = progress.answers.merge(STEP_COUNT.to_s => params[:answer].to_s)
+      report.book_title = answers["1"].to_s.strip.lines.first.to_s.strip
+      report.body = compose_body(answers)
+
+      if report.book_title.blank?
+        progress.update!(step: 1, answers: answers)
+        next :no_title
+      end
+      unless report.valid?
+        progress.update!(step: STEP_COUNT, answers: answers)
+        next :invalid
+      end
+
+      link_participation(report)
+      report.save!
+      progress.destroy!
+      :created
+    end
+
+    case outcome
+    when :created
+      redirect_to edit_report_path(report),
+                  notice: "단계 학습을 마쳤어요! 모은 내용을 '작성 중' 독후감으로 저장했어요. 다듬어서 제출해 보세요."
+    when :no_title
+      redirect_to learn_index_path, alert: "1단계 첫 줄에 읽은 책 제목을 적어 주세요. 쓴 답은 그대로 있어요."
+    else
+      redirect_to learn_index_path, alert: report.errors.full_messages.to_sentence
+    end
+  end
+
+  def compose_body(answers)
+    STEPS.each_with_index.map do |definition, index|
       "[#{definition[:title]}] #{answers[(index + 1).to_s]}"
     end.join("\n\n")
-
-    session.delete(:learn_wizard)
-    redirect_to new_report_path(input_mode: :keyboard, report: { book_title: book_title, body: body }),
-                notice: "단계 학습을 마쳤어요! 모아 둔 내용으로 독후감을 완성해 볼까요?"
   end
 end

@@ -117,7 +117,7 @@ class RankingBoard
   end
 
   # 챌린지 참여 순위(**제출한** 참여 독후감 수 기준). 미제출 초안은 세지 않는다 — 참여 직후 첫 글의
-  # 첫 자동 저장이 challenge_id 를 달고 초안 행을 만들므로(ReportsController#link_participation),
+  # 첫 자동 저장(또는 단계 학습 마치기)이 challenge_id 를 달고 초안 행을 만들므로(ApplicationController#link_participation),
   # 초안까지 세면 몇 글자 써 두기만 해도 순위가 오른다.
   def challenge_ranking(challenge)
     return [] unless challenge
