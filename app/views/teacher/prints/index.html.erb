@@ -61,42 +61,29 @@
           아니라 원격 Path Configuration 의 URL 패턴(^/teacher/exports/reports_xlsx$)으로 다운로드를
           판정하므로, Turbo 방문이 제안되어야 그 핸들러가 잡는다. data-turbo="false" 를 붙이면
           그 훅이 사라져 파일명·MIME 설정을 잃는다(2026-09-03 에뮬레이터 실측). %>
-      <section id="raw-export" class="card space-y-3" data-controller="clipboard disclosure">
+      <section id="raw-export" class="card space-y-3">
         <h2 class="flex items-center gap-1.5 font-semibold text-ink">
-          <%= ui_icon :download, class_name: "h-5 w-5" %> 5축 원자료 엑셀 (사전·사후)
+          <%= ui_icon :download, class_name: "h-5 w-5" %> 5축 원자료 엑셀 (가명 처리)
         </h2>
         <p class="text-sm text-steel">
           학생별로 <strong class="font-semibold text-ink">처음 쓴 글</strong>과
           <strong class="font-semibold text-ink">고쳐 쓴 글</strong>의 5축 점수·등급·향상도를 표로 내려받아요.
-          엑셀에서 바로 열리고, <strong class="font-semibold text-ink">AI에게 파일을 주고 학급의 성장을 분석</strong>하게 할 수도 있어요.
+          이름·학교·학년·반·번호는 빼고, 같은 학생의 기록을 잇는 <strong class="font-semibold text-ink">학생 가명 ID</strong>만 넣어요.
         </p>
 
-        <%# 두 버튼은 한 줄에 나란히 둔다. 아이콘은 icon-inverse 로 흰색으로 뒤집는다 —
-            스프라이트 아이콘은 잉크색이 박혀 있어 어두운 버튼 위에서 그냥 두면 보이지 않는다. %>
-        <div class="flex flex-wrap items-center gap-2">
-          <%= link_to icon_text(:download, "엑셀 내려받기", icon_class: "h-4 w-4 icon-inverse"),
-                teacher_exports_reports_xlsx_path, class: "btn btn-primary" %>
-          <button type="button" class="btn btn-blue group"
-                  data-action="disclosure#toggle" data-disclosure-target="toggle"
-                  aria-expanded="false" aria-controls="ai-prompt-example">
-            <span>AI에게 물어볼 문장 예시 보기</span>
-            <%= ui_icon :chevron_down,
-                  class_name: "h-4 w-4 icon-inverse transition-transform group-aria-expanded:rotate-180" %>
-          </button>
+        <div class="state-banner state-banner--warning" role="note">
+          <%= ui_icon :warning, class_name: "h-5 w-5" %>
+          <span>
+            <strong>개인정보 보호:</strong> 가명 처리된 파일도 다른 자료와 합치면 학생을 알아볼 수 있어요.
+            학교가 승인한 내부 환경에서만 사용하고, ChatGPT·Claude·Gemini 같은
+            <strong>외부 AI 서비스에 업로드하지 마세요.</strong>
+          </span>
         </div>
 
-        <div id="ai-prompt-example" data-disclosure-target="panel" class="text-sm text-slate">
-          <p class="text-steel">아래 문장을 복사해 엑셀 파일과 함께 AI에게 주세요.</p>
-          <div class="mt-2 flex items-start gap-2">
-            <textarea readonly rows="5" data-clipboard-target="source"
-                      class="form-textarea flex-1 text-sm">첨부한 엑셀 파일은 초등학생들의 독후감을 5개 축(내용·감상·삶·구성·맞춤법)으로 채점한 자료입니다. '사전_'은 처음 쓴 글, '사후_'는 고쳐 쓴 글의 점수예요.
-1) 학급 전체가 어느 축에서 가장 많이 늘었고 어느 축이 제자리인지 알려 주세요.
-2) 향상도가 낮은 학생을 골라, 그 학생에게 어떤 지도가 필요할지 축별로 제안해 주세요.
-3) 다음 달 독서 수업에서 강조하면 좋을 활동 3가지를 추천해 주세요.
-학생 이름은 결과에 그대로 쓰지 말고 '학생 A'처럼 익명으로 바꿔 주세요.</textarea>
-            <button type="button" class="btn btn-secondary btn-sm shrink-0"
-                    data-action="clipboard#copy" data-clipboard-target="button">복사</button>
-          </div>
+        <%# 스프라이트 아이콘은 잉크색이 박혀 있어 어두운 버튼 위에서 그냥 두면 보이지 않는다. %>
+        <div>
+          <%= link_to icon_text(:download, "엑셀 내려받기", icon_class: "h-4 w-4 icon-inverse"),
+                teacher_exports_reports_xlsx_path, class: "btn btn-primary" %>
         </div>
       </section>
 

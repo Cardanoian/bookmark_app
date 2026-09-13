@@ -134,7 +134,7 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
 
   # 원자료 엑셀은 담임 학급 **전체**를 내보내는 학급-무관 산출물이고, 이 화면이 유일한 진입점이라
   # 학급 유무와 무관하게 닿아야 한다. 학급 분기 안쪽에 두면 학급 없는 교사가 경로를 잃는다.
-  test "index shows the raw export section with its purpose explained" do
+  test "index explains pseudonymization and prohibits uploads to external AI services" do
     login_as @teacher
     get teacher_prints_path
 
@@ -142,7 +142,9 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     assert_select "section#raw-export" do
       assert_select "a[href=?]", teacher_exports_reports_xlsx_path
     end
-    assert_match "AI에게", response.body, "원자료 용도(AI 분석) 안내가 있어야 한다"
+    assert_match "학생 가명 ID", response.body
+    assert_match "외부 AI 서비스에 업로드하지 마세요", response.body
+    assert_no_match "AI에게 물어볼 문장 예시", response.body
   end
 
   # 네비의 "CSV 내보내기"는 목적지가 "문서 출력"과 같은 화면(#raw-export 앵커)이라 메뉴만 둘로
@@ -191,22 +193,13 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
                   teacher_exports_reports_xlsx_path, 1
   end
 
-  # 예시 문장은 <details>/<summary> 가 아니라 내려받기 버튼 옆의 배경색 버튼 + 그 아래 전폭 패널이다
-  # (summary 를 버튼 행에 두면 열린 내용까지 그 줄로 끌려온다). 여닫이는 disclosure 컨트롤러가 맡고,
-  # JS 가 없으면 패널이 펼쳐진 채 남아 예시 문장을 잃지 않는다.
-  test "the AI prompt example sits beside the download button as a filled toggle" do
+  test "the raw export section has no external AI prompt or disclosure control" do
     login_as @teacher
     get teacher_prints_path
 
-    assert_select "section#raw-export[data-controller~=?]", "disclosure"
-    assert_select "section#raw-export button.btn.btn-blue[data-action=?][aria-controls=?]",
-                  "disclosure#toggle", "ai-prompt-example" do |buttons|
-      assert_match "AI에게 물어볼 문장 예시 보기", buttons.first.text
-    end
-    assert_select "section#raw-export #ai-prompt-example[data-disclosure-target=?]", "panel" do
-      assert_select "textarea[data-clipboard-target=?]", "source"
-    end
-    assert_select "section#raw-export details", 0, "여닫이는 details 가 아니라 버튼이 맡는다"
+    assert_select "section#raw-export[data-controller]", 0
+    assert_select "section#raw-export #ai-prompt-example", 0
+    assert_select "section#raw-export textarea", 0
   end
 
   test "a student is forbidden from print documents" do

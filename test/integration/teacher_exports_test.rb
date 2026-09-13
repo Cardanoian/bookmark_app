@@ -25,7 +25,7 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "reports_xlsx returns an xlsx workbook with 사전·사후 5축 columns" do
+  test "reports_xlsx returns an xlsx workbook with a pseudonymous student id column" do
     login_as @teacher
     get teacher_exports_reports_xlsx_path
 
@@ -35,7 +35,7 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
     assert_equal "PK", response.body.b[0, 2] # ZIP 컨테이너
 
     header = read_xlsx_sheet(response.body).first
-    assert_equal "학생", header.first
+    assert_equal "학생 가명 ID", header.first
     assert_equal "도서", header.second
     ReadingDomain::AXIS_LABELS.each_value do |label|
       assert_includes header, "사전_#{label}"
@@ -49,7 +49,8 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
     get teacher_exports_reports_xlsx_path
 
     row = read_xlsx_sheet(response.body).second
-    assert_equal @student.name, row.first
+    assert_match(/\A학생-[0-9A-F]{12}\z/, row.first)
+    assert_not_equal @student.name, row.first
     assert_equal "원본책", row.second
     assert_equal "3.0", row[2]  # 사전 평균
     assert_equal "4.6", row[9]  # 사후 평균
@@ -57,7 +58,7 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
   end
 
   # 점수는 문자열이 아니라 숫자 셀이어야 엑셀에서 정렬·평균·차트가 바로 된다.
-  test "점수 칸은 숫자 셀이고 이름·제목 칸은 문자열 셀이다" do
+  test "점수 칸은 숫자 셀이고 가명 ID·제목 칸은 문자열 셀이다" do
     login_as @teacher
     get teacher_exports_reports_xlsx_path
 
@@ -65,12 +66,12 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
     sheet.remove_namespaces!
     data_row = sheet.css("sheetData > row")[1]
 
-    assert_equal "inlineStr", data_row.css("c").first["t"], "학생 이름은 문자열 셀"
+    assert_equal "inlineStr", data_row.css("c").first["t"], "학생 가명 ID는 문자열 셀"
     assert_nil data_row.css("c")[2]["t"], "사전 평균은 숫자 셀(타입 속성 없음)"
     assert_equal "3.0", data_row.css("c")[2].at_css("v").text
   end
 
-  # 책 제목·학생 이름은 학생 자유 입력이다. CSV 시절에는 이런 값이 파일을 여는 순간 수식이 됐다.
+  # 책 제목은 학생 자유 입력이다. CSV 시절에는 이런 값이 파일을 여는 순간 수식이 됐다.
   # XLSX 는 문자열 셀에 넣으므로 수식으로 해석될 길이 없다(= 수식 주입 표면 제거).
   test "수식처럼 생긴 책 제목도 문자열 셀로 나간다" do
     formula = %(=HYPERLINK("http://example.com","눌러보세요"))
@@ -99,8 +100,41 @@ class TeacherExportsTest < ActionDispatch::IntegrationTest
     get teacher_exports_reports_xlsx_path
 
     rows = read_xlsx_sheet(response.body)
-    row = rows.find { |values| values.first == "김, 학생" }
+    row = rows.find { |values| values.second == nasty }
     assert_equal nasty, row.second
+    assert_match(/\A학생-[0-9A-F]{12}\z/, row.first)
+    assert_not_equal comma_student.name, row.first
+  end
+
+  test "직접 식별정보는 워크북 어디에도 없고 같은 학생은 같은 가명 ID를 쓴다" do
+    other_student = User.create!(school: @school, classroom: @classroom, name: "비밀학생둘", password: "password")
+    Report.create!(user: @student, classroom: @classroom, book_title: "같은학생둘째책", ai_status: :done)
+    Report.create!(user: other_student, classroom: @classroom, book_title: "다른학생책", ai_status: :done)
+
+    login_as @teacher
+    get teacher_exports_reports_xlsx_path
+
+    rows = read_xlsx_sheet(response.body).drop(1)
+    first_student_codes = rows.filter_map { |row| row.first if %w[원본책 같은학생둘째책].include?(row.second) }
+    other_student_code = rows.find { |row| row.second == "다른학생책" }.first
+    workbook_xml = xlsx_entry_names(response.body)
+      .select { |name| name.end_with?(".xml") }
+      .map { |name| read_xlsx_entry(response.body, name).force_encoding(Encoding::UTF_8) }
+      .join
+
+    assert_equal 1, first_student_codes.uniq.size
+    assert_not_equal first_student_codes.first, other_student_code
+    assert_not_includes workbook_xml, @student.name
+    assert_not_includes workbook_xml, other_student.name
+    assert_not_includes workbook_xml, @school.name
+    assert_not_includes workbook_xml, "5학년"
+    assert_not_includes workbook_xml, "1반"
+
+    get teacher_exports_reports_xlsx_path
+    downloaded_again = read_xlsx_sheet(response.body).drop(1)
+    assert_equal first_student_codes.first,
+                 downloaded_again.find { |row| row.second == "원본책" }.first,
+                 "같은 학생은 다시 내려받아도 같은 가명 ID를 써야 한다"
   end
 
   test "a student is forbidden from the xlsx export" do
