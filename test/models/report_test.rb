@@ -12,6 +12,15 @@ class ReportTest < ActiveSupport::TestCase
     assert_equal({ "keyboard" => 0, "wongoji" => 1, "ocr" => 2 }, Report.input_modes)
   end
 
+  # 없는 입력 방식 값은 예외(ArgumentError → 500)가 아니라 검증 오류가 된다. 폼으로는 생기지 않고
+  # 조작한 요청(report[input_mode]=bogus)에서만 오는 값이다.
+  test "an unknown input_mode is a validation error instead of an exception" do
+    report = build_report
+    assert_nothing_raised { report.input_mode = "bogus" }
+    assert_not report.valid?
+    assert report.errors.of_kind?(:input_mode, :inclusion)
+  end
+
   test "ai_status enum defines four values" do
     assert_equal({ "pending" => 0, "processing" => 1, "done" => 2, "failed" => 3 }, Report.ai_statuses)
   end

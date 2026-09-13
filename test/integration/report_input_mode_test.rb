@@ -191,6 +191,55 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_select "input[type=submit][value=?]", "다음", 0
   end
 
+  # 없는 입력 방식 값(조작한 요청)이 와도 500 이 아니다. 새 글 화면은 모르는 방식을 무시하고 첫 단계로
+  # 보내며, 저장 경로는 글을 만들거나 바꾸지 않고 422 로 돌려보낸다(4차 리뷰가 범위 밖으로 보고).
+  test "new with an unknown input_mode falls back instead of raising" do
+    login_as @student
+
+    get new_report_path(input_mode: "bogus")
+    assert_response :success
+    assert_select "input[type=submit][value=?]", "다음", 1
+
+    get new_report_path(input_mode: "bogus", report: { book_title: @book.title })
+    assert_response :success
+    assert_select "a[href*=?]", "input_mode=keyboard", 1
+  end
+
+  test "create with an unknown input_mode is rejected without raising" do
+    login_as @student
+
+    assert_no_difference "Report.count" do
+      post reports_path, params: { report: { input_mode: "bogus", book_title: @book.title, body: "조작한 입력 방식" } }
+      assert_response :unprocessable_entity
+
+      post reports_path, params: { save_draft: "1", report: { input_mode: "bogus", book_title: @book.title, body: "초안" } },
+                         headers: { "Accept" => "application/json" }
+      assert_response :unprocessable_entity
+    end
+    assert_no_enqueued_jobs only: AiReviewJob
+  end
+
+  test "update with an unknown input_mode leaves the report unchanged" do
+    draft = Report.create!(user: @student, classroom: @classroom, book_title: @book.title, body: "처음 쓴 글")
+    submitted = Report.create!(user: @student, classroom: @classroom, book_title: @book.title, body: "낸 글",
+                               submitted_at: 1.day.ago)
+    login_as @student
+
+    patch report_path(draft), params: { report: { input_mode: "bogus", body: "바뀌면 안 되는 글" } }
+    assert_response :unprocessable_entity
+
+    patch report_path(draft), params: { save_draft: "1", report: { input_mode: "bogus", body: "바뀌면 안 되는 글" } },
+                              headers: { "Accept" => "application/json" }
+    assert_response :unprocessable_entity
+
+    patch report_path(submitted), params: { report: { input_mode: "bogus", body: "바뀌면 안 되는 글" } }
+    assert_response :unprocessable_entity
+
+    assert_equal [ "keyboard", "처음 쓴 글" ], draft.reload.values_at(:input_mode, :body)
+    assert_equal [ "keyboard", "낸 글" ], submitted.reload.values_at(:input_mode, :body)
+    assert_no_enqueued_jobs only: AiReviewJob
+  end
+
   # OcrJob 완료로 body 가 채워진 OCR 초안을 열면 compose(edit) 화면에 그 본문이 렌더된다.
   test "edit renders the OCR-filled body once the job has completed" do
     report = Report.create!(user: @student, classroom: @classroom, book_title: "사진 책", input_mode: :ocr)

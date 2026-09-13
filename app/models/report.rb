@@ -13,7 +13,8 @@ class Report < ApplicationRecord
   has_one_attached :drawing
   has_one_attached :audio
 
-  enum :input_mode, { keyboard: 0, wongoji: 1, ocr: 2 }, default: :keyboard
+  # validate: 없는 값(조작한 report[input_mode]=bogus)은 대입 때 ArgumentError(→ 500) 대신 검증 오류가 된다.
+  enum :input_mode, { keyboard: 0, wongoji: 1, ocr: 2 }, default: :keyboard, validate: true
   enum :ai_status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
   # 제출된 글만. 교사 검토 큐·대시보드 집계처럼 "학생이 낸 글"을 세는 모든 지점의 진입 스코프다.
