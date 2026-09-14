@@ -1,0 +1,18 @@
+<%# 체험 계정 전역 안내. 원클릭 로그인 여부가 아니라 DemoAccounts의 안정 신원 규약으로 판별해,
+    일반 로그인으로 체험 계정에 들어와도 가상 자료임을 숨기지 않는다. %>
+<% demo_role = DemoAccounts.role_for(current_user) %>
+<% if demo_role %>
+  <aside class="border-b border-hairline bg-surface-featured px-4 py-2 text-blue-pressed"
+         data-role="demo-banner" data-demo-role="<%= demo_role %>" role="note" aria-label="체험 환경 안내">
+    <div class="mx-auto flex w-full max-w-[1536px] flex-wrap items-center justify-between gap-x-4 gap-y-1 sm:px-2 lg:px-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="badge badge-info bg-surface"><%= ui_icon :info, class_name: "h-4 w-4" %> 체험용 가상 자료</span>
+        <span class="text-sm font-medium">실제 학교·학생 정보가 아닌 시연용 자료입니다.</span>
+      </div>
+      <span class="text-sm font-semibold">
+        데이터 기준일
+        <time datetime="<%= DemoAccounts::DATA_AS_OF.iso8601 %>"><%= DemoAccounts.data_as_of_label %></time>
+      </span>
+    </div>
+  </aside>
+<% end %>

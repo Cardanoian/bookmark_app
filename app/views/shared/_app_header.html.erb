@@ -1,14 +1,21 @@
 <%# 전역 브랜드 헤더 밴드(옵션 A: 상단 앱 바로 통합).
-    좌: [뒤로가기(학생·자식 화면만)] + 로고(/icon.png)+워드마크
-    우: 학생 계정 컨트롤(이름·마이페이지·로그아웃)
-    계정 컨트롤·뒤로가기 모두 학생 한정으로 밴드에 통합(구 _student_header 대체). 밴드 자체는 전 역할 공통.
+    좌: 로고(/icon.png) + 서비스명(책갈피) + 현재 학교명(○○학교 독서교육)
+    우: 전 역할 계정 컨트롤(이름·로그아웃, 학생은 마이페이지 추가)
+    계정 컨트롤은 전 역할 공통이고 마이페이지는 학생 한정이다(구 _student_header 대체).
     옐로 밴드 위 버튼은 브랜드 블루(btn-primary) 필이다. 흰 필은 밋밋하고 연파랑 필은 옐로 위에서 바래
     보였으며, 검은·흰 버튼은 쓰지 않기로 했다(2026-09-04). 채도 있는 블루는 옐로의 보색이라 밴드 위에서 또렷이 선다. %>
 <header class="app-header app-header--sticky">
   <div class="app-header__inner px-4 sm:px-6 lg:px-8">
-    <%= link_to root_path, class: "app-wordmark", aria: { label: "책갈피 홈" } do %>
-      <%= image_tag "/icon.png", alt: "", aria: { hidden: "true" }, class: "h-8 w-8 rounded-lg" %>
-      <span>책갈피</span>
+    <% school_name = current_user&.school&.name %>
+    <% home_name = [ "책갈피", ("#{school_name} 독서교육" if school_name.present?) ].compact.join(" · ") %>
+    <%= link_to root_path, class: "app-wordmark min-w-0", aria: { label: "#{home_name} 홈" } do %>
+      <%= image_tag "/icon.png", alt: "", aria: { hidden: "true" }, class: "h-8 w-8 shrink-0 rounded-lg" %>
+      <span class="shrink-0" data-role="service-name">책갈피</span>
+      <% if school_name.present? %>
+        <span class="shrink-0 text-base font-medium text-slate" aria-hidden="true">·</span>
+        <span class="min-w-0 truncate text-sm font-semibold text-ink sm:max-w-none sm:text-base"
+              data-role="school-context" title="<%= school_name %> 독서교육"><%= school_name %> 독서교육</span>
+      <% end %>
     <% end %>
 
     <%# 계정 컨트롤은 **전 역할 공통**이다. 예전에는 학생만 렌더돼, 교직원은 로그아웃 버튼을

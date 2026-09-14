@@ -22,6 +22,11 @@ module DemoAccounts
   SCHOOL_ADMIN_EMAIL = "eunsu@gbeai.net"
   LIBRARIAN_EMAIL = "jihye@gbeai.net"
 
+  # 공개 체험 자료를 마지막으로 검수·재구성한 기준일. 상대 날짜로 생성된 활동을 실제 최신
+  # 운영 데이터로 오해하지 않도록 모든 체험 역할의 전역 배너에 이 날짜를 고정해 표시한다.
+  # 공개 체험 학급을 다시 재구성할 때는 검수 완료일과 함께 이 값도 명시적으로 갱신한다.
+  DATA_AS_OF = Date.new(2026, 9, 14)
+
   # 교직원 체험 계정의 role → 이메일. 이 해시가 곧 role 화이트리스트이자 조회 순서다.
   STAFF_EMAILS = {
     "teacher" => TEACHER_EMAIL,
@@ -45,6 +50,37 @@ module DemoAccounts
   # 대상인 학생·담임만 선별한다. 시드가 돌지 않은 DB 에서는 빈 해시라 섹션이 통째로 숨겨진다.
   def available
     ROLES.index_with { |role| find(role) }.compact
+  end
+
+  # 로그인 경로와 무관하게 현재 사용자가 체험 계정 자체인지 판별한다. 세션 플래그로 판단하면
+  # 일반 로그인으로 같은 계정에 들어왔을 때 체험 안내가 사라지므로, 시드와 같은 안정 신원 규약을
+  # 직접 대조한다. 반환값은 배너의 역할 식별에도 쓰는 role 문자열이며 비체험 계정은 nil 이다.
+  def role_for(user)
+    return nil if user.nil?
+
+    role = user.role.to_s
+    return nil unless ROLES.include?(role)
+
+    if role == "student"
+      classroom = user.classroom
+      return role if user.name == STUDENT_NAME &&
+                     user.school&.neis_code == SCHOOL_NEIS_CODE &&
+                     classroom&.school_id == user.school_id &&
+                     classroom&.grade == GRADE &&
+                     classroom&.class_no == CLASS_NO
+    elsif user.email == STAFF_EMAILS.fetch(role)
+      return role
+    end
+
+    nil
+  end
+
+  def demo?(user)
+    role_for(user).present?
+  end
+
+  def data_as_of_label
+    "#{DATA_AS_OF.year}년 #{DATA_AS_OF.month}월 #{DATA_AS_OF.day}일"
   end
 
   def student

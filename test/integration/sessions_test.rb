@@ -242,6 +242,41 @@ class SessionsTest < ActionDispatch::IntegrationTest
     assert_equal librarian.id, session[:user_id]
   end
 
+  test "every demo role sees the school identity, virtual-data banner, and data date after login" do
+    accounts = create_demo_accounts!
+
+    accounts.each_key do |role|
+      post demo_login_path, params: { role: role }
+      assert_redirected_to root_path
+      follow_redirect!
+
+      assert_response :success
+      assert_select "header.app-header [data-role='service-name']", text: "책갈피", count: 1
+      assert_select "header.app-header [data-role='school-context']",
+                    text: "테스트초등학교 독서교육", count: 1
+      assert_select "[data-role='demo-banner'][data-demo-role='#{role}']", count: 1 do
+        assert_select ".badge", text: /체험용 가상 자료/
+        assert_select "time[datetime='#{DemoAccounts::DATA_AS_OF.iso8601}']",
+                      text: DemoAccounts.data_as_of_label
+        assert_select "span", text: /실제 학교·학생 정보가 아닌 시연용 자료입니다/
+      end
+
+      delete session_path
+      assert_redirected_to new_session_path
+    end
+  end
+
+  test "a regular account sees its school identity without a demo banner" do
+    login_as @user
+    get root_path
+
+    assert_response :success
+    assert_select "header.app-header [data-role='service-name']", text: "책갈피", count: 1
+    assert_select "header.app-header [data-role='school-context']",
+                  text: "로그인초등학교 독서교육", count: 1
+    assert_select "[data-role='demo-banner']", count: 0
+  end
+
   test "an unknown demo role grants no session" do
     create_demo_accounts!
 
