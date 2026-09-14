@@ -253,7 +253,10 @@ class DemoContentSeeder
 
   # 게시 후보 모집단: 제출·담임 승인까지 끝난 A등급 독후감(점수·id 순). 게시 여부는 보지 않는다.
   def shareable_scope
-    Report.submitted.where(reviewed: true, level: "A").order(Arel.sql("avg DESC"), :id)
+    return Report.none unless classroom
+
+    Report.submitted.where(classroom_id: classroom.id, reviewed: true, level: "A")
+          .order(Arel.sql("avg DESC"), :id)
   end
 
   # 같은 학급 친구들이 누른 응원. 글마다 결정적(report.id 시드)이라 어느 DB 에서 돌려도 같은 결과다.

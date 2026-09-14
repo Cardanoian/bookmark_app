@@ -39,9 +39,10 @@ class DemoSeeder
     이야기보물 책모험가 독서새싹 책새싹 책빛 책마법사
   ].freeze
 
-  def initialize(root: Rails.root.join("db/seeds/demo"), io: $stdout)
+  def initialize(root: Rails.root.join("db/seeds/demo"), io: $stdout, only_files: nil)
     @root = root
     @io = io
+    @only_files = Array(only_files).presence&.map { |filename| validate_seed_filename!(filename) }
     @totals = Hash.new(0)
   end
 
@@ -49,6 +50,8 @@ class DemoSeeder
     ensure_schools!
 
     files = (Dir[File.join(@root, "*.yml")] - [ schools_file_path ]).sort
+    files.select! { |path| @only_files.include?(File.basename(path)) } if @only_files
+    validate_requested_files!(files)
     if files.empty?
       @io.puts "  [demo] db/seeds/demo/*.yml 없음 — 데모 시드 건너뜀."
       return
@@ -75,7 +78,31 @@ class DemoSeeder
     @io.puts "  [demo] 완료: " + @totals.map { |k, v| "#{k}=#{v}" }.join(" ")
   end
 
+  # 일회성 운영 정비가 전체 데모 학교를 건드리지 않고 특정 학급의 정본만 읽고 재적재할 때 쓰는
+  # 제한된 공개 API. 파일명은 디렉터리 이동이 없는 basename만 허용한다.
+  def seed_data_for(filename)
+    filename = validate_seed_filename!(filename)
+    path = File.join(@root, filename)
+    raise ArgumentError, "데모 시드 파일 없음: #{filename}" unless File.file?(path)
+
+    load_seed_data(path)
+  end
+
   private
+
+  def validate_seed_filename!(filename)
+    value = filename.to_s
+    return value if value.match?(/\A[a-z0-9_]+\.yml\z/) && value != File.basename(schools_file_path)
+
+    raise ArgumentError, "데모 시드 파일명은 db/seeds/demo 안의 YAML basename이어야 합니다"
+  end
+
+  def validate_requested_files!(files)
+    return unless @only_files
+
+    missing = @only_files - files.map { |path| File.basename(path) }
+    raise ArgumentError, "데모 시드 파일 없음: #{missing.join(', ')}" if missing.any?
+  end
 
   # 데모 학급이 사는 **가상 학교**를 먼저 확보한다(`db/seeds/demo/schools.yml`).
   # 전국 NEIS 스냅샷에 없는 학교라 `schools:seed_full` 이 만들어 주지 않으므로 여기서 만든다.
