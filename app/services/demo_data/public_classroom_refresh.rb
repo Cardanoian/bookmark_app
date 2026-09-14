@@ -20,10 +20,12 @@ module DemoData
 
     class SafetyError < StandardError; end
 
-    def initialize(io: $stdout, confirmation: nil, backup_database: true, demo_seed: nil, content_seed: nil)
+    def initialize(io: $stdout, confirmation: nil, backup_database: true, demo_seed: nil, content_seed: nil,
+                   validate_story: true)
       @io = io
       @confirmation = confirmation
       @backup_database = backup_database
+      @validate_story = validate_story
       @demo_seed = demo_seed || -> { DemoSeeder.new(root: SEED_ROOT, io: @io, only_files: [ SEED_FILENAME ]).call }
       @content_seed = content_seed || -> { DemoContentSeeder.new(io: @io).call }
     end
@@ -46,14 +48,17 @@ module DemoData
         reports: reports.count,
         excess_reports: reports.count - expected_report_count,
         drafts: reports.where(submitted_at: nil).count,
+        expected_unreviewed_reports: expected_unreviewed_report_count,
+        unreviewed_reports: reports.where(reviewed: false).count,
         blank_reports: reports.where(body: [ nil, "" ]).count,
         short_reports: reports.where("LENGTH(TRIM(body)) < 20").count,
         forum_posts: ForumPost.where(user_id: student_ids).count,
         book_intros: BookIntro.where(user_id: student_ids).count,
         book_sequels: BookSequel.where(user_id: student_ids).count,
+        featured_reports: BoardPost.joins(:report).where(reports: { classroom_id: classroom.id }).count,
         classroom_quizzes: Quiz.where(classroom_id: classroom.id).count,
         quiz_contributions: QuizContribution.where(classroom_id: classroom.id).count
-      }
+      }.merge(story_preview(classroom))
     end
 
     def call!
@@ -177,6 +182,26 @@ module DemoData
              result[:blank_reports].zero? && result[:short_reports].zero?
         raise SafetyError, "재적재 결과가 시드 품질 기준을 충족하지 못했습니다: #{result.inspect}"
       end
+
+      validate_story_result!(result) if @validate_story
+    end
+
+    def validate_story_result!(result)
+      valid = result[:story_student_found] &&
+              result[:story_reports] == result[:expected_story_reports] &&
+              result[:story_revisions] == result[:expected_story_revisions] &&
+              result[:story_revision_growth] && result[:story_feedback_visible] &&
+              result[:featured_reports] == result[:expected_featured_reports] &&
+              result[:story_featured_reports] == result[:expected_featured_reports] &&
+              result[:story_completed_missions] == result[:expected_completed_missions] &&
+              result[:story_mission_progress_consistent] &&
+              result[:story_active_monster_key] == result[:expected_active_monster_key] &&
+              result[:story_monster_evolvable] &&
+              result[:unreviewed_reports] == result[:expected_unreviewed_reports] &&
+              result[:role_report_counts_match]
+      return if valid
+
+      raise SafetyError, "대표 체험 이야기 검증에 실패했습니다: #{result.inspect}"
     end
 
     def validate_foreign_keys!
@@ -244,6 +269,115 @@ module DemoData
 
     def expected_report_count
       @expected_report_count ||= seed_definition.fetch("students").sum { |data| Array(data["reports"]).size }
+    end
+
+    def expected_unreviewed_report_count
+      @expected_unreviewed_report_count ||= seed_definition.fetch("students").sum do |data|
+        Array(data["reports"]).count { |report| !report.fetch("reviewed", true) }
+      end
+    end
+
+    def story_preview(classroom)
+      student = students(classroom).find_by(name: story_student_name)
+      return missing_story_preview unless student
+
+      reports = Report.submitted.where(user_id: student.id)
+      timeline = StudentGrowthTimeline.new(student)
+      latest = timeline.latest
+      previous = timeline.previous
+      revision_growth = latest.present? && previous.present? &&
+                        latest.report.revision_of_id == previous.report.id &&
+                        timeline.changes.values.all?(&:positive?)
+      participations = student.mission_participations.includes(mission: { mission_goals: :books }).to_a
+      mission_progress_consistent = participations.all? do |participation|
+        completed = Missions::ProgressCalculator.new(
+          participation.mission,
+          student,
+          participation:
+        ).completed?
+        recorded = participation.completed_at.present? && participation.rewarded_at.present? &&
+                   participation.reward_points_awarded == participation.mission.reward_points
+        completed == recorded
+      end
+      active_monster = student.active_monster
+      classroom_reports = Report.where(classroom_id: classroom.id)
+      submitted_classroom_reports = Report.submitted.where(classroom_id: classroom.id)
+
+      {
+        story_student_found: true,
+        expected_story_reports: expected_story_report_count,
+        story_reports: reports.count,
+        expected_story_revisions: expected_story_revision_count,
+        story_revisions: reports.where.not(revision_of_id: nil).count,
+        story_revision_growth: revision_growth,
+        story_feedback_visible: latest&.report&.feedback_visible? && previous&.report&.feedback_visible?,
+        expected_featured_reports: expected_featured_report_count,
+        story_featured_reports: BoardPost.joins(:report).where(reports: { user_id: student.id }).count,
+        expected_completed_missions: expected_completed_mission_count,
+        story_completed_missions: participations.count { |participation| participation.completed_at.present? },
+        story_mission_progress_consistent: mission_progress_consistent,
+        expected_active_monster_key: expected_active_monster_key,
+        story_active_monster_key: active_monster&.species&.key,
+        story_monster_evolvable: active_monster&.evolvable? || false,
+        role_report_counts_match: classroom_reports.count == expected_report_count &&
+                                  submitted_classroom_reports.count == expected_report_count &&
+                                  classroom_reports.where(reviewed: false).count == expected_unreviewed_report_count
+      }
+    end
+
+    def missing_story_preview
+      {
+        story_student_found: false,
+        expected_story_reports: expected_story_report_count,
+        story_reports: 0,
+        expected_story_revisions: expected_story_revision_count,
+        story_revisions: 0,
+        story_revision_growth: false,
+        story_feedback_visible: false,
+        expected_featured_reports: expected_featured_report_count,
+        story_featured_reports: 0,
+        expected_completed_missions: expected_completed_mission_count,
+        story_completed_missions: 0,
+        story_mission_progress_consistent: false,
+        expected_active_monster_key: expected_active_monster_key,
+        story_active_monster_key: nil,
+        story_monster_evolvable: false,
+        role_report_counts_match: false
+      }
+    end
+
+    def story_definition
+      @story_definition ||= seed_definition.fetch("story")
+    end
+
+    def story_student_name
+      story_definition.fetch("student_name").to_s
+    end
+
+    def story_student_definition
+      @story_student_definition ||= seed_definition.fetch("students").find do |data|
+        data.fetch("name").to_s == story_student_name
+      end || raise(SafetyError, "대표 체험 학생이 시드 명단에 없습니다")
+    end
+
+    def expected_story_report_count
+      Array(story_student_definition["reports"]).size
+    end
+
+    def expected_story_revision_count
+      Array(story_student_definition["reports"]).count { |report| report["revision_of"].present? }
+    end
+
+    def expected_featured_report_count
+      Array(story_definition["featured_report_keys"]).size
+    end
+
+    def expected_completed_mission_count
+      Array(story_student_definition["completed_missions"]).size
+    end
+
+    def expected_active_monster_key
+      story_student_definition.fetch("active_monster_key").to_s
     end
 
     def sample_accounts

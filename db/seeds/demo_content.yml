@@ -461,10 +461,10 @@ student_contributions:
 # 이미 담임 승인이 끝난 A등급 독후감 중 아직 게시판에 오르지 않은 글을 골라 우수작으로 올린다.
 # 새 독후감을 지어내지 않고 **DB 에 있는 글만** 고르므로 통계·포인트와 어긋나지 않는다.
 featured_reports:
-  # 체험 학생(이도현) 글은 반드시 이만큼 포함한다(책 제목이 겹치면 점수 높은 글 하나만).
-  student_pick_count: 5
-  # 그 밖의 학생 글(학생 1명당 최대 1편).
-  peer_pick_count: 25
+  # 대표 학생의 고쳐쓰기 우수작 한 편만 유지한다. DemoSeeder가 story.featured_report_keys로
+  # 먼저 게시하므로 이 선택은 재실행 때 같은 글을 확인하는 멱등 안전망이다.
+  student_pick_count: 1
+  peer_pick_count: 0
   # 응원 수 범위(글마다 결정적으로 배정, 같은 학급 친구들이 누른다).
   cheer_min: 4
   cheer_max: 12

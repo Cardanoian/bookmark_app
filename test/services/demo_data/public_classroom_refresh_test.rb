@@ -1,7 +1,7 @@
 require "test_helper"
 require Rails.root.join("db/seeds/demo_seeder").to_s
 
-class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
+class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   setup do
     @school = School.create!(
       name: "테스트초등학교",
@@ -62,7 +62,7 @@ class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
 
     assert_equal true, preview[:target_found]
     assert_equal 21, preview[:students]
-    assert_equal 69, preview[:expected_reports]
+    assert_equal 72, preview[:expected_reports]
     assert_equal 2, preview[:reports]
     assert_equal 1, preview[:drafts]
     assert Report.exists?(@draft.id)
@@ -117,7 +117,7 @@ class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
     assert_equal 1, demo_seed_calls
     assert_equal 1, content_seed_calls
     assert_equal 2, result.dig(:before, :reports)
-    assert_equal 69, result.dig(:after, :reports)
+    assert_equal 72, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
     assert_nil result[:backup]
     assert_not Report.exists?(@draft.id)
@@ -146,15 +146,17 @@ class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
 
     result = with_demo_deployment { service.call! }
 
-    assert_equal 69, result.dig(:after, :reports)
+    assert_equal 72, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
     assert_equal 31, result.dig(:after, :forum_posts)
     assert_equal 10, result.dig(:after, :book_intros)
     assert_equal 10, result.dig(:after, :book_sequels)
     assert_equal 3, Mission.where(classroom: @classroom).count
-    assert_equal 95, GamePlay.where(user_id: @students.map(&:id)).count
+    assert_equal 101, GamePlay.where(user_id: @students.map(&:id)).count
     assert_equal 10, LibraryLoan.where(school: @school).count
     assert_equal 5, LibraryEvent.where(school: @school).count
+    assert_public_demo_story!(result)
+    assert_role_screens_agree!
     assert_equal 0, ApplicationRecord.connection.execute("PRAGMA foreign_key_check").size
   end
 
@@ -166,7 +168,8 @@ class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
       confirmation: confirmation,
       backup_database: false,
       demo_seed: demo_seed,
-      content_seed: content_seed
+      content_seed: content_seed,
+      validate_story: false
     )
   end
 
@@ -234,5 +237,56 @@ class DemoData::PublicClassroomRefreshTest < ActiveSupport::TestCase
         )
       end
     end
+  end
+
+  def assert_public_demo_story!(result)
+    preview = result.fetch(:after)
+    assert_equal true, preview[:story_student_found]
+    assert_equal 4, preview[:story_reports]
+    assert_equal 1, preview[:story_revisions]
+    assert_equal true, preview[:story_revision_growth]
+    assert_equal true, preview[:story_feedback_visible]
+    assert_equal 1, preview[:featured_reports]
+    assert_equal 1, preview[:story_featured_reports]
+    assert_equal 1, preview[:story_completed_missions]
+    assert_equal true, preview[:story_mission_progress_consistent]
+    assert_equal "robot_1", preview[:story_active_monster_key]
+    assert_equal true, preview[:story_monster_evolvable]
+    assert_equal true, preview[:role_report_counts_match]
+
+    student = @students.find { |user| user.name == "이도현" }.reload
+    timeline = StudentGrowthTimeline.new(student)
+    assert_equal 4, timeline.approved_report_count
+    assert_equal timeline.previous.report, timeline.latest.report.revision_of
+    assert_equal "A", timeline.latest.report.level
+    assert timeline.changes.values.all?(&:positive?)
+    assert_equal timeline.latest.report, BoardPost.joins(:report).find_by!(reports: { user_id: student.id }).report
+    assert_equal "robot_1", student.active_monster.species.key
+    assert student.active_monster.evolvable?
+  end
+
+  def assert_role_screens_agree!
+    student = @students.find { |user| user.name == "이도현" }.reload
+    login_as student, password: DemoSeeder::STUDENT_PASSWORD
+    get growth_path
+    assert_response :success
+    assert_select ".stat-card", text: /확인받은 독후감\s*4편/
+    assert_match "가장 많이 성장", response.body
+
+    delete session_path
+    login_as @teacher.reload, password: "jieun11!"
+    get teacher_dashboard_path
+    assert_response :success
+    assert_select ".stat-card", text: /총 독후감\s*72/
+    assert_select ".stat-card" do |cards|
+      assert_includes cards.map { |card| card.text.squish }, "검토 대기 11"
+    end
+
+    delete session_path
+    login_as @admin.reload, password: "eunsu11!"
+    get school_admin_stats_path
+    assert_response :success
+    assert_select ".stat-card", text: /학생 수\s*21/
+    assert_select ".stat-card", text: /총 독후감\s*72/
   end
 end

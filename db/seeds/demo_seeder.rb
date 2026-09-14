@@ -311,7 +311,12 @@ class DemoSeeder
 
       seed_missions(Array(data["missions"]), classroom, teacher, students)
       seed_topics_and_forum(Array(data["topics"]), classroom, students)
-      seed_board_and_cheers(students, classroom)
+      seed_board_and_cheers(
+        students,
+        classroom,
+        featured_report_keys: data.dig("story", "featured_report_keys"),
+        require_featured_reports: data["story"].present?
+      )
       seed_social_games(students, classroom)
 
       students.each { |st| finalize_student(st) }
@@ -343,7 +348,12 @@ class DemoSeeder
 
       top_up_missions(Array(data["missions"]), classroom, teacher, students)
       seed_topics_and_forum(Array(data["topics"]), classroom, students, peers:)
-      seed_board_and_cheers(students, classroom, peers:)
+      seed_board_and_cheers(
+        students,
+        classroom,
+        peers:,
+        featured_report_keys: data.dig("story", "featured_report_keys")
+      )
       seed_social_games(students, classroom, peers:)
 
       students.each { |st| finalize_student(st) }
@@ -379,7 +389,7 @@ class DemoSeeder
     user.save! if user.new_record? || user.changed?
 
     st = { user:, sd:, classroom:, report_points: 0, game_points: 0, mission_points: 0,
-           reports: [], shareable: [] }
+           reports: [], reports_by_seed_key: {}, shareable: [] }
 
     seed_reports(st)
     seed_games(st)
@@ -426,18 +436,19 @@ class DemoSeeder
     classroom = st[:classroom]
     Array(st[:sd]["reports"]).each do |rd|
       quality = (rd["quality"] || "b").to_s.downcase
-      rubric = rubric_for(quality)
+      rubric = report_rubric(rd, quality)
       scored = RubricScorable.score_rubric(rubric)
       book = match_book(rd["book_title"])
       reviewed = rd.fetch("reviewed", true) ? true : false
       created = backdate(rd["days_ago"] || rand_int(3, 60))
-      input_mode = ocr_pick? ? :ocr : :keyboard
+      input_mode = rd["input_mode"].presence&.to_sym || (ocr_pick? ? :ocr : :keyboard)
       improvement = rd["improvement"].to_f
+      revision_of = report_revision_for!(rd, st)
 
       report = Report.new(
         user:, classroom:, book: book, book_title: rd["book_title"],
         body: rd["body"].to_s, input_mode:, ai_status: :done,
-        rubric: rubric.merge(feedback_payload(quality)),
+        rubric: rubric.merge(report_feedback(rd, quality)), revision_of:,
         avg: scored[:avg], level: scored[:level],
         points_awarded: (reviewed ? scored[:points] : 0),
         reviewed:, reviewed_at: (reviewed ? created + rand_int(1, 48).hours : nil),
@@ -452,6 +463,7 @@ class DemoSeeder
 
       st[:report_points] += report.points_awarded.to_i
       st[:reports] << report
+      register_report_seed_key!(rd, report, st)
       st[:shareable] << report if reviewed && %w[A B].include?(report.level)
       @totals[:reports] += 1
     end
@@ -492,8 +504,10 @@ class DemoSeeder
     return if lines.zero?
 
     evolved = (st[:sd]["evolved"] || 0).to_i.clamp(0, lines)
-    dex_nos = pick_dex_nos(lines, user.id)
+    preferred = preferred_active_monster!(st[:sd]["active_monster_key"])
+    dex_nos = monster_dex_nos(lines, user.id, preferred)
     first = nil
+    active = nil
 
     dex_nos.each_with_index do |dex_no, idx|
       stage =
@@ -503,7 +517,11 @@ class DemoSeeder
         else
           1
         end
-      species = MonsterSpecies.find_by(dex_no:, stage:) || MonsterSpecies.find_by(dex_no:, stage: 1)
+      species = if preferred&.dex_no == dex_no
+        preferred
+      else
+        MonsterSpecies.find_by(dex_no:, stage:) || MonsterSpecies.find_by(dex_no:, stage: 1)
+      end
       next unless species
 
       obtained = backdate(rand_int(5, 90))
@@ -513,10 +531,11 @@ class DemoSeeder
         celebrated_at: obtained, nickname: nil
       )
       first ||= um
+      active = um if preferred&.dex_no == dex_no
       @totals[:user_monsters] += 1
     end
 
-    user.update_columns(active_monster_id: first.id) if first
+    user.update_columns(active_monster_id: (active || first).id) if active || first
   end
 
   # ── 미션 ────────────────────────────────────────────────────────────────
@@ -582,14 +601,24 @@ class DemoSeeder
     students.each_with_index do |st, idx|
       next if MissionParticipation.exists?(mission_id: mission.id, user_id: st[:user].id)
 
-      completed = idx < cutoff
+      explicit_completion = st[:sd].key?("completed_missions")
+      completed = if explicit_completion
+        Array(st[:sd]["completed_missions"]).map(&:to_s).include?(mission.title)
+      else
+        idx < cutoff
+      end
       assigned_at = mission.start_date.to_time + rand_int(0, 24).hours
-      done_at = completed ? [ assigned_at + rand_int(1, 10).days, window_end ].min : nil
-      MissionParticipation.create!(
+      done_at = if completed
+        explicit_completion ? [ Time.current, window_end ].min : [ assigned_at + rand_int(1, 10).days, window_end ].min
+      end
+      participation = MissionParticipation.create!(
         mission:, user: st[:user], assigned_at:,
         completed_at: done_at, rewarded_at: done_at,
         reward_points_awarded: (completed ? reward : 0)
       )
+      if explicit_completion && Missions::ProgressCalculator.new(mission, st[:user], participation:).completed? != completed
+        raise ArgumentError, "#{st[:user].name}의 '#{mission.title}' 완료 상태가 실제 목표 진행도와 다릅니다"
+      end
       st[:mission_points] += reward if completed
       @totals[:mission_participations] += 1
     end
@@ -631,17 +660,19 @@ class DemoSeeder
   end
 
   # ── 우수작 게시판 + 응원 ─────────────────────────────────────────────────
-  def seed_board_and_cheers(students, classroom, peers: nil)
+  def seed_board_and_cheers(students, classroom, peers: nil, featured_report_keys: nil, require_featured_reports: false)
     users = Array(peers).presence || students.map { |st| st[:user] }
-    students.each do |st|
-      report = st[:shareable].max_by { |r| r.avg.to_f }
-      next unless report
-
+    reports = featured_reports_for(
+      students,
+      featured_report_keys:,
+      require_all: require_featured_reports
+    )
+    reports.each do |report|
       BoardPost.create!(report:)
       report.update_columns(shared: true)
       @totals[:board_posts] += 1
 
-      cheerers = users.reject { |u| u.id == st[:user].id }.shuffle(random: @rng).first(rand_int(1, 8))
+      cheerers = users.reject { |u| u.id == report.user_id }.shuffle(random: @rng).first(rand_int(1, 8))
       cheerers.each do |u|
         Cheer.create!(board_post: report.board_post, user: u)
         @totals[:cheers] += 1
@@ -707,6 +738,65 @@ class DemoSeeder
     else # b
       { content: rand_int(3, 4), emotion: rand_int(3, 4), life: 3, structure: rand_int(3, 4), spelling: rand_int(3, 4) }
     end
+  end
+
+  def report_rubric(report_data, quality)
+    explicit = report_data["rubric"]
+    return rubric_for(quality) unless explicit.is_a?(Hash)
+
+    ReadingDomain::RUBRIC_AXES.index_with { |axis| Integer(explicit.fetch(axis.to_s)) }
+  rescue KeyError, ArgumentError, TypeError
+    raise ArgumentError, "독후감 rubric은 5축 정수 점수를 모두 포함해야 합니다"
+  end
+
+  def report_feedback(report_data, quality)
+    explicit = report_data["feedback"]
+    explicit.is_a?(Hash) ? explicit : feedback_payload(quality)
+  end
+
+  def report_revision_for!(report_data, st)
+    parent_key = report_data["revision_of"].presence
+    return unless parent_key
+
+    st[:reports_by_seed_key].fetch(parent_key.to_s)
+  rescue KeyError
+    raise ArgumentError, "고쳐쓰기 원문 seed_key를 먼저 정의해야 합니다: #{parent_key}"
+  end
+
+  def register_report_seed_key!(report_data, report, st)
+    key = report_data["seed_key"].presence&.to_s
+    return unless key
+    raise ArgumentError, "학생 안에서 독후감 seed_key가 중복됩니다: #{key}" if st[:reports_by_seed_key].key?(key)
+
+    st[:reports_by_seed_key][key] = report
+  end
+
+  def preferred_active_monster!(key)
+    return if key.blank?
+
+    MonsterSpecies.find_by(key: key.to_s) || raise(ArgumentError, "활성 몬스터 key를 찾을 수 없습니다: #{key}")
+  end
+
+  def monster_dex_nos(lines, salt, preferred)
+    return pick_dex_nos(lines, salt) unless preferred
+
+    others = pick_dex_nos(MonsterSpecies::DESIGN_LINE_COUNT, salt).reject { |dex_no| dex_no == preferred.dex_no }
+    others.first(lines - 1) + [ preferred.dex_no ]
+  end
+
+  def featured_reports_for(students, featured_report_keys:, require_all:)
+    if featured_report_keys.nil?
+      return students.filter_map { |st| st[:shareable].max_by { |report| report.avg.to_f } }
+    end
+
+    reports_by_key = students.each_with_object({}) { |st, index| index.merge!(st[:reports_by_seed_key]) }
+    keys = Array(featured_report_keys).map(&:to_s)
+    missing = keys - reports_by_key.keys
+    if require_all && missing.any?
+      raise ArgumentError, "우수작 seed_key를 찾을 수 없습니다: #{missing.join(', ')}"
+    end
+
+    keys.filter_map { |key| reports_by_key[key] }
   end
 
   def feedback_payload(quality)

@@ -1,7 +1,6 @@
 # 테스트초 3-1 — accounts.yml 의 역할 샘플 학급을 21명 규모의 정상 학급으로 채운다.
-# 이 파일은 기존 학급(이미 실사용 독후감이 있는 classrooms 행)에 붙으므로 DemoSeeder 의 top-up
-# 경로를 탄다: 명단에 없던 학생만 활동과 함께 새로 만들고, 기존 학생(이도현·홍수아)의 독후감·
-# 포인트·경험치·시즌점수·뱃지는 손대지 않는다.
+# 평소 전체 시드는 기존 활동을 보존하는 top-up 계약을 유지한다. 공개 체험 배포에서는
+# DemoData::PublicClassroomRefresh가 이 파일을 정본으로 삼아 학급 활동을 백업 후 다시 만든다.
 #
 # teacher 는 accounts.yml 의 homeroom_teacher 와 **같은 이메일**이어야 한다. seed_teacher 가
 # 이메일로 기존 행을 찾으므로, 다르면 담임이 둘이 된다.
@@ -21,6 +20,38 @@ teacher:
   email: jieun@gbeai.net
 template: noeul_3_1.yml
 activity_level: high
+story:
+  student_name: 이도현
+  featured_report_keys:
+    - dohyun_rewrite
+missions:
+  - title: 책과 친해지기
+    description: 독후감 세 편을 쓰고 독서 게임도 해 봐요.
+    reward_points: 40
+    start_days_ago: 18
+    end_days_ahead: 9
+    completion_rate: 0.5
+    goals:
+      - { type: approved_reports, target: 3 }
+      - { type: game_plays, target: 4 }
+  - title: 꾸준히 읽는 습관
+    description: 다음 목표까지 독후감과 게임을 꾸준히 이어 가요.
+    reward_points: 60
+    start_days_ago: 25
+    end_days_ahead: 5
+    completion_rate: 0.35
+    goals:
+      - { type: approved_reports, target: 4 }
+      - { type: game_plays, target: 8 }
+  - title: 독서 골든벨 도전
+    description: 최근에 읽은 책을 떠올리며 게임 실력을 키워요.
+    reward_points: 50
+    start_days_ago: 10
+    end_days_ahead: 14
+    completion_rate: 0.6
+    goals:
+      - { type: approved_reports, target: 2 }
+      - { type: game_plays, target: 7 }
 student_names:
   # ── 신규 19명 (남 10 / 여 9) — 프로필 #1~#19: 독후감 5~1건, 게임 8~0회로 편차가 크다
   - { name: 강태오, nickname: 씩씩한책돛대 }
@@ -42,6 +73,73 @@ student_names:
   - { name: 오현우, nickname: 맑은책우물 }
   - { name: 양수빈, nickname: 수북한책탑 }
   - { name: 윤성민, nickname: 곧은책기둥 }
-  # ── 기존 2명 (개명됨) — 활동은 실사용 기록을 그대로 유지한다
-  - { name: 이도현, nickname: 독서왕유망주 }
+  # ── 공개 체험 대표 학생 — 원문→첨삭→고쳐쓰기→성장, 미션 완료, 몬스터 진화를 한 흐름으로 고정한다
+  - name: 이도현
+    nickname: 독서왕유망주
+    reports:
+      - seed_key: dohyun_first
+        book_title: 책 먹는 여우
+        quality: b
+        reviewed: true
+        days_ago: 16
+        input_mode: keyboard
+        rubric: { content: 3, emotion: 3, life: 3, structure: 3, spelling: 3 }
+        teacher_comment: 여우가 책을 좋아하는 마음을 자신의 독서 경험과 잘 연결했어요.
+        body: |
+          책 먹는 여우는 책을 너무 좋아해서 읽은 책을 소금과 후추를 뿌려 먹는다. 책을 살 돈이 부족해진 여우는 잘못된 선택을 하지만, 감옥에서 직접 이야기를 쓰며 작가가 된다. 나도 재미있는 책을 만나면 시간 가는 줄 모르고 읽는다. 여우처럼 책을 좋아하는 마음을 오래 간직하면서도 도서관 규칙은 꼭 지키고 싶다.
+      - seed_key: dohyun_second
+        book_title: 나쁜 어린이 표
+        quality: b
+        reviewed: true
+        days_ago: 11
+        input_mode: keyboard
+        rubric: { content: 4, emotion: 3, life: 3, structure: 3, spelling: 4 }
+        teacher_comment: 건우의 억울한 마음을 자세히 설명하고 자신의 경험도 떠올렸어요.
+        body: |
+          건우는 자기 잘못이 아닌데도 나쁜 어린이 표를 받아서 속상해한다. 그래서 선생님의 잘못을 적는 나쁜 선생님 표를 만든다. 나는 친구에게 내 마음을 설명하지 못해 억울했던 일이 떠올랐다. 표만 보고 사람을 판단하기보다 왜 그런 행동을 했는지 먼저 이야기를 들어 주어야 한다고 생각했다.
+      - seed_key: dohyun_original
+        book_title: 강아지똥
+        quality: c
+        reviewed: true
+        days_ago: 6
+        input_mode: keyboard
+        rubric: { content: 2, emotion: 2, life: 2, structure: 2, spelling: 2 }
+        teacher_comment: 중요한 장면을 잘 찾았어요. 강아지똥의 마음이 어떻게 달라졌는지 더 써 봅시다.
+        feedback:
+          praise:
+            - 강아지똥이 민들레를 도운 장면을 골라 썼어요.
+          fix:
+            - 처음과 마지막에 강아지똥의 마음이 어떻게 달라졌는지 자세히 써 보세요.
+          grow:
+            - text: 그 장면을 자신의 경험이나 생각과 연결해 한 문단을 더 써 보세요.
+              standard_code: "[4국05-02]"
+        body: |
+          강아지똥은 처음에는 모두가 싫어해서 슬펐다. 나중에는 민들레꽃을 피우는 거름이 되었다. 쓸모없는 것은 없다는 생각이 들었다.
+      - seed_key: dohyun_rewrite
+        revision_of: dohyun_original
+        book_title: 강아지똥
+        quality: a
+        reviewed: true
+        days_ago: 2
+        input_mode: keyboard
+        rubric: { content: 5, emotion: 5, life: 5, structure: 4, spelling: 4 }
+        improvement: 2.6
+        teacher_comment: 처음 글보다 인물의 마음과 자신의 경험이 구체적으로 드러나 크게 성장했어요.
+        feedback:
+          praise:
+            - 강아지똥의 마음이 슬픔에서 기쁨으로 바뀌는 과정을 또렷하게 설명했어요.
+            - 자신의 경험을 연결해 작품의 뜻을 깊이 생각했어요.
+          fix: []
+          grow:
+            - text: 다음에는 민들레가 강아지똥에게 보내는 편지를 상상해 써 보세요.
+              standard_code: "[4국05-04]"
+        body: |
+          강아지똥은 참새와 흙덩이에게 쓸모없다는 말을 듣고 자신이 아무 도움도 되지 못한다고 생각해 슬퍼했다. 하지만 민들레가 꽃을 피우려면 거름이 필요하다는 말을 듣고 기꺼이 자신의 몸을 내어 준다. 봄비에 녹아 민들레 뿌리로 스며든 뒤 노란 꽃이 피었을 때, 강아지똥은 자신도 소중한 일을 할 수 있다는 기쁨을 느꼈을 것 같다. 나도 모둠 발표에서 그림을 잘 그리지 못해 도움이 안 된다고 생각했지만, 친구들의 의견을 정리해 발표 순서를 만드는 일을 맡아 힘이 된 적이 있다. 이 책을 읽고 사람마다 잘할 수 있는 일이 다르며, 작아 보이는 도움도 누군가에게 꼭 필요할 수 있다는 것을 알게 되었다.
+    game_plays: 6
+    quiz_attempts: 4
+    monster_lines: 5
+    evolved: 2
+    active_monster_key: robot_1
+    completed_missions:
+      - 책과 친해지기
   - { name: 홍수아, nickname: 햇살가득책숲 }
