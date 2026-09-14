@@ -1,7 +1,31 @@
 <%# 처음 접속 시 안내 인덱스 — 학생/교직원 로그인 선택 화면(sessions#new). %>
 <%= render "shared/contest_banner" %>
-
 <div class="w-full max-w-md mx-auto text-center">
+  <%# 체험 계정 원클릭 로그인. 공개 대상인 학생·담임 계정이 DB 에 있을 때만 그 역할 버튼이 뜬다.
+      계정·비밀번호는 서버(DemoAccounts)가 확정하므로 여기엔 role 만 싣는다. %>
+  <% visible_demo_accounts = @demo_accounts.slice("student", "teacher") %>
+  <% if visible_demo_accounts.present? %>
+    <%
+      demo_labels = {
+        "student" => [ "학생으로 체험하기", "3-1 이도현 학생" ],
+        "teacher" => [ "담임 선생님으로 체험하기", "3-1 담임 김지은 선생님" ]
+      }
+    %>
+    <div class="mb-10 border-t border-hairline pt-8">
+      <p class="text-sm font-bold text-ink">🚀 바로 체험해 보기</p>
+      <p class="mt-1 mb-4 text-sm text-steel">계정 없이 샘플 학교(테스트초등학교 3-1)를 역할별로 둘러볼 수 있어요</p>
+      <div class="space-y-3">
+        <% visible_demo_accounts.each_key do |role| %>
+          <% title, subtitle = demo_labels.fetch(role) %>
+          <%= button_to demo_login_path, params: { role: role },
+                class: "btn btn-secondary btn-block" do %>
+            <span class="block"><%= title %></span>
+            <span class="mt-0.5 block text-sm font-normal text-steel"><%= subtitle %></span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
   <h1 class="text-3xl font-bold text-ink">로그인</h1>
   <p class="mt-2 mb-8 text-slate">어떻게 로그인할까요?</p>
   <div class="space-y-4">
@@ -24,32 +48,5 @@
       <span class="mt-1 block text-sm text-steel">가입 후 바로 활동할 수 있어요</span>
     <% end %>
   </div>
-
-  <%# 체험 계정 원클릭 로그인. 공개 대상인 학생·담임 계정이 DB 에 있을 때만 그 역할 버튼이 뜬다.
-      계정·비밀번호는 서버(DemoAccounts)가 확정하므로 여기엔 role 만 싣는다. %>
-  <% visible_demo_accounts = @demo_accounts.slice("student", "teacher") %>
-  <% if visible_demo_accounts.present? %>
-    <%
-      demo_labels = {
-        "student" => [ "학생으로 체험하기", "3-1 이도현 학생" ],
-        "teacher" => [ "담임 선생님으로 체험하기", "3-1 담임 김지은 선생님" ]
-      }
-    %>
-    <div class="mt-10 border-t border-hairline pt-8">
-      <p class="text-sm font-bold text-ink">🚀 바로 체험해 보기</p>
-      <p class="mt-1 mb-4 text-sm text-steel">계정 없이 샘플 학교(테스트초등학교 3-1)를 역할별로 둘러볼 수 있어요</p>
-      <div class="space-y-3">
-        <% visible_demo_accounts.each_key do |role| %>
-          <% title, subtitle = demo_labels.fetch(role) %>
-          <%= button_to demo_login_path, params: { role: role },
-                class: "btn btn-secondary btn-block" do %>
-            <span class="block"><%= title %></span>
-            <span class="mt-0.5 block text-sm font-normal text-steel"><%= subtitle %></span>
-          <% end %>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
 </div>
-
 <%= render "shared/credits_footer" %>
