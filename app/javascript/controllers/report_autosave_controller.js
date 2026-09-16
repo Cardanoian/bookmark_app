@@ -29,6 +29,16 @@ import { Controller } from "@hotwired/stimulus"
 //   errors)는 아이가 고칠 때까지 기다린다. 그 밖(409·로그인 풀림·권한·보안 토큰 불일치 422 등)은 다시
 //   보내도 같으므로 멈추고 새로 고치게 한다. 어느 쪽이든 저장 못 한 글은 '저장 안 됨'으로 남아 떠날 때 붙잡는다.
 // · '저장'이 '제출'로 읽히지 않게 저장 문구마다 남은 행동(제출하기)을 함께 적는다.
+// · **이 기기(탭)에 남기는 것(2026-09-16, 베타 피드백 P0 1번)**: `sessionStorage` 에 ① 이 화면의 표·순번
+//   (screen)과 ② 저장하지 못한 글(text)을 남긴다. `localStorage` 가 아닌 이유는 공용 태블릿이다 — 탭·앱을
+//   닫으면 사라지고, 열쇠에 사용자 id 가 들어 있어(scope) 다음에 로그인한 아이에게 되살아나지 않으며, 서버
+//   저장에 성공하면 곧바로 지운다.
+//   ① 표·순번을 이어 주면 **새로고침한 화면이 제 저장에 거짓 충돌하지 않는다** — 화면을 열 때마다 새 표를
+//      만들던 때는 새로고침 직전 내 저장이 늦게 처리되면 "마지막으로 쓴 것이 이 화면" 예외가 깨져, 내가 쓴
+//      글이 "다른 곳에서 고쳤어요"로 막혔다(R1).
+//   ② 글을 남기면 **붙잡을 수 없는 이탈에서도 글이 남는다** — 충돌·오류 화면에서 브라우저·앱 뒤로 가기는
+//      Turbo 복원 방문이라 취소할 수 없어, 그 화면의 글은 서버에 없는 채로 사라졌다(L-A). 되살릴 때는 화면이
+//      들고 있던 버전이 같을 때만 되살린다(그사이 다른 곳에서 고친 글을 남긴 글로 덮지 않게).
 const DEBOUNCE_MS = 2000
 const FIRST_SAVE_DELAY_MS = 800
 const MAX_WAIT_MS = 20000
@@ -44,13 +54,22 @@ const BOOK_FIELDS = [ "report[book_id]", "report[remote_isbn]", "report[book_tit
 export default class extends Controller {
   static targets = [ "status", "version", "key", "seq" ]
   // locked: '이미 제출했어요' 화면 — 이 화면의 글로는 낼 수 없다(beforeSubmit).
-  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" }, unsaved: Boolean, locked: Boolean }
+  // scope: 이 화면에 기기 보관 열쇠를 주는 서버 값("u<사용자>:r<글>" 또는 "u<사용자>:new:<주소>").
+  static values = { enabled: Boolean, submitLabel: { type: String, default: "제출하기" }, unsaved: Boolean, locked: Boolean,
+                    scope: String }
 
   connect() {
+    // 새 글 화면 주소. 첫 저장이 서버에 알려, 이 주소로 다시 오면(새로고침·뒤로 가기·앱이 다시 엶)
+    // 빈 새 글 대신 초안을 연다. 떠나는 순간의 저장에서는 location 이 이미 다음 화면이라 지금 잡아 둔다.
+    // 기기 보관 열쇠(storeKey)도 새 글 화면에서는 이 주소로 갈린다 — 그래서 아래 readStore 보다 먼저 잡는다.
+    this.origin = window.location.pathname + window.location.search
     // 입력마다 version 을 올리고, 저장이 끝나면 그 저장이 담은 version 을 savedVersion 에 적는다.
     // 저장이 날아가는 동안 더 쓴 글은 version > savedVersion 으로 남아 다음 저장이 가져간다.
-    this.version = 0
-    this.savedVersion = 0
+    // 새로고침·뒤로 가기로 같은 화면을 다시 열었으면 순번을 이어받는다 — 0 부터 다시 세면 새로고침 직전
+    // 저장보다 앞선 순번이 되어 서버가 "앞선 순번"으로 보고 내 저장을 거절한다.
+    const resumed = this.readStore("screen")
+    this.version = Number(resumed?.seq) || 0
+    this.savedVersion = this.version
     this.inflight = null
     this.inflightCreating = false
     this.queued = false
@@ -78,16 +97,16 @@ export default class extends Controller {
     // 오류 화면은 같은 이유로 또 거절될 수 있다) — `rejected` 로 시작해, 아이가 고쳐 저장에 성공하면 풀린다.
     // 위의 초기값(`rejected = false` 등)을 모두 정한 뒤에 둔다 — 앞에 두면 그 줄이 도로 끈다.
     if (this.unsavedValue) {
-      this.version = 1
+      // 이어받은 순번 위에 하나를 더한다 — 1 로 되돌리면 새로고침 직전 저장보다 앞선 순번이 되어,
+      // 이 화면에서 고쳐 다시 보낸 저장을 서버가 "늦게 도착한 옛 요청"으로 보고 거절한다.
+      this.version = this.savedVersion + 1
       this.rejected = true
     }
-    // 새 글 화면 주소. 첫 저장이 서버에 알려, 이 주소로 다시 오면(새로고침·뒤로 가기·앱이 다시 엶)
-    // 빈 새 글 대신 초안을 연다. 떠나는 순간의 저장에서는 location 이 이미 다음 화면이라 지금 잡아 둔다.
-    this.origin = window.location.pathname + window.location.search
     // 이 편집 화면의 표. 모든 요청(자동 저장·임시 저장·제출)에 실려, 서버가 "같은 화면이 다시 보낸
     // 요청"을 알아본다 — 첫 저장 재시도가 초안을 또 만들지 않고, 응답만 잃은 저장이 "다른 곳에서
-    // 고쳤어요"로 거절되지 않는다. 화면을 열 때마다 새로 만든다.
-    if (this.hasKeyTarget) this.keyTarget.value = this.newKey()
+    // 고쳤어요"로 거절되지 않는다. **같은 화면을 다시 열었으면 그 표를 그대로 쓴다**(새로고침·뒤로 가기).
+    if (this.hasKeyTarget) this.keyTarget.value = resumed?.key || this.newKey()
+    this.rememberScreen()
 
     this.handleBeforeUnload = this.handleBeforeUnload.bind(this)
     this.handleBeforeVisit = this.handleBeforeVisit.bind(this)
@@ -104,6 +123,8 @@ export default class extends Controller {
     document.addEventListener("turbo:before-fetch-request", this.handleBeforeFetchRequest)
     // 복원 방문(뒤로 가기·앱이 화면을 닫고 이전 화면으로)은 before-visit 을 거치지 않는다.
     document.addEventListener("turbo:visit", this.flush)
+
+    this.restoreLocally()
   }
 
   disconnect() {
@@ -187,6 +208,9 @@ export default class extends Controller {
   // (제출 버튼을 누른 순간이 아니라 여기서 끈다 — 첫 저장을 기다리는 동안 창을 닫으면 잃는다.)
   submissionStarted() {
     this.submissionSent = true
+    // 글이 제출과 함께 서버로 간다 — 이 기기에 남겨 둘 것이 없다(화면 표도 이 화면과 함께 끝난다).
+    this.clearStore("text")
+    this.clearStore("screen")
     window.removeEventListener("beforeunload", this.handleBeforeUnload)
   }
 
@@ -235,6 +259,8 @@ export default class extends Controller {
   // 떠나는 순간의 저장. 진행 중인 저장이 있으면 겹쳐 보내지 않는다(새 글이면 초안이 두 편 생긴다).
   // 그사이 더 쓴 글은 진행 중인 저장이 끝난 뒤 afterSave 가 한 번 더 보낸다.
   flush() {
+    // 떠나는 순간의 보관이 먼저다 — 아래 저장이 끊기거나 거절돼도 글이 이 기기에 남는다.
+    this.preserveLocally()
     if (!this.enabledValue || this.stopped || this.submitting || this.inflight || !this.dirty) return
     this.save({ keepalive: true })
   }
@@ -246,6 +272,7 @@ export default class extends Controller {
   // 잃었다), 보통 요청으로 먼저 보내 두고 붙잡는다 — 아이가 '머물기'를 고르면 그 저장이 끝난다.
   handleBeforeUnload(event) {
     if (this.submissionSent || !this.dirty) return
+    this.preserveLocally()
     // 두고 떠나기로 한 글은 붙잡지 않되, 떠나는 순간 한 번 더 보내 본다.
     if (!this.needsGuard) {
       this.flush()
@@ -354,6 +381,8 @@ export default class extends Controller {
   abandon() {
     this.claimIntent()
     this.abandonedVersion = this.version
+    // 두고 떠나기로 한 글도 이 기기(탭)에는 남긴다 — 뒤로 가기로 돌아오면 그대로 되살린다.
+    this.preserveLocally()
   }
 
   // 떠날 때 붙잡아야 하는 글이 있는가 — 저장 안 된 글 중 두고 떠나기로 한 그 순간의 글은 뺀다.
@@ -409,6 +438,112 @@ export default class extends Controller {
     return this.element.querySelector(`input[name='${name}']`)
   }
 
+  // --- 이 기기(탭)에 남기는 것 ---
+  // sessionStorage 를 쓴다. localStorage 는 앱을 껐다 켜도, 다음 학생이 로그인해도 남아 공용 태블릿에
+  // 앞 아이의 글이 쌓인다. 열쇠에는 서버가 준 scope(사용자 id + 이 글/이 주소)가 들어가 다른 아이의
+  // 화면에서는 애초에 다른 칸을 본다. 사생활 모드·저장 공간 차단에서는 접근 자체가 예외를 던지므로
+  // 모든 읽기·쓰기를 감싸고, 실패해도 화면은 지금까지처럼 동작한다(서버 저장이 본류다).
+  // 새 글 화면(scope 가 ":new" 로 끝난다)은 **브라우저 주소**로 갈린다 — 서버 경로로 가르면 입력 오류로
+  // 되돌아온 화면(POST /reports 를 그 자리에 그린다)이 다른 칸을 보게 되어 표·글이 이어지지 않는다.
+  storeKey(kind) {
+    if (!this.scopeValue) return null
+
+    const scope = this.scopeValue.endsWith(":new") ? `${this.scopeValue}:${this.origin}` : this.scopeValue
+    return `chaekgalpi.autosave.${scope}.${kind}`
+  }
+
+  readStore(kind) {
+    const key = this.storeKey(kind)
+    if (!key) return null
+
+    try {
+      const raw = window.sessionStorage.getItem(key)
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }
+
+  writeStore(kind, data) {
+    const key = this.storeKey(kind)
+    if (!key) return
+
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(data))
+    } catch {
+      // 저장 공간이 없거나 막혔다 — 남기지 못할 뿐이다.
+    }
+  }
+
+  clearStore(kind) {
+    const key = this.storeKey(kind)
+    if (!key) return
+
+    try {
+      window.sessionStorage.removeItem(key)
+    } catch {
+      // 위와 같다.
+    }
+  }
+
+  // 이 화면의 표·순번을 남긴다. 새로고침·뒤로 가기로 같은 화면을 다시 열면 connect 가 이어받는다.
+  rememberScreen() {
+    if (!this.hasKeyTarget) return
+
+    this.writeStore("screen", { key: this.keyTarget.value, seq: this.version })
+  }
+
+  // 첫 저장으로 초안이 생기면 열쇠도 그 초안 것으로 옮긴다 — 새 글 주소로 돌아온 브라우저는 서버가
+  // 그 초안의 편집 화면으로 보내므로(autosave_origin), 옮겨 두지 않으면 거기서 표·순번을 잃는다.
+  adoptScope(id) {
+    if (!id || !this.scopeValue) return
+
+    const owner = this.scopeValue.split(":")[0]
+    this.clearStore("screen")
+    this.clearStore("text")
+    this.scopeValue = `${owner}:r${id}`
+    this.rememberScreen()
+  }
+
+  // 저장하지 못한 글을 남긴다. 붙잡을 수 없는 이탈(뒤로 가기·앱이 화면을 닫음)에서도 글이 살아남는다.
+  // 되살릴 때 쓰도록 그때 화면이 들고 있던 버전을 함께 적는다.
+  preserveLocally() {
+    if (!this.dirty && !this.rejected) return
+
+    const body = this.element.querySelector("#report_body_field")
+    if (!body) return
+
+    this.writeStore("text", {
+      body: body.value,
+      bookTitle: this.field("report[book_title]")?.value ?? null,
+      baseVersion: this.hasVersionTarget ? this.versionTarget.value : "",
+      savedAt: Date.now()
+    })
+  }
+
+  // 남겨 둔 글을 되살린다(connect). **화면이 들고 있는 버전이 같을 때만** 되살린다 — 그사이 다른
+  // 기기에서 고친 글이 열렸다면, 남긴 글을 얹는 순간 그 글을 덮어쓰게 된다. 되살린 뒤에는 자동 저장이
+  // 켜진 화면이면 곧바로 서버로 보낸다(기기에만 있는 상태를 오래 두지 않는다).
+  restoreLocally() {
+    const saved = this.readStore("text")
+    if (!saved) return
+
+    const body = this.element.querySelector("#report_body_field")
+    const currentVersion = this.hasVersionTarget ? this.versionTarget.value : ""
+    if (!body || (saved.baseVersion ?? "") !== currentVersion) {
+      this.clearStore("text")
+      return
+    }
+    if (typeof saved.body !== "string" || saved.body === body.value) return
+
+    body.value = saved.body
+    const title = this.field("report[book_title]")
+    if (title && typeof saved.bookTitle === "string") title.value = saved.bookTitle
+    this.version += 1
+    this.showStatus("이 기기에 남아 있던, 저장하지 못한 글을 되살렸어요.")
+    if (this.enabledValue && !this.stopped && !this.rejected) this.scheduleSave(FIRST_SAVE_DELAY_MS)
+  }
+
   // 화면 표. crypto.randomUUID 는 보안 연결(HTTPS·localhost)에서만 있어, 없으면 난수 16바이트를 쓴다.
   newKey() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID()
@@ -421,6 +556,7 @@ export default class extends Controller {
   // 앞선 순번의 요청은 받지 않는다 — 늦게 도착한 옛 요청이 새 글을 되돌리지 않게(3차 리뷰 M1).
   stampSeq() {
     if (this.hasSeqTarget) this.seqTarget.value = String(this.version)
+    this.rememberScreen()
   }
 
   buildPayload(creating) {
@@ -516,12 +652,17 @@ export default class extends Controller {
   }
 
   draftSaved(draft, { version, creating, sentBook }) {
-    if (creating) this.adoptDraft(draft)
+    if (creating) {
+      this.adoptDraft(draft)
+      this.adoptScope(draft.id)
+    }
     if (draft.draft_version && this.hasVersionTarget) this.versionTarget.value = draft.draft_version
     this.syncBook(draft.book_id, sentBook)
     this.savedVersion = Math.max(this.savedVersion, version)
     this.failures = 0
     this.rejected = false
+    // 서버에 들어갔으니 이 기기에 남겨 둔 글은 지운다(공용 기기에 오래 두지 않는다).
+    if (!this.dirty) this.clearStore("text")
     this.showSaved()
   }
 
@@ -615,6 +756,8 @@ export default class extends Controller {
   stop(message, link = null) {
     this.stopped = true
     this.clearTimers()
+    // 여기서 멈춘 글은 서버에 들어가지 못했다 — 화면을 떠나도 남도록 이 기기(탭)에 남긴다.
+    this.preserveLocally()
     this.showStatus(message, "error", { link })
   }
 

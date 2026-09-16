@@ -1036,7 +1036,76 @@ class ReportAutosaveSystemTest < ApplicationSystemTestCase
     skip_without_chrome(e)
   end
 
+  # --- 2026-09-16: 새로고침 너머로 화면 표 잇기(R1) · 떠날 때 이 기기에 글 남기기(L-A) ---
+
+  # 화면을 열 때마다 새 표(autosave_key)를 만들고 순번을 0 부터 세던 때는, 새로고침 직전 내 저장이 늦게
+  # 처리되면 "마지막으로 쓴 것이 이 화면" 예외가 깨져 내가 쓴 글이 "다른 곳에서 고쳤어요"로 막혔다(R1).
+  # 아래에서 초안을 직접 고치는 것이 그 '늦게 처리된 내 저장'이다(같은 표·앞선 순번으로 기록된다).
+  test "새로고침해도 같은 화면 표를 이어 써, 늦게 처리된 내 저장이 거짓 충돌을 만들지 않는다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+
+    find("#report_body_field").send_keys(" 학교에서 더 썼어요.")
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    key_before = autosave_field_value("autosave_key")
+    seq_before = autosave_field_value("autosave_seq").to_i
+
+    page.refresh
+    assert_equal key_before, autosave_field_value("autosave_key"), "같은 화면을 다시 열면 표를 이어받는다"
+
+    # 새로고침 직전의 내 저장이 이제야 서버에 닿았다 — 같은 표, 앞선 순번, 새 버전.
+    draft.reload.update!(body: "#{draft.body} (늦게 닿은 저장)",
+                         autosave_writer_key: key_before, autosave_seq: seq_before)
+
+    find("#report_body_field").send_keys(" 새로고침하고 더 썼어요.")
+    assert_selector "[data-report-autosave-target='status']", text: /저장했어요/, wait: SAVE_WAIT
+    assert_no_text "다른 곳에서 이 글을 더 고쳤어요"
+    assert_includes draft.reload.body, "새로고침하고 더 썼어요"
+    assert_operator autosave_field_value("autosave_seq").to_i, :>, seq_before, "순번도 이어 센다"
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
+  # 저장이 막힌 화면(여기서는 409 stale)에서 떠나면 그 글은 서버에 없다. 브라우저·앱 뒤로 가기는 Turbo
+  # 복원 방문이라 붙잡을 수 없어(L-A) 예전에는 그대로 사라졌다. 이제 떠나는 순간 이 기기(탭)에 남기고,
+  # 돌아오면 되살린다(sessionStorage — 탭을 닫으면 사라지고, 열쇠에 사용자 id 가 들어 있다).
+  test "저장하지 못한 채 떠나도, 돌아오면 이 기기에 남겨 둔 글이 되살아난다" do
+    draft = Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title,
+                           body: "쓰다 만 글이에요.", input_mode: :keyboard, ai_status: :pending)
+    login_via_browser
+    visit edit_report_path(draft)
+    answer_autosave_with(status: 409, body: { error: "stale" })
+
+    type_into_body("쓰다 만 글이에요. 저장되지 못한 마지막 문장이에요.")
+    assert_selector "[data-report-autosave-target='status']", text: /다른 곳에서 이 글을 더 고쳤어요/, wait: SAVE_WAIT
+
+    # 확인창이 열린 채로는 어떤 조회도 못 한다 — 블록 안에서는 이동만 걸고, 경로 확인은 창을 닫은 뒤에 한다.
+    accept_confirm(LEAVE_WARNING, wait: SAVE_WAIT) { execute_script("Turbo.visit(arguments[0])", reports_path) }
+    assert_current_path reports_path
+    page.go_back
+
+    assert_current_path edit_report_path(draft)
+    assert_selector "#report_body_field", wait: SAVE_WAIT
+    assert_equal "쓰다 만 글이에요. 저장되지 못한 마지막 문장이에요.", find("#report_body_field").value
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    skip_without_chrome(e)
+  end
+
   private
+
+  # 숨은 칸(표·순번)의 지금 값. 컨트롤러가 connect 에서 채우므로 채워질 때까지 기다린다
+  # (새로고침 직후에 바로 읽으면 빈 값을 읽는다).
+  def autosave_field_value(name, wait: Capybara.default_max_wait_time)
+    deadline = Time.now + wait
+    loop do
+      value = evaluate_script("document.querySelector(\"input[name='#{name}']\")?.value ?? \"\"")
+      return value if value.present? || Time.now >= deadline
+
+      sleep 0.05
+    end
+  end
 
   # 크롬(chromedriver)을 쓸 수 없을 때만 건너뛴다. 예상 밖의 확인창(UnexpectedAlertOpenError)도 WebDriverError 라,
   # 그대로 건너뛰면 "확인창이 한 번 더 뜬다" 같은 회귀가 실패가 아니라 skip 으로 가려진다(5차 리뷰 후속 변이

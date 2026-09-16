@@ -24,6 +24,11 @@
 <% conflict = local_assigns.fetch(:conflict, false) %>
 <% draft_controls = report.autosave_eligible? && report.user_id == current_user&.id %>
 <% autosave = draft_controls && !conflict %>
+<%# 이 기기(탭)에 표·순번과 저장 못 한 글을 남길 때 쓰는 열쇠(2026-09-16). **사용자 id 를 앞에 둬** 공용
+    태블릿에서 다음에 로그인한 아이의 화면이 앞 아이의 칸을 보지 않게 한다. 뒤는 글(초안)이면 그 글 id,
+    새 글 화면이면 `new`(브라우저가 제 주소를 덧붙인다 — 서버 경로로 가르면 입력 오류로 되돌아온 화면이
+    다른 칸을 본다). 보관은 sessionStorage 라 탭·앱을 닫으면 사라진다(규약은 report_autosave_controller.js 머리말). %>
+<% autosave_scope = current_user && "u#{current_user.id}:#{report.persisted? ? "r#{report.id}" : "new"}" %>
 <% form_data = {
      controller: [ ("report-edit" if dirty_check), "report-autosave" ].compact.join(" "),
      action: "input->report-autosave#changed book:selected->report-autosave#changed " \
@@ -32,7 +37,8 @@
      report_autosave_enabled_value: autosave,
      report_autosave_submit_label_value: submit_label,
      report_autosave_unsaved_value: conflict || submitted_conflict || report.errors.any?,
-     report_autosave_locked_value: submitted_conflict
+     report_autosave_locked_value: submitted_conflict,
+     report_autosave_scope_value: autosave_scope
    } %>
 <%# 입력 오류(422)로 다시 그린 화면도 저장 안 된 글을 보여 준다 — 충돌 화면처럼 '저장 안 됨'에서 시작한다(4차 리뷰 L-B). %>
 <%# 고쳐쓰기 초안은 "원본에서 실제로 고쳤나"로 '수정하기'를 연다(서버 resubmit? 과 같은 기준).
