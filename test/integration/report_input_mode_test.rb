@@ -89,6 +89,18 @@ class ReportInputModeTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_report_path, text: "책 다시 고르기"
   end
 
+  # 단계 학습은 매뉴얼이 "글쓰기가 더 어렵다면" 하고 안내하는 도우미인데, 2026-09-16 전까지 앱 어디에도
+  # 링크가 없어 주소를 직접 쳐야만 닿았다. 쓰기 방식 고르는 화면이 그 진입점이고, 고른 책을 함께 넘긴다.
+  test "mode chooser offers the step-by-step wizard carrying the chosen book" do
+    login_as @student
+
+    get new_report_path(report: { book_id: @book.id, book_title: @book.title })
+    assert_response :success
+
+    assert_select "a[href=?]", learn_index_path(report: { book_id: @book.id, book_title: @book.title }), 1
+    assert_select "a", text: /단계 학습으로 쓰기/
+  end
+
   # OCR 키가 없으면 모드 선택에서 사진 카드는 링크가 아니라 비활성 카드로 표시된다.
   test "mode chooser disables the photo card when OCR is unavailable" do
     login_as @student

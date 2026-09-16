@@ -1,54 +1,70 @@
 <% content_for :title, "단계 학습 · 책갈피" %>
 
 <div class="page-shell page-shell-form">
-  <header class="mb-6 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">단계 학습 위저드</h1>
-      <p class="mt-1 text-sm text-gray-500">다섯 단계를 따라가면 독후감 초안이 완성돼요.</p>
+  <header class="mb-6 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <h1 class="page-title">단계 학습</h1>
+      <p class="mt-1 text-sm text-steel">다섯 단계를 따라가면 독후감 초안이 완성돼요.</p>
     </div>
-    <%= link_to icon_text(:arrow_left, "내 서재"), root_path, class: "inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700" %>
+    <%= link_to icon_text(:arrow_left, "돌아가기"), new_report_path, class: "btn btn-secondary btn-sm shrink-0" %>
   </header>
+
+  <%# 쓰기 방식 고르는 화면에서 책을 고르고 들어왔으면 그 책을 그대로 쓴다(1단계에서 다시 묻지 않는다).
+      단계마다 폼이 이 칸을 다시 실어 보내, 마칠 때 그 책으로 초안을 만든다. %>
+  <% if @book.present? %>
+    <div class="card mb-4 flex items-center gap-3">
+      <%= ui_icon :book_open, class_name: "h-5 w-5 shrink-0" %>
+      <div class="min-w-0">
+        <span class="block text-xs text-steel">고른 책</span>
+        <span class="block truncate font-bold text-ink"><%= @book["book_title"] %></span>
+      </div>
+    </div>
+  <% end %>
 
   <ol class="mb-6 flex items-center gap-2">
     <% LearnController::STEPS.each_with_index do |definition, index| %>
       <% number = index + 1 %>
       <li class="flex-1">
-        <div class="h-1.5 rounded-full <%= number <= @step ? "bg-amber-500" : "bg-gray-200" %>"></div>
-        <p class="mt-1 text-center text-[11px] <%= number == @step ? "font-semibold text-amber-600" : "text-gray-400" %>">
+        <div class="h-1.5 rounded-full <%= number <= @step ? "bg-brand-blue" : "bg-surface" %>"></div>
+        <p class="mt-1 text-center text-[11px] <%= number == @step ? "font-semibold text-brand-blue" : "text-steel" %>">
           <%= number %>. <%= definition[:title] %>
         </p>
       </li>
     <% end %>
   </ol>
 
-  <section class="rounded-2xl border border-gray-200 p-5">
-    <p class="text-xs font-medium text-amber-600"><%= @step %>단계 · 성취기준 <%= @standard_code %></p>
-    <h2 class="mt-1 text-lg font-bold text-gray-900"><%= @definition[:title] %></h2>
-    <p class="mt-1 text-sm text-gray-600"><%= @definition[:prompt] %></p>
+  <section class="card">
+    <p class="text-xs font-medium text-brand-blue"><%= @step %>단계 · 성취기준 <%= @standard_code %></p>
+    <h2 class="mt-1 text-lg font-bold text-ink"><%= @definition[:title] %></h2>
+    <p class="mt-1 text-sm text-steel">
+      <%= @step == 1 && @book.present? ? "이 책을 고른 까닭을 적어 보세요." : @definition[:prompt] %>
+    </p>
 
     <%= form_with url: advance_learn_index_path, method: :post, class: "mt-4 space-y-4" do |f| %>
       <%= hidden_field_tag :step, @step %>
-      <%= text_area_tag :answer, @answer, rows: 6, required: true,
-            class: "w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-amber-400 focus:outline-none",
+      <% if @book.present? %>
+        <%= hidden_field_tag "report[book_id]", @book["book_id"], id: nil %>
+        <%= hidden_field_tag "report[book_title]", @book["book_title"], id: nil %>
+      <% end %>
+      <%= text_area_tag :answer, @answer, rows: 6, required: true, class: "form-textarea",
             placeholder: "여기에 적어 보세요." %>
-      <%= f.submit @step >= LearnController::STEP_COUNT ? "완성하기" : "다음 단계",
-            class: "rounded-lg bg-amber-500 px-5 py-2 text-sm font-medium text-white" %>
+      <%= f.submit @step >= LearnController::STEP_COUNT ? "완성하기" : "다음 단계", class: "btn btn-primary" %>
       <% if @step >= LearnController::STEP_COUNT %>
-        <p class="text-sm text-gray-500">완성하면 다섯 답이 '작성 중' 독후감으로 저장돼요. 이어서 다듬은 뒤 제출해요.</p>
+        <p class="form-hint">완성하면 다섯 답이 '작성 중' 독후감으로 저장돼요. 이어서 다듬은 뒤 제출해요.</p>
       <% end %>
     <% end %>
   </section>
 
-  <% if @answers.any? %>
+  <%# 지금까지의 답만 보여 준다 — answers 에는 고른 책(예약 키)도 함께 들어 있어 단계 답만 고른다. %>
+  <% saved_steps = LearnController::STEPS.each_with_index.filter_map { |definition, index| [ index + 1, definition, @answers[(index + 1).to_s] ] if @answers[(index + 1).to_s].present? } %>
+  <% if saved_steps.any? %>
     <section class="mt-6">
-      <h3 class="mb-2 text-sm font-semibold text-gray-700">지금까지 적은 내용</h3>
+      <h3 class="mb-2 text-sm font-semibold text-ink">지금까지 적은 내용</h3>
       <div class="space-y-2">
-        <% LearnController::STEPS.each_with_index do |definition, index| %>
-          <% saved = @answers[(index + 1).to_s] %>
-          <% next if saved.blank? %>
-          <div class="rounded-lg bg-gray-50 p-3 text-sm">
-            <p class="text-sm font-medium text-gray-500"><%= index + 1 %>. <%= definition[:title] %></p>
-            <p class="mt-0.5 whitespace-pre-line text-gray-800"><%= saved %></p>
+        <% saved_steps.each do |number, definition, saved| %>
+          <div class="card card-muted">
+            <p class="text-sm font-medium text-steel"><%= number %>. <%= definition[:title] %></p>
+            <p class="mt-0.5 whitespace-pre-line text-ink"><%= saved %></p>
           </div>
         <% end %>
       </div>

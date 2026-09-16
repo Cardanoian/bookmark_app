@@ -16,6 +16,62 @@ class LearnWizardTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "[6국02-05]"
   end
 
+  # --- 고른 책 이어받기(2026-09-16 진입점 추가) ---
+  # 쓰기 방식 고르는 화면에서 책을 고르고 들어오면 위저드가 그 책을 그대로 쓴다 — 1단계에서 책을 다시
+  # 묻고 그 답을 버리면 책 고르기가 헛일이 된다.
+  test "the wizard carries a book chosen before entering" do
+    book = Book.create!(title: "위저드 고른 책", author: "지은이", isbn: TestBookIsbn.next)
+    login_as @student
+
+    get learn_index_path(report: { book_id: book.id, book_title: book.title })
+    assert_response :success
+    assert_includes response.body, "고른 책"
+    assert_includes response.body, book.title
+
+    (1..5).each do |step|
+      post advance_learn_index_path,
+           params: { step: step, answer: "#{step}단계 답", report: { book_id: book.id, book_title: book.title } }
+    end
+
+    draft = @student.reports.order(:id).last
+    assert_equal book.id, draft.book_id, "고른 책이 초안에 이어진다"
+    assert_equal book.title, draft.book_title
+    assert_includes draft.body, "1단계 답", "단계 답은 그대로 본문이 된다"
+  end
+
+  # 위조·없는 book_id 는 무시하고 제목만 쓴다(ReportsController#resolved_book_id 와 같은 규약).
+  test "a forged book id is ignored while the typed title is kept" do
+    login_as @student
+
+    (1..5).each do |step|
+      post advance_learn_index_path,
+           params: { step: step, answer: "#{step}단계 답", report: { book_id: 999_999, book_title: "직접 적은 책" } }
+    end
+
+    draft = @student.reports.order(:id).last
+    assert_nil draft.book_id
+    assert_equal "직접 적은 책", draft.book_title
+  end
+
+  # 진행 행에 적어 둔 책이 그사이 카탈로그에서 사라질 수 있다(관리자 정리·중복 병합). 마칠 때 다시 확인해
+  # 없어진 책은 잇지 않는다 — 없는 id 로 저장하면 초안 만들기 자체가 실패해 다섯 답이 갇힌다.
+  test "a book deleted while the wizard is in progress is dropped at completion" do
+    book = Book.create!(title: "사라질 책", author: "지은이", isbn: TestBookIsbn.next)
+    login_as @student
+
+    (1..4).each do |step|
+      post advance_learn_index_path,
+           params: { step: step, answer: "#{step}단계 답", report: { book_id: book.id, book_title: book.title } }
+    end
+    book.destroy!
+
+    post advance_learn_index_path, params: { step: 5, answer: "5단계 답" }
+
+    draft = @student.reports.order(:id).last
+    assert_nil draft.book_id
+    assert_equal "사라질 책", draft.book_title, "제목은 답과 함께 남는다"
+  end
+
   test "advancing moves through the five steps in order" do
     login_as @student
 

@@ -27,6 +27,11 @@ class LearnController < ApplicationController
 
   STEP_COUNT = STEPS.length
 
+  # 진행 행의 answers 는 단계 번호를 키로 쓴다("1".."5"). 쓰기 방식 고르는 화면에서 이미 고른 책은
+  # 이 두 예약 키로 함께 둔다 — 위저드가 1단계에서 책을 스스로 묻지만, 고른 책을 들고 들어온 아이에게
+  # 같은 것을 다시 묻고 그 답을 버리면 책 고르기가 헛일이 된다(2026-09-16 진입점 추가).
+  BOOK_KEYS = %w[book_id book_title].freeze
+
   def index
     authorize :learn, :index?
 
@@ -37,6 +42,8 @@ class LearnController < ApplicationController
     @standard_code = @definition[:codes].fetch(ReadingDomain.guided_band_for(Current.user.classroom&.grade))
     @answers = progress.answers
     @answer = @answers[@step.to_s].to_s
+    # 주소로 들고 온 책이 먼저다(방금 고른 책). 없으면 진행 행에 적어 둔 책을 잇는다.
+    @book = chosen_book.presence || @answers.slice(*BOOK_KEYS)
   end
 
   # 현재 단계 답을 저장하고 다음 단계로. 마지막 단계면 답을 모아 독후감 초안을 만든다.
@@ -47,12 +54,24 @@ class LearnController < ApplicationController
     return complete_wizard if step >= STEP_COUNT
 
     with_progress do |progress|
-      progress.update!(step: step + 1, answers: progress.answers.merge(step.to_s => params[:answer].to_s))
+      progress.update!(step: step + 1,
+                       answers: progress.answers.merge(chosen_book).merge(step.to_s => params[:answer].to_s))
     end
     redirect_to learn_index_path
   end
 
   private
+
+  # 폼·주소가 실어 온 고른 책(`report[book_id]`·`report[book_title]`). 위조·스테일 id 는 무시하고
+  # 제목만 남긴다(ReportsController#resolved_book_id 와 같은 규약). 고른 책이 없으면 빈 해시다.
+  def chosen_book
+    id = params.dig(:report, :book_id).presence
+    book = id && Book.find_by(id: id)
+    title = (book&.title || params.dig(:report, :book_title)).to_s.strip
+    return {} if book.nil? && title.blank?
+
+    { "book_id" => book&.id, "book_title" => title.presence }.compact
+  end
 
   def submitted_step
     params[:step].to_i.clamp(1, STEP_COUNT)
@@ -82,8 +101,10 @@ class LearnController < ApplicationController
       progress = LearnWizardProgress.find_by(user: Current.user)
       next :already_done unless progress
 
-      answers = progress.answers.merge(STEP_COUNT.to_s => params[:answer].to_s)
-      report.book_title = answers["1"].to_s.strip.lines.first.to_s.strip
+      answers = progress.answers.merge(chosen_book).merge(STEP_COUNT.to_s => params[:answer].to_s)
+      # 고른 책이 있으면 그 책이다. 없을 때만 1단계 첫 줄을 제목으로 읽는다(위저드가 책을 물은 경우).
+      report.book_id = answers["book_id"] if answers["book_id"].present? && Book.exists?(answers["book_id"])
+      report.book_title = answers["book_title"].presence || answers["1"].to_s.strip.lines.first.to_s.strip
       report.body = compose_body(answers)
 
       problem = if report.book_title.blank? then :no_title

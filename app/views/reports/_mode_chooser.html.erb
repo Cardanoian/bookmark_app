@@ -24,6 +24,15 @@
     <span class="mt-1 block text-sm text-brand-blue">키보드로 내 생각을 바로 적어요</span>
   <% end %>
 
+  <%# 단계 학습 — 매뉴얼이 "글쓰기가 더 어렵다면" 하고 안내하는 도우미다. 2026-09-16 전까지 앱 어디에도
+      링크가 없어 주소를 직접 쳐야만 닿았다. 고른 책을 함께 넘겨(위저드가 1단계에서 다시 묻지 않게) 이어 준다. %>
+  <%= link_to learn_index_path(report: chosen_book.compact_blank),
+        class: "card card-feature block text-center" do %>
+    <span class="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-surface-mint"><%= ui_icon :lightbulb, class_name: "h-11 w-11" %></span>
+    <span class="block text-xl font-bold text-ink">단계 학습으로 쓰기</span>
+    <span class="mt-1 block text-sm text-steel">다섯 단계 질문을 따라가면 초안이 완성돼요</span>
+  <% end %>
+
   <% if ocr_available? && Current.user&.ai_consented? %>
     <%= link_to new_report_path(input_mode: :ocr, report: chosen_book),
           class: "card card-feature block text-center" do %>
