@@ -21,7 +21,7 @@
 ## 패턴·규칙
 - **역할 게이트**: `Teacher::BaseController#require_teacher!` 가 교사/총괄 외 전 역할을 403 으로 차단하고, `verify_authorized` 를 스킵한다(per-action Pundit 아님).
 - **학급 경계**: 학급·학생·미션·퀴즈 접근은 `owned_classroom!`/`owned_student!` 로 담임 소유를 검증한다(타 학급 주입 시 403). 생성 시점에만 학급을 고정하고 update 에서 `classroom_id` 재배정을 막는다.
-- **제거 — 원자료 엑셀 내보내기**: 독후감 5축 원자료 **엑셀**(`exports_controller.rb` · `GET /teacher/exports/reports_xlsx`, 그 전에는 같은 표의 CSV `reports_csv`)은 2026-09-16 에 걷어냈다. 화면(`teacher/prints/index` 의 `#raw-export` 카드)·직렬화기(`Exports::XlsxWriter`)·라우트·앱 다운로드 규칙(`config/hotwire_native/android_v1.json`)을 함께 지웠고, `AuditLog::ACTION_LABELS` 의 `teacher.reports_xlsx_download`(구)만 지난 감사 기록을 읽기 위해 남겼다. `teacher_prints_test.rb` 가 문서 출력 화면·교사 네비에 되살아나지 않는지 지킨다.
+- **제거 — 원자료 엑셀 내보내기**: 독후감 5축 원자료 **엑셀**(`exports_controller.rb` · `GET /teacher/exports/reports_xlsx`, 그 전에는 같은 표의 CSV `reports_csv`)은 2026-09-16 에 걷어냈다 — **가명 처리를 해도 재식별 위험이 남아, 아이 글의 점수표를 내려받는 경로를 제품에 두지 않기로 했다**(연구용 비식별 원자료는 상시 화면 대신 `research:reports_5axis` rake 로만 뽑는다 — `lib/tasks/research_export.rake`). 화면(`teacher/prints/index` 의 `#raw-export` 카드)·직렬화기(`Exports::XlsxWriter`)·라우트·앱 다운로드 규칙(`config/hotwire_native/android_v1.json`)을 함께 지웠고, `AuditLog::ACTION_LABELS` 의 `teacher.reports_xlsx_download`(구)만 지난 감사 기록을 읽기 위해 남겼다. `teacher_prints_test.rb` 가 문서 출력 화면·교사 네비에 되살아나지 않는지 지킨다.
 - **예외 — `reviews_controller.rb`**: 유일하게 `ApplicationController` 를 직접 상속하며, per-action `authorize ... ReportPolicy`(review?/approve?)로 인가한다. index·batch_approve 만 `ensure_reviewer!` 역할 게이트 + `verify_authorized` 스킵.
 
 ---

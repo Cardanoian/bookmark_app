@@ -132,8 +132,9 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?][target]", class_report_teacher_prints_path(classroom_id: @classroom.id), 0
   end
 
-  # 원자료 엑셀 내보내기(`teacher/exports#reports_xlsx`)는 2026-09-16 에 라우트·화면·직렬화기까지 걷어냈다.
-  # 문서 출력 화면과 교사 네비 어디에도 되살아나지 않아야 한다.
+  # 원자료 엑셀 내보내기(`teacher/exports#reports_xlsx`)는 2026-09-16 에 라우트·화면·직렬화기까지 걷어냈다 —
+  # 가명 처리를 해도 재식별 위험이 남아, 아이 글의 점수표를 내려받는 경로를 제품에 두지 않기로 했다.
+  # 문서 출력 화면과 교사 네비 어디에도 되살아나지 않아야 한다(연구용 추출은 `research:reports_5axis` rake).
   test "문서 출력 화면과 교사 네비에 원자료 내려받기가 없다" do
     login_as @teacher
 
