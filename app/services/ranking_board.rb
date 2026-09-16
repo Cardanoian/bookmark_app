@@ -116,13 +116,19 @@ class RankingBoard
     entries
   end
 
-  # 챌린지 참여 순위(**제출한** 참여 독후감 수 기준). 미제출 초안은 세지 않는다 — 참여 직후 첫 글의
-  # 첫 자동 저장(또는 단계 학습 마치기)이 challenge_id 를 달고 초안 행을 만들므로(ApplicationController#link_participation),
-  # 초안까지 세면 몇 글자 써 두기만 해도 순위가 오른다.
+  # 챌린지 참여 순위(**참여한 뒤 기간 안에 낸 독후감 수**). 진행도(Challenges::ProgressCalculator)와
+  # 같은 창(Challenges::ParticipationWindow)으로 세므로, 카드에 적힌 "참여한 뒤에 쓴 독후감·게임만
+  # 집계돼요"가 순위에도 그대로 적용된다. 미제출 초안은 세지 않고(몇 글자 써 두기만 해도 순위가 오르지
+  # 않게), 고쳐쓰기는 원본과 겹쳐 세지 않는다(revision_of_id 없음).
+  #
+  # 2026-09-16 전에는 참여할 때 세션 쿠키에 남긴 표로 **첫 글 한 편**에만 `reports.challenge_id` 를 달고
+  # 그 수를 셌다 — 참여 1회당 1편이라 순위가 사실상 전원 동률이었고, 참여 버튼을 다시 누르면 표가 다시
+  # 생겨 여러 편이 붙었으며, 쿠키라 동시 요청이 이미 쓴 표를 되살리기도 했다(옛 데이터의 challenge_id 는
+  # ReadingStats 가 레거시 신호로 계속 읽는다).
   def challenge_ranking(challenge)
     return [] unless challenge
 
-    counts = Report.submitted.where(challenge_id: challenge.id).group(:user_id).count
+    counts = challenge_report_counts(challenge)
     users = User.where(id: counts.keys, role: :student).index_by(&:id)
     # users[user_id] 가 nil(유저 삭제/스코프 제외)이면 subject 가 nil 인 Entry 가 만들어져
     # 뷰의 entry.subject.name 에서 크래시한다 → nil subject 는 건너뛴다(P2.7).
@@ -153,6 +159,27 @@ class RankingBoard
   end
 
   private
+
+  # 참여자별 "참여 이후 낸 글" 수. 참여 시각이 사람마다 달라 창도 사람마다 다르므로, 가장 이른 창
+  # 하한부터 한 번에 읽어 온 뒤 각자의 창으로 거른다(참여자 수만큼 질의하지 않는다). 0편은 빼서
+  # 순위표가 참여만 한 사람으로 채워지지 않게 한다.
+  def challenge_report_counts(challenge)
+    joined_at_by_user = ChallengeParticipation.where(challenge_id: challenge.id).pluck(:user_id, :joined_at).to_h
+    return {} if joined_at_by_user.empty?
+
+    ranges = joined_at_by_user.transform_values { |joined_at| Challenges::ParticipationWindow.time_range(challenge, joined_at) }
+    scope = Report.submitted.where(user_id: joined_at_by_user.keys, revision_of_id: nil)
+                  .where("COALESCE(reports.submitted_at, reports.created_at) >= ?", ranges.values.map(&:begin).min)
+    upper = Challenges::ParticipationWindow.upper_at(challenge)
+    scope = scope.where("COALESCE(reports.submitted_at, reports.created_at) < ?", upper) if upper
+
+    counts = Hash.new(0)
+    scope.pluck(:user_id, :submitted_at, :created_at).each do |user_id, submitted_at, created_at|
+      counts[user_id] += 1 if ranges[user_id].cover?(submitted_at || created_at)
+    end
+    counts
+  end
+
 
   # 읽기 플래그 게이트. off(기본)면 모든 시즌 정렬 경로가 평생 experience 폴백으로 돌아간다.
   # scope 는 뷰어의 학급 — 파일럿→확대 롤아웃과 학급 단위 격리를 지원한다.

@@ -90,7 +90,6 @@ class ChallengesController < ApplicationController
     participation = join_participation!(@challenge)
     # 참여 당일 이전 플레이한 게임은 날짜 clamp 로 인정될 수 있어(played_on 은 date) 참여 직후 1회 평가한다.
     Challenges::EvaluateProgress.new(current_user).evaluate(@challenge, participation: participation)
-    session[:active_challenge_id] = @challenge.id
     redirect_to new_report_path, notice: "‘#{@challenge.title}’ 챌린지에 참여했어요. 독후감을 써 볼까요?"
   end
 

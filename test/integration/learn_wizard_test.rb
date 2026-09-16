@@ -119,17 +119,22 @@ class LearnWizardTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "5단계 답", "앞서 쓴 답은 남는다"
   end
 
-  # 챌린지에 참여한 직후의 첫 독후감에 그 챌린지를 잇는다(ReportsController#create 와 같은 세션 표 — 챌린지
-  # 순위가 이 연결로 센다). 예전에는 단계 학습 → 새 글 화면의 첫 저장이 표를 소비했다.
-  test "the draft is linked to the challenge the student just joined" do
+  # 챌린지에 참여한 뒤 단계 학습으로 쓴 글도 그 챌린지 순위에 센다 — 단, **낸 뒤에** 센다.
+  # 2026-09-16 에 참여 세션 표를 걷어내고 참여 원장의 기간으로 세면서, 위저드가 만든 초안에 challenge_id 를
+  # 다는 일도 없어졌다(예전에는 표를 한 번만 써서 참여당 한 편만 셌다).
+  test "a report written through the wizard counts toward the challenge after it is submitted" do
     challenge = Challenge.create!(title: "단계 학습 챌린지", scope: :global)
     login_as @student
     post join_challenge_path(challenge)
 
     (1..5).each { |step| post advance_learn_index_path, params: { step: step, answer: "#{step}단계 답" } }
+    draft = @student.reports.order(:id).last
 
-    assert_equal challenge.id, @student.reports.order(:id).last.challenge_id
-    assert_nil session[:active_challenge_id], "표는 한 번만 쓴다"
+    assert_nil draft.submitted_at, "위저드는 초안까지만 만든다"
+    assert_empty RankingBoard.new(@student).challenge_ranking(challenge), "초안은 순위에 세지 않는다"
+
+    patch report_path(draft), params: { report: { book_title: draft.book_title, body: draft.body } }
+    assert_equal 1, RankingBoard.new(@student).challenge_ranking(challenge).first.score
   end
 
   # 단계 학습은 독후감을 쓰는 학생의 도구다(LearnPolicy — 앱 화면에 교직원 진입점도 없다). 진행이 DB 행이 된

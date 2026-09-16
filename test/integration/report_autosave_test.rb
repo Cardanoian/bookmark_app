@@ -855,62 +855,28 @@ class ReportAutosaveTest < ActionDispatch::IntegrationTest
     assert_equal report_path(draft), response.parsed_body["report_url"]
   end
 
-  # --- 7차 코드 리뷰(f874531) 후속: 챌린지 참여 표 ---
+  # --- 챌린지 참여 뒤의 자동 저장 ---
 
-  # 자동 저장의 첫 저장이 새 글을 만들면 그 글을 챌린지에 잇고 참여 표를 지운다(1회성).
-  test "첫 자동 저장이 만든 초안은 챌린지에 이어지고 참여 표를 지운다" do
+  # 2026-09-16 에 참여 세션 표(쿠키)를 걷어냈다 — 순위는 참여 원장의 기간(joined_at)으로 센다. 그래서 자동
+  # 저장이 만든 초안에는 challenge_id 가 붙지 않고, 순위는 그 글을 **낸 뒤에** 오른다. 첫 저장의 응답을 잃거나
+  # 동시 첫 저장의 둘째가 옛 세션을 되심어 표가 되살아나고, 그 표가 며칠 뒤 다른 글에 붙던 결함(7차 리뷰
+  # F7-3·F7-4)은 표 자체가 없어져 원인째 사라졌다.
+  test "참여 뒤 자동 저장한 초안은 제출해야 챌린지 순위에 센다" do
     challenge = Challenge.create!(title: "자동 저장 챌린지", scope: :global)
     login_as @student
     post join_challenge_path(challenge)
+    assert_nil session[:active_challenge_id], "참여 표를 쿠키에 남기지 않는다"
 
     post reports_path, params: { save_draft: "1", autosave_key: "flag-first-0001", autosave_seq: 1,
                                  report: { book_id: @book.id, book_title: @book.title, body: "첫 줄" } }, headers: JSON_HEADERS
     assert_response :created
-    assert_equal challenge.id, @student.reports.sole.challenge_id
-    assert_nil session[:active_challenge_id]
-  end
+    draft = @student.reports.sole
+    assert_nil draft.challenge_id
+    assert_empty RankingBoard.new(@student).challenge_ranking(challenge), "초안은 순위에 세지 않는다"
 
-  # 첫 저장의 응답을 잃으면(표를 지운 세션을 브라우저가 못 받음) 옛 표가 남는다. 재시도가 그 초안을 이을 때 표를
-  # 지우지 않으면, 며칠 뒤 다른 책으로 쓴 글도 챌린지에 붙었다(7차 리뷰 F7-3).
-  test "첫 저장 응답을 잃고 이어 쓴 재시도도 참여 표를 지운다" do
-    challenge = Challenge.create!(title: "응답 잃은 챌린지", scope: :global)
-    login_as @student
-    post join_challenge_path(challenge)
-    session_key = Rails.application.config.session_options[:key]
-    before_first_save = cookies[session_key]
-
-    post reports_path, params: { save_draft: "1", autosave_key: "flag-lost-00001", autosave_seq: 1,
-                                 report: { book_id: @book.id, book_title: @book.title, body: "첫 줄" } }, headers: JSON_HEADERS
-    assert_response :created
-    cookies[session_key] = before_first_save # 응답을 잃었다 — 브라우저는 표가 남은 옛 세션 그대로
-
-    post reports_path, params: { save_draft: "1", autosave_key: "flag-lost-00001", autosave_seq: 2,
-                                 report: { book_id: @book.id, book_title: @book.title, body: "첫 줄 둘째 줄" } }, headers: JSON_HEADERS
-    assert_response :success
-    assert_nil session[:active_challenge_id]
-
-    post reports_path, params: { report: { book_title: "며칠 뒤 다른 책", body: "다른 글" } }
-    assert_nil @student.reports.find_by(book_title: "며칠 뒤 다른 책").challenge_id
-  end
-
-  # 같은 화면의 첫 저장 두 개가 겹쳐 둘째가 이어 쓰기(:duplicate)로 끝나도 표를 지운다(7차 리뷰 F7-3).
-  test "동시 첫 저장의 둘째가 이어 쓸 때도 참여 표를 지운다" do
-    challenge = Challenge.create!(title: "겹친 첫 저장 챌린지", scope: :global)
-    login_as @student
-    post join_challenge_path(challenge)
-
-    ReportInsertRaceHook.before_insert = lambda do |report|
-      Report.create!(user: report.user, classroom: report.classroom, book_title: report.book_title, body: "먼저 들어온 첫 저장",
-                     input_mode: :keyboard, autosave_key: report.autosave_key, autosave_writer_key: report.autosave_key,
-                     autosave_seq: 1, challenge_id: challenge.id)
-    end
-    post reports_path, params: { save_draft: "1", autosave_key: "flag-race-00001", autosave_seq: 1,
-                                 report: { book_id: @book.id, book_title: @book.title, body: "첫 줄" } }, headers: JSON_HEADERS
-    assert_response :success
-    assert_equal 1, @student.reports.count
-    assert_nil session[:active_challenge_id]
-  ensure
-    ReportInsertRaceHook.before_insert = nil
+    patch report_path(draft), params: { autosave_key: "flag-first-0001", autosave_seq: 2,
+                                        report: { book_id: @book.id, book_title: @book.title, body: "첫 줄 그리고 더" } }
+    assert_equal 1, RankingBoard.new(@student).challenge_ranking(challenge).first.score
   end
 
   # --- 확인과 갱신 사이의 틈(리뷰 #11) ---

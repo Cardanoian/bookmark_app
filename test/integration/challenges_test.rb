@@ -39,16 +39,18 @@ class ChallengesTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_challenge_path, count: 0  # 학생에겐 만들기 버튼 없음
   end
 
-  test "student can join a challenge which records participation and sets the session flag" do
+  # 참여의 유일한 기록은 참여 원장이다 — 2026-09-16 에 세션 쿠키 표(`active_challenge_id`)를 걷어냈다.
+  # 진행도도 순위도 joined_at 부터 세므로, 쿠키가 없어도(다른 기기·세션 만료) 집계가 이어진다.
+  test "student can join a challenge which records participation" do
     login_as @student
     assert_difference -> { ChallengeParticipation.count }, 1 do
       post join_challenge_path(@global)
     end
     assert_redirected_to new_report_path
-    assert_equal @global.id, session[:active_challenge_id]
+    assert_nil session[:active_challenge_id], "참여 표를 쿠키에 남기지 않는다"
 
     participation = ChallengeParticipation.find_by(challenge: @global, user: @student)
-    assert participation.joined_at.present?, "참여 시각이 진행 집계의 시작점이다"
+    assert participation.joined_at.present?, "참여 시각이 진행·순위 집계의 시작점이다"
   end
 
   test "student cannot reach new or create" do

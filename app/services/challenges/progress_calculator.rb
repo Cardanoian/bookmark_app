@@ -9,8 +9,6 @@ module Challenges
   # 목표별 지정 도서('여러 책' any-of): goal.books 가 있으면 그 목록 중 어느 책의 독후감/game_plays 든
   # `where(book_id: [...])` 로 합산하고, 비면 아무 책이나 집계한다.
   class ProgressCalculator
-    ZONE = ActiveSupport::TimeZone["Asia/Seoul"]
-
     # 독후감의 제출 시각(Missions::ProgressCalculator::SUBMITTED_AT 미러). 자동 저장(2026-09-12)은 첫
     # 저장에서 초안 행을 만들므로 created_at 은 "처음 쓰기 시작한 시각"이다 — 그걸로 재면 참여 전에
     # 쓰기 시작해 참여 후에 제출·승인된 글이 "참여 전 활동"으로 빠진다. submitted_at 이 없는 행은
@@ -94,21 +92,14 @@ module Challenges
 
     # 참여 시각(또는 창 시작 00:00 Asia/Seoul 중 늦은 쪽) ~ 종료일+1 00:00(상한 배타).
     # window_end 가 nil 이면 상한 없음. 독후감 제출 시각(SUBMITTED_AT)은 datetime 이라 참여 '시각'까지 정밀 비교한다.
+    # 창 계산은 `ParticipationWindow` 가 단일 진실이다 — 순위(RankingBoard#challenge_ranking)도 같은 창으로 센다.
     def window_range
-      e = @challenge.window_end
-      lower = [ window_start_at, @participation&.joined_at ].compact.max
-      upper = e ? (ZONE.local(e.year, e.month, e.day) + 1.day) : nil
-      lower...upper
-    end
-
-    def window_start_at
-      s = @challenge.window_start
-      s && ZONE.local(s.year, s.month, s.day)
+      ParticipationWindow.time_range(@challenge, @participation&.joined_at)
     end
 
     # 참여일(Asia/Seoul) — played_on(date) 비교용.
     def joined_on
-      @participation&.joined_at&.in_time_zone(ZONE)&.to_date
+      ParticipationWindow.joined_on(@participation&.joined_at)
     end
   end
 end

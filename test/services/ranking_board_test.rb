@@ -94,10 +94,14 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_nil hall.find { |entry| entry.subject == @s3 }, "몬스터 미보유 학생은 전당에서 제외"
   end
 
-  test "challenge ranking counts participation reports" do
+  # 순위는 **참여한 뒤 기간 안에 낸 글 수**다(2026-09-16). 예전에는 참여 세션 표가 첫 글 한 편에만
+  # challenge_id 를 달아 그 수를 세, 사실상 전원 1점 동률이었다.
+  test "challenge ranking counts reports written after joining" do
     challenge = Challenge.create!(title: "겨울 챌린지")
-    2.times { |i| challenge_report(@s1, challenge, "챌#{i}") }
-    challenge_report(@s2, challenge, "챌")
+    join_challenge!(@s1, challenge)
+    join_challenge!(@s2, challenge)
+    2.times { |i| challenge_report(@s1, "챌#{i}") }
+    challenge_report(@s2, "챌")
 
     ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
 
@@ -107,13 +111,64 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 1, ranking.second.score
   end
 
-  # 참여 직후 첫 글의 첫 자동 저장이 challenge_id 를 단 초안 행을 만든다(ApplicationController#link_participation).
-  # 내지 않은 초안은 순위 점수가 아니다.
+  # 참여 전에 쓴 글은 진행도에서 세지 않는다("참여한 뒤에 쓴 독후감·게임만 집계돼요"). 순위도 같은 창을 쓴다.
+  test "challenge ranking ignores reports submitted before joining" do
+    challenge = Challenge.create!(title: "겨울 챌린지")
+    join_challenge!(@s1, challenge, joined_at: 1.hour.ago)
+    challenge_report(@s1, "참여 전 글", submitted_at: 3.hours.ago)
+    challenge_report(@s1, "참여 후 글", submitted_at: 10.minutes.ago)
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal 1, ranking.first.score
+  end
+
+  # 기간이 끝난 뒤에 낸 글은 그 챌린지 순위가 아니다(옛 세션 표가 남아 며칠 뒤 글에 붙던 결함의 반대편).
+  test "challenge ranking ignores reports submitted after the window ends" do
+    challenge = Challenge.create!(title: "지난 챌린지", starts_on: 10.days.ago.to_date, ends_on: 3.days.ago.to_date)
+    join_challenge!(@s1, challenge, joined_at: 9.days.ago)
+    challenge_report(@s1, "기간 안 글", submitted_at: 5.days.ago)
+    challenge_report(@s1, "기간 뒤 글", submitted_at: 1.day.ago)
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal 1, ranking.first.score
+  end
+
+  # 참여 시각은 사람마다 다르다. 한 번에 읽어 오는 질의의 하한은 **가장 이른 참여자** 기준이므로,
+  # 늦게 참여한 학생의 예전 글이 그 하한을 통과해 순위에 섞이지 않는지 본다(참여자별 창으로 거른다).
+  test "challenge ranking applies each participant's own window" do
+    challenge = Challenge.create!(title: "겨울 챌린지", starts_on: 10.days.ago.to_date)
+    join_challenge!(@s1, challenge, joined_at: 3.days.ago)
+    join_challenge!(@s2, challenge, joined_at: 1.hour.ago)
+    challenge_report(@s1, "일찍 참여한 학생의 글", submitted_at: 2.days.ago)
+    challenge_report(@s2, "늦게 참여한 학생이 예전에 낸 글", submitted_at: 2.days.ago)
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal [ @s1 ], ranking.map(&:subject), "자기 참여 시각보다 앞선 글은 세지 않는다"
+    assert_equal 1, ranking.first.score
+  end
+
+  test "challenge ranking leaves out students who only joined" do
+    challenge = Challenge.create!(title: "겨울 챌린지")
+    join_challenge!(@s1, challenge)
+    join_challenge!(@s2, challenge)
+    challenge_report(@s1, "낸 글")
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal [ @s1 ], ranking.map(&:subject), "참여만 한 학생은 순위표를 채우지 않는다"
+  end
+
+  # 내지 않은 초안은 순위 점수가 아니다(몇 글자 써 두기만 해도 순위가 오르지 않게).
   test "challenge ranking ignores unsubmitted drafts" do
     challenge = Challenge.create!(title: "겨울 챌린지")
-    challenge_report(@s1, challenge, "낸 글")
-    challenge_report(@s1, challenge, "쓰는 중", submitted_at: nil)
-    challenge_report(@s2, challenge, "쓰는 중", submitted_at: nil)
+    join_challenge!(@s1, challenge)
+    join_challenge!(@s2, challenge)
+    challenge_report(@s1, "낸 글")
+    challenge_report(@s1, "쓰는 중", submitted_at: nil)
+    challenge_report(@s2, "쓰는 중", submitted_at: nil)
 
     ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
 
@@ -121,12 +176,27 @@ class RankingBoardTest < ActiveSupport::TestCase
     assert_equal 1, ranking.first.score, "초안은 참여 독후감 수에 들지 않는다"
   end
 
+  # 고쳐쓰기는 같은 글을 두 번 세지 않는다(진행도의 revision_of_id 규칙과 동일).
+  test "challenge ranking counts a revision with its original only once" do
+    challenge = Challenge.create!(title: "겨울 챌린지")
+    join_challenge!(@s1, challenge)
+    original = challenge_report(@s1, "원본")
+    Report.create!(user: @s1, classroom: @s1.classroom, book_title: "고쳐쓴 글",
+                   revision_of: original, submitted_at: Time.current)
+
+    ranking = RankingBoard.new(@s1).challenge_ranking(challenge)
+
+    assert_equal 1, ranking.first.score
+  end
+
   # P2.7 — counts 에 담긴 user_id 가 조회에서 빠지면(유저 삭제/스코프 제외) subject 가 nil 인
   # Entry 가 생겨 뷰의 entry.subject.name 에서 크래시한다. nil subject 는 제외되어야 한다.
   test "challenge ranking skips entries whose user is missing without crashing" do
     challenge = Challenge.create!(title: "겨울 챌린지")
-    2.times { |i| challenge_report(@s1, challenge, "챌#{i}") }
-    challenge_report(@s2, challenge, "챌")
+    join_challenge!(@s1, challenge)
+    join_challenge!(@s2, challenge)
+    2.times { |i| challenge_report(@s1, "챌#{i}") }
+    challenge_report(@s2, "챌")
 
     # @s2 의 User 레코드만 제거해 report 를 고아로 만든다 → users[@s2.id] == nil 인 실제 상황 재현.
     # FK 검사는 커밋까지 지연되고(disable_referential_integrity), 테스트 트랜잭션은 롤백되므로 안전.
@@ -336,10 +406,14 @@ class RankingBoardTest < ActiveSupport::TestCase
 
   private
 
-  # 챌린지에 연결된 독후감. 기본은 제출된 글이다(submitted_at: nil 이면 자동 저장 초안).
-  def challenge_report(student, challenge, title, submitted_at: Time.current)
-    Report.create!(user: student, classroom: student.classroom, book_title: title,
-                   challenge_id: challenge.id, submitted_at: submitted_at)
+  # 챌린지 참여 원장(joined_at 이 집계 창의 하한이다).
+  def join_challenge!(student, challenge, joined_at: 1.hour.ago)
+    ChallengeParticipation.create!(user: student, challenge: challenge, joined_at: joined_at)
+  end
+
+  # 독후감. 기본은 제출된 글이다(submitted_at: nil 이면 자동 저장 초안).
+  def challenge_report(student, title, submitted_at: Time.current)
+    Report.create!(user: student, classroom: student.classroom, book_title: title, submitted_at: submitted_at)
   end
 
   def enable_seasons!

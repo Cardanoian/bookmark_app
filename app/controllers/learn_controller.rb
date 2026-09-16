@@ -69,7 +69,6 @@ class LearnController < ApplicationController
   # submitted_at 이 없어 교사 큐·AI 첨삭 대상이 아니고, 아이가 편집 화면에서 다듬어 '제출하기'로 낸다.
   # 편집 화면은 이 초안의 자동 저장을 곧바로 켠다. 본문을 주소에 싣지 않으므로 길이 한도가 없다.
   #
-  # 챌린지에 막 참여했으면 그 챌린지를 잇는다(link_participation — 예전에는 새 글 화면의 첫 저장이 했다).
   # 초안을 못 만드는 경우는 답을 남긴 채 위저드로 돌려보내고 까닭을 한국어로 알린다(모델 검증 문구는 영어다).
   # · 1단계 첫 줄(책 제목)이 비었다 — Report 의 책 참조 검증. 1단계로 보낸다.
   # · 학급이 없다 — Report 는 학급이 필수라 아이가 스스로 풀 수 없다. 선생님께 말하게 한다.
@@ -96,9 +95,7 @@ class LearnController < ApplicationController
         next problem
       end
 
-      link_participation(report)
       report.save!
-      consume_participation if report.challenge_id.present?
       progress.destroy!
       :created
     end

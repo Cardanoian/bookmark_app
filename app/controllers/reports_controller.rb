@@ -63,7 +63,6 @@ class ReportsController < ApplicationController
     @report.autosave_key = autosave_key_param
     stamp_autosave_writer(@report)
     @report.autosave_origin_digest = autosave_origin_digest if save_draft?
-    link_participation(@report)
     authorize @report
 
     if save_draft?
@@ -75,7 +74,6 @@ class ReportsController < ApplicationController
       case insert_report
       when :duplicate then continue_report(report_for_autosave_key)
       when true
-        consume_participation if @report.challenge_id.present?
         respond_to do |format|
           format.html { redirect_to edit_report_path(@report), notice: "임시 저장했어요. 독후감 목록에서 '작성 중'으로 볼 수 있어요." }
           format.json { render_draft_saved(status: :created) }
@@ -89,7 +87,6 @@ class ReportsController < ApplicationController
       case insert_report
       when :duplicate then continue_report(report_for_autosave_key)
       when true
-        consume_participation if @report.challenge_id.present?
         submit_for_review(@report)
         redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
       else
@@ -462,14 +459,9 @@ class ReportsController < ApplicationController
 
   # create 로 온 요청을 이미 있는 글의 update 로 처리한다(인가·버전·잠금·제출 판정이 모두 update 에 있다).
   # 새 글 화면의 버전 칸은 비어 있으므로 stale_draft_version? 이 이 표시를 보고 화면·순번으로 판단한다.
-  #
-  # 이 화면이 만든 글이 참여 표로 이미 챌린지에 이어졌으면 표를 지운다. 이어 쓰기는 새 글을 만들지 않아 표를 지우는
-  # 곳(consume_participation)을 거치지 않는데, 첫 저장의 응답을 잃었거나(표를 지운 세션을 브라우저가 못 받음) 동시 첫
-  # 저장의 둘째가 옛 세션을 다시 심으면 표가 남아 며칠 뒤 다른 글에 붙었다(7차 리뷰 F7-3).
   def continue_report(report)
     @report = report
     @continuing_from_create = true
-    consume_participation if report.challenge_id.present? && report.challenge_id == session[:active_challenge_id]
     update
   end
 

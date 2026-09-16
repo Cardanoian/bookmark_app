@@ -76,51 +76,43 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_select "[role=alert]", /도서 또는 책 제목이 필요합니다/
   end
 
-  # 챌린지에 참여하고 책 제목만 고른 뒤 Enter(빈 본문 제출 → 422)를 눌러도 참여 표는 남아, 이어서 쓴 글이
-  # 챌린지에 연결된다. 예전에는 되돌아간 요청이 표를 먼저 지워 그 글이 챌린지 순위에서 빠졌다(6차 리뷰 F-5).
-  test "a rejected blank submission keeps the challenge flag for the next report" do
+  # 챌린지 참여 뒤에 낸 글은 순위에 센다 — 책 제목만 고르고 Enter 를 눌러 빈 본문 422 로 되돌아간 뒤
+  # 이어서 써도 마찬가지다. 예전에는 참여 표가 쿠키에 있어서, 되돌아간 요청이 표를 먼저 지우면 그 글이
+  # 순위에서 빠졌다(6차 리뷰 F-5). 2026-09-16 에 표를 걷어내고 참여 원장의 기간으로 센다.
+  test "reports written after joining count toward the challenge ranking" do
     challenge = Challenge.create!(title: "빈 글 챌린지", scope: :global)
     login_as @student
     post join_challenge_path(challenge)
 
     post reports_path, params: { report: { book_title: "책", body: "", input_mode: "keyboard" } }
     assert_response :unprocessable_entity
-    assert_equal challenge.id, session[:active_challenge_id]
 
     post reports_path, params: { report: { book_title: "책", body: "이제 쓴 글", input_mode: "keyboard" } }
-    assert_equal challenge.id, @student.reports.sole.challenge_id
-    assert_nil session[:active_challenge_id], "글이 저장되면 표를 지운다(1회성)"
+    post reports_path, params: { report: { book_title: "다른 책", body: "한 편 더 쓴 글", input_mode: "keyboard" } }
+
+    ranking = RankingBoard.new(@student).challenge_ranking(challenge)
+    assert_equal 2, ranking.first.score, "참여 뒤에 낸 글은 모두 센다(예전에는 첫 한 편만 셌다)"
   end
 
-  # 남은 참여 표가 챌린지가 끝난 뒤 쓴 글에 붙어 순위에 세지 않는다 — 끝난 챌린지의 표는 버린다(7차 리뷰 F7-4).
-  test "a leftover challenge flag is not linked after the challenge has ended" do
-    challenge = Challenge.create!(title: "끝나는 챌린지", scope: :global, starts_on: 10.days.ago.to_date, ends_on: 3.days.from_now.to_date)
+  # 기간 밖에 낸 글은 세지 않는다 — 시작 전에 쓴 글(아직 시작 안 한 챌린지에 참여)도, 끝난 뒤에 쓴 글도.
+  # 예전에는 남은 쿠키 표가 며칠 뒤 쓴 글에 붙어 순위에 셌다(7차 리뷰 F7-4).
+  test "reports outside the challenge window do not count" do
+    challenge = Challenge.create!(title: "다음 주 챌린지", scope: :global,
+                                  starts_on: 3.days.from_now.to_date, ends_on: 10.days.from_now.to_date)
     login_as @student
     post join_challenge_path(challenge)
-    post reports_path, params: { report: { book_title: "책", body: "", input_mode: "keyboard" } }
-    assert_response :unprocessable_entity
-
-    travel 10.days do
-      post reports_path, params: { report: { book_title: "끝난 뒤 쓴 책", body: "끝난 뒤 쓴 글", input_mode: "keyboard" } }
-      assert_nil @student.reports.sole.challenge_id
-      assert_nil session[:active_challenge_id], "다시 쓸 일이 없는 표는 버린다"
-    end
-  end
-
-  # 아직 시작 전인 챌린지는 지금 쓴 글에 잇지 않고 표를 남겨, 기간 안에 쓴 첫 글에 잇는다(7차 리뷰 후속).
-  test "a challenge that has not started yet is linked to the first report written in its window" do
-    challenge = Challenge.create!(title: "다음 주 챌린지", scope: :global, starts_on: 3.days.from_now.to_date, ends_on: 20.days.from_now.to_date)
-    login_as @student
-    post join_challenge_path(challenge)
-
     post reports_path, params: { report: { book_title: "시작 전 책", body: "시작 전에 쓴 글", input_mode: "keyboard" } }
-    assert_nil @student.reports.find_by(book_title: "시작 전 책").challenge_id
-    assert_equal challenge.id, session[:active_challenge_id], "기간 안의 첫 글을 위해 표를 남긴다"
+
+    assert_empty RankingBoard.new(@student).challenge_ranking(challenge), "시작 전에 쓴 글은 세지 않는다"
 
     travel 5.days do
       post reports_path, params: { report: { book_title: "기간 안 책", body: "기간 안에 쓴 글", input_mode: "keyboard" } }
-      assert_equal challenge.id, @student.reports.find_by(book_title: "기간 안 책").challenge_id
-      assert_nil session[:active_challenge_id]
+      assert_equal 1, RankingBoard.new(@student).challenge_ranking(challenge).first.score
+    end
+
+    travel 20.days do
+      post reports_path, params: { report: { book_title: "끝난 뒤 책", body: "끝난 뒤에 쓴 글", input_mode: "keyboard" } }
+      assert_equal 1, RankingBoard.new(@student).challenge_ranking(challenge).first.score, "끝난 뒤에 쓴 글은 세지 않는다"
     end
   end
 
