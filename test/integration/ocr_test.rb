@@ -40,6 +40,11 @@ class OcrTest < ActionDispatch::IntegrationTest
     draft = @student.reports.order(:created_at).last
     assert_not_nil draft
     assert_redirected_to edit_report_path(draft)
+
+    # 업로드 시점의 본문 지문을 함께 실어야 늦게 끝난 판독이 그사이 아이가 쓴 글을 덮지 않는다.
+    enqueued = enqueued_jobs.find { |job| job["job_class"] == "OcrJob" }
+    kwargs = enqueued["arguments"].last
+    assert_equal OcrJob.body_digest(draft), kwargs["body_digest"]
   end
 
   private

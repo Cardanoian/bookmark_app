@@ -51,7 +51,9 @@ class OcrController < ApplicationController
 
     @report.photo.attach(params[:ocr][:photo])
     @report.update!(ai_status: :pending, input_mode: :ocr)
-    OcrJob.perform_later(@report)
+    # 지금 본문 지문을 함께 넘긴다. 판독이 끝날 때까지 아이가 같은 글을 직접 고쳐 쓰거나 제출할 수
+    # 있는데, 그때 판독 결과가 그 글을 덮으면 아이가 낸 글이 사진 원문으로 되돌아간다(2026-09-16).
+    OcrJob.perform_later(@report, body_digest: OcrJob.body_digest(@report))
 
     # Turbo 가 302 를 따라 compose(edit) 화면으로 Visit → editor 채널 구독 → OcrJob 방송이 본문을 채운다.
     redirect_to edit_report_path(@report), notice: "사진을 읽고 있어요. 잠시만 기다려 주세요."

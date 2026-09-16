@@ -29,6 +29,20 @@ class OcrJobTest < ActiveJob::TestCase
     end
   end
 
+  # 판독이 도는 **동안** 아이가 같은 글을 고쳐 쓰는 상황을 흉내 낸다(느린 API 구간의 경쟁).
+  class MutatingStub
+    def initialize(text, report, changes)
+      @text = text
+      @report = report
+      @changes = changes
+    end
+
+    def call(_blob)
+      Report.find(@report.id).update!(@changes)
+      @text
+    end
+  end
+
   class RaisingStub
     def initialize(error)
       @error = error
@@ -111,6 +125,71 @@ class OcrJobTest < ActiveJob::TestCase
     end
 
     assert report.reload.failed?, "미동의 학생 사진은 OCR 없이 실패 처리된다"
+  end
+
+  # --- 늦게 끝난 판독 폐기(2026-09-16) ---
+  # 판독은 몇 초에서 몇십 초가 걸린다. 그동안 아이는 같은 글을 직접 고쳐 쓰고 제출까지 할 수 있는데,
+  # 예전에는 늦게 끝난 판독이 그 글을 조건 없이 덮어 아이가 낸 글이 사진 원문으로 되돌아갔다.
+
+  test "판독하는 동안 글이 제출되면 본문도 상태도 건드리지 않는다" do
+    digest = OcrJob.body_digest(@report)
+    stub = MutatingStub.new("판독 원문", @report, submitted_at: Time.current, body: "아이가 낸 글", ai_status: :processing)
+
+    stub_new(Ai::OcrService, stub) do
+      OcrJob.perform_now(@report, body_digest: digest)
+    end
+
+    @report.reload
+    assert_equal "아이가 낸 글", @report.body
+    assert @report.processing?, "첨삭 상태(ai_status)를 판독이 덮어쓰지 않는다"
+  end
+
+  test "이미 낸 글이면 판독을 시작하지도 않는다" do
+    @report.update!(submitted_at: Time.current, body: "아이가 낸 글", ai_status: :processing)
+
+    # 호출되면 rescue 되지 않는 RuntimeError 로 즉시 드러낸다.
+    stub_new(Ai::OcrService, RaisingStub.new(RuntimeError.new("OCR must not run for a submitted report"))) do
+      OcrJob.perform_now(@report, body_digest: OcrJob.body_digest(@report))
+    end
+
+    @report.reload
+    assert_equal "아이가 낸 글", @report.body
+    assert @report.processing?
+  end
+
+  test "판독하는 동안 직접 쓴 글이 있으면 그 글을 두고 '그대로 두었어요'를 알린다" do
+    digest = OcrJob.body_digest(@report)
+    stub = MutatingStub.new("판독 원문", @report, body: "직접 쓴 글")
+
+    assert_turbo_stream_broadcasts([ @report, :report_editor ], count: 1) do
+      stub_new(Ai::OcrService, stub) do
+        OcrJob.perform_now(@report, body_digest: digest)
+      end
+    end
+
+    @report.reload
+    assert_equal "직접 쓴 글", @report.body
+    assert @report.done?, "화면이 '읽는 중'에 묶이지 않게 상태는 닫는다"
+    assert_includes OcrJob.new.send(:ocr_kept_status_html), "그대로 두었어요"
+  end
+
+  test "지문 없이 온 옛 잡은 예전처럼 본문을 채운다" do
+    stub_new(Ai::OcrService, OcrStub.new("인식된 손글씨 본문")) do
+      OcrJob.perform_now(@report)
+    end
+
+    assert_equal "인식된 손글씨 본문", @report.reload.body
+  end
+
+  test "업로드한 사진에 이미 쓰던 글이 있으면 지문이 같아 정상 판독된다" do
+    @report.update!(body: "사진을 붙이기 전에 쓰던 글")
+    digest = OcrJob.body_digest(@report)
+
+    stub_new(Ai::OcrService, OcrStub.new("판독 원문")) do
+      OcrJob.perform_now(@report, body_digest: digest)
+    end
+
+    assert_equal "판독 원문", @report.reload.body
   end
 
   private
