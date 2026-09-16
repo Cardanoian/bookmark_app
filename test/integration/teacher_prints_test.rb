@@ -132,74 +132,21 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?][target]", class_report_teacher_prints_path(classroom_id: @classroom.id), 0
   end
 
-  # 원자료 엑셀은 담임 학급 **전체**를 내보내는 학급-무관 산출물이고, 이 화면이 유일한 진입점이라
-  # 학급 유무와 무관하게 닿아야 한다. 학급 분기 안쪽에 두면 학급 없는 교사가 경로를 잃는다.
-  test "index explains pseudonymization and prohibits uploads to external AI services" do
+  # 원자료 엑셀 내보내기(`teacher/exports#reports_xlsx`)는 2026-09-16 에 라우트·화면·직렬화기까지 걷어냈다.
+  # 문서 출력 화면과 교사 네비 어디에도 되살아나지 않아야 한다.
+  test "문서 출력 화면과 교사 네비에 원자료 내려받기가 없다" do
     login_as @teacher
+
     get teacher_prints_path
-
     assert_response :success
-    assert_select "section#raw-export" do
-      assert_select "a[href=?]", teacher_exports_reports_xlsx_path
-    end
-    assert_match "학생 가명 ID", response.body
-    assert_match "외부 AI 서비스에 업로드하지 마세요", response.body
-    assert_no_match "AI에게 물어볼 문장 예시", response.body
-  end
+    assert_select "section#raw-export", 0
+    assert_no_match "엑셀", response.body
 
-  # 네비의 "CSV 내보내기"는 목적지가 "문서 출력"과 같은 화면(#raw-export 앵커)이라 메뉴만 둘로
-  # 보였다. 항목을 없앤 대신 그 카드가 화면 첫 카드로 남아야 한다(진입 경로가 사라지면 안 된다).
-  test "교사 네비에 원자료 내려받기 전용 항목이 따로 있지 않다" do
-    login_as @teacher
     get teacher_dashboard_path
-
     assert_response :success
-    assert_select "a[href=?]", teacher_prints_path(anchor: "raw-export"), 0
     assert_no_match "CSV 내보내기", response.body
     assert_no_match "엑셀 내보내기", response.body
     assert_select "a[href=?]", teacher_prints_path # 문서 출력 진입점은 남는다
-  end
-
-  test "index still shows the raw export section for a teacher with no classroom" do
-    classroomless = User.create!(school: @school, name: "무학급담임", role: :teacher,
-                                 email: "noclass@example.com", password: "password")
-    login_as classroomless
-    get teacher_prints_path
-
-    assert_response :success
-    assert_select "section#raw-export a[href=?]", teacher_exports_reports_xlsx_path
-  end
-
-  # 앱은 링크 마크업이 아니라 원격 Path Configuration 의 URL 패턴으로 다운로드를 판정한다.
-  # Turbo 방문이 제안되어야 그 핸들러가 잡으므로 data-turbo="false" 를 붙이면 안 된다(2026-09-03 실측).
-  test "the download link keeps the markup the Android download handler relies on" do
-    login_as @teacher
-    get teacher_prints_path
-
-    assert_select "section#raw-export a[href=?]", teacher_exports_reports_xlsx_path do |links|
-      assert_nil links.first["data-turbo"], "data-turbo 를 끄면 앱의 다운로드 훅이 사라진다"
-      assert_nil links.first["target"], "내려받는 파일은 새 탭에서 여는 문서가 아니다"
-    end
-  end
-
-  # 스프라이트 아이콘은 잉크색(#1F2A44)이 symbol 안에 박혀 있어, 어두운 버튼 위에 그냥 두면
-  # 배경에 묻혀 보이지 않는다(외부 <use> 라 바깥 CSS 의 color/stroke 로는 못 바꾼다).
-  # icon-inverse 가 흰 실루엣으로 뒤집는다 — 클래스가 빠지면 아이콘이 다시 사라진다.
-  test "the download button icon is inverted to white on the dark button" do
-    login_as @teacher
-    get teacher_prints_path
-
-    assert_select "section#raw-export a[href=?].btn-primary svg.icon-inverse",
-                  teacher_exports_reports_xlsx_path, 1
-  end
-
-  test "the raw export section has no external AI prompt or disclosure control" do
-    login_as @teacher
-    get teacher_prints_path
-
-    assert_select "section#raw-export[data-controller]", 0
-    assert_select "section#raw-export #ai-prompt-example", 0
-    assert_select "section#raw-export textarea", 0
   end
 
   test "a student is forbidden from print documents" do

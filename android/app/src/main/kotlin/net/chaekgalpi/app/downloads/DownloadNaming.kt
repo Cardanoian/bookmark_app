@@ -35,7 +35,7 @@ object DownloadNaming {
      * @param url 다운로드 URL. 마지막 후보.
      * @param mimeType 응답의 MIME. 확장자가 없을 때만 참고한다.
      * @param suggested Path Configuration 의 `download_filename`. 라우팅으로 잡은 다운로드는
-     *   아직 응답 헤더가 없어서 URL 마지막 조각(`reports_xlsx` 처럼 확장자 없는 이름)밖에 없다.
+     *   아직 응답 헤더가 없어서 URL 마지막 조각(`export` 처럼 확장자 없는 이름)밖에 없다.
      *   서버가 원하는 이름을 원격 설정으로 내려 줄 수 있게 한다.
      */
     fun fileName(

@@ -5,7 +5,8 @@ class AuditLog < ApplicationRecord
     "teacher.points_grant" => "학생 포인트 지급",
     # CSV 시절 키. 지난 원장 행들이 이 이름으로 남아 있어 라벨을 지우지 않는다.
     "teacher.reports_csv_download" => "교사 연구자료 CSV 다운로드(구)",
-    "teacher.reports_xlsx_download" => "교사 연구자료 엑셀 다운로드",
+    # 제거된 교사 엑셀 기능의 기존 원장 행을 계속 사람이 읽을 수 있게 라벨만 보존한다.
+    "teacher.reports_xlsx_download" => "교사 연구자료 엑셀 다운로드(구)",
     "teacher.mission_delete" => "미션 삭제",
     "teacher.quiz_delete" => "교사 퀴즈 삭제",
     "staff.challenge_delete" => "챌린지 삭제",

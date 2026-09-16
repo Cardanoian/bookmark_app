@@ -28,24 +28,6 @@ class AuditLogsTest < ActionDispatch::IntegrationTest
     assert_no_match "new123", AuditLog.all.map(&:metadata).to_json
   end
 
-  test "teacher xlsx download is audited without storing the workbook body" do
-    Report.create!(user: @student, classroom: @classroom, book_title: "감사책")
-    login_as @teacher
-
-    get teacher_exports_reports_xlsx_path
-
-    assert_response :success
-    log = AuditLog.find_by!(action: "teacher.reports_xlsx_download")
-    assert_equal 1, log.metadata["report_count"]
-    assert_equal 1, log.metadata["student_count"]
-    assert_equal 2, log.metadata["export_schema_version"]
-    assert_equal true, log.metadata["direct_identifiers_removed"]
-    assert_not log.metadata.key?("workbook")
-    assert_not log.metadata.key?("csv")
-    assert_not log.metadata.key?("student_ids")
-    assert_no_match @student.name, log.metadata.to_json
-  end
-
   test "superadmin can view audit logs and a student cannot" do
     AuditLog.create!(actor: @teacher, actor_role: @teacher.role, action: "teacher.points_grant")
 

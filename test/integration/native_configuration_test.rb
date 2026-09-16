@@ -127,7 +127,6 @@ class NativeConfigurationTest < ActionDispatch::IntegrationTest
   # 아무도 받지 못한 파일이 내려받아진 것으로 기록된다. 그래서 규칙 존재 여부를 테스트로 고정한다.
 
   DOWNLOAD_PATHS = {
-    "/teacher/exports/reports_xlsx" => "교사 5축 사전·사후 엑셀",
     "/admin/analytics/export" => "총괄 전국 통계 CSV",
     "/agree.pdf" => "보호자 동의서 PDF"
   }.freeze
@@ -149,7 +148,6 @@ class NativeConfigurationTest < ActionDispatch::IntegrationTest
   test "다운로드 경로가 실제 라우트와 일치한다" do
     # 위 테스트는 문자열 경로를 검사한다. 라우트가 바뀌면 그 문자열도 함께 낡으므로,
     # 헬퍼가 만드는 실제 경로와 대조해 둘이 같이 늙지 않게 한다.
-    assert_equal "/teacher/exports/reports_xlsx", teacher_exports_reports_xlsx_path
     assert_equal "/admin/analytics/export", admin_analytics_export_path
     assert Rails.public_path.join("agree.pdf").exist?, "동의서 PDF 가 public/ 에 있어야 한다"
   end

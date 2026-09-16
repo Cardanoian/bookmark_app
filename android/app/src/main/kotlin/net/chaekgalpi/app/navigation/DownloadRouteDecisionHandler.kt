@@ -14,6 +14,8 @@ import net.chaekgalpi.app.MainActivity
  * "화면을 불러오지 못했어요"만 남는다. 그런데 방문 요청 자체는 서버까지 갔기 때문에
  * **`teacher.reports_xlsx_download` 감사 로그가 기록된다** — 아무도 받지 못한 파일이 내려받아진 것으로
  * 남는 상태였다. WebView 의 DownloadListener 는 이 경로에서 아예 호출되지 않는다.
+ * (그 교사 원자료 내보내기 자체는 2026-09-16 에 서버에서 걷어냈고, 지금 `download` 규칙 대상은
+ * `/admin/analytics/export` CSV 와 `/agree.pdf` 다. 위 실측은 규칙이 왜 필요한지를 남긴 기록이다.)
  *
  * **왜 URL 패턴을 Kotlin 에 넣지 않는가**: 대상 경로가 늘어날 때 APK 를 다시 배포해야 한다.
  * 원격 Path Configuration 에 규칙을 두면 서버에서 즉시 조정할 수 있고, 규칙의 단일 진실이

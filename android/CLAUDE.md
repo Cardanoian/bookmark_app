@@ -13,7 +13,7 @@
 |---|---|
 | Hotwire 내비게이션 스택 · Android 뒤로가기 | 화면·폼·업무 규칙 구현 |
 | `onShowFileChooser` → 시스템 카메라 · Photo Picker | OCR/AI 호출 (서버 전용) |
-| 외부 링크 Custom Tab · 인증 파일 다운로드(엑셀·CSV·PDF) · Android 인쇄 | 인증 토큰 저장 (Rails 세션 쿠키 그대로) |
+| 외부 링크 Custom Tab · 인증 파일 다운로드(CSV·PDF) · Android 인쇄 | 인증 토큰 저장 (Rails 세션 쿠키 그대로) |
 | WebView 버전 확인 · 네트워크 오류 복구 화면 | 인가 판단 (Pundit 은 서버에만) |
 
 **절대 하지 않는 것**: API 키를 APK 에 넣기, Android 에서 Gemini 직접 호출, 보호자 AI 동의 게이트 우회,
@@ -125,7 +125,7 @@
 | `POST /ocr` (`ocr[photo]` multipart) | 사진 OCR 업로드 계약 |
 | `GET /reports/:id/photo` | 인증 프록시 사진 |
 | `GET /reports/:id/photo/zoom` | **앱 전용** 사진 확대 HTML 화면(웹은 `target="_blank"` 로 바이트를 새 탭에 연다) |
-| `GET /teacher/exports/reports_xlsx` · `GET /admin/analytics/export` · `/agree.pdf` | 원격 설정의 `download` 규칙 대상 |
+| `GET /admin/analytics/export` · `/agree.pdf` | 원격 설정의 `download` 규칙 대상(교사 원자료 엑셀 `^/teacher/exports/reports_xlsx$` 규칙은 기능과 함께 2026-09-16 에 삭제) |
 | `hotwire_native_app?` 분기 뷰 | native 전용 링크 표현 |
 
 호환성이 깨지는 Path Configuration 변경은 기존 파일을 덮어쓰지 않고 `android_v2.json` 을 **추가**한다.

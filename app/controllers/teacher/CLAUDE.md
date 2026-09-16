@@ -1,7 +1,7 @@
 # app/controllers/teacher/ — 담임교사 영역
 
 담임교사(또는 총괄)가 담당 학급을 운영하는 도구 모음입니다. AI 첨삭 완료 독후감의 검토 목록·5축 조정·승인,
-학생 관리, 학급 미션·퀴즈·루브릭 설정, 그리고 대회요건용 CSV·인쇄 문서 출력을 담당합니다.
+학생 관리, 학급 미션·퀴즈·루브릭 설정, 그리고 인쇄 문서 출력을 담당합니다.
 대부분 `Teacher::BaseController` 를 상속해 `require_teacher!` 역할 게이트와 담임 학급 소유 검증(경계)을 공유합니다.
 
 ## 파일
@@ -16,12 +16,12 @@
 - `quizzes_controller.rb` — 학급 퀴즈 CRUD + 도서 선택 시 `Ai::QuizDraftService` 초안 문항 생성 → 검수 후 published. **도서 선택은 전량 로드 `collection_select` 대신 공용 도서 자동완성(`books#autocomplete`)**을 쓰고, `create`/`update`는 넘어온 `book_id`가 실제 비-searched `Book`인지 서버에서 검증한다(위조·searched 캐시 주입 차단).
 - `account_links_controller.rb` — **계정 연동(MERGE) 교사 보조(account_linking_seasons_plan §Phase 4)**. `index`(담임 학급으로 향한 병합 원장)·`new`(현재 학급 학생 NEW 선택 + `?old_name=` 후보 작년 계정 이름검색[학교·과거 학년도])·`create`(**`owned_student!(new_account)`로 NEW 가 자기 학급 소속임을 강제** + `valid_old_candidate?`[학교·과거 학년도 서버 검증] → `Accounts::MergeService#call` 공유 + 커밋 후 `run_post_commit_side_effects!`, **세션 스왑 없음**[교사 세션 유지])·`reverse`(member — `owned_merge!`[to_classroom 이 자기 학급]·**14일 창**[`REVERSE_WINDOW = AccountMerge::TEACHER_REVERSE_WINDOW` 단일 상수 공유, 창 밖은 총괄 위임]·미되돌림만 → `AccountMerge#reverse!(performed_by:)` + 커밋 후 `run_reverse_side_effects`[생존자 랭킹/시즌 방송 갱신, 뱃지 미회수]). **동시 되돌리기·유니크 충돌은 `AccountMerge::ReversalError` rescue → alert 리다이렉트**(raw 500 방지). 크로스학급 create/reverse 는 403.
 - `rubric_configs_controller.rb` — 학급 루브릭 5축 가중치 설정(`edit`/`update`). 0..5 클램프, 채점에 반영.
-- `exports_controller.rb` — 독후감 사전·사후 5축 비교 원자료 **엑셀**(`reports_xlsx`). 학생 이름·학교·학년·반·번호 대신 서버 비밀키 HMAC 기반의 안정적인 `학생-<12hex>` 가명 ID를 넣고 대응표는 포함하지 않는다(ST-1). 표 조립만 하고 직렬화는 `Exports::XlsxWriter`(젬 없이 rubyzip)에 맡기며, 성공한 다운로드의 담당 학급 ID·행/학생 수·스키마 버전·직접식별정보 제거 여부를 `AuditLog`(`teacher.reports_xlsx_download`)에 기록한다. **예전에는 같은 표를 CSV 로 손수 인코딩했다** — 쉼표·따옴표는 정확히 다뤘지만 자유입력 책 제목의 `=HYPERLINK(...)` 가 엑셀에서 수식이 되는 표면이 남았고, XLSX 문자열 셀로 옮겨 그 표면을 없앴다. 경로 이름이 바뀌었으므로 앱 다운로드 판정(`config/hotwire_native/android_v1.json` 의 URL 패턴)도 함께 움직인다.
 - `prints_controller.rb` — **`index`(문서 출력 진입 화면)** + 인쇄용 HTML 4종: `award`(표창장)·`home_letter`(가정통신문)·`portfolio`(포트폴리오)·`class_report`(학급 리포트). **레이아웃은 람다 분기** — index 만 `application`(교사 네비가 있는 일반 화면), 문서 4종은 `print`. index 는 `set_classroom` 대신 `set_index_scope` 를 타는데, **담당 학급이 하나도 없어도 403 이 아니라 빈 상태**로 열기 위해서다(네비에 상시 노출되는 화면이라 학급 배정 전 교사에게 권한 오류를 띄우면 안 된다). 위조 `classroom_id` 는 그대로 `owned_classroom!` 이 403 으로 막는다. index 이전에는 4종 문서에 **웹·앱 어디에도 진입 링크가 없어** URL 직접 입력으로만 닿을 수 있었다.
 
 ## 패턴·규칙
 - **역할 게이트**: `Teacher::BaseController#require_teacher!` 가 교사/총괄 외 전 역할을 403 으로 차단하고, `verify_authorized` 를 스킵한다(per-action Pundit 아님).
 - **학급 경계**: 학급·학생·미션·퀴즈 접근은 `owned_classroom!`/`owned_student!` 로 담임 소유를 검증한다(타 학급 주입 시 403). 생성 시점에만 학급을 고정하고 update 에서 `classroom_id` 재배정을 막는다.
+- **제거 — 원자료 엑셀 내보내기**: 독후감 5축 원자료 **엑셀**(`exports_controller.rb` · `GET /teacher/exports/reports_xlsx`, 그 전에는 같은 표의 CSV `reports_csv`)은 2026-09-16 에 걷어냈다. 화면(`teacher/prints/index` 의 `#raw-export` 카드)·직렬화기(`Exports::XlsxWriter`)·라우트·앱 다운로드 규칙(`config/hotwire_native/android_v1.json`)을 함께 지웠고, `AuditLog::ACTION_LABELS` 의 `teacher.reports_xlsx_download`(구)만 지난 감사 기록을 읽기 위해 남겼다. `teacher_prints_test.rb` 가 문서 출력 화면·교사 네비에 되살아나지 않는지 지킨다.
 - **예외 — `reviews_controller.rb`**: 유일하게 `ApplicationController` 를 직접 상속하며, per-action `authorize ... ReportPolicy`(review?/approve?)로 인가한다. index·batch_approve 만 `ensure_reviewer!` 역할 게이트 + `verify_authorized` 스킵.
 
 ---

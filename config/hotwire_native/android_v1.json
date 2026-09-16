@@ -25,16 +25,6 @@
     },
     {
       "patterns": [
-        "^/teacher/exports/reports_xlsx$"
-      ],
-      "properties": {
-        "download": true,
-        "download_mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "download_filename": "5축_사전사후.xlsx"
-      }
-    },
-    {
-      "patterns": [
         "^/admin/analytics/export$"
       ],
       "properties": {
