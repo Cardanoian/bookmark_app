@@ -99,6 +99,18 @@ class LibraryBooksTest < ActionDispatch::IntegrationTest
     assert_no_match "꺼진 학급의 토론 글", response.body
   end
 
+  # 체험 시드처럼 글 없이 완료 원장만 있는 뒷이야기·책 소개는 "완료"로 보이지 않는다(보여 줄 글이 없다).
+  test "글 없는 뒷이야기·책 소개 완료 기록은 완료 칩을 만들지 않는다" do
+    @student.game_plays.create!(game_type: :sequel, book: @book, played_on: Date.current)
+    @student.game_plays.create!(game_type: :book, book: @book, played_on: Date.current)
+    login_as @student
+
+    get library_book_path(@book)
+    assert_response :success
+    assert_select "[data-game-completion]", 0
+    assert_match "아직 이 책으로 한 활동이 없어요", response.body
+  end
+
   test "기록이 없는 책은 빈 안내와 활동하기 링크를 보인다" do
     login_as @student
     get library_book_path(@book)

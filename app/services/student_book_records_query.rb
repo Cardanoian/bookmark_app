@@ -19,18 +19,18 @@ class StudentBookRecordsQuery
     @reports ||= @user.reports.where(book: @book).includes(:book).order(created_at: :desc).to_a
   end
 
-  # 게임 완료 원장(game_plays)을 종류별 마지막 날짜로 접는다. 옛 classic(고전 읽기 여행) 기록은
-  # quiz 로 통합된 게임이라 퀴즈로 합치고, 책 소개·뒷이야기는 쓴 글도 완료로 센다(시드처럼 글만 있고
-  # 원장이 없는 경우 — StudentLibraryQuery 의 게임 필터와 같은 기준). 순서는 카탈로그 순서.
+  # 게임 종류별 마지막 날짜, 카탈로그 순서. 퀴즈·나는 누구게?는 완료 원장(game_plays)으로 접고(옛 classic
+  # 은 quiz 로 합친다), **책 소개·뒷이야기는 쓴 글이 있을 때만 완료다** — 체험 시드처럼 원장만 있고 글이
+  # 없으면 "완료"라고 해 놓고 보여 줄 글이 없다. StudentLibraryQuery 의 게임 집계와 같은 기준.
   def game_completions
     @game_completions ||= begin
-      last_played = @user.game_plays.where(book: @book).group(:game_type).maximum(:played_on)
+      written = StudentLibraryQuery::WRITTEN_GAMES.keys
+      last_played = @user.game_plays.where(book: @book).where.not(game_type: written)
+                         .group(:game_type).maximum(:played_on)
       classic = last_played.delete("classic")
       last_played["quiz"] = [ last_played["quiz"], classic ].compact.max if classic
       { "book" => intros, "sequel" => sequels }.each do |key, writings|
-        next if writings.empty?
-
-        last_played[key] = [ last_played[key], writings.map { |w| w.created_at.to_date }.max ].compact.max
+        last_played[key] = writings.map { |w| w.created_at.to_date }.max if writings.any?
       end
 
       Games::BaseController::CATALOG.keys.filter_map do |key|

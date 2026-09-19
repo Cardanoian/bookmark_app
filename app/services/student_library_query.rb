@@ -9,6 +9,8 @@ class StudentLibraryQuery
   KINDS = [ "reports", *GAME_KINDS, "forum", "contributions" ].freeze
   # 학생이 직접 글을 쓰는 활동. 이 필터에서는 책 카드 대신 내가 쓴 글을 바로 보여 준다(writings).
   WRITING_KINDS = %w[book sequel forum].freeze
+  # 글을 써야 끝나는 게임(책 소개 대결·뒷이야기 이어쓰기). 완료 여부는 완료 원장이 아니라 쓴 글로 정한다.
+  WRITTEN_GAMES = { "book" => BookIntro, "sequel" => BookSequel }.freeze
 
   Entry = Struct.new(:book, :report_total, :report_approved, :report_pending, :game_types,
                      :forum_count, :contribution_count, :last_activity_at, keyword_init: true) do
@@ -107,9 +109,11 @@ class StudentLibraryQuery
   end
 
   # { book_id => { types: [게임 키, …(카탈로그 순)], last_at: } }
-  # 옛 classic(고전 읽기 여행) 기록은 quiz 로 통합된 게임이라 퀴즈로 센다. 책 소개·뒷이야기는 쓴 글
-  # 자체도 그 게임을 한 증거로 센다 — 시드 데이터처럼 글만 있고 완료 원장이 없는 경우에도 그 책이
-  # '뒷이야기 이어쓰기' 필터에 들고, 이 책의 내 기록 화면(StudentBookRecordsQuery)과 어긋나지 않게.
+  # 퀴즈·나는 누구게?는 완료 원장(game_plays)으로 센다(옛 classic 은 quiz 로 통합된 게임이라 퀴즈로).
+  # **책 소개·뒷이야기는 쓴 글이 있을 때만 완료다**(WRITTEN_GAMES) — 실제 앱에서는 글을 올려야 원장이
+  # 생기지만, 체험 시드는 원장만 숫자대로 만들어(DemoSeeder#seed_games) "뒷이야기 완료"인데 볼 글이 없는
+  # 책이 생겼다. 쓴 글이 기록의 진실이므로 그 두 게임의 원장 행은 화면 집계에 쓰지 않는다
+  # (StudentBookRecordsQuery#game_completions 와 같은 기준. 몬스터 지표[ReadingStats]는 원장을 그대로 센다).
   def game_stats_by_book
     stats = Hash.new { |hash, book_id| hash[book_id] = { types: [], last_at: nil } }
     add_game = lambda do |book_id, key, last_at|
@@ -118,9 +122,10 @@ class StudentLibraryQuery
       stat[:last_at] = [ stat[:last_at], last_at ].compact.max
     end
 
-    @user.game_plays.where.not(book_id: nil).group(:book_id, :game_type).maximum(:played_on)
+    @user.game_plays.where.not(book_id: nil).where.not(game_type: WRITTEN_GAMES.keys)
+         .group(:book_id, :game_type).maximum(:played_on)
          .each { |(book_id, game_type), played_on| add_game.call(book_id, game_type == "classic" ? "quiz" : game_type, to_time(played_on)) }
-    { "book" => BookIntro, "sequel" => BookSequel }.each do |key, model|
+    WRITTEN_GAMES.each do |key, model|
       model.where(user: @user).group(:book_id).maximum(:created_at)
            .each { |book_id, created_at| add_game.call(book_id, key, created_at) }
     end

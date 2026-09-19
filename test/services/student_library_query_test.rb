@@ -52,9 +52,14 @@ class StudentLibraryQueryTest < ActiveSupport::TestCase
   test "every activity kind puts its book on the shelf and each filter picks only its own books" do
     books = %w[독후감 퀴즈 나는누구게 책소개 뒷이야기 토론 출제].index_with { |name| Book.create!(title: "#{name}책", category: :recommended) }
     report(book: books["독후감"])
-    { "퀴즈" => :quiz, "나는누구게" => :whoami, "책소개" => :book, "뒷이야기" => :sequel }.each do |name, game_type|
+    { "퀴즈" => :quiz, "나는누구게" => :whoami }.each do |name, game_type|
       @student.game_plays.create!(game_type: game_type, book: books[name], played_on: Date.current)
     end
+    # 책 소개·뒷이야기는 실제 앱처럼 글과 완료 원장을 함께 만든다(완료 여부는 글로 정한다).
+    BookIntro.create!(user: @student, book: books["책소개"], classroom: @classroom, body: "이 책을 친구에게 소개해요.")
+    BookSequel.create!(user: @student, book: books["뒷이야기"], classroom: @classroom, body: "책이 끝난 뒤의 이야기예요.")
+    @student.game_plays.create!(game_type: :book, book: books["책소개"], played_on: Date.current)
+    @student.game_plays.create!(game_type: :sequel, book: books["뒷이야기"], played_on: Date.current)
     topic = Topic.create!(scope: :classroom, classroom: @classroom, book: books["토론"], title: "책 토론")
     ForumPost.create!(topic: topic, user: @student, text: "토론 글이에요")
     QuizContribution.create!(user: @student, book: books["출제"], classroom: @classroom, content_axis: :mcq, band: :g34,
@@ -71,7 +76,7 @@ class StudentLibraryQueryTest < ActiveSupport::TestCase
 
   test "an entry carries its game kinds in catalog order, counting old classic plays as the quiz" do
     book = Book.create!(title: "여러 게임 책", category: :recommended)
-    @student.game_plays.create!(game_type: :sequel, book: book, played_on: Date.current)
+    BookSequel.create!(user: @student, book: book, classroom: @classroom, body: "책이 끝난 뒤의 이야기예요.")
     @student.game_plays.create!(game_type: :classic, book: book, played_on: Date.current - 3)
 
     entry = StudentLibraryQuery.new(@student).entries.sole
@@ -89,6 +94,23 @@ class StudentLibraryQueryTest < ActiveSupport::TestCase
     assert_equal [ sequel_book ], StudentLibraryQuery.new(@student, kind: "sequel").entries.map(&:book)
     assert_equal [ intro_book ], StudentLibraryQuery.new(@student, kind: "book").entries.map(&:book)
     assert_equal %w[sequel], StudentBookRecordsQuery.new(@student, sequel_book).game_completions.map(&:key)
+  end
+
+  # 체험 시드(DemoSeeder#seed_games)는 글 없이 완료 원장만 숫자대로 만든다. 책 소개·뒷이야기는 쓴 글이
+  # 기록이라, 글 없는 원장만으로는 "완료"라고 하지 않는다(보여 줄 글이 없는 완료가 생겼다 — 운영 체험
+  # 이도현 학생의 『검피 아저씨의 뱃놀이』).
+  test "book or sequel game plays without a written entry are not shown as completed" do
+    book = Book.create!(title: "원장만 있는 책", category: :recommended)
+    @student.game_plays.create!(game_type: :sequel, book: book, played_on: Date.current)
+    @student.game_plays.create!(game_type: :book, book: book, played_on: Date.current)
+
+    assert_empty StudentLibraryQuery.new(@student).entries
+    assert_empty StudentLibraryQuery.new(@student, kind: "sequel").writings
+    assert_empty StudentBookRecordsQuery.new(@student, book).game_completions
+
+    @student.game_plays.create!(game_type: :whoami, book: book, played_on: Date.current)
+    assert_equal %w[whoami], StudentLibraryQuery.new(@student).entries.sole.game_types
+    assert_equal %w[whoami], StudentBookRecordsQuery.new(@student, book).game_completions.map(&:key)
   end
 
   test "hidden forum posts and discussion-off classrooms do not put a book on the shelf" do
