@@ -31,7 +31,7 @@ challenges:
     title: 전국 어린이 독서 릴레이
     description: 전국 친구들과 함께 달리는 독서 릴레이! 독후감 3편과 독서게임 4번에 도전해 보세요.
     starts_on: "2026-06-12"
-    ends_on: "2026-09-30"
+    ends_on: "2026-12-31"
     reward_points: 200
     goals:
       - { type: approved_reports, target: 3 }
