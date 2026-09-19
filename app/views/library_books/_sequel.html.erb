@@ -1,0 +1,16 @@
+<%# 내가 쓴 뒷이야기 카드 1장 — 이 책의 내 기록과 내 서재 '뒷이야기 이어쓰기' 필터가 함께 쓴다.
+    코멘트 영역은 뒷이야기 화면과 같은 파셜이라 담임 승인 전에는 코멘트를 렌더하지 않고, 잡 완료·승인 때
+    라이브 갱신된다. show_book 이면 책 제목(→ 이 책의 내 기록)을 머리에 단다. %>
+<%# locals: (sequel:, show_book: false) %>
+<%= turbo_stream_from sequel %>
+<article class="card" data-writing="sequel">
+  <% if show_book %>
+    <%= link_to "『#{sequel.book.title}』", library_book_path(sequel.book), class: "mb-2 block truncate font-semibold text-ink hover:underline" %>
+  <% end %>
+  <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= sequel.body %></p>
+  <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
+    <span><%= sequel.created_at.strftime("%Y.%m.%d") %></span>
+    <span class="text-brand-blue"><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 공감 <%= sequel.votes_count %></span>
+  </p>
+  <%= render "games/sequel/feedback", sequel: sequel %>
+</article>

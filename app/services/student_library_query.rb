@@ -7,6 +7,8 @@ class StudentLibraryQuery
   # 활동 종류 필터(화면 칩 순서). 게임 키는 게임 카탈로그가 단일 진실이다 — 게임이 늘면 필터·배지도 따라 는다.
   GAME_KINDS = Games::BaseController::CATALOG.keys.freeze
   KINDS = [ "reports", *GAME_KINDS, "forum", "contributions" ].freeze
+  # 학생이 직접 글을 쓰는 활동. 이 필터에서는 책 카드 대신 내가 쓴 글을 바로 보여 준다(writings).
+  WRITING_KINDS = %w[book sequel forum].freeze
 
   Entry = Struct.new(:book, :report_total, :report_approved, :report_pending, :game_types,
                      :forum_count, :contribution_count, :last_activity_at, keyword_init: true) do
@@ -30,6 +32,23 @@ class StudentLibraryQuery
 
   def entries
     @entries ||= build_entries
+  end
+
+  def writing_kind?
+    WRITING_KINDS.include?(@kind)
+  end
+
+  # 글쓰기 활동 필터(책 소개 대결·뒷이야기 이어쓰기·토론)에서 보여 줄 내가 쓴 글, 최신순. 학급 Scope 가
+  # 아니라 본인 글로 좁혀 반이 바뀌어도 보인다(StudentBookRecordsQuery 와 같은 기준). 토론은 서재가 책
+  # 단위라 책이 걸린 토론방의 보이는 글만이다.
+  def writings
+    @writings ||=
+      case @kind
+      when "book"   then BookIntro.where(user: @user).includes(:book).order(created_at: :desc, id: :desc).to_a
+      when "sequel" then BookSequel.where(user: @user).includes(:book, :user).order(created_at: :desc, id: :desc).to_a
+      when "forum"  then ForumPost.visible_in_book_topics.where(user: @user).includes(topic: :book).order(created_at: :desc, id: :desc).to_a
+      else []
+      end
   end
 
   # 책 미연결 독후감은 독후감이라 '전체'·'독후감' 필터에서만 보인다.

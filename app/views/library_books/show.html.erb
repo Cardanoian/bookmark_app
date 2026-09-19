@@ -79,18 +79,7 @@
               <h4 class="text-base font-semibold text-ink">내가 쓴 뒷이야기</h4>
               <%= link_to "친구들 이야기 보러 가기", games_sequel_play_path(book_id: @book.id), class: "btn btn-secondary btn-sm" %>
             </div>
-            <% @records.sequels.each do |sequel| %>
-              <%# 코멘트 영역은 뒷이야기 화면과 같은 파셜 — 담임 승인 전에는 코멘트를 렌더하지 않고, 잡 완료·승인 때 라이브 갱신된다. %>
-              <%= turbo_stream_from sequel %>
-              <article class="card">
-                <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= sequel.body %></p>
-                <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
-                  <span><%= sequel.created_at.strftime("%Y.%m.%d") %></span>
-                  <span class="text-brand-blue"><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 공감 <%= sequel.votes_count %></span>
-                </p>
-                <%= render "games/sequel/feedback", sequel: sequel %>
-              </article>
-            <% end %>
+            <%= render partial: "library_books/sequel", collection: @records.sequels, as: :sequel %>
           </div>
         <% end %>
 
@@ -100,15 +89,7 @@
               <h4 class="text-base font-semibold text-ink">내가 쓴 책 소개</h4>
               <%= link_to "책 소개 대결로 가기", games_book_play_path(book_id: @book.id), class: "btn btn-secondary btn-sm" %>
             </div>
-            <% @records.intros.each do |intro| %>
-              <article class="card">
-                <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= intro.body %></p>
-                <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
-                  <span><%= intro.created_at.strftime("%Y.%m.%d") %></span>
-                  <span class="text-brand-blue"><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 받은 표 <%= intro.votes_count %></span>
-                </p>
-              </article>
-            <% end %>
+            <%= render partial: "library_books/intro", collection: @records.intros, as: :intro %>
           </div>
         <% end %>
       <% else %>
@@ -126,27 +107,7 @@
           <span class="<%= section_icon %> bg-surface-mint text-moss-dark"><%= ui_icon :discussion, class_name: "h-4 w-4" %></span>
           토론에 쓴 글
         </h3>
-        <% stance_tones = { "pro" => "bg-blue-soft-deep text-blue-pressed", "con" => "bg-coral-light text-coral-dark" } %>
-        <% @records.forum_posts.each do |post| %>
-          <article class="card space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <%# 반이 바뀌면 예전 학급 토론방은 열 수 없다 — 그때는 제목만 보인다. %>
-              <% if policy(post.topic).show? %>
-                <%= link_to post.topic.title, topic_path(post.topic), class: "min-w-0 font-semibold text-brand-blue underline" %>
-              <% else %>
-                <span class="min-w-0 font-semibold text-ink"><%= post.topic.title %></span>
-              <% end %>
-              <% if post.stance %>
-                <span class="badge <%= stance_tones.fetch(post.stance) %>"><%= ForumPost::STANCE_LABELS.fetch(post.stance) %></span>
-              <% end %>
-            </div>
-            <p class="whitespace-pre-wrap text-sm leading-relaxed text-ink"><%= post.text %></p>
-            <p class="flex flex-wrap items-center gap-3 text-xs text-steel">
-              <span><%= post.created_at.strftime("%Y.%m.%d") %></span>
-              <span><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 좋아요 <%= post.likes_count %></span>
-            </p>
-          </article>
-        <% end %>
+        <%= render partial: "library_books/forum_post", collection: @records.forum_posts, as: :post %>
       </section>
     <% end %>
 

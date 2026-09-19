@@ -1,0 +1,25 @@
+<%# 내가 쓴 토론 글 카드 1장 — 이 책의 내 기록과 내 서재 '토론' 필터가 함께 쓴다(책이 걸린 토론방의 글만).
+    토론방 제목은 지금 열 수 있을 때만 링크한다 — 반이 바뀌면 예전 학급 토론방은 403 이라 제목만 보인다.
+    show_book 이면 책 제목(→ 이 책의 내 기록)을 머리에 단다. %>
+<%# locals: (post:, show_book: false) %>
+<% stance_tones = { "pro" => "bg-blue-soft-deep text-blue-pressed", "con" => "bg-coral-light text-coral-dark" } %>
+<article class="card space-y-2" data-writing="forum-post">
+  <% if show_book %>
+    <%= link_to "『#{post.topic.book.title}』", library_book_path(post.topic.book), class: "block truncate font-semibold text-ink hover:underline" %>
+  <% end %>
+  <div class="flex flex-wrap items-center gap-2">
+    <% if policy(post.topic).show? %>
+      <%= link_to post.topic.title, topic_path(post.topic), class: "min-w-0 font-semibold text-brand-blue underline" %>
+    <% else %>
+      <span class="min-w-0 font-semibold text-ink"><%= post.topic.title %></span>
+    <% end %>
+    <% if post.stance %>
+      <span class="badge <%= stance_tones.fetch(post.stance) %>"><%= ForumPost::STANCE_LABELS.fetch(post.stance) %></span>
+    <% end %>
+  </div>
+  <p class="whitespace-pre-wrap text-sm leading-relaxed text-ink"><%= post.text %></p>
+  <p class="flex flex-wrap items-center gap-3 text-xs text-steel">
+    <span><%= post.created_at.strftime("%Y.%m.%d") %></span>
+    <span><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 좋아요 <%= post.likes_count %></span>
+  </p>
+</article>
