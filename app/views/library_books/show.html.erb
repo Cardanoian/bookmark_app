@@ -1,0 +1,170 @@
+<% content_for :title, "#{@book.title} · 내 서재 · 책갈피" %>
+<%# 이 책의 내 기록(내 서재 책 제목의 목적지). 모든 기록은 본인 것만(StudentBookRecordsQuery).
+    독후감·게임 섹션은 늘 두고(빈 안내), 토론 글·낸 문제는 있을 때만 보인다. %>
+<% section_heading = "flex items-center gap-2 text-lg font-bold text-ink" %>
+<% section_icon = "flex h-8 w-8 items-center justify-center rounded-xl" %>
+
+<div class="page-shell page-shell-content space-y-6">
+  <h1 class="sr-only">『<%= @book.title %>』 내 기록</h1>
+  <%= render "shared/student_nav", active: :library %>
+
+  <%= link_to icon_text(:arrow_left, "내 서재"), library_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
+
+  <header class="page-header">
+    <h2 class="page-title flex items-center gap-2"><%= ui_icon :books, class_name: "h-7 w-7" %> 이 책의 내 기록</h2>
+  </header>
+
+  <section class="card flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div class="flex min-w-0 flex-1 items-center gap-3">
+      <% if @book.cover_url.present? %>
+        <%= image_tag @book.cover_url, alt: "", class: "h-24 w-16 shrink-0 rounded object-cover" %>
+      <% else %>
+        <span class="flex h-24 w-16 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-12 w-12" %></span>
+      <% end %>
+      <div class="min-w-0">
+        <span class="block font-semibold text-ink"><%= @book.title %></span>
+        <span class="block truncate text-sm text-steel"><%= @book.author %></span>
+        <%= book_meta_badges(@book) %>
+      </div>
+    </div>
+    <%= link_to "이 책으로 활동하기", reading_activity_path(book_id: @book.id), class: "btn btn-secondary btn-sm shrink-0 self-start sm:self-center" %>
+  </section>
+
+  <% if @records.empty? %>
+    <%= render "shared/empty_state", message: "아직 이 책으로 한 활동이 없어요. 독후감을 쓰거나 게임을 해 볼까요?", icon: :books %>
+  <% else %>
+    <%# ── 독후감 ── %>
+    <section id="book-reports" class="space-y-3" aria-labelledby="book-reports-title">
+      <h3 id="book-reports-title" class="<%= section_heading %>">
+        <span class="<%= section_icon %> bg-surface-yellow text-yellow-dark"><%= ui_icon :writing, class_name: "h-4 w-4" %></span>
+        독후감
+      </h3>
+      <% if @records.reports.any? %>
+        <div class="space-y-4">
+          <%= render partial: "reports/report", collection: @records.reports, locals: { show_delete: false } %>
+        </div>
+      <% else %>
+        <p class="text-sm text-steel">
+          아직 이 책으로 쓴 독후감이 없어요.
+          <%= link_to "독후감 쓰기", new_report_path(report: { book_id: @book.id, book_title: @book.title }), class: "text-brand-blue underline" %>
+        </p>
+      <% end %>
+    </section>
+
+    <%# ── 게임 기록: 완료 표시 + 내가 쓴 뒷이야기·책 소개 ── %>
+    <section id="book-games" class="space-y-4" aria-labelledby="book-games-title">
+      <h3 id="book-games-title" class="<%= section_heading %>">
+        <span class="<%= section_icon %> bg-surface-featured text-blue-pressed"><%= ui_icon :game, class_name: "h-4 w-4" %></span>
+        게임 기록
+      </h3>
+      <% if @records.games? %>
+        <% if @records.game_completions.any? %>
+          <ul class="grid gap-2 sm:grid-cols-2">
+            <% @records.game_completions.each do |completion| %>
+              <% meta = @game_catalog.fetch(completion.key) %>
+              <li class="flex items-center justify-between gap-3 rounded-xl px-4 py-3 <%= game_accent(completion.key) %>" data-game-completion="<%= completion.key %>">
+                <span class="flex min-w-0 items-center gap-2 font-semibold"><%= ui_icon meta[:icon], class_name: "h-5 w-5" %> <%= meta[:name] %></span>
+                <span class="flex shrink-0 flex-col items-end">
+                  <span class="flex items-center gap-1 text-sm font-semibold"><%= ui_icon :check, class_name: "h-4 w-4" %> 완료</span>
+                  <span class="text-xs">마지막 <%= completion.last_played_on.strftime("%Y.%m.%d") %></span>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+
+        <% if @records.sequels.any? %>
+          <div id="book-sequels" class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h4 class="text-base font-semibold text-ink">내가 쓴 뒷이야기</h4>
+              <%= link_to "친구들 이야기 보러 가기", games_sequel_play_path(book_id: @book.id), class: "btn btn-secondary btn-sm" %>
+            </div>
+            <% @records.sequels.each do |sequel| %>
+              <%# 코멘트 영역은 뒷이야기 화면과 같은 파셜 — 담임 승인 전에는 코멘트를 렌더하지 않고, 잡 완료·승인 때 라이브 갱신된다. %>
+              <%= turbo_stream_from sequel %>
+              <article class="card">
+                <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= sequel.body %></p>
+                <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
+                  <span><%= sequel.created_at.strftime("%Y.%m.%d") %></span>
+                  <span class="text-brand-blue"><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 공감 <%= sequel.votes_count %></span>
+                </p>
+                <%= render "games/sequel/feedback", sequel: sequel %>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if @records.intros.any? %>
+          <div id="book-intros" class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h4 class="text-base font-semibold text-ink">내가 쓴 책 소개</h4>
+              <%= link_to "책 소개 대결로 가기", games_book_play_path(book_id: @book.id), class: "btn btn-secondary btn-sm" %>
+            </div>
+            <% @records.intros.each do |intro| %>
+              <article class="card">
+                <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= intro.body %></p>
+                <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
+                  <span><%= intro.created_at.strftime("%Y.%m.%d") %></span>
+                  <span class="text-brand-blue"><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 받은 표 <%= intro.votes_count %></span>
+                </p>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="text-sm text-steel">
+          아직 이 책으로 한 게임이 없어요.
+          <%= link_to "게임하러 가기", reading_activity_path(book_id: @book.id), class: "text-brand-blue underline" %>
+        </p>
+      <% end %>
+    </section>
+
+    <%# ── 토론에 쓴 글(독서 토론 기능이 꺼진 학급이면 조회 자체를 하지 않는다) ── %>
+    <% if @records.forum_posts.any? %>
+      <section id="book-forum-posts" class="space-y-3" aria-labelledby="book-forum-posts-title">
+        <h3 id="book-forum-posts-title" class="<%= section_heading %>">
+          <span class="<%= section_icon %> bg-surface-mint text-moss-dark"><%= ui_icon :discussion, class_name: "h-4 w-4" %></span>
+          토론에 쓴 글
+        </h3>
+        <% stance_tones = { "pro" => "bg-blue-soft-deep text-blue-pressed", "con" => "bg-coral-light text-coral-dark" } %>
+        <% @records.forum_posts.each do |post| %>
+          <article class="card space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <%# 반이 바뀌면 예전 학급 토론방은 열 수 없다 — 그때는 제목만 보인다. %>
+              <% if policy(post.topic).show? %>
+                <%= link_to post.topic.title, topic_path(post.topic), class: "min-w-0 font-semibold text-brand-blue underline" %>
+              <% else %>
+                <span class="min-w-0 font-semibold text-ink"><%= post.topic.title %></span>
+              <% end %>
+              <% if post.stance %>
+                <span class="badge <%= stance_tones.fetch(post.stance) %>"><%= ForumPost::STANCE_LABELS.fetch(post.stance) %></span>
+              <% end %>
+            </div>
+            <p class="whitespace-pre-wrap text-sm leading-relaxed text-ink"><%= post.text %></p>
+            <p class="flex flex-wrap items-center gap-3 text-xs text-steel">
+              <span><%= post.created_at.strftime("%Y.%m.%d") %></span>
+              <span><%= ui_icon :like, class_name: "h-3.5 w-3.5" %> 좋아요 <%= post.likes_count %></span>
+            </p>
+          </article>
+        <% end %>
+      </section>
+    <% end %>
+
+    <%# ── 이 책으로 낸 문제 ── %>
+    <% if @records.contributions.any? %>
+      <section id="book-contributions" class="space-y-3" aria-labelledby="book-contributions-title">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="book-contributions-title" class="<%= section_heading %>">
+            <span class="<%= section_icon %> bg-surface-coral text-coral-dark"><%= ui_icon :quiz, class_name: "h-4 w-4" %></span>
+            내가 낸 문제
+          </h3>
+          <%= link_to "내가 낸 문제 모두 보기", quiz_contributions_path, class: "btn btn-secondary btn-sm" %>
+        </div>
+        <ul class="space-y-4">
+          <%= render partial: "quiz_contributions/contribution", collection: @records.contributions, as: :contribution,
+                locals: { show_book: false } %>
+        </ul>
+      </section>
+    <% end %>
+  <% end %>
+</div>

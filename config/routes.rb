@@ -44,7 +44,10 @@ Rails.application.routes.draw do
   resource :guide, only: [ :show ], controller: "guides"
   resource :ranking_preference, only: [ :edit, :update ]
   # 학생 정보구조(menu_refactor 심화 PR5): 내 서재(책별 활동 포트폴리오) + 독서활동(책 선택→독후감/게임 허브).
-  resource :library, only: [ :show ], controller: "libraries"
+  resource :library, only: [ :show ], controller: "libraries" do
+    # 이 책의 내 기록(서재 책 제목의 목적지) — 독후감·게임·토론 글·낸 문제를 책 한 권 기준으로 모은다.
+    resources :books, only: [ :show ], controller: "library_books"
+  end
   resource :reading_activity, only: [ :show ], controller: "reading_activities" do
     # 인근 도서관 대출 가능 표시(Turbo Frame lazy-load). book_id 는 쿼리로 전달.
     get :nearby_libraries

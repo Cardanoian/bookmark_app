@@ -8,9 +8,9 @@
     <h2 class="page-title flex items-center gap-2"><%= ui_icon :books, class_name: "h-7 w-7" %> 내 서재</h2>
   </header>
 
-  <%# kind 필터 %>
+  <%# 활동 종류 필터 — 전체·독후감·게임 4종·토론·내가 낸 문제를 하나씩 고른다(칩 목록은 컨트롤러가 만든다). %>
   <nav class="flex flex-wrap gap-1.5" aria-label="활동 종류 필터">
-    <% [ [ nil, "전체" ], [ "reports", "독후감 있음" ], [ "games", "게임 기록 있음" ] ].each do |value, label| %>
+    <% @filters.each do |value, label| %>
       <%= link_to label, library_path(kind: value),
             aria: { current: (@kind == value ? "page" : nil) },
             class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@kind == value ? "bg-brand-blue text-white" : "text-steel hover:bg-surface"}" %>
@@ -28,14 +28,17 @@
               <span class="flex h-24 w-16 shrink-0 items-center justify-center rounded bg-surface"><%= ui_icon :book_cover, class_name: "h-12 w-12" %></span>
             <% end %>
             <div class="min-w-0">
-              <%= link_to entry.book.title, reports_path(book_id: entry.book.id),
+              <%# 책 제목 → 이 책의 내 기록(독후감·게임·토론 글·낸 문제). 책 미연결 레거시 독후감은 아래에서 독후감 목록으로 간다. %>
+              <%= link_to entry.book.title, library_book_path(entry.book),
                     class: "block truncate font-semibold text-ink hover:underline" %>
               <span class="block truncate text-sm text-steel"><%= entry.book.author %></span>
               <%= book_meta_badges(entry.book) %>
               <div class="mt-1 flex flex-wrap gap-1.5 text-xs">
                 <% if entry.report_approved.positive? %><span class="badge badge-success">승인 독후감 <%= entry.report_approved %></span><% end %>
                 <% if entry.report_pending.positive? %><span class="badge badge-yellow">검토 중 <%= entry.report_pending %></span><% end %>
-                <% if entry.game_count.positive? %><span class="badge badge-info">게임 <%= entry.game_count %></span><% end %>
+                <% entry.game_types.each do |key| %><span class="badge <%= game_accent(key) %>"><%= @game_catalog.fetch(key)[:name] %></span><% end %>
+                <% if entry.forum_count.positive? %><span class="badge badge-neutral">토론 글 <%= entry.forum_count %></span><% end %>
+                <% if entry.contribution_count.positive? %><span class="badge badge-neutral">낸 문제 <%= entry.contribution_count %></span><% end %>
               </div>
             </div>
           </div>
@@ -46,6 +49,9 @@
         </div>
       <% end %>
     </div>
+  <% elsif @kind && @legacy_groups.empty? %>
+    <%= render "shared/empty_state", message: "이 활동을 한 책이 아직 없어요.", icon: :books %>
+    <%= link_to "전체 보기", library_path, class: "btn btn-secondary btn-sm" %>
   <% else %>
     <%= render "shared/empty_state", message: "아직 활동한 책이 없어요. 첫 독서활동을 시작해 볼까요?", icon: :books %>
     <%= link_to "독서활동 시작하기", reading_activity_path, class: "btn btn-yellow btn-sm" %>

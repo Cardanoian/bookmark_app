@@ -25,6 +25,9 @@ class ForumPost < ApplicationRecord
   validate :stance_must_match_topic_kind, if: -> { new_record? || will_save_change_to_stance? }
 
   scope :visible, -> { where(hidden: false) }
+  # 책이 걸린 토론방의 보이는 글 — 숨김 글·숨김 토론방은 토론방 화면에서도 보이지 않으므로 뺀다.
+  # 내 서재(StudentLibraryQuery)와 이 책의 내 기록(StudentBookRecordsQuery)이 같은 기준을 쓴다.
+  scope :visible_in_book_topics, -> { visible.joins(:topic).merge(Topic.visible).where.not(topics: { book_id: nil }) }
 
   # 사용자가 이 글을 좋아요했는지 여부.
   def liked_by?(user)

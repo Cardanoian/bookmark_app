@@ -180,7 +180,40 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "메뉴책", response.body
     assert_match "승인 독후감", response.body
-    assert_match "게임", response.body
+    # 게임은 한 종류씩 배지로 보인다(게임 이름은 게임 카탈로그).
+    assert_select ".badge", text: "독서 퀴즈"
+  end
+
+  test "내 서재는 활동 종류마다 필터 칩을 두고, 고른 활동을 한 책만 보인다" do
+    other = Book.create!(title: "뒷이야기만 쓴 책", author: "지은이", category: :recommended)
+    Report.create!(user: @student, classroom: @classroom, book: @book, book_title: @book.title, reviewed: true)
+    @student.game_plays.create!(game_type: :sequel, book: other, played_on: Date.current)
+
+    get library_path
+    %w[전체 독후감 독서\ 퀴즈 나는\ 누구게? 책\ 소개\ 대결 뒷이야기\ 이어쓰기 토론 내가\ 낸\ 문제].each do |label|
+      assert_select "nav[aria-label='활동 종류 필터'] a", text: label
+    end
+
+    get library_path(kind: "sequel")
+    assert_select "nav[aria-label='활동 종류 필터'] a[aria-current=page]", text: "뒷이야기 이어쓰기"
+    assert_match "뒷이야기만 쓴 책", response.body
+    assert_no_match "메뉴책", response.body
+
+    get library_path(kind: "whoami")
+    assert_match "이 활동을 한 책이 아직 없어요", response.body
+  end
+
+  test "책 미연결 독후감만 있으면 독후감 필터가 '책이 없어요' 대신 그 독후감 묶음을 보인다" do
+    Report.create!(user: @student, classroom: @classroom, book_id: nil, book_title: "옛날 책", reviewed: true)
+    get library_path(kind: "reports")
+    assert_match "옛날 책", response.body
+    assert_no_match "이 활동을 한 책이 아직 없어요", response.body
+  end
+
+  test "독서 토론이 꺼진 학급의 내 서재에는 토론 칩이 없다" do
+    AppSetting.create!(key: "feature_flags", value: { "reading_discussion" => false })
+    get library_path
+    assert_select "nav[aria-label='활동 종류 필터'] a", text: "토론", count: 0
   end
 
   test "내 서재는 책 미연결 레거시 독후감을 별도로 표시한다" do

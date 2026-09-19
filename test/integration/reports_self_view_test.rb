@@ -1,6 +1,6 @@
 require "test_helper"
 
-# 요구 2 — 자기 독후감 열람 뷰. 내 서재(책 제목)·마이페이지(활동 통계 타일)·독후감 목록 카드에서
+# 요구 2 — 자기 독후감 열람 뷰. 내 서재(책 미연결 레거시 제목)·마이페이지(활동 통계 타일)·독후감 목록 카드에서
 # reports#index 로 이어지는 열람 링크(worker-1 index 필터 계약: book_id/book_title/reviewed)를 검증한다.
 class ReportsSelfViewTest < ActionDispatch::IntegrationTest
   setup do
@@ -10,7 +10,8 @@ class ReportsSelfViewTest < ActionDispatch::IntegrationTest
     @book = Book.create!(title: "열람 테스트 책", author: "테스트저자", category: :recommended)
   end
 
-  test "내 서재 책 제목은 그 책의 독후감 목록(book_id)으로 링크한다" do
+  # 책 제목은 그 책의 내 기록(독후감·게임·토론 글·낸 문제)으로, 책 미연결 레거시 독후감은 독후감 목록으로 간다.
+  test "내 서재 책 제목은 이 책의 내 기록으로, 레거시 제목은 독후감 목록으로 링크한다" do
     Report.create!(user: @student, classroom: @classroom, book_id: @book.id,
       body: "책과 연결된 독후감입니다.", reviewed: true)
     Report.create!(user: @student, classroom: @classroom, book_title: "레거시 도서",
@@ -20,7 +21,7 @@ class ReportsSelfViewTest < ActionDispatch::IntegrationTest
     get library_path
     assert_response :success
 
-    assert_select "a[href=?]", reports_path(book_id: @book.id), text: @book.title
+    assert_select "a[href=?]", library_book_path(@book), text: @book.title
     assert_select "a[href=?]", reports_path(book_title: "레거시 도서"), text: "레거시 도서"
   end
 

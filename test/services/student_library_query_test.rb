@@ -48,6 +48,98 @@ class StudentLibraryQueryTest < ActiveSupport::TestCase
     assert_equal Time.zone.local(2026, 9, 4, 10), group.last_activity_at
   end
 
+  # ── 활동 종류별 필터 ─────────────────────────────────────────────────────
+  test "every activity kind puts its book on the shelf and each filter picks only its own books" do
+    books = %w[독후감 퀴즈 나는누구게 책소개 뒷이야기 토론 출제].index_with { |name| Book.create!(title: "#{name}책", category: :recommended) }
+    report(book: books["독후감"])
+    { "퀴즈" => :quiz, "나는누구게" => :whoami, "책소개" => :book, "뒷이야기" => :sequel }.each do |name, game_type|
+      @student.game_plays.create!(game_type: game_type, book: books[name], played_on: Date.current)
+    end
+    topic = Topic.create!(scope: :classroom, classroom: @classroom, book: books["토론"], title: "책 토론")
+    ForumPost.create!(topic: topic, user: @student, text: "토론 글이에요")
+    QuizContribution.create!(user: @student, book: books["출제"], classroom: @classroom, content_axis: :mcq, band: :g34,
+                             payload: { "prompt" => "질문?", "choices" => %w[가 나 다 라], "answer_index" => 0, "explanation" => "" })
+
+    assert_equal books.values.map(&:id).sort, StudentLibraryQuery.new(@student).entries.map { |e| e.book.id }.sort
+
+    expected = { "reports" => "독후감", "quiz" => "퀴즈", "whoami" => "나는누구게", "book" => "책소개",
+                 "sequel" => "뒷이야기", "forum" => "토론", "contributions" => "출제" }
+    expected.each do |kind, name|
+      assert_equal [ books[name] ], StudentLibraryQuery.new(@student, kind: kind).entries.map(&:book), "kind=#{kind}"
+    end
+  end
+
+  test "an entry carries its game kinds in catalog order, counting old classic plays as the quiz" do
+    book = Book.create!(title: "여러 게임 책", category: :recommended)
+    @student.game_plays.create!(game_type: :sequel, book: book, played_on: Date.current)
+    @student.game_plays.create!(game_type: :classic, book: book, played_on: Date.current - 3)
+
+    entry = StudentLibraryQuery.new(@student).entries.sole
+    assert_equal %w[quiz sequel], entry.game_types
+    assert_equal [ book ], StudentLibraryQuery.new(@student, kind: "quiz").entries.map(&:book)
+  end
+
+  # 시드 데이터처럼 뒷이야기·책 소개 글만 있고 게임 완료 원장이 없어도 그 게임을 한 책으로 센다.
+  test "a written sequel or intro counts as that game even without a game_play row" do
+    sequel_book = Book.create!(title: "글만 있는 뒷이야기 책", category: :recommended)
+    intro_book = Book.create!(title: "글만 있는 책 소개 책", category: :recommended)
+    BookSequel.create!(user: @student, book: sequel_book, classroom: @classroom, body: "책이 끝난 뒤의 이야기예요.")
+    BookIntro.create!(user: @student, book: intro_book, classroom: @classroom, body: "이 책을 친구에게 소개해요.")
+
+    assert_equal [ sequel_book ], StudentLibraryQuery.new(@student, kind: "sequel").entries.map(&:book)
+    assert_equal [ intro_book ], StudentLibraryQuery.new(@student, kind: "book").entries.map(&:book)
+    assert_equal %w[sequel], StudentBookRecordsQuery.new(@student, sequel_book).game_completions.map(&:key)
+  end
+
+  test "hidden forum posts and discussion-off classrooms do not put a book on the shelf" do
+    book = Book.create!(title: "숨긴 토론 책", category: :recommended)
+    topic = Topic.create!(scope: :classroom, classroom: @classroom, book: book, title: "토론")
+    ForumPost.create!(topic: topic, user: @student, text: "숨긴 글", hidden: true)
+    assert_empty StudentLibraryQuery.new(@student).entries
+
+    ForumPost.create!(topic: topic, user: @student, text: "보이는 글")
+    assert_equal 1, StudentLibraryQuery.new(@student).entries.sole.forum_count
+    assert_empty StudentLibraryQuery.new(@student, forum: false).entries
+  end
+
+  test "posts in a hidden topic count nowhere, and a forum filter falls back to all when discussion is off" do
+    book = Book.create!(title: "숨긴 토론방 책", category: :recommended)
+    topic = Topic.create!(scope: :classroom, classroom: @classroom, book: book, title: "숨긴 토론방", hidden: true)
+    ForumPost.create!(topic: topic, user: @student, text: "보이는 글이지만 토론방이 숨김")
+
+    assert_empty StudentLibraryQuery.new(@student).entries
+    assert_empty StudentBookRecordsQuery.new(@student, book).forum_posts
+    assert_nil StudentLibraryQuery.new(@student, kind: "forum", forum: false).kind
+    assert_equal "forum", StudentLibraryQuery.new(@student, kind: "forum").kind
+  end
+
+  # 게임 완료일은 날짜뿐이라 앱 시간대(KST) 자정으로 잰다 — 서버 OS 시간대(운영 UTC)를 따르면 09:00 이 됐다.
+  test "a game's last activity is midnight of its play date in the app time zone" do
+    book = Book.create!(title: "게임한 책", category: :recommended)
+    @student.game_plays.create!(game_type: :quiz, book: book, played_on: Date.new(2026, 9, 19))
+
+    assert_equal Time.zone.local(2026, 9, 19), StudentLibraryQuery.new(@student).entries.sole.last_activity_at
+  end
+
+  test "the book records page folds old classic plays into the quiz chip" do
+    book = Book.create!(title: "고전 읽기 책", category: :recommended)
+    @student.game_plays.create!(game_type: :classic, book: book, played_on: Date.new(2026, 9, 1))
+    @student.game_plays.create!(game_type: :quiz, book: book, played_on: Date.new(2026, 8, 1))
+
+    completions = StudentBookRecordsQuery.new(@student, book).game_completions
+    assert_equal %w[quiz], completions.map(&:key)
+    assert_equal Date.new(2026, 9, 1), completions.sole.last_played_on
+  end
+
+  test "unknown kinds fall back to all, and legacy title-only groups show only for all and reports" do
+    report(book_title: "제목만 쓴 책")
+
+    assert_nil StudentLibraryQuery.new(@student, kind: "games").kind
+    assert_equal 1, StudentLibraryQuery.new(@student).legacy_report_groups.size
+    assert_equal 1, StudentLibraryQuery.new(@student, kind: "reports").legacy_report_groups.size
+    assert_empty StudentLibraryQuery.new(@student, kind: "quiz").legacy_report_groups
+  end
+
   private
 
   def report(**attributes)
