@@ -13,11 +13,13 @@ class DemoData::DemoSeederGamesTest < ActiveSupport::TestCase
     @student = User.create!(school: @school, classroom: @classroom, name: "시드학생", password: "password")
     @peer = User.create!(school: @school, classroom: @classroom, name: "시드친구", password: "password")
     @seeder = DemoSeeder.new(io: StringIO.new)
-    # 시더의 기본 도서 풀(줄거리 있는 책)과, 예시 글 풀(book_social.yml)에 있는 책 몇 권.
-    4.times { |i| Book.create!(title: "풀 도서 #{i}", summary: "줄거리", category: :recommended) }
+    # 시더의 기본 도서 풀(줄거리 있는 책 — 퀴즈 기록이 여기서 책을 고른다)과, 예시 글 풀(book_social.yml)에 있는
+    # 책. 예시 글 책은 줄거리를 비워 기본 풀과 겹치지 않게 한다 — 겹치면 사용자 id 에 따라 퀴즈 기록이 예시 글
+    # 책을 먼저 가져가 글 쓸 책이 모자라는 불안정한 테스트가 된다.
+    8.times { |i| Book.create!(title: "풀 도서 #{i}", summary: "줄거리", category: :recommended) }
     social = YAML.load_file(DemoSeeder::SOCIAL_TEXTS_PATH)
-    @social_books = social.first(6).map do |isbn, texts|
-      Book.create!(title: texts.fetch("title"), isbn: isbn, summary: "줄거리", category: :recommended)
+    @social_books = social.first(10).map do |isbn, texts|
+      Book.create!(title: texts.fetch("title"), isbn: isbn, category: :recommended)
     end
   end
 
@@ -42,9 +44,9 @@ class DemoData::DemoSeederGamesTest < ActiveSupport::TestCase
     assert_empty quiz_books & written.map(&:book_id), "게임으로 만난 책 수가 줄지 않게 다른 책에 쓴다"
     assert_equal 8, plays.distinct.count(:book_id)
 
-    # 서재에 글로 보인다.
-    assert_equal 2, StudentLibraryQuery.new(@student, kind: "sequel").writings.size
-    assert_equal 2, StudentLibraryQuery.new(@student, kind: "book").writings.size
+    # 서재의 뒷이야기·책 소개 필터에 그 책들이 오른다(쓴 글이 있어 완료로 보인다).
+    assert_equal written.select(&:sequel?).map(&:book_id).sort, StudentLibraryQuery.new(@student, kind: "sequel").entries.map { |e| e.book.id }.sort
+    assert_equal written.select(&:book?).map(&:book_id).sort, StudentLibraryQuery.new(@student, kind: "book").entries.map { |e| e.book.id }.sort
   end
 
   test "writing dates fall in the first term or September, never in August or the future" do

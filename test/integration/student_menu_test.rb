@@ -204,44 +204,42 @@ class StudentMenuTest < ActionDispatch::IntegrationTest
   end
 
   # 글쓰기 활동(책 소개 대결·뒷이야기 이어쓰기·토론)은 책 카드 대신 내가 쓴 글을 바로 보인다.
-  test "글쓰기 활동 필터는 내가 쓴 글을 책 제목과 함께 바로 보이고, 남의 글·숨김 글·미승인 코멘트는 없다" do
+  # 모든 필터가 같은 책 카드다(2026-09-20) — 책 소개·뒷이야기·토론 글은 책 제목 → 이 책의 내 기록에서 본다.
+  test "책 소개·뒷이야기·토론 필터도 책 카드로 보이고 남의 글·숨김 글로는 책이 오르지 않는다" do
     other = Book.create!(title: "두 번째 책", author: "지은이", category: :recommended)
+    peer_book = Book.create!(title: "친구만 쓴 책", author: "지은이", category: :recommended)
+    hidden_book = Book.create!(title: "숨긴 글만 있는 책", author: "지은이", category: :recommended)
     peer = User.create!(school: @school, classroom: @classroom, name: "같은반친구", password: "password")
-    teacher = User.create!(school: @school, name: "담임", role: :teacher, email: "writing_t@example.com", password: "password")
-    BookSequel.create!(user: @student, book: @book, classroom: @classroom, body: "첫 번째 책의 뒷이야기예요.",
-                       ai_status: :done, ai_comment: "아직비공개인AI코멘트")
-    approved = BookSequel.create!(user: @student, book: other, classroom: @classroom, body: "두 번째 책의 뒷이야기예요.",
-                                  ai_status: :done, ai_comment: "원래 코멘트")
-    approved.approve(by: teacher, comment: "승인한 코멘트예요")
-    BookSequel.create!(user: peer, book: @book, classroom: @classroom, body: "친구가 쓴 뒷이야기예요.")
+    BookSequel.create!(user: @student, book: @book, classroom: @classroom, body: "첫 번째 책의 뒷이야기예요.")
+    BookSequel.create!(user: peer, book: peer_book, classroom: @classroom, body: "친구가 쓴 뒷이야기예요.")
     BookIntro.create!(user: @student, book: other, classroom: @classroom, body: "두 번째 책을 소개해요.")
     topic = Topic.create!(scope: :classroom, classroom: @classroom, book: @book, title: "주인공 이야기")
     ForumPost.create!(topic: topic, user: @student, text: "내 토론 글이에요")
-    ForumPost.create!(topic: topic, user: @student, text: "숨긴 내 토론 글", hidden: true)
+    hidden_topic = Topic.create!(scope: :classroom, classroom: @classroom, book: hidden_book, title: "숨긴 토론")
+    ForumPost.create!(topic: hidden_topic, user: @student, text: "숨긴 내 토론 글", hidden: true)
 
     get library_path(kind: "sequel")
-    assert_select "#library-writings [data-writing=sequel]", 2
-    assert_select "#library-writings a[href=?]", library_book_path(@book), text: "『메뉴책』"
-    assert_match "두 번째 책의 뒷이야기예요", response.body
-    assert_match "승인한 코멘트예요", response.body
-    assert_match "선생님이 코멘트를 확인하고 있어요", response.body
-    assert_no_match "아직비공개인AI코멘트", response.body
-    assert_no_match "친구가 쓴 뒷이야기", response.body
+    assert_select "a[href=?]", library_book_path(@book), text: "메뉴책"
+    assert_select ".badge", text: "뒷이야기 이어쓰기"
+    assert_no_match "첫 번째 책의 뒷이야기예요", response.body
+    assert_no_match "친구만 쓴 책", response.body
 
     get library_path(kind: "book")
-    assert_select "#library-writings [data-writing=intro]", 1
-    assert_match "두 번째 책을 소개해요", response.body
+    assert_select "a[href=?]", library_book_path(other), text: "두 번째 책"
+    assert_no_match "메뉴책", response.body
 
     get library_path(kind: "forum")
-    assert_select "#library-writings [data-writing=forum-post]", 1
-    assert_match "내 토론 글이에요", response.body
-    assert_no_match "숨긴 내 토론 글", response.body
-    assert_select "#library-writings a[href=?]", topic_path(topic), text: "주인공 이야기"
+    assert_select "a[href=?]", library_book_path(@book), text: "메뉴책"
+    assert_select ".badge", text: "토론 글 1"
+    assert_no_match "내 토론 글이에요", response.body
+    assert_no_match "숨긴 글만 있는 책", response.body
   end
 
-  test "글쓰기 활동 필터에 쓴 글이 없으면 빈 안내를 보인다" do
-    get library_path(kind: "book")
-    assert_match "아직 여기에 쓴 글이 없어요", response.body
+  test "고른 활동을 한 책이 없으면 책이 없다는 안내를 보인다" do
+    %w[forum book sequel].each do |kind|
+      get library_path(kind:)
+      assert_match "이 활동을 한 책이 아직 없어요", response.body, "kind=#{kind}"
+    end
   end
 
   test "책 미연결 독후감만 있으면 독후감 필터가 '책이 없어요' 대신 그 독후감 묶음을 보인다" do

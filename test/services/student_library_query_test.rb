@@ -105,7 +105,7 @@ class StudentLibraryQueryTest < ActiveSupport::TestCase
     @student.game_plays.create!(game_type: :book, book: book, played_on: Date.current)
 
     assert_empty StudentLibraryQuery.new(@student).entries
-    assert_empty StudentLibraryQuery.new(@student, kind: "sequel").writings
+    assert_empty StudentLibraryQuery.new(@student, kind: "sequel").entries
     assert_empty StudentBookRecordsQuery.new(@student, book).game_completions
 
     @student.game_plays.create!(game_type: :whoami, book: book, played_on: Date.current)

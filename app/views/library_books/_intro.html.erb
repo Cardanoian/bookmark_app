@@ -1,10 +1,6 @@
-<%# 내가 쓴 책 소개 카드 1장 — 이 책의 내 기록과 내 서재 '책 소개 대결' 필터가 함께 쓴다.
-    show_book 이면 책 제목(→ 이 책의 내 기록)을 머리에 단다. %>
-<%# locals: (intro:, show_book: false) %>
+<%# 내가 쓴 책 소개 카드 1장(이 책의 내 기록). %>
+<%# locals: (intro:) %>
 <article class="card" data-writing="intro">
-  <% if show_book %>
-    <%= link_to "『#{intro.book.title}』", library_book_path(intro.book), class: "mb-2 block truncate font-semibold text-ink hover:underline" %>
-  <% end %>
   <p class="whitespace-pre-line wrap-break-word text-sm text-ink"><%= intro.body %></p>
   <p class="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
     <span><%= intro.created_at.strftime("%Y.%m.%d") %></span>

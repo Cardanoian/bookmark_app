@@ -20,13 +20,7 @@ class LibrariesController < ApplicationController
     @filters = [ [ nil, "전체" ] ] + StudentLibraryQuery::KINDS.filter_map do |kind|
       [ kind, KIND_LABELS.fetch(kind) ] unless kind == "forum" && !forum
     end
-    # 글쓰기 활동(책 소개·뒷이야기·토론)을 고르면 책 카드 대신 내가 쓴 글을 바로 보여 준다.
-    if query.writing_kind?
-      @writings = query.writings
-      @entries = []
-    else
-      @entries = query.entries
-    end
+    @entries = query.entries
     @legacy_groups = query.legacy_report_groups
     @game_catalog = Games::BaseController::CATALOG
   end

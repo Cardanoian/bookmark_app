@@ -17,21 +17,8 @@
     <% end %>
   </nav>
 
-  <%# 글쓰기 활동 필터(책 소개 대결·뒷이야기 이어쓰기·토론) — 책 카드 대신 내가 쓴 글을 최신순으로 바로 보인다.
-      카드는 이 책의 내 기록과 같은 파셜이라 뒷이야기 코멘트도 담임 승인 뒤에만 보인다. %>
-  <% if @writings %>
-    <% if @writings.any? %>
-      <% partial, as = { "book" => [ "library_books/intro", :intro ], "sequel" => [ "library_books/sequel", :sequel ],
-                         "forum" => [ "library_books/forum_post", :post ] }.fetch(@kind) %>
-      <p class="text-sm text-steel">내가 쓴 글 <%= @writings.size %>편 · 책 제목을 누르면 그 책의 내 기록을 볼 수 있어요.</p>
-      <div id="library-writings" class="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
-        <%= render partial: partial, collection: @writings, as: as, locals: { show_book: true } %>
-      </div>
-    <% else %>
-      <%= render "shared/empty_state", message: "아직 여기에 쓴 글이 없어요.", icon: (@kind == "forum" ? :discussion : :writing) %>
-      <%= link_to "전체 보기", library_path, class: "btn btn-secondary btn-sm" %>
-    <% end %>
-  <% elsif @entries.any? %>
+  <%# 모든 필터가 같은 책 카드다 — 쓴 글(독후감·뒷이야기·책 소개·토론 글·낸 문제)은 책 제목 → 이 책의 내 기록에서 본다. %>
+  <% if @entries.any? %>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <% @entries.each do |entry| %>
         <div class="card space-y-2">
