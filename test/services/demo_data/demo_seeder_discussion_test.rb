@@ -76,6 +76,8 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
     end
     Report.create!(user: existing.first, classroom:, book_title: "기존 글", body: "기존 학생이 쓴 글입니다.", submitted_at: Time.current)
     seed.fetch("topics").each { |topic| Topic.create!(classroom:, title: topic.fetch("title")) }
+    # 정본 뒷이야기는 제목이 정확히 같은 카탈로그 도서에 연결한다(없으면 시더가 멈춘다).
+    seed.fetch("book_sequels").each { |definition| Book.create!(title: definition.fetch("book_title")) }
 
     DemoSeeder.new(io: StringIO.new, only_files: [ "sample_3_1.yml" ]).call
 
@@ -83,6 +85,11 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
     assert_equal [ "free" ], topics.distinct.pluck(:kind)
     assert ForumPost.where(topic: topics).exists?
     assert_equal [ nil ], ForumPost.where(topic: topics).distinct.pluck(:stance)
+
+    # 증원 계약: 이미 있던 학생 명의의 정본 뒷이야기는 만들지 않고, 새 학생의 것만 만든다.
+    assert_not BookSequel.where(user: existing).exists?
+    new_authors = seed.fetch("book_sequels").map { |definition| definition.fetch("student_name") } - existing.map(&:name)
+    assert_equal new_authors.sort, BookSequel.where(classroom:).joins(:user).pluck("users.name").sort
   end
 
   # 레거시 문자열형 글은 입장이 없으므로, 학급에 있는 찬반 토론방(사용자가 연 것)에는 배정하지 않는다.

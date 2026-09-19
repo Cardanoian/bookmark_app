@@ -2,7 +2,8 @@ require "test_helper"
 
 # 뒷이야기 이어쓰기(sequel) — 게임 재구성 Phase 2의 창작 소셜 도메인(book 미러). 창작 작성·또래 1인 1공감·
 # 자기 글 공감 불가·**크로스-학급 차단**을 검증하고, 제출 시 game_plays(sequel) 원장 + 미션/몬스터 재평가 +
-# SequelFeedbackJob(AI 코멘트 비동기) 큐잉을 확인한다. AI 코멘트는 작성자 본인에게만 노출된다.
+# SequelFeedbackJob(AI 코멘트 비동기) 큐잉을 확인한다. AI 코멘트는 담임이 승인한 뒤에 작성자 본인에게만
+# 노출된다(담임 검토 화면은 teacher_sequel_reviews_test).
 class GamesSequelTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
@@ -134,14 +135,31 @@ class GamesSequelTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  # ── AI 코멘트 노출: 작성자 본인에게만 ──────────────────────────────────────
-  test "the AI comment is shown to its author but hidden from classmates" do
+  # ── AI 코멘트 노출: 담임 승인 뒤, 작성자 본인에게만 ─────────────────────────
+  test "an unapproved AI comment is hidden even from its author until the teacher approves it" do
     sequel = create_sequel(@student_a, body: "주인공이 다시 만난 이야기를 상상했어요.")
     sequel.update!(ai_status: :done, ai_comment: "상상력이 반짝이는 뒷이야기예요!")
 
     login_as @student_a
     get games_sequel_play_path(book_id: @book.id)
-    assert_includes response.body, "상상력이 반짝이는 뒷이야기예요!", "작성자는 자기 글의 AI 코멘트를 본다"
+    refute_includes response.body, "상상력이 반짝이는 뒷이야기예요!", "승인 전 AI 코멘트는 응답 본문에 없다(숨김이 아니라 미렌더)"
+    assert_includes response.body, "선생님이 코멘트를 확인하고 있어요"
+
+    sequel.update!(ai_status: :failed, ai_comment: nil)
+    get games_sequel_play_path(book_id: @book.id)
+    assert_includes response.body, "선생님이 코멘트를 확인하고 있어요", "코멘트를 못 만든 글도 담임이 적어 줄 수 있으니 같은 안내"
+  end
+
+  test "the approved AI comment is shown to its author but hidden from classmates" do
+    teacher = User.create!(school: @school, name: "뒷이야기담임", role: :teacher, password: "password")
+    sequel = create_sequel(@student_a, body: "주인공이 다시 만난 이야기를 상상했어요.")
+    sequel.update!(ai_status: :done, ai_comment: "상상력이 반짝이는 뒷이야기예요!",
+                   reviewed_at: Time.current, reviewed_by: teacher)
+
+    login_as @student_a
+    get games_sequel_play_path(book_id: @book.id)
+    assert_includes response.body, "상상력이 반짝이는 뒷이야기예요!", "작성자는 승인된 자기 글의 AI 코멘트를 본다"
+    assert_includes response.body, "선생님이 확인한 코멘트예요."
 
     login_as @peer
     get games_sequel_play_path(book_id: @book.id)
@@ -158,7 +176,7 @@ class GamesSequelTest < ActionDispatch::IntegrationTest
 
   test "the helper is labelled as AI only for a student whose comments come from Claude" do
     sequel = create_sequel(@student_a, body: "주인공이 다시 만난 이야기를 상상했어요.")
-    sequel.update!(ai_status: :done, ai_comment: "상상력이 반짝이는 뒷이야기예요!")
+    sequel.update!(ai_status: :done, ai_comment: "상상력이 반짝이는 뒷이야기예요!", reviewed_at: Time.current)
     login_as @student_a
 
     with_claude_key_configured { get games_sequel_play_path(book_id: @book.id) }

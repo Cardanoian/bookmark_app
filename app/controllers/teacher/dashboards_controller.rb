@@ -40,6 +40,9 @@ class Teacher::DashboardsController < Teacher::BaseController
     # 학생 기여 문제 검토 큐(전국 공유 문제은행 §4.3): 담임 학급 학생들의 pending 기여 건수.
     # 승인하면 전국 공유 풀로 물질화되므로 정확성·연령 적합성을 함께 검토한다.
     @pending_contributions_count = QuizContribution.pending.where(user_id: @students.select(:id)).count
+
+    # 뒷이야기 코멘트 검토 대기(2026-09-19): 책갈피 도우미(AI) 코멘트는 담임이 승인해야 학생에게 보인다.
+    @pending_sequel_reviews_count = BookSequel.awaiting_review.where(classroom_id: classroom_ids).count
   end
 
   private

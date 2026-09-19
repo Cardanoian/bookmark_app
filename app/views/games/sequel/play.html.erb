@@ -33,7 +33,7 @@
       <%= f.text_area :body, rows: 6, value: @sequel.body,
             placeholder: "책이 끝난 다음, 어떤 이야기가 이어질까요? 자유롭게 상상해서 써 보세요. (10자 이상)",
             class: "form-textarea" %>
-      <p class="text-sm text-steel">이야기를 올리면 책갈피 도우미<%= "(AI)" if ai_assisted_for?(Current.user) %>가 네 글을 읽고 따뜻한 코멘트를 달아 줘요(나만 볼 수 있어요).</p>
+      <p class="text-sm text-steel">이야기를 올리면 책갈피 도우미<%= "(AI)" if ai_assisted_for?(Current.user) %>가 네 글을 읽고 따뜻한 코멘트를 달아 줘요. 선생님이 확인한 뒤에 볼 수 있어요(나만 볼 수 있어요).</p>
       <%= f.submit "뒷이야기 올리기", class: "btn btn-primary" %>
     <% end %>
   </section>
@@ -54,7 +54,7 @@
                 <p class="mt-2 text-xs text-muted">
                   <%= sequel.user.name %><% if mine %> · <span class="text-brand-blue">내 이야기</span><% end %>
                 </p>
-                <%# AI 격려 코멘트는 작성자 본인에게만 노출(친구에겐 본문·공감만). %>
+                <%# AI 격려 코멘트는 작성자 본인에게만, 담임이 승인한 뒤에 노출(친구에겐 본문·공감만). %>
                 <% if mine %><%= render "games/sequel/feedback", sequel: sequel %><% end %>
               </div>
               <div class="shrink-0 text-center">

@@ -1,11 +1,26 @@
 <%# 뒷이야기 AI 격려 코멘트 — **그 글의 작성자 본인에게만** 보인다(친구에겐 본문·공감만). 점수·등급 없음.
-    SequelFeedbackJob 이 완료 시 이 영역(dom_id sequel :feedback)을 Turbo 로 라이브 교체한다. %>
+    코멘트는 **담임이 승인한 뒤에만** 렌더한다(sequel.comment_visible? — CSS 숨김이 아니라 미렌더라 승인 전
+    코멘트 문구가 응답 본문에 없다). SequelFeedbackJob 완료·담임 승인 때 이 영역(dom_id sequel :feedback)을
+    Turbo 로 라이브 교체한다(BookSequel#broadcast_feedback_refresh). 방송은 request 없이 렌더되므로
+    current_user·policy 를 쓰지 않는다. %>
 <div id="<%= dom_id(sequel, :feedback) %>" class="mt-2 rounded-md bg-surface-featured px-3 py-2 text-sm">
-  <% if sequel.ai_status == "done" && sequel.ai_comment.present? %>
-    <p class="font-semibold text-brand-blue"><%= ui_icon :megaphone, class_name: "h-4 w-4" %> 책갈피 도우미<%= " (AI)" if ai_assisted_for?(sequel.user) %></p>
-    <p class="mt-0.5 whitespace-pre-line text-ink"><%= sequel.ai_comment %></p>
-  <% elsif sequel.ai_status == "failed" %>
-    <p class="text-steel">코멘트를 준비하지 못했어요. 다음에 다시 시도해 볼게요.</p>
+  <% if sequel.comment_visible? %>
+    <% if sequel.ai_comment.present? %>
+      <p class="font-semibold text-brand-blue"><%= ui_icon :megaphone, class_name: "h-4 w-4" %> 책갈피 도우미<%= " (AI)" if ai_assisted_for?(sequel.user) %></p>
+    <% else %>
+      <%# AI 코멘트를 만들지 못해 담임이 직접 적은 코멘트 — 도우미 이름을 붙이지 않는다. %>
+      <p class="font-semibold text-brand-blue"><%= ui_icon :megaphone, class_name: "h-4 w-4" %> 선생님</p>
+    <% end %>
+    <p class="mt-0.5 whitespace-pre-line text-ink"><%= sequel.final_comment %></p>
+    <%# 승인 제도 전 코멘트(마이그레이션 백필 — reviewed_by 가 비어 있다)에는 "선생님이 확인했다"고 쓰지 않는다. %>
+    <% if sequel.ai_comment.present? && sequel.reviewed_by_id.present? %>
+      <p class="mt-1 text-sm text-steel">
+        <%= ui_icon :check, class_name: "h-4 w-4" %>
+        <%= sequel.teacher_comment.present? ? "선생님이 확인하고 고친 코멘트예요." : "선생님이 확인한 코멘트예요." %>
+      </p>
+    <% end %>
+  <% elsif sequel.reviewable? %>
+    <p class="text-steel"><%= ui_icon :info, class_name: "h-4 w-4" %> 선생님이 코멘트를 확인하고 있어요. 확인이 끝나면 볼 수 있어요.</p>
   <% else %>
     <p class="text-steel"><%= ui_icon :writing, class_name: "h-4 w-4" %> 책갈피 도우미가 네 이야기를 읽는 중이에요…</p>
   <% end %>

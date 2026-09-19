@@ -230,6 +230,11 @@ Rails.application.routes.draw do
         post :reject
       end
     end
+    # 뒷이야기 코멘트 검토(2026-09-19). 책갈피 도우미(AI) 코멘트를 담임이 읽고(고쳐) 승인해야 작성 학생에게
+    # 보인다. approve 는 승인한 코멘트를 다시 고칠 때도 쓴다.
+    resources :sequel_reviews, only: [ :index ] do
+      member { post :approve }
+    end
     resource :rubric_config, only: [ :edit, :update ]
 
     # 토론 글 모더레이션(reading_discussion) — 담임이 자기 학급 학생 글만 숨김/해제(저자 학급 경계).

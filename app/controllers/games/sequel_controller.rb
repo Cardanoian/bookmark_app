@@ -3,6 +3,7 @@ module Games
   # 창작하고 또래가 공감(👍)한다. 경계=학급(BookSequelPolicy 가 크로스-학급 차단). book_controller 미러.
   # **콘텐츠 소스가 학생 상상이라 모든 책에서 항상 가능**(본문 불필요, 가용성 게이트 대상 아님).
   # 제출하면 SequelFeedbackJob 이 학생 글을 평가한 격려형 AI 코멘트를 비동기로 단다(정직한 AI).
+  # 코멘트는 담임이 승인해야 작성 학생에게 보인다(Teacher::SequelReviewsController, BookSequel#comment_visible?).
   class SequelController < BaseController
     # 창작을 돕는 정적 가이드(Claude 호출 0 — 상수, 상상 유도). 표현용.
     WRITING_TIPS = [
@@ -35,10 +36,10 @@ module Games
         Missions::EvaluateProgress.new(current_user).on_game_play(play) if play
         Challenges::EvaluateProgress.new(current_user).on_game_play(play) if play
         discovered = play ? evaluate_monster_unlocks(current_user) : []
-        # AI 격려 코멘트는 비동기(무대기). 무API 폴백이라 항상 코멘트가 달린다.
+        # AI 격려 코멘트는 비동기(무대기). 무API 폴백이라 항상 코멘트가 달리고, 담임이 승인하면 보인다.
         SequelFeedbackJob.perform_later(@sequel.id)
         redirect_to games_sequel_play_path(book_id: @book.id),
-                    notice: with_discovery("뒷이야기를 올렸어요! 책갈피 도우미가 곧 코멘트를 달아 줄 거예요.", discovered)
+                    notice: with_discovery("뒷이야기를 올렸어요! 책갈피 도우미의 코멘트는 선생님이 확인한 뒤에 볼 수 있어요.", discovered)
       else
         load_sequels
         render :play, status: :unprocessable_entity

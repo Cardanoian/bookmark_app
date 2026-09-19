@@ -1,0 +1,102 @@
+<% content_for :title, "뒷이야기 코멘트 검토 · 책갈피" %>
+
+<div class="page-shell page-shell-wide">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <%= render "teacher/nav", active: :sequel_reviews %>
+
+    <section class="min-w-0 flex-1 space-y-6">
+      <header class="page-header">
+        <h1 class="page-title">뒷이야기 코멘트 검토</h1>
+      </header>
+
+      <p class="text-sm text-steel">
+        학생이 쓴 뒷이야기에 책갈피 도우미(AI)가 단 격려 코멘트예요. 읽어 보고 필요하면 고친 뒤
+        <strong>승인</strong>하면 그 글을 쓴 학생에게만 보여요. 승인하기 전에는 학생에게 보이지 않아요.
+      </p>
+
+      <%# 검토 상태 필터 — teacher/reviews/index 관용구. 승인한 코멘트도 검토완료 탭에서 다시 고칠 수 있다. %>
+      <nav class="flex flex-wrap gap-1.5" aria-label="검토 상태 필터">
+        <% [ [ "pending", "미검토", @pending_count ], [ "reviewed", "검토완료", @reviewed_count ] ].each do |value, label, count| %>
+          <%= link_to "#{label} #{count}", teacher_sequel_reviews_path(status: value),
+                aria: { current: (@status == value ? "page" : nil) },
+                class: "rounded-full px-3 py-1.5 text-sm font-medium transition #{@status == value ? "bg-brand-blue text-white" : "text-steel hover:bg-surface"}" %>
+        <% end %>
+      </nav>
+
+      <%# 승인이 검증에 걸리면(빈 코멘트) 422 로 이 화면이 다시 그려진다. 이유를 보여 준다. %>
+      <% if @sequel&.errors&.any? %>
+        <div class="state-banner state-banner--error" role="alert">
+          <%= ui_icon :warning %>
+          <span><%= @sequel.user.name %> 학생의 「<%= @sequel.book.title %>」 뒷이야기: <%= @sequel.errors.full_messages.to_sentence %></span>
+        </div>
+      <% end %>
+
+      <% if @sequels.any? %>
+        <ul class="space-y-4">
+          <% @sequels.each do |sequel| %>
+            <li id="<%= dom_id(sequel, :review) %>" class="card space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-sm text-slate">
+                  <strong><%= sequel.user.name %></strong> · 「<%= sequel.book.title %>」
+                  <% if sequel.reviewed? %>
+                    <%# reviewed_by 가 빈 승인은 승인 제도 전에 이미 공개된 코멘트다(마이그레이션 백필). %>
+                    <span class="badge badge-success ml-1"><%= sequel.reviewed_by_id ? "승인됨" : "예전에 공개된 코멘트" %></span>
+                    <% if sequel.teacher_comment.present? %><span class="badge badge-info ml-1">선생님이 고침</span><% end %>
+                  <% end %>
+                </span>
+                <span class="text-xs text-steel">
+                  <%= sequel.created_at.strftime("%-m/%-d %H:%M") %>
+                  <% if sequel.reviewed? %> · 승인 <%= sequel.reviewed_at.strftime("%-m/%-d") %><% end %>
+                </span>
+              </div>
+
+              <div>
+                <p class="form-label">학생이 쓴 뒷이야기</p>
+                <p class="whitespace-pre-line wrap-break-word rounded-md bg-surface px-3 py-2 text-sm text-ink"><%= sequel.body %></p>
+              </div>
+
+              <% if sequel.ai_comment.blank? %>
+                <div class="state-banner state-banner--info">
+                  <%= ui_icon :info %>
+                  <span>책갈피 도우미가 이 글의 코멘트를 만들지 못했어요. 학생에게 보여 줄 코멘트를 직접 적어 주세요.</span>
+                </div>
+              <% end %>
+
+              <%= form_with url: approve_teacher_sequel_review_path(sequel, status: @status, page: (@page if @page > 1)),
+                    method: :post, scope: :book_sequel, class: "space-y-2" do |f| %>
+                <label class="form-label" for="<%= dom_id(sequel, :comment) %>">학생에게 보일 코멘트</label>
+                <%= f.text_area :comment, id: dom_id(sequel, :comment), rows: 3,
+                      value: sequel.final_comment, class: "form-textarea" %>
+                <% if sequel.teacher_comment.present? && sequel.ai_comment.present? %>
+                  <details class="text-sm text-steel">
+                    <summary class="cursor-pointer">책갈피 도우미가 처음 쓴 코멘트 보기</summary>
+                    <p class="mt-1 whitespace-pre-line"><%= sequel.ai_comment %></p>
+                  </details>
+                <% end %>
+                <%= f.submit(sequel.reviewed? ? "고쳐서 저장" : "승인", class: "btn btn-primary btn-sm") %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <%= render "shared/empty_state", image: "empty_states/sequel-writing.png",
+              message: @status == "reviewed" ? "승인한 뒷이야기 코멘트가 아직 없어요." : "검토할 뒷이야기 코멘트가 없어요." %>
+      <% end %>
+
+      <% if @has_next_page || @page > 1 %>
+        <nav class="mt-6 flex items-center justify-between text-sm">
+          <% if @page > 1 %>
+            <%= link_to icon_text(:arrow_left, "이전"), teacher_sequel_reviews_path(status: @status, page: @page - 1), class: "btn btn-secondary btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+          <% if @has_next_page %>
+            <%= link_to text_icon("다음", :arrow_right), teacher_sequel_reviews_path(status: @status, page: @page + 1), class: "btn btn-secondary btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </nav>
+      <% end %>
+    </section>
+  </div>
+</div>

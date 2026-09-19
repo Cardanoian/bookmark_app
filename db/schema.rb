@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_000003) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -164,12 +164,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_000002) do
     t.integer "book_id", null: false
     t.integer "classroom_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "reviewed_at"
+    t.integer "reviewed_by_id"
+    t.text "teacher_comment"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.integer "votes_count", default: 0, null: false
     t.index ["book_id", "classroom_id"], name: "index_book_sequels_on_book_id_and_classroom_id"
     t.index ["book_id"], name: "index_book_sequels_on_book_id"
     t.index ["classroom_id"], name: "index_book_sequels_on_classroom_id"
+    t.index ["reviewed_by_id"], name: "index_book_sequels_on_reviewed_by_id"
     t.index ["user_id"], name: "index_book_sequels_on_user_id"
     t.index ["votes_count"], name: "index_book_sequels_on_votes_count"
   end
@@ -727,6 +731,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_000002) do
   add_foreign_key "book_sequels", "books"
   add_foreign_key "book_sequels", "classrooms"
   add_foreign_key "book_sequels", "users"
+  add_foreign_key "book_sequels", "users", column: "reviewed_by_id", on_delete: :nullify
   add_foreign_key "challenge_goal_books", "books", on_delete: :cascade
   add_foreign_key "challenge_goal_books", "challenge_goals", on_delete: :cascade
   add_foreign_key "challenge_goals", "challenges"

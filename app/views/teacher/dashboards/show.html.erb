@@ -51,6 +51,21 @@
         </div>
       <% end %>
 
+      <%# 뒷이야기 코멘트 검토 대기. 승인해야 학생에게 보이므로 대기가 있을 때만 알리고 검토 화면으로 잇는다. %>
+      <% if @pending_sequel_reviews_count.positive? %>
+        <div class="card border-brand-blue bg-surface-featured">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-lg font-semibold text-brand-blue">
+              <%= ui_icon :writing %> 뒷이야기 코멘트 검토 (<%= @pending_sequel_reviews_count %>)
+            </h2>
+            <%= link_to "검토하러 가기", teacher_sequel_reviews_path, class: "btn btn-primary btn-sm" %>
+          </div>
+          <p class="mt-1 text-sm text-slate">
+            책갈피 도우미(AI)가 학생 뒷이야기에 단 코멘트예요. 확인하고 승인하면 그 학생에게 보여요.
+          </p>
+        </div>
+      <% end %>
+
       <%# 무게이트 롤아웃 사후 검토(교사 알림): 담임 학급 학생이 신고한 온디맨드 게임 콘텐츠. %>
       <% if @reported_content.any? %>
         <div class="card border-brand-red-dark bg-brand-red">

@@ -37,6 +37,33 @@ class SequelFeedbackJobTest < ActiveJob::TestCase
     end
   end
 
+  # 코멘트는 담임이 승인해야 보인다(2026-09-19). 완료 방송이 그 게이트를 우회해 코멘트를 싣지 않는지
+  # 방송 내용으로 고정한다(방송 횟수만 보면 다른 partial·locals 로 바뀌어도 모른다).
+  test "the completion broadcast carries no comment until a teacher approves it" do
+    streams = capture_turbo_stream_broadcasts(@sequel) do
+      stub_new(Ai::SequelFeedbackService, FixedComment.new("상상력이 멋진 이야기예요!")) do
+        SequelFeedbackJob.perform_now(@sequel.id)
+      end
+    end
+
+    payload = streams.map(&:to_html).join
+    assert_not_includes payload, "상상력이 멋진 이야기예요!"
+    assert_includes payload, "선생님이 코멘트를 확인하고 있어요"
+  end
+
+  # 승인한 글에 잡이 다시 돌면(워커가 죽어 재실행 등) 새 AI 코멘트가 담임이 읽지 않은 채 학생에게 간다.
+  test "a re-run after the teacher approved leaves the approved comment untouched" do
+    @sequel.update!(ai_status: :done, ai_comment: "담임이 읽고 승인한 코멘트", reviewed_at: Time.current)
+
+    stub_new(Ai::SequelFeedbackService, FixedComment.new("읽지 않은 새 코멘트")) do
+      assert_no_turbo_stream_broadcasts(@sequel) { SequelFeedbackJob.perform_now(@sequel.id) }
+    end
+
+    @sequel.reload
+    assert_equal "담임이 읽고 승인한 코멘트", @sequel.final_comment
+    assert @sequel.done?, "승인한 글은 processing 으로도 되돌리지 않는다"
+  end
+
   test "marks the sequel failed when the service raises" do
     stub_new(Ai::SequelFeedbackService, RaisingService.new) do
       SequelFeedbackJob.perform_now(@sequel.id)

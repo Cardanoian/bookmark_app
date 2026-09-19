@@ -363,7 +363,7 @@ class DemoSeeder
         featured_report_keys: data.dig("story", "featured_report_keys"),
         require_featured_reports: data["story"].present?
       )
-      seed_social_games(students, classroom)
+      seed_social_games(students, classroom, sequel_definitions: data["book_sequels"])
 
       students.each { |st| finalize_student(st) }
 
@@ -400,7 +400,7 @@ class DemoSeeder
         peers:,
         featured_report_keys: data.dig("story", "featured_report_keys")
       )
-      seed_social_games(students, classroom, peers:)
+      seed_social_games(students, classroom, peers:, sequel_definitions: data["book_sequels"])
 
       students.each { |st| finalize_student(st) }
 
@@ -783,8 +783,12 @@ class DemoSeeder
   end
 
   # ── 책 소개 대결 / 뒷이야기 이어쓰기 + 투표 ─────────────────────────────
-  def seed_social_games(students, classroom, peers: nil)
+  def seed_social_games(students, classroom, peers: nil, sequel_definitions: nil)
     users = Array(peers).presence || students.map { |st| st[:user] }
+    # 정본 목록이 있는 학급은 학생 템플릿의 짧은 book_sequel 문구를 쓰지 않는다. 건너뛴 결과 만들 글이
+    # 하나도 없어도(증원 경로) 템플릿 문구로 되돌아가지 않도록 "정본 학급인가"와 "이번에 만들 글"을 나눈다.
+    curated_classroom = Array(sequel_definitions).any?
+    curated_sequels = seedable_sequel_definitions(Array(sequel_definitions), students, peers)
 
     students.each_with_index do |st, i|
       if (intro = st[:sd]["book_intro"]).present? && intro.to_s.strip.length >= 10
@@ -793,13 +797,66 @@ class DemoSeeder
         @totals[:book_intros] += 1
       end
 
+      next if curated_classroom
       next unless (seq = st[:sd]["book_sequel"]).present? && seq.to_s.strip.length >= 10
 
+      # 템플릿 학급의 뒷이야기는 모두 담임이 승인한 상태로 둔다(코멘트는 담임 승인 뒤에만 학생에게 보인다).
+      # 승인 대기 글을 보여 줄 학급은 정본 book_sequels 에 reviewed: false 로 직접 적는다.
       bs = BookSequel.create!(
         user: st[:user], book: pool_book(i + 5), classroom:, body: seq.to_s.strip[0, 2000],
-        ai_status: :done, ai_comment: "상상력이 돋보이는 이야기예요! 인물의 마음을 잘 이어 썼어요."
+        ai_status: :done, ai_comment: "상상력이 돋보이는 이야기예요! 인물의 마음을 잘 이어 썼어요.",
+        reviewed_at: Time.current, reviewed_by: classroom.teacher
       )
       vote_from(users, st[:user]) { |u| BookSequelVote.create!(book_sequel: bs, user: u); @totals[:book_sequel_votes] += 1 }
+      @totals[:book_sequels] += 1
+    end
+
+    seed_curated_book_sequels(curated_sequels, students, classroom, users) if curated_sequels.any?
+  end
+
+  # 정본 뒷이야기 중 이번에 만들 것. 증원 경로(peers 가 학급 전원)에서 이미 반에 있던 학생의 글은
+  # 건너뛴다 — 기존 학생은 또래로만 참여한다는 증원 계약(기존 학생 명의의 새 활동을 만들지 않는다).
+  # 반 어디에도 없는 이름은 정본 오류라 멈춘다.
+  def seedable_sequel_definitions(definitions, students, peers)
+    new_names = students.map { |st| st[:user].name }.to_set
+    existing_names = Array(peers).map(&:name).to_set - new_names
+
+    definitions.select do |definition|
+      name = definition.fetch("student_name")
+      next true if new_names.include?(name)
+      next false if existing_names.include?(name)
+
+      raise ArgumentError, "뒷이야기 작성 학생을 찾을 수 없습니다: #{name}"
+    end
+  end
+
+  # 정본 뒷이야기는 도우미 코멘트(ai_comment)와 담임 승인 여부(reviewed, 기본 true)까지 YAML 에 적힌 그대로 만든다.
+  def seed_curated_book_sequels(definitions, students, classroom, users)
+    definitions.each do |definition|
+      author = students.find { |st| st[:user].name == definition.fetch("student_name") }&.fetch(:user)
+      raise ArgumentError, "뒷이야기 작성 학생을 찾을 수 없습니다: #{definition.fetch('student_name')}" unless author
+
+      book = match_book(definition.fetch("book_title"))
+      raise ArgumentError, "뒷이야기 도서를 찾을 수 없습니다: #{definition.fetch('book_title')}" unless book
+
+      body = definition.fetch("body").to_s.strip
+      unless body.length.between?(10, 2_000)
+        raise ArgumentError, "뒷이야기 본문 길이가 올바르지 않습니다: #{definition.fetch('book_title')}"
+      end
+
+      comment = definition["ai_comment"].to_s.strip
+      raise ArgumentError, "뒷이야기 도우미 코멘트가 없습니다: #{definition.fetch('book_title')}" if comment.empty?
+
+      reviewed = definition.fetch("reviewed", true)
+      sequel = BookSequel.create!(
+        user: author, book:, classroom:, body:,
+        ai_status: :done, ai_comment: comment,
+        reviewed_at: (Time.current if reviewed), reviewed_by: (classroom.teacher if reviewed)
+      )
+      vote_from(users, author) do |user|
+        BookSequelVote.create!(book_sequel: sequel, user:)
+        @totals[:book_sequel_votes] += 1
+      end
       @totals[:book_sequels] += 1
     end
   end

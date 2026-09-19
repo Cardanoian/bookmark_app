@@ -52,6 +52,11 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
       )
     end
     @book = Book.create!(title: "체험 정비용 책", summary: "검증된 줄거리")
+    @seed_data.fetch("book_sequels").each do |definition|
+      Book.find_or_create_by!(title: definition.fetch("book_title")) do |book|
+        book.summary = "검수된 뒷이야기 연결용 줄거리"
+      end
+    end
   end
 
   test "preview is read-only and reports the difference from the reviewed seed" do
@@ -152,6 +157,8 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_reviewed_discussions!
     assert_equal 10, result.dig(:after, :book_intros)
     assert_equal 10, result.dig(:after, :book_sequels)
+    assert_curated_book_sequels!
+    assert_demo_sequel_reviews!
     assert_equal 3, Mission.where(classroom: @classroom).count
     assert_equal 101, GamePlay.where(user_id: @students.map(&:id)).count
     assert_equal 10, LibraryLoan.where(school: @school).count
@@ -162,6 +169,43 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_curated_book_sequels!
+    expected = @seed_data.fetch("book_sequels").map do |definition|
+      [ definition.fetch("student_name"), definition.fetch("book_title"), definition.fetch("body").strip ]
+    end.sort
+    actual = BookSequel.where(classroom: @classroom).includes(:user, :book).map do |sequel|
+      [ sequel.user.name, sequel.book.title, sequel.body ]
+    end.sort
+
+    assert_equal expected, actual
+    assert_equal expected.size, actual.map { |_student, title, _body| title }.uniq.size
+    assert actual.all? { |_student, _title, body| body.length.between?(180, 500) },
+           "공개 체험 뒷이야기는 3학년이 쓴 짧은 완결 이야기여야 합니다"
+  end
+
+  # 뒷이야기 코멘트는 담임 승인 뒤에만 학생에게 보인다(2026-09-19). 정본에 적힌 도우미 코멘트와 승인 여부가
+  # 그대로 적재되는지 본다 — reviewed: false 글은 체험 담임의 검토 화면에 남고, 나머지는 그 반 담임이 승인했다.
+  def assert_demo_sequel_reviews!
+    definitions = @seed_data.fetch("book_sequels")
+    sequels = BookSequel.where(classroom: @classroom).includes(:user)
+
+    expected_comments = definitions.to_h { |definition| [ definition.fetch("student_name"), definition.fetch("ai_comment") ] }
+    assert_equal expected_comments, sequels.to_h { |sequel| [ sequel.user.name, sequel.ai_comment ] }
+
+    awaiting = definitions.reject { |definition| definition.fetch("reviewed", true) }.map { |definition| definition.fetch("student_name") }
+    assert_not_empty awaiting, "체험 담임의 뒷이야기 검토 화면이 비지 않게 승인 대기 글을 둔다"
+    assert_equal awaiting.sort, sequels.awaiting_review.map { |sequel| sequel.user.name }.sort
+    assert_equal [ @classroom.reload.teacher_id ], sequels.reviewed.distinct.pluck(:reviewed_by_id)
+    assert sequels.reviewed.all?(&:comment_visible?)
+
+    # 도우미 코멘트 규칙: 학생 글을 인용할 때는 원문을 한 글자도 바꾸지 않는다(SequelFeedbackService).
+    definitions.each do |definition|
+      definition.fetch("ai_comment").scan(/'([^']+)'/).flatten.each do |quote|
+        assert_includes definition.fetch("body"), quote, "#{definition.fetch('student_name')}: 인용이 원문과 다릅니다"
+      end
+    end
+  end
 
   def assert_reviewed_discussions!
     titles_by_key = @seed_data.fetch("topics").to_h { |topic| [ topic.fetch("key"), topic.fetch("title") ] }
