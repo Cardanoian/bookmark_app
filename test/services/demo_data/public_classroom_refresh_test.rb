@@ -62,7 +62,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     assert_equal true, preview[:target_found]
     assert_equal 21, preview[:students]
-    assert_equal 72, preview[:expected_reports]
+    assert_equal 102, preview[:expected_reports]
     assert_equal 2, preview[:reports]
     assert_equal 1, preview[:drafts]
     assert Report.exists?(@draft.id)
@@ -117,7 +117,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_equal 1, demo_seed_calls
     assert_equal 1, content_seed_calls
     assert_equal 2, result.dig(:before, :reports)
-    assert_equal 72, result.dig(:after, :reports)
+    assert_equal 102, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
     assert_nil result[:backup]
     assert_not Report.exists?(@draft.id)
@@ -146,7 +146,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     result = with_demo_deployment { service.call! }
 
-    assert_equal 72, result.dig(:after, :reports)
+    assert_equal 102, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
     assert_equal 31, result.dig(:after, :forum_posts)
     assert_equal 10, result.dig(:after, :book_intros)
@@ -242,7 +242,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   def assert_public_demo_story!(result)
     preview = result.fetch(:after)
     assert_equal true, preview[:story_student_found]
-    assert_equal 4, preview[:story_reports]
+    assert_equal 34, preview[:story_reports]
     assert_equal 1, preview[:story_revisions]
     assert_equal true, preview[:story_revision_growth]
     assert_equal true, preview[:story_feedback_visible]
@@ -256,7 +256,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     student = @students.find { |user| user.name == "이도현" }.reload
     timeline = StudentGrowthTimeline.new(student)
-    assert_equal 4, timeline.approved_report_count
+    assert_equal 34, timeline.approved_report_count
     assert_equal timeline.previous.report, timeline.latest.report.revision_of
     assert_equal "A", timeline.latest.report.level
     assert timeline.changes.values.all?(&:positive?)
@@ -270,14 +270,14 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     login_as student, password: DemoSeeder::STUDENT_PASSWORD
     get growth_path
     assert_response :success
-    assert_select ".stat-card", text: /확인받은 독후감\s*4편/
+    assert_select ".stat-card", text: /확인받은 독후감\s*34편/
     assert_match "가장 많이 성장", response.body
 
     delete session_path
     login_as @teacher.reload, password: "jieun11!"
     get teacher_dashboard_path
     assert_response :success
-    assert_select ".stat-card", text: /총 독후감\s*72/
+    assert_select ".stat-card", text: /총 독후감\s*102/
     assert_select ".stat-card" do |cards|
       assert_includes cards.map { |card| card.text.squish }, "검토 대기 11"
     end
@@ -287,6 +287,6 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     get school_admin_stats_path
     assert_response :success
     assert_select ".stat-card", text: /학생 수\s*21/
-    assert_select ".stat-card", text: /총 독후감\s*72/
+    assert_select ".stat-card", text: /총 독후감\s*102/
   end
 end
