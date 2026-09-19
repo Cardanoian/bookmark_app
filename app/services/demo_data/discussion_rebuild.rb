@@ -68,7 +68,7 @@ module DemoData
 
     def validate_result!(rows)
       rows.each do |row|
-        next if row[:topics_match] && row[:all_debate] && row[:posts] == row[:expected_posts] && row[:stances_match]
+        next if row[:topics_match] && row[:kinds_match] && row[:posts] == row[:expected_posts] && row[:stances_match]
 
         raise SafetyError, "#{row[:file]}: 재적재 결과가 시드와 다릅니다: #{row.inspect}"
       end
@@ -89,7 +89,9 @@ module DemoData
       expected_names = target[:data].fetch("students").map { |student| student.fetch("name").to_s }
       topics = Topic.where(classroom_id: classroom.id)
       posts = ForumPost.where(topic_id: topics.select(:id))
-      expected_stances = expected_posts(target).to_h { |post| [ post.fetch("text").to_s.strip, post.fetch("stance") ] }
+      # 책 토론방(book_discussions, 자유 의견) 글은 입장이 없다.
+      expected_stances = expected_posts(target).to_h { |post| [ post.fetch("text").to_s.strip, post["stance"] ] }
+      expected_kinds = target[:data].fetch("topics").to_h { |topic| [ topic.fetch("title"), topic["kind"].presence || "free" ] }
       actual_stances = posts.pluck(:text, :stance).to_h
 
       {
@@ -103,7 +105,8 @@ module DemoData
         debate_topics: topics.where(kind: :debate).count,
         expected_topics: target[:data].fetch("topics").size,
         topics_match: topics.pluck(:title).sort == target[:data].fetch("topics").map { |topic| topic.fetch("title") }.sort,
-        all_debate: topics.exists? && topics.where.not(kind: :debate).none?,
+        # 논제는 찬반 토론, 책 토론방(《책》 이야기)은 자유 의견 — 주제마다 시드가 정한 방식 그대로인지.
+        kinds_match: topics.exists? && topics.pluck(:title, :kind).to_h == expected_kinds,
         posts: posts.count,
         expected_posts: expected_stances.size,
         stanced_posts: posts.where.not(stance: nil).count,

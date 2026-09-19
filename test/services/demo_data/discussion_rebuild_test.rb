@@ -60,7 +60,7 @@ class DemoData::DiscussionRebuildTest < ActiveSupport::TestCase
 
     row = result[:after].sole
     assert row[:topics_match]
-    assert row[:all_debate]
+    assert row[:kinds_match]
     assert row[:stances_match]
     assert_equal row[:expected_posts], row[:posts]
     assert_nil result[:backup]

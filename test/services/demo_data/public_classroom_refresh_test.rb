@@ -57,6 +57,10 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
         book.summary = "검수된 뒷이야기 연결용 줄거리"
       end
     end
+    # 책 토론방(book_discussions)이 걸리는 책 — 운영처럼 카탈로그에 있어야 토론방이 책에 걸린다.
+    @seed_data.fetch("topics").filter_map { |topic| topic["book_title"] }.each do |title|
+      Book.find_or_create_by!(title:) { |book| book.summary = "책 토론방 연결용 줄거리" }
+    end
   end
 
   test "preview is read-only and reports the difference from the reviewed seed" do
@@ -153,15 +157,25 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     assert_equal 102, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
-    assert_equal 31, result.dig(:after, :forum_posts)
+    assert_equal expected_forum_post_count, result.dig(:after, :forum_posts)
     assert_reviewed_discussions!
+    assert_story_book_discussions!
+    # 토론만 다시 만드는 운영 도구(demo_data:discussion_audit)도 책 토론방까지 시드와 같다고 본다.
+    rebuild = DemoData::DiscussionRebuild.new(io: StringIO.new, only_files: [ "sample_3_1.yml" ])
+    row = rebuild.send(:target_preview, rebuild.send(:targets).sole)
+    assert row[:topics_match] && row[:kinds_match] && row[:stances_match], row.inspect
+    assert_equal row[:expected_posts], row[:posts]
     assert_equal 10, result.dig(:after, :book_intros)
     assert_equal 10, result.dig(:after, :book_sequels)
     assert_curated_book_sequels!
     assert_demo_sequel_reviews!
     assert_writing_dates!
     assert_equal 3, Mission.where(classroom: @classroom).count
-    assert_equal 101, GamePlay.where(user_id: @students.map(&:id)).count
+    # 최근 기록(템플릿 게임 수 101)은 최근 며칠, 지난 기록(game_history)은 1학기 — 예시 글 풀이 없는 이 환경에서는
+    # 글 쓰는 게임의 지난 기록을 만들지 않으므로 퀴즈·나는 누구게?만 1학기에 더해진다.
+    plays = GamePlay.where(user_id: @students.map(&:id))
+    assert_equal 101, plays.where(played_on: (Date.current - 20)..).count
+    assert_game_history!(plays.where(played_on: ...(Date.current - 20)))
     assert_equal 10, LibraryLoan.where(school: @school).count
     assert_equal 5, LibraryEvent.where(school: @school).count
     assert_public_demo_story!(result)
@@ -175,7 +189,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   test "refresh writes an entry for every seeded book and sequel play when example texts exist" do
     seed_monster_species!
     seed_badges!
-    YAML.load_file(DemoSeeder::SOCIAL_TEXTS_PATH).first(80).each do |isbn, texts|
+    YAML.load_file(DemoSeeder::SOCIAL_TEXTS_PATH).first(300).each do |isbn, texts|
       Book.create!(title: texts.fetch("title"), isbn:, summary: "줄거리", category: :recommended)
     end
     service = DemoData::PublicClassroomRefresh.new(
@@ -188,7 +202,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     assert_public_demo_story!(result)
     student_ids = @students.map(&:id)
-    assert_equal 101, GamePlay.where(user_id: student_ids).count
+    assert_operator GamePlay.where(user_id: student_ids).count, :>, 101, "지난 게임 기록으로 볼륨이 늘어난다"
     written_plays = GamePlay.where(user_id: student_ids, game_type: %w[book sequel])
     assert written_plays.exists?
     orphans = written_plays.reject do |play|
@@ -263,7 +277,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     titles_by_key = @seed_data.fetch("topics").to_h { |topic| [ topic.fetch("key"), topic.fetch("title") ] }
     expected = @seed_data.fetch("students").flat_map do |student|
       Array(student["forum_posts"]).map do |post|
-        [ titles_by_key.fetch(post.fetch("topic")), post.fetch("stance"), post.fetch("text") ]
+        [ titles_by_key.fetch(post.fetch("topic")), post["stance"], post.fetch("text") ]
       end
     end.sort
     actual = Topic.where(classroom: @classroom).includes(:forum_posts).flat_map do |topic|
@@ -272,8 +286,10 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     assert_equal @seed_data.fetch("topics").pluck("title").sort,
                  Topic.where(classroom: @classroom).pluck(:title).sort
-    # 공개 체험 논제는 모두 찬반 토론이라, 검수된 입장이 그대로 저장돼 찬성·반대 칸으로 나뉜다.
-    assert_equal [ "debate" ], Topic.where(classroom: @classroom).distinct.pluck(:kind)
+    # 공개 체험 논제는 찬반 토론이라 검수된 입장이 그대로 저장돼 찬성·반대 칸으로 나뉘고, 책 토론방(《책》 이야기)은
+    # 자유 의견이다.
+    expected_kinds = @seed_data.fetch("topics").to_h { |topic| [ topic.fetch("title"), topic["kind"].presence || "free" ] }
+    assert_equal expected_kinds, Topic.where(classroom: @classroom).pluck(:title, :kind).to_h
     assert_equal expected, actual
     assert_equal actual.size, actual.map(&:last).uniq.size, "같은 학급에 똑같은 토론 글이 두 번 보이면 안 됩니다"
     assert actual.none? { |_title, _stance, text| text.match?(/[『』「」“”‘’—…·]/) },
@@ -282,9 +298,36 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   end
 
   # 찬반 논제라 한쪽 입장이 8할을 넘으면 토론처럼 보이지 않는다(2026-09-19 사용자 기준).
+  def expected_forum_post_count
+    @seed_data.fetch("students").sum { |student| Array(student["forum_posts"]).size }
+  end
+
+  # 대표 학생도 책 토론방에 글을 쓴다 — 책이 걸린 토론방이라 내 서재·이 책의 내 기록의 '토론 글'에 보인다.
+  def assert_story_book_discussions!
+    student = @students.find { |user| user.name == "이도현" }
+    book_posts = ForumPost.visible_in_book_topics.where(user: student)
+    expected = @seed_data.fetch("students").find { |data| data.fetch("name") == "이도현" }
+                         .fetch("forum_posts").count { |post| post.fetch("topic").start_with?("book_") }
+    assert_operator expected, :>, 0
+    assert_equal expected, book_posts.count
+    assert book_posts.all? { |post| post.topic.free? && post.stance.nil? }
+    assert_includes StudentLibraryQuery.new(student, kind: "forum").entries.map { |entry| entry.book.id },
+                    book_posts.first.topic.book_id
+  end
+
+  # 지난 게임 기록 — 학생마다 1학기(5/1~7/20)에 있다.
+  def assert_game_history!(history)
+    assert history.exists?
+    assert_equal @students.size, history.distinct.count(:user_id), "학생마다 지난 게임 기록이 있다"
+    history.pluck(:played_on).each do |date|
+      assert date.between?(Date.new(date.year, 5, 1), Date.new(date.year, 7, 20)), "#{date} 는 1학기(5/1~7/20)여야 한다"
+    end
+  end
+
   def assert_balanced_stances!
+    debate_keys = @seed_data.fetch("topics").select { |topic| topic["kind"] == "debate" }.map { |topic| topic.fetch("key") }
     posts = @seed_data.fetch("students").flat_map { |student| Array(student["forum_posts"]) }
-    posts.group_by { |post| post.fetch("topic") }.each do |topic, rows|
+    posts.select { |post| debate_keys.include?(post.fetch("topic")) }.group_by { |post| post.fetch("topic") }.each do |topic, rows|
       stances = rows.map { |post| post.fetch("stance") }
       assert_equal [], stances - %w[pro con], "#{topic}: stance는 pro/con 중 하나여야 합니다"
       minority = stances.tally.values_at("pro", "con").map(&:to_i).min

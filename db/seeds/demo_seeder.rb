@@ -174,7 +174,7 @@ class DemoSeeder
   # activity_level(그 학생만의 활동량), 그 밖의 학생 키(reports·game_plays 등 직접 지정)를 받는다.
   def load_seed_data(path)
     data = YAML.safe_load_file(path, aliases: false)
-    return data unless data["template"].present?
+    return merge_book_discussions(data) unless data["template"].present?
 
     template_name = data.fetch("template").to_s
     unless template_name.match?(/\A[a-z0-9_]+\.yml\z/)
@@ -198,7 +198,7 @@ class DemoSeeder
     seed_data = template.merge(data.except("template", "student_names", "activity_level"))
     profiles = source_students.cycle.take(names.size)
     debate_posts = balanced_debate_posts(profiles, activity_scale_for(activity_level))
-    seed_data.merge(
+    merged = seed_data.merge(
       "missions" => scale_missions(Array(seed_data["missions"]), activity_scale_for(activity_level)),
       "students" => profiles.zip(names, overrides).each_with_index.map do |(student, name, override), index|
         level = override["activity_level"].presence || activity_level
@@ -207,6 +207,30 @@ class DemoSeeder
         scaled.merge("name" => name).merge(override.except("activity_level"))
       end
     )
+    merge_book_discussions(merged)
+  end
+
+  # 책이 걸린 자유 토론방(book_discussions — { book_title, posts: [{ student_name, text }] }) 을 토론 주제 목록(topics)과
+  # 그 학생의 forum_posts 에 합친다. 그러면 적재(seed_topics_and_forum)·토론만 다시 만들기(reseed_discussions!,
+  # DemoData::DiscussionRebuild)·정비 검증이 찬반 토론과 같은 길로 이 글들을 다룬다. 주제 이름은 독서활동 화면에서
+  # 학생이 여는 토론방과 같은 "《책 제목》 이야기"다.
+  def merge_book_discussions(data)
+    discussions = Array(data["book_discussions"])
+    return data if discussions.empty?
+
+    students = Array(data["students"]).index_by { |student| student.fetch("name").to_s }
+    topics = Array(data["topics"]).dup
+    discussions.each_with_index do |discussion, index|
+      key = "book_#{index + 1}"
+      book_title = discussion.fetch("book_title").to_s
+      topics << { "key" => key, "title" => "《#{book_title}》 이야기", "kind" => "free", "book_title" => book_title }
+      Array(discussion.fetch("posts")).each do |post|
+        name = post.fetch("student_name").to_s
+        student = students.fetch(name) { raise ArgumentError, "책 토론 글 작성 학생을 찾을 수 없습니다: #{name}" }
+        student["forum_posts"] = Array(student["forum_posts"]) + [ { "topic" => key, "text" => post.fetch("text").to_s } ]
+      end
+    end
+    data.except("book_discussions").merge("topics" => topics)
   end
 
   # 찬반 토론 글(구조화 + stance)은 학생별로 앞에서 자르지 않고 학급 단위로 논제마다 고른다.
@@ -360,6 +384,7 @@ class DemoSeeder
     end
 
     @rng = Random.new(Zlib.crc32("#{school.neis_code}-#{grade}-#{class_no}"))
+    @game_history = data["game_history"]
 
     ActiveRecord::Base.transaction do
       teacher = seed_teacher(data.fetch("teacher"), school)
@@ -397,6 +422,7 @@ class DemoSeeder
   # (좋아요·응원·투표)의 풀은 기존 학생까지 포함한 학급 전원이라 학급이 자연스럽게 보인다.
   def top_up_classroom(data, pending, school:, classroom:, label:)
     @rng = Random.new(Zlib.crc32("#{school.neis_code}-#{classroom.grade}-#{classroom.class_no}"))
+    @game_history = data["game_history"]
 
     ActiveRecord::Base.transaction do
       teacher = seed_teacher(data.fetch("teacher"), school)
@@ -552,6 +578,7 @@ class DemoSeeder
       st[:game_points] += POINTS_PER_GAME_PLAY
       @totals[:game_plays] += 1
     end
+    seed_game_history(st, taken)
 
     attempts = (st[:sd]["quiz_attempts"] || 0).to_i
     return if attempts.zero? || quiz_pool.empty?
@@ -750,10 +777,18 @@ class DemoSeeder
         # 재사용한 예전 자유 의견 토론방(kind 도입 전 생성)의 글은 입장을 두지 않는다.
         stance = entry["stance"].presence if structured && topic.debate?
         fp = ForumPost.create!(topic:, user: st[:user], text: text.to_s.strip[0, 500], stance:)
-        fp.update_columns(created_at: backdate(rand_int(1, 40)))
+        # 글 날짜도 시드 글 날짜 규칙(1학기 위주·9월 조금·8월 없음)을 따른다.
+        written_at = writing_time(st[:user], writing_date(st[:user], "forum-#{topic.title}-#{i}"))
+        fp.update_columns(created_at: written_at, updated_at: written_at)
         posts << fp
         @totals[:forum_posts] += 1
       end
+    end
+
+    # 토론방은 첫 글보다 먼저 열렸다(적재한 순간이 아니라).
+    posts.group_by(&:topic_id).each do |topic_id, topic_posts|
+      opened_at = topic_posts.map(&:created_at).min - 1.hour
+      Topic.where(id: topic_id).update_all(created_at: opened_at, updated_at: opened_at)
     end
 
     # 또래 좋아요: 각 글에 저자 외 학생 몇 명이 좋아요.
@@ -895,6 +930,36 @@ class DemoSeeder
     end
   end
 
+  # 지난 게임 기록(학급 데이터의 game_history — { multiplier, extra }). 학생마다 (템플릿 게임 수 × multiplier + extra)번을
+  # 1학기(5/1~7/20)에 둔다 — 미션 기간(8월 말 이후) 밖이라 미션 진행도와 대표 학생 이야기 검증이 바뀌지 않는다.
+  # 책 소개·뒷이야기는 최근 기록처럼 예시 글이 있는 책에 글과 함께 쓰고, 그런 책이 없으면 그 판은 만들지 않는다
+  # (글 없는 완료 기록을 새로 만들지 않는다). 게임 종류는 학생마다 시작점을 달리해 고루 돈다.
+  def seed_game_history(st, taken)
+    return if @game_history.blank?
+
+    user = st[:user]
+    count = st[:sd]["game_plays"].to_i * @game_history.fetch("multiplier", 0).to_i + @game_history.fetch("extra", 0).to_i
+    seen = Set.new
+    count.times do |j|
+      gtype = GAME_TYPES[(j + user.id) % GAME_TYPES.size]
+      played_on = writing_date(user, "history-#{j}", september: false)
+      if WRITTEN_GAME_TYPES.include?(gtype)
+        book = social_book_for(gtype, st[:classroom], user.id * 31 + j, taken)
+        next unless book
+
+        taken << book.id
+        write_game_entry!(gtype, user, st[:classroom], book, played_on)
+      else
+        book = pool_book(user.id * 7 + j * 13 + 211)
+      end
+      next unless seen.add?([ gtype, book.id, played_on ])
+
+      GamePlay.create!(user:, game_type: gtype, book:, played_on: played_on.to_s)
+      st[:game_points] += POINTS_PER_GAME_PLAY
+      @totals[:game_plays] += 1
+    end
+  end
+
   # 게임 완료 기록과 같은 책·같은 날의 글. 본문은 책별 예시 글 풀(book_social.yml)에서 온다.
   def write_game_entry!(gtype, user, classroom, book, played_on)
     texts = social_texts.fetch(book.isbn)
@@ -954,10 +1019,12 @@ class DemoSeeder
 
   # key 는 학생 안에서 글마다 다른 값(게임 순번·"template-intro"·정본 책 제목 등). 학생·key 로 정해지는 난수라
   # 학급 공용 @rng 의 순서를 바꾸지 않는다(다른 시드 결과가 그대로다).
-  def writing_date(user, key)
+  # september: false 면 1학기에만 둔다(미션 기간에 걸리면 안 되는 지난 게임 기록).
+  def writing_date(user, key, september: true)
     rng = Random.new(Zlib.crc32("writing-date-#{user.id}-#{key}"))
-    term, september = writing_ranges
-    range = september.begin <= september.end && rng.rand < WRITING_SEPTEMBER_SHARE ? september : term
+    term, september_range = writing_ranges
+    pick_september = september && september_range.begin <= september_range.end && rng.rand < WRITING_SEPTEMBER_SHARE
+    range = pick_september ? september_range : term
     range.begin + rng.rand((range.end - range.begin).to_i + 1)
   end
 

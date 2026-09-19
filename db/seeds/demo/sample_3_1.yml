@@ -130,6 +130,55 @@ book_sequels:
       민들레꽃이 진 뒤 하얀 씨앗들이 바람을 타고 멀리 날아갔다. 그중 한 씨앗은 어느 학교 담장 밑 작은 틈에 내려앉았다. 흙도 별로 없고 사람들이 자꾸 밟고 지나가는 곳이었다.
 
       한 아이가 작은 싹을 발견하고 매일 우유갑에 물을 담아 주었다. 친구들은 그냥 잡초라고 했지만 아이는 어떤 꽃이 될지 기다려 보자고 했다. 며칠 뒤 노란 민들레가 활짝 피었다. 바람이 불자 꽃은 골목에 있던 강아지똥의 이야기를 들려주는 것처럼 살랑살랑 흔들렸다.
+# 책이 걸린 자유 토론방(《책》 이야기) — 대표 학생 이도현이 독후감을 쓴 책에서 골랐고, 글은 책별 예시 글 풀
+# (book_social.yml)의 토론 글이다. DemoSeeder#merge_book_discussions 가 정의를 topics 에, 글을 각 학생의
+# forum_posts 에 합친다. 찬반 토론방(topics)은 책이 걸려 있지 않아 내 서재·이 책의 내 기록에는 이 글들만 보인다.
+book_discussions:
+  - book_title: 만복이네 떡집
+    posts:
+      - { student_name: 이도현, text: "만복이가 나쁜 말을 많이 해서 좀 미웠어요." }
+      - { student_name: 강태오, text: "찹쌀떡을 먹으면 말을 못한다는 게 재밌었어요." }
+      - { student_name: 곽서연, text: "저도 나쁜 말버릇을 고쳐야겠다고 생각했어요." }
+  - book_title: 멋진 여우 씨
+    posts:
+      - { student_name: 이도현, text: "저는 여우 씨가 끝까지 포기하지 않는 게 멋있었어요." }
+      - { student_name: 권민재, text: "세 농부가 진짜 못됐다고 생각했어요." }
+      - { student_name: 김나윤, text: "여우 씨가 다른 동물들까지 구해줘서 좋았어요." }
+  - book_title: 39층 나무 집
+    posts:
+      - { student_name: 이도현, text: "저는 멍청씨 교수가 지구까지 없애 버려서 깜짝 놀랐어요." }
+      - { student_name: 김선우, text: "이야기 뚝딱 기계가 스스로 화를 내는 게 웃겼어요." }
+      - { student_name: 노아린, text: "테리가 숟가락연필로 다 그려 내서 다행이었어요." }
+  - book_title: 신기한 맛 도깨비 식당
+    posts:
+      - { student_name: 이도현, text: "저는 세혁이 조카를 구하는 이야기가 제일 긴장됐어요." }
+      - { student_name: 문규현, text: "석우가 글씨 때문에 겪는 갈등이 안타까웠어요." }
+      - { student_name: 민서율, text: "도화랑의 비밀 이야기가 다음 편이 궁금해지게 만들어요." }
+  - book_title: 감정 레스토랑
+    posts:
+      - { student_name: 이도현, text: "지움이가 손가락을 튕기는 모습이 마음 아팠어요." }
+      - { student_name: 박시우, text: "저는 초록빛 간판 가게에 가 보고 싶어요." }
+      - { student_name: 배지안, text: "슬픈 마음도 느끼는 게 좋다는 말이 기억에 남아요." }
+  - book_title: 거짓말 학원
+    posts:
+      - { student_name: 이도현, text: "저는 동룡이가 거짓말을 대수롭지 않게 여기는 게 걱정됐어요." }
+      - { student_name: 백승호, text: "이상한 학원 초대장 이야기가 진짜 신기했어요." }
+      - { student_name: 서다인, text: "민두가 갑자기 달라져서 저도 궁금했어요." }
+  - book_title: 잘못 뽑은 반장
+    posts:
+      - { student_name: 이도현, text: "저는 이로운이 반장이 되는 방법이 좀 나빠 보였어요." }
+      - { student_name: 손태현, text: "이로운이 점점 책임감 있게 변하는 게 좋았어요." }
+      - { student_name: 송채아, text: "누나에 대한 미움을 극복하는 장면이 감동이었어요." }
+  - book_title: 책 먹는 여우
+    posts:
+      - { student_name: 이도현, text: "저는 여우 아저씨가 책을 소금이랑 후추 뿌려서 먹는 게 너무 웃겼어요." }
+      - { student_name: 안재현, text: "돈이 없다고 서점을 털려고 한 건 좀 아찔했어요." }
+      - { student_name: 신하람, text: "책을 이렇게까지 좋아하는 여우 아저씨가 신기했어요." }
+# 공개 체험의 지난 게임 기록 — 학생마다 (템플릿 게임 수 × multiplier + extra)번의 독서 게임을 1학기(5/1~7/20)에
+# 더 둔다(DemoSeeder#seed_game_history). 미션 기간(8월 말 이후) 밖이라 미션 진행도·대표 학생 이야기 검증은 그대로다.
+game_history:
+  multiplier: 2
+  extra: 4
 student_names:
   # ── 신규 19명 (남 10 / 여 9) — 프로필 #1~#19: 독후감 5~1건, 게임 8~0회로 편차가 크다
   - { name: 강태오, nickname: 씩씩한책돛대 }
