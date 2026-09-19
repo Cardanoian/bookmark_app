@@ -5,7 +5,7 @@
 ## 파일
 - `application_policy.rb` — 모든 정책의 베이스. 6개 표준 액션(index·show·create·update·destroy 등)을 기본 `false`로 두고, 내부 `Scope`는 `resolve` 미구현 시 예외. 하위 정책이 필요한 것만 override.
 - `report_policy.rb` — 독후감. show/update/Scope를 role별 분기(총괄=전체, 교사=담당 학급, 학생=본인, 교무·사서=같은 학교). destroy/revise=작성 학생 본인, review=담당 교사·총괄. **`approve?` 만 `review? && record.submitted?`** — 승인은 되돌릴 수 없는 확정(포인트·뱃지·진화·미션 캐스케이드)이라, 목록이 이미 초안을 걸러도 URL 직접 요청·`batch_approve` id 배열 위조에 대해 정책에서 한 번 더 fail-closed 로 막는다(미제출 초안 승인 = rubric 없는 독후감 확정).
-- `board_post_policy.rb` — 우수작 게시판. 숨김(hidden) 글은 모더레이터(교사·교무·총괄)만 열람. Scope도 동일 기준.
+- `board_post_policy.rb` — 우수작 게시판. **경계=학교**(2026-09-19): 게시물은 글이 쓰인 학급(`report.classroom`)의 학교 구성원에게만 보이고 총괄만 전체를 본다. 게시판은 실명과 독후감 전문을 보여 주므로, 여러 학교가 한 서버를 쓸 때 다른 학교로 넘어가지 않게 한 것이다(그전에는 학교 경계 없이 전원 공개). 숨김(hidden) 글은 같은 학교의 모더레이터(교사·교무)와 총괄만 열람. Scope 도 같은 기준(`joins(report: :classroom)`)이며, 학생 홈의 '친구들의 우수작'(`StudentHomeQuery#featured_board_posts`)도 이 Scope 를 그대로 쓴다.
 - `book_policy.rb` — 도서 카탈로그·검색. 열람·검색 모두 로그인 사용자.
 - `book_intro_policy.rb` — 책 소개 대결. **경계=학급**: 소개 작성은 학급 소속 학생(`create?`), 투표는 같은 학급 또래의 소개만(`vote?`, 자기 소개 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 소개만 노출(크로스-학급 열람·투표 차단).
 - `book_sequel_policy.rb` — 뒷이야기 이어쓰기(BookIntroPolicy 미러). **경계=학급**: 작성은 학급 소속 학생(`create?`), 공감은 같은 학급 또래의 글만(`vote?`, 자기 글 제외), 회수는 본인 학급 내(`unvote?`). Scope 는 본인 학급 뒷이야기만 노출(크로스-학급 열람·공감 차단).

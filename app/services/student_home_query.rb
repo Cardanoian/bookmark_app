@@ -109,12 +109,12 @@ class StudentHomeQuery
     active_mission_participations.count
   end
 
-  # 친구들의 우수작(홈 진입점). 공유된 독후감 게시물 최신 몇 개를 낸다 — 우수작 게시판은 학급·학교
-  # 경계 없이 전원 공개라(BoardPostPolicy) 여기서도 스코프를 좁히지 않고, 숨김 글만 `visible` 로
-  # 배제해 학생용 정책 스코프와 일치시킨다. 정렬은 게시판 목록(board_posts#index)과 같은 최신순이라
+  # 친구들의 우수작(홈 진입점). 공유된 독후감 게시물 최신 몇 개를 낸다 — 우수작 게시판은 같은 학교
+  # 안에서만 보이므로(BoardPostPolicy, 2026-09-19) 게시판의 정책 스코프를 그대로 쓰고, 숨김 글은
+  # `visible` 로 배제한다. 정렬은 게시판 목록(board_posts#index)과 같은 최신순이라
   # "게시판 가기"로 넘어가면 같은 글이 이어진다(시드 데이터처럼 created_at 이 몰린 경우를 위해 id 타이브레이크).
   def featured_board_posts(limit: 3)
-    BoardPost.visible
+    BoardPostPolicy::Scope.new(@user, BoardPost.visible).resolve
              .includes(report: [ :user, :book ])
              .order(created_at: :desc, id: :desc)
              .limit(limit).to_a

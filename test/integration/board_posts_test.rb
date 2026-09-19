@@ -221,4 +221,75 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     assert_select "##{ActionView::RecordIdentifier.dom_id(visible)}"
     assert_select "##{ActionView::RecordIdentifier.dom_id(hidden)}", count: 0
   end
+
+  # 게시판은 글이 쓰인 학급의 학교 안에서만 보인다 — 실명과 독후감 전문이 다른 학교로 넘어가지 않게(2026-09-19).
+  test "다른 학교 학생은 우수작을 목록·상세·학생 홈에서 볼 수 없고 응원·스티커도 붙일 수 없다" do
+    board_post = BoardPost.create!(report: @report)
+    login_as other_school_member(:student)
+
+    [ board_posts_path, root_path ].each do |path|
+      get path
+      assert_response :success
+      assert_select "##{ActionView::RecordIdentifier.dom_id(board_post)}", { count: 0 }, path
+    end
+
+    get board_post_path(board_post)
+    assert_response :forbidden
+
+    assert_no_difference "Cheer.count" do
+      post board_post_cheers_path(board_post), as: :turbo_stream
+    end
+    assert_response :forbidden
+
+    assert_no_difference "Sticker.count" do
+      post board_post_stickers_path(board_post),
+           params: { sticker: { emoji: "👍", label: "멋져요", position: 0 } }, as: :turbo_stream
+    end
+    assert_response :forbidden
+  end
+
+  test "다른 학교 교사는 공개 글도 숨김 글도 볼 수 없다" do
+    visible = BoardPost.create!(report: @report)
+    hidden_report = Report.create!(user: @author, classroom: @classroom, book_title: "숨김글", body: "숨겨진 글")
+    hidden = BoardPost.create!(report: hidden_report, hidden: true)
+    login_as other_school_member(:teacher)
+
+    get board_posts_path
+    assert_response :success
+    assert_select "##{ActionView::RecordIdentifier.dom_id(visible)}", count: 0
+    assert_select "##{ActionView::RecordIdentifier.dom_id(hidden)}", count: 0
+
+    [ visible, hidden ].each do |board_post|
+      get board_post_path(board_post)
+      assert_response :forbidden
+    end
+  end
+
+  test "같은 학교 다른 반 학생은 우수작을 보고 응원할 수 있다" do
+    board_post = BoardPost.create!(report: @report)
+    other_classroom = Classroom.create!(school: @school, grade: 6, class_no: 2)
+    neighbor = User.create!(school: @school, classroom: other_classroom, name: "옆반친구", password: "password")
+    login_as neighbor
+
+    [ board_posts_path, root_path ].each do |path|
+      get path
+      assert_response :success
+      assert_select "##{ActionView::RecordIdentifier.dom_id(board_post)}", { count: 1 }, path
+    end
+
+    get board_post_path(board_post)
+    assert_response :success
+
+    assert_difference "Cheer.count", 1 do
+      post board_post_cheers_path(board_post), as: :turbo_stream
+    end
+  end
+
+  private
+
+  def other_school_member(role)
+    school = School.create!(name: "먼바다초")
+    classroom = Classroom.create!(school: school, grade: 5, class_no: 1)
+    User.create!(school: school, classroom: classroom, name: "먼바다#{role}", role: role, password: "password")
+  end
 end
