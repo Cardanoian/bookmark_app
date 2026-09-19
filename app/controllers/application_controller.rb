@@ -25,11 +25,10 @@ class ApplicationController < ActionController::Base
 
   private
 
-  # 사진(OCR) 입력 모드 사용 가능 여부. OCR 만 Gemini 를 쓰므로 **Gemini 키**가 없으면 false 다
-  # (P3.5). 첨삭 등 다른 AI 는 Claude 키를 보므로 두 키는 독립적으로 켜고 끌 수 있다 —
-  # Gemini 키만 없으면 사진 모드만 사라지고 첨삭은 그대로 동작한다.
+  # 사진(OCR) 입력 모드 사용 가능 여부. OCR 도 첨삭과 같은 **Claude 키**를 보므로 키가 없으면
+  # false 다(P3.5). 첨삭은 무키여도 규칙기반으로 돌지만 OCR 은 폴백이 없어 사진 모드를 감춘다.
   def ocr_available?
-    Ai::GeminiClient.available?
+    Ai::ClaudeClient.available?
   end
 
   def set_current_user

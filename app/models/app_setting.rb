@@ -3,7 +3,7 @@
 class AppSetting < ApplicationRecord
   # 저장 금지 키 패턴: anthropic/claude/gemini/kakao/naver/data4library 를 포함하거나
   # *_api_key / *_key / *_secret / *_token 으로 끝나는 이름(대소문자 무시).
-  # anthropic/claude(첨삭 등)와 gemini(OCR)는 둘 다 현재 쓰는 제공자다. 애초에 이 목록은
+  # gemini 는 2026-09-19 OCR 을 Claude 로 옮기며 더는 쓰지 않는 제공자다. 애초에 이 목록은
   # "현재 쓰는 제공자"가 아니라 "DB 에 새어 들어오면 안 되는 이름"의 집합이라, 쓰지 않게 된
   # 제공자 이름도 빼지 않는다 — 옛 키 이름으로 저장을 시도하는 경로(문서·스크립트·운영자
   # 습관)가 남아 있을 수 있어 좁히면 방어만 약해진다.

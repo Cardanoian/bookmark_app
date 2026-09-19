@@ -27,8 +27,8 @@ module Ai
     # Anthropic 은 요청마다 이 헤더를 요구한다(모델 버전이 아니라 API 스키마 버전이라 고정).
     API_VERSION = "2023-06-01".freeze
     MODEL = "claude-haiku-4-5".freeze
-    # Anthropic 은 max_tokens 가 **필수**다(Gemini 는 선택이라 없었다). 5축 첨삭 JSON·퀴즈 세트·
-    # 손글씨 OCR 본문을 모두 덮는 값. Haiku 4.5 의 출력 상한이 64K 라 여유가 크다.
+    # Anthropic 은 max_tokens 가 **필수**다(Gemini 는 선택이라 없었다). 5축 첨삭 JSON·퀴즈 세트를
+    # 덮는 값(손글씨 OCR 은 `OcrService::MAX_TOKENS` 를 따로 넘긴다). Haiku 4.5 의 출력 상한이 64K 라 여유가 크다.
     DEFAULT_MAX_TOKENS = 4096
 
     # 키 존재 여부만으로 사용 가능 판단(네트워크 호출 없음).
@@ -38,9 +38,12 @@ module Ai
 
     # connection: 테스트에서 스텁 Faraday 연결을 주입(네트워크 차단).
     # 키 소스: ENV 가 있으면 우선, 없으면 credentials 폴백(운영자 대안 경로, docs/API_KEYS.md §5·§6).
-    def initialize(api_key: ENV["ANTHROPIC_API_KEY"].presence || Rails.application.credentials.dig(:anthropic, :api_key), connection: nil)
+    # read_timeout: 기본 30s. 느린 호출(OCR)만 늘려 쓴다 — 타임아웃은 재시도 대상이라, 서버가 끝까지 생성해
+    #   과금한 요청을 클라이언트가 끊고 다시 보내면 비용이 겹친다.
+    def initialize(api_key: ENV["ANTHROPIC_API_KEY"].presence || Rails.application.credentials.dig(:anthropic, :api_key), connection: nil, read_timeout: 30)
       @api_key = api_key.to_s
       @connection = connection
+      @read_timeout = read_timeout
     end
 
     def configured?
@@ -164,7 +167,7 @@ module Ai
     end
 
     def connection
-      @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: 30 }) do |faraday|
+      @connection ||= Faraday.new(url: BASE_URL, request: { open_timeout: 3, timeout: @read_timeout }) do |faraday|
         # 이 클라이언트는 백그라운드 잡(OcrJob/AiReviewJob)과 저빈도 교사 동기 경로(퀴즈 초안
         # 생성) 양쪽에서 쓰인다. timeout 은 재시도(최대 2회)·간헐 지연까지 덮도록 30s 로 둔다.
         # 재시도 상태코드는 Anthropic 규약: 429(rate limit)·500(api_error)·529(overloaded).

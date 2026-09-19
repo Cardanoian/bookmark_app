@@ -28,7 +28,7 @@ registry:
 env:
   secret:
     # 앱의 유일한 배포 시크릿. 컨테이너는 이 키로 credentials.yml.enc 를 복호화해
-    # 외부 API 키(gemini·naver·data4library·neis)를 런타임에 읽는다(docs/API_KEYS.md §3).
+    # 외부 API 키(anthropic·naver·data4library·neis)를 런타임에 읽는다(docs/API_KEYS.md §3).
     - RAILS_MASTER_KEY
   clear:
     RAILS_ENV: production

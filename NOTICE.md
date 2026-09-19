@@ -78,6 +78,7 @@
 ## AI 모델
 
 - **Anthropic Claude** (`claude-haiku-4-5`) — 독후감 5축 첨삭·퀴즈 초안·게임 콘텐츠 생성.
+- **Anthropic Claude** (`claude-sonnet-5`) — 손글씨 독후감 사진 글자 인식(OCR).
   https://www.anthropic.com
 - **Google Gemini 3.1 Flash Image** — 반려 몬스터 스프라이트 원본 이미지 생성(오프라인 1회성 제작).
 - **OpenAI ChatGPT** — 빈 화면 일러스트 및 로고, 아이콘 생성(오프라인 1회성 제작). https://openai.com

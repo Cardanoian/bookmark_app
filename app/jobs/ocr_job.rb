@@ -1,9 +1,8 @@
 # 사진 업로드 → 비동기 손글씨 OCR → report.body 초안. 키 없으면 Unavailable, API 호출
-# 실패·빈 응답이면 GeminiClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
+# 실패·빈 응답이면 ClaudeClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
 # 영구히 묶이지 않게 한다. (§9.3, P3.4)
 #
-# OCR 만 Gemini(gemini-3.5-flash-lite)를 쓴다 — 첨삭·퀴즈 등 나머지 AI 잡은 Claude 다.
-# 따라서 이 잡의 키·게이트 판정도 Gemini 키를 본다(`Ai::OcrService` 주석 참고).
+# 다른 AI 잡과 같은 Claude 키를 보되 모델만 OCR 전용(`Ai::OcrService::MODEL`)이다.
 class OcrJob < ApplicationJob
   queue_as :default
 
@@ -17,13 +16,13 @@ class OcrJob < ApplicationJob
 
   # AI 동의 재확인용 클라이언트 팩토리(테스트 seam, GenerateGameContentJob 선례). 잡 실행 시점에
   # 동의를 재평가해 "동의 후 사진 업로드 → 교사 철회 → 인플라이트 잡 실행" 레이스에서 미동의 학생의
-  # 손글씨 이미지가 Gemini 로 전송되지 않게 한다(P1-1). 테스트는 configured? 스텁을 주입해 무키가
+  # 손글씨 이미지가 외부 AI 로 전송되지 않게 한다(P1-1). 테스트는 configured? 스텁을 주입해 무키가
   # 아닌 미동의 사유로 차단됨을 검증한다.
   class << self
     attr_writer :gate_client_factory
 
     def gate_client_factory
-      @gate_client_factory ||= -> { Ai::GeminiClient.new }
+      @gate_client_factory ||= -> { Ai::ClaudeClient.new }
     end
 
     def reset_factories!
@@ -53,7 +52,7 @@ class OcrJob < ApplicationJob
 
     report.update!(body: text, ai_status: :done)
     broadcast_ocr_ready(report)
-  rescue Ai::OcrService::Unavailable, Ai::GeminiClient::ApiError => e
+  rescue Ai::OcrService::Unavailable, Ai::ClaudeClient::ApiError => e
     Rails.logger.error("OcrJob failed for report #{report&.id}: #{e.class}: #{e.message}")
     # 이미 낸 글은 실패로도 건드리지 않는다 — ai_status 는 그 글의 첨삭 상태를 가리키고 있다.
     return if report.nil? || report.reload.submitted_at.present?

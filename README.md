@@ -7,7 +7,7 @@
 학생·담임교사·교무관리자·사서·총괄관리자까지 **5개 역할**의 학교 현장 운영을 하나의 앱으로 지원합니다.
 
 - **상태**: 구현 Phase 0~8 완료 · 테스트 1,441 runs / 0 failures · RuboCop(omakase) 무경고 · Brakeman 0
-- **외부 연동**: Claude · Gemini(OCR) · 네이버 도서검색 · 정보나루 실연동 검증 완료 (키 없이도 폴백으로 완전 동작)
+- **외부 연동**: Claude(첨삭·OCR) · 네이버 도서검색 · 정보나루 실연동 검증 완료 (키 없이도 폴백으로 완전 동작)
 
 ---
 
@@ -29,7 +29,7 @@
 ## 핵심 기능
 
 ### ✍️ 독후감 & AI 5축 첨삭 (핵심 가치)
-- **다양한 입력 모드** — 직접 타이핑, **손글씨 사진 → OCR 자동 변환**(Gemini Vision), 음성(STT)·원고지·낭독 녹음 등 접근성(UDL) 입력.
+- **다양한 입력 모드** — 직접 타이핑, **손글씨 사진 → OCR 자동 변환**(Claude Vision), 음성(STT)·원고지·낭독 녹음 등 접근성(UDL) 입력.
 - **AI 5축 첨삭** — Claude가 **내용·감상·삶(과 연결)·구성·맞춤법** 5개 축으로 평가하고 **5축 방사형(radar) 차트**로 시각화. "점수 매기기"가 아닌 **발전적 첨삭**이 설계 철학.
 - **고쳐쓰기 & 우수작 공유** — 첨삭을 반영해 다시 쓰고, 잘 쓴 글은 게시판에 공유.
 - **무중단 폴백** — AI 호출 실패 시 규칙 기반 첨삭·로컬 캐시로 자동 전환.
@@ -65,7 +65,7 @@
 | 인가                       | Pundit (역할별 접근 권한)                                                             |
 | 인증                       | `has_secure_password` (bcrypt)                                                        |
 | 외부 HTTP                  | Faraday (+ faraday-retry)                                                             |
-| AI                         | Anthropic Claude (5축 첨삭 · 퀴즈 생성) · Google Gemini (손글씨 OCR 전용) |
+| AI                         | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 손글씨 OCR)                        |
 | Android                    | Hotwire Native 1.3.1 · Kotlin 2.3 · AGP 8.13 · minSdk 28 (**웹앱과 동시 운영**)        |
 | 배포                       | Docker · Kamal 2 · Thruster (DigitalOcean 대상)                                       |
 | 품질                       | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit                     |

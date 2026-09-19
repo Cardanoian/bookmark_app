@@ -234,7 +234,7 @@ release APK 를 `android/index.apk` 로 덮어쓴 뒤 SHA-256 을 로그에 찍�
 
 - 권한은 **`INTERNET` 하나뿐**이다. `CAMERA`·`READ_MEDIA_IMAGES`·저장소 권한을 선언하지 않는다
   (시스템 카메라 Intent + Photo Picker 로 대체).
-- **API 키를 APK 에 넣지 않는다.** Gemini·Claude·네이버·정보나루 키는 Rails 서버만 가진다.
+- **API 키를 APK 에 넣지 않는다.** Claude·네이버·정보나루 키는 Rails 서버만 가진다.
 - 상위 화면 WebView 탐색은 `chaekgalpi.net` / `www.chaekgalpi.net` 만 신뢰한다.
   검사는 **URI 파싱 후 scheme·host 정확 비교**로 한다.
 - 임의의 `addJavascriptInterface` 를 만들지 않는다. 네이티브 통신은 Hotwire Bridge Component 만 쓴다.

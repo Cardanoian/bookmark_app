@@ -16,7 +16,7 @@
 | 외부 링크 Custom Tab · 인증 파일 다운로드(CSV·PDF) · Android 인쇄 | 인증 토큰 저장 (Rails 세션 쿠키 그대로) |
 | WebView 버전 확인 · 네트워크 오류 복구 화면 | 인가 판단 (Pundit 은 서버에만) |
 
-**절대 하지 않는 것**: API 키를 APK 에 넣기, Android 에서 Gemini 직접 호출, 보호자 AI 동의 게이트 우회,
+**절대 하지 않는 것**: API 키를 APK 에 넣기, Android 에서 외부 AI 직접 호출, 보호자 AI 동의 게이트 우회,
 서버의 10MB·매직바이트 검증 완화, OCR 사진을 기기 갤러리에 영구 저장.
 
 ## 파일 구성
