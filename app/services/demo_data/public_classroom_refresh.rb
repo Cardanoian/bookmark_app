@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "digest"
-require "fileutils"
 require "stringio"
 require "yaml"
 require Rails.root.join("db/seeds/demo_seeder").to_s
@@ -15,8 +13,6 @@ module DemoData
     SEED_FILENAME = "sample_3_1.yml"
     SEED_ROOT = Rails.root.join("db/seeds/demo")
     ACCOUNTS_PATH = Rails.root.join("db/seeds/accounts.yml")
-    BACKUP_DIR = Rails.root.join("storage/demo_backups")
-    DATABASE_PATH = Rails.root.join("storage/production.sqlite3")
 
     class SafetyError < StandardError; end
 
@@ -214,20 +210,7 @@ module DemoData
     def backup_database!
       return unless @backup_database
 
-      connection = ApplicationRecord.connection
-      raise SafetyError, "자동 백업은 SQLite에서만 지원합니다" unless connection.adapter_name == "SQLite"
-
-      raise SafetyError, "운영 데이터베이스 파일을 찾을 수 없습니다" unless DATABASE_PATH.file?
-
-      FileUtils.mkdir_p(BACKUP_DIR)
-      timestamp = Time.current.utc.strftime("%Y%m%d%H%M%S")
-      path = BACKUP_DIR.join("production-before-public-demo-refresh-#{timestamp}-#{Process.pid}.sqlite3")
-      connection.execute("VACUUM INTO #{connection.quote(path.to_s)}")
-      File.chmod(0o600, path)
-
-      info = { path: path.to_s, bytes: path.size, sha256: Digest::SHA256.file(path).hexdigest }
-      @io.puts "  [demo-refresh] 백업: #{info[:path]} (#{info[:bytes]} bytes, sha256=#{info[:sha256]})"
-      info
+      DatabaseBackup.call!(label: "public-demo-refresh", io: @io, error_class: SafetyError)
     end
 
     def target_classroom

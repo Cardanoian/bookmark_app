@@ -24,6 +24,39 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
     assert_empty posts.where(stance: nil), "찬반 토론 글은 모두 입장이 있어야 합니다"
   end
 
+  # 활동량을 줄인 학급도 논제마다 찬성·반대가 함께 남고(소수 의견 20% 이상), 같은 글이 두 번 나오지 않는다.
+  # 학생별로 앞에서 자르던 때는 3-5(low)가 찬성 3편뿐이고 3-7(balanced)은 한 논제가 비었다.
+  test "scaled noeul-template classrooms keep both stances on every debate topic" do
+    seeder = DemoSeeder.new(io: StringIO.new)
+    %w[sample_3_5.yml sample_3_7.yml].each do |filename|
+      data = seeder.seed_data_for(filename)
+      posts = data.fetch("students").flat_map { |student| Array(student["forum_posts"]) }
+      texts = posts.map { |post| post.fetch("text") }
+      assert_equal texts.size, texts.uniq.size, "#{filename}: 같은 글이 한 학급에 두 번 나오면 안 됩니다"
+
+      by_topic = posts.group_by { |post| post.fetch("topic") }
+      assert_equal data.fetch("topics").map { |topic| topic.fetch("key") }.sort, by_topic.keys.sort,
+                   "#{filename}: 모든 논제에 글이 있어야 합니다"
+      by_topic.each do |topic, rows|
+        tally = rows.map { |post| post.fetch("stance") }.tally
+        minority = tally.values_at("pro", "con").map(&:to_i).min
+        assert minority * 5 >= rows.size, "#{filename} #{topic}: 소수 의견이 20% 미만입니다 (#{tally})"
+      end
+    end
+  end
+
+  # 활동량이 high 인 학급(공개 체험 3-1 포함)은 템플릿 글을 그대로 쓴다.
+  test "high-activity noeul-template classrooms keep every template post" do
+    seeder = DemoSeeder.new(io: StringIO.new)
+    template = YAML.safe_load_file(Rails.root.join("db/seeds/demo/noeul_3_1.yml"))
+    template_texts = template.fetch("students").flat_map { |student| Array(student["forum_posts"]) }.map { |post| post.fetch("text") }
+
+    %w[sample_3_3.yml byeolha_3_1.yml haon_3_2.yml].each do |filename|
+      texts = seeder.seed_data_for(filename).fetch("students").flat_map { |student| Array(student["forum_posts"]) }.map { |post| post.fetch("text") }
+      assert_equal template_texts.sort, texts.sort, filename
+    end
+  end
+
   test "a legacy string-topic classroom stays free without stances" do
     DemoSeeder.new(io: StringIO.new, only_files: [ "danbi_5_3.yml" ]).call
 

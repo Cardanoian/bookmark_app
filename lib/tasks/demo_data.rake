@@ -14,4 +14,16 @@ namespace :demo_data do
     result = service.call!
     puts "[demo-refresh] backup_sha256=#{result.dig(:backup, :sha256)}"
   end
+
+  desc "Audit demo classrooms whose seed defines debate topics without changing data"
+  task discussion_audit: :environment do
+    puts "[discussion-rebuild] DRY RUN"
+    DemoData::DiscussionRebuild.new.preview.each { |row| puts "  #{row.inspect}" }
+  end
+
+  desc "Back up and rebuild only the discussions of demo classrooms whose seed defines debate topics"
+  task discussion_rebuild: :environment do
+    result = DemoData::DiscussionRebuild.new(confirmation: ENV["CONFIRM"]).call!
+    puts "[discussion-rebuild] backup_sha256=#{result.dig(:backup, :sha256)}"
+  end
 end

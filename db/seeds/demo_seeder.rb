@@ -88,6 +88,19 @@ class DemoSeeder
     load_seed_data(path)
   end
 
+  # 이미 적재된 데모 학급의 토론방·글·좋아요만 정본으로 다시 만드는 제한된 공개 API
+  # (DemoData::DiscussionRebuild 전용). 학생·독후감·게임 같은 다른 활동은 건드리지 않는다.
+  # 명단 일치 확인·트랜잭션·백업은 호출자가 책임진다.
+  def reseed_discussions!(filename, classroom)
+    data = seed_data_for(filename)
+    users = classroom.users.where(role: :student).index_by(&:name)
+    students = data.fetch("students").map { |sd| { sd:, user: users.fetch(sd.fetch("name").to_s) } }
+    @rng = Random.new(Zlib.crc32("#{classroom.school.neis_code}-#{classroom.grade}-#{classroom.class_no}"))
+
+    Topic.where(classroom:).find_each(&:destroy!)
+    seed_topics_and_forum(Array(data["topics"]), classroom, students, peers: users.values)
+  end
+
   private
 
   def validate_seed_filename!(filename)
@@ -170,16 +183,49 @@ class DemoSeeder
     end
 
     seed_data = template.merge(data.except("template", "student_names", "activity_level"))
+    profiles = source_students.cycle.take(names.size)
+    debate_posts = balanced_debate_posts(profiles, activity_scale_for(activity_level))
     seed_data.merge(
       "missions" => scale_missions(Array(seed_data["missions"]), activity_scale_for(activity_level)),
-      "students" => source_students.cycle.take(names.size).zip(names, overrides)
-                                   .map do |student, name, override|
+      "students" => profiles.zip(names, overrides).each_with_index.map do |(student, name, override), index|
         level = override["activity_level"].presence || activity_level
-        scale_student_activity(student, activity_scale_for(level))
-          .merge("name" => name)
-          .merge(override.except("activity_level"))
+        scaled = scale_student_activity(student, activity_scale_for(level))
+        scaled = scaled.merge("forum_posts" => debate_posts[index]) if debate_posts
+        scaled.merge("name" => name).merge(override.except("activity_level"))
       end
     )
+  end
+
+  # 찬반 토론 글(구조화 + stance)은 학생별로 앞에서 자르지 않고 학급 단위로 논제마다 고른다.
+  # 학생별로 자르면 글이 한 편뿐인 학생(반대 글이 여기 많다)이 통째로 빠져, 활동량이 낮은 학급의
+  # 논제가 찬성만 남거나 비었다. 논제마다 활동량만큼(최소 2편) 남기되 소수 입장을 비율대로(최소 1편)
+  # 함께 남긴다. 명단이 템플릿보다 길어 프로필을 다시 쓰면 같은 글은 한 학급에 한 번만 쓴다.
+  # 활동량이 high(1.0)면 템플릿 글을 그대로 둔다. 찬반 글이 없는 템플릿은 nil(학생별 규칙 유지).
+  def balanced_debate_posts(profiles, scale)
+    seen = Set.new
+    entries = profiles.each_with_index.flat_map do |profile, index|
+      Array(profile["forum_posts"]).filter_map do |post|
+        next unless post.is_a?(Hash) && post["stance"].present?
+
+        [ index, post ] if seen.add?(post.fetch("text"))
+      end
+    end
+    return if entries.empty?
+
+    kept = entries.group_by { |_index, post| post.fetch("topic") }
+                  .flat_map { |_topic, rows| sample_debate_rows(rows, scale) }
+    profiles.each_index.map { |index| kept.filter_map { |owner, post| post if owner == index } }
+  end
+
+  def sample_debate_rows(rows, scale)
+    keep = [ (rows.size * scale).round, [ 2, rows.size ].min ].max
+    return rows if keep >= rows.size
+
+    minority, majority = rows.partition { |_index, post| post.fetch("stance") == "con" }
+                             .sort_by(&:size)
+    minority_keep = minority.empty? ? 0 : ((minority.size * keep.fdiv(rows.size)).round).clamp(1, minority.size)
+    chosen = minority.first(minority_keep) + majority.first(keep - minority_keep)
+    rows.select { |row| chosen.include?(row) }
   end
 
   def activity_scale_for(level)
