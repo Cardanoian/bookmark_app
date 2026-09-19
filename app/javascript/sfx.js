@@ -19,7 +19,8 @@ let context = null
 
 function audioContext() {
   if (context) return context
-  const Ctor = window.AudioContext || window.webkitAudioContext
+  // allow_browser :modern(Safari 17.2+·Chrome 120+) 뒤라 webkitAudioContext 접두사 폴백은 필요 없다.
+  const Ctor = window.AudioContext
   if (!Ctor) return null
   try {
     context = new Ctor()
