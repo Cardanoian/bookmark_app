@@ -168,6 +168,43 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_equal 0, ApplicationRecord.connection.execute("PRAGMA foreign_key_check").size
   end
 
+  # 운영처럼 예시 글 풀(book_social.yml)에 있는 책이 카탈로그에 있으면, 책 소개·뒷이야기 완료 기록마다 같은 책의
+  # 글이 생긴다(2026-09-19 — 글 없는 "완료"가 볼 글이 없었다). 그래도 대표 학생 이야기 검증(미션·몬스터·진화)과
+  # 게임 기록 수·정본 뒷이야기·담임 검토 대기 글은 그대로여야 한다.
+  test "refresh writes an entry for every seeded book and sequel play when example texts exist" do
+    seed_monster_species!
+    seed_badges!
+    YAML.load_file(DemoSeeder::SOCIAL_TEXTS_PATH).first(80).each do |isbn, texts|
+      Book.create!(title: texts.fetch("title"), isbn:, summary: "줄거리", category: :recommended)
+    end
+    service = DemoData::PublicClassroomRefresh.new(
+      io: StringIO.new,
+      confirmation: DemoData::PublicClassroomRefresh::CONFIRMATION,
+      backup_database: false
+    )
+
+    result = with_demo_deployment { service.call! }
+
+    assert_public_demo_story!(result)
+    student_ids = @students.map(&:id)
+    assert_equal 101, GamePlay.where(user_id: student_ids).count
+    written_plays = GamePlay.where(user_id: student_ids, game_type: %w[book sequel])
+    assert written_plays.exists?
+    orphans = written_plays.reject do |play|
+      (play.book? ? BookIntro : BookSequel).exists?(user_id: play.user_id, book_id: play.book_id)
+    end
+    assert_empty orphans, "책 소개·뒷이야기 완료 기록은 모두 같은 책의 글이 있어야 합니다"
+
+    curated = @seed_data.fetch("book_sequels").map { |definition| [ definition.fetch("student_name"), definition.fetch("body").strip ] }
+    actual = BookSequel.where(classroom: @classroom).includes(:user).map { |sequel| [ sequel.user.name, sequel.body ] }
+    assert_empty curated - actual, "정본 뒷이야기는 그대로 있어야 합니다"
+    awaiting = @seed_data.fetch("book_sequels").reject { |definition| definition.fetch("reviewed", true) }.map { |definition| definition.fetch("student_name") }
+    assert_equal awaiting.sort, BookSequel.where(classroom: @classroom).awaiting_review.map { |sequel| sequel.user.name }.sort,
+                 "시드가 쓴 뒷이야기는 승인된 글이라 담임 검토 대기는 정본 글만"
+    dates = BookSequel.where(classroom: @classroom).where.not(body: curated.map(&:last)).map { |sequel| sequel.created_at.to_date }
+    assert dates.none? { |date| date.month == 8 }, "시드 글 날짜에 8월(방학)은 없다"
+  end
+
   private
 
   def assert_curated_book_sequels!

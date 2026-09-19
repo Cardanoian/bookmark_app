@@ -26,6 +26,19 @@ class DemoSeeder
   POINTS_PER_GAME_PLAY = 10
   POINTS_PER_QUIZ_ATTEMPT = 10
 
+  # 글을 써야 끝나는 게임(책 소개 대결·뒷이야기 이어쓰기). 이 두 게임의 완료 기록은 같은 책의 글과 함께 만든다
+  # — 화면은 쓴 글이 있어야 "완료"로 보이므로(StudentLibraryQuery::WRITTEN_GAMES), 글 없는 기록은 볼 글이 없는
+  # "완료"가 됐다(운영 체험 이도현 『검피 아저씨의 뱃놀이』, 2026-09-19).
+  WRITTEN_GAME_TYPES = %i[book sequel].freeze
+  # 책별 예시 글 풀(ISBN-13 → { title, book_intro, book_sequel, forum_posts }).
+  SOCIAL_TEXTS_PATH = Rails.root.join("db/seeds/book_social.yml")
+  # 시드가 만든 뒷이야기는 담임이 이미 승인한 글로 둔다(교사 '뒷이야기 검토' 대기 수는 정본 글만).
+  GAME_SEQUEL_COMMENT = "상상력이 돋보이는 이야기예요! 인물의 마음을 잘 이어 썼어요."
+  # 글 쓰는 게임의 날짜: 1학기(5월 1일~7월 20일)에 주로, 2학기 9월에 조금, 8월(여름방학)은 비운다.
+  WRITING_TERM_START = [ 5, 1 ].freeze
+  WRITING_TERM_END = [ 7, 20 ].freeze
+  WRITING_SEPTEMBER_SHARE = 0.15
+
   # 초등학생 데모 계정용 독서 별칭. 접두어와 독서 관련 낱말을 조합해 실명·숫자 없이 고유한
   # 닉네임을 만든다(29 × 26 = 754개 — 현재 데모 학생 745명보다 많음).
   NICKNAME_PREFIXES = %w[
@@ -516,14 +529,26 @@ class DemoSeeder
   end
 
   # ── 게임(원장 + 퀴즈 시도) ───────────────────────────────────────────────
+  # 퀴즈·나는 누구게?는 완료 기록만 만든다(최근 며칠 — 미션 기간 진행도가 여기에 걸려 있다). 책 소개·
+  # 뒷이야기는 예시 글이 있는 책에 그 글을 함께 쓰고(write_game_entry!), 날짜는 writing_date 를 따른다.
+  # 예시 글 풀이 없는 환경(테스트의 임의 ISBN 도서 등)에서는 예전처럼 완료 기록만 만든다.
   def seed_games(st)
     user = st[:user]
     plays = (st[:sd]["game_plays"] || 0).to_i
-    plays.times do |i|
-      gtype = GAME_TYPES[i % GAME_TYPES.size]
+    slots = Array.new(plays) { |i| [ i, GAME_TYPES[i % GAME_TYPES.size] ] }
+    # 이 학생이 게임한 책 — 글 쓰는 게임의 책을 여기서 피해 '게임으로 만난 책 수'(몬스터 해금 지표)를 지킨다.
+    taken = slots.reject { |_i, gtype| WRITTEN_GAME_TYPES.include?(gtype) }.map { |i, _gtype| pool_book(i + user.id).id }.to_set
+
+    slots.each do |i, gtype|
       book = pool_book(i + user.id)
-      played_on = (Date.current - (i + 1)).to_s
-      GamePlay.create!(user:, game_type: gtype, book: book, played_on: played_on)
+      played_on = Date.current - (i + 1)
+      if WRITTEN_GAME_TYPES.include?(gtype) && (written_book = social_book_for(gtype, st[:classroom], i + user.id, taken))
+        book = written_book
+        played_on = writing_date(user, i)
+        taken << book.id
+        write_game_entry!(gtype, user, st[:classroom], book, played_on)
+      end
+      GamePlay.create!(user:, game_type: gtype, book: book, played_on: played_on.to_s)
       st[:game_points] += POINTS_PER_GAME_PLAY
       @totals[:game_plays] += 1
     end
@@ -859,6 +884,66 @@ class DemoSeeder
       end
       @totals[:book_sequels] += 1
     end
+  end
+
+  # 게임 완료 기록과 같은 책·같은 날의 글. 본문은 책별 예시 글 풀(book_social.yml)에서 온다.
+  def write_game_entry!(gtype, user, classroom, book, played_on)
+    texts = social_texts.fetch(book.isbn)
+    written_at = played_on.in_time_zone.change(hour: 9) + ((user.id * 37) % 420).minutes
+    case gtype
+    when :book
+      BookIntro.create!(user:, book:, classroom:, body: texts.fetch("book_intro").to_s.strip[0, 1000],
+                        created_at: written_at, updated_at: written_at)
+      @totals[:book_intros] += 1
+    when :sequel
+      reviewed_at = [ written_at + 1.day, Time.current ].min
+      BookSequel.create!(user:, book:, classroom:, body: texts.fetch("book_sequel").to_s.strip[0, 2000],
+                         ai_status: :done, ai_comment: GAME_SEQUEL_COMMENT,
+                         reviewed_at:, reviewed_by: classroom.teacher,
+                         created_at: written_at, updated_at: reviewed_at)
+      @totals[:book_sequels] += 1
+    end
+  end
+
+  # 글 쓰는 게임(gtype)의 책 — 그 게임의 예시 글이 있고, 이 학생이 아직 게임하지 않았고(taken), 같은 반에서
+  # 같은 게임으로 아직 쓰이지 않은 책(같은 글이 한 반에 두 번 보이지 않게). 없으면 nil.
+  def social_book_for(gtype, classroom, index, taken)
+    pool = social_book_pool
+    return nil if pool.empty?
+
+    used = (@social_books_used ||= Hash.new { |hash, key| hash[key] = Set.new })[[ classroom.id, gtype ]]
+    field = gtype == :book ? "book_intro" : "book_sequel"
+    pool.size.times do |offset|
+      book = pool[(index + offset) % pool.size]
+      next if taken.include?(book.id) || used.include?(book.id)
+      next if social_texts.dig(book.isbn, field).to_s.strip.length < 10
+
+      used << book.id
+      return book
+    end
+    nil
+  end
+
+  # 예시 글이 있는 정식 카탈로그 도서(검색 캐시 제외), id 순.
+  def social_book_pool
+    @social_book_pool ||= Book.where(isbn: social_texts.keys).where.not(category: :searched).order(:id).to_a
+  end
+
+  def social_texts
+    @social_texts ||= File.exist?(SOCIAL_TEXTS_PATH) ? YAML.load_file(SOCIAL_TEXTS_PATH) : {}
+  end
+
+  # 글 쓰는 게임의 날짜 — 1학기(5/1~7/20)에 주로, 9월에 조금(WRITING_SEPTEMBER_SHARE), 8월은 없다.
+  # 오늘 이후 날짜는 만들지 않고, 올해 1학기가 아직 오지 않았으면(3~4월에 시드) 지난해 것을 쓴다.
+  # 학생·순번으로 정해지는 난수라 학급 공용 @rng 의 순서를 바꾸지 않는다(다른 시드 결과가 그대로다).
+  def writing_date(user, index)
+    rng = Random.new(Zlib.crc32("writing-date-#{user.id}-#{index}"))
+    latest = Date.current - 1
+    year = Date.new(latest.year, *WRITING_TERM_START) > latest ? latest.year - 1 : latest.year
+    term = Date.new(year, *WRITING_TERM_START)..[ Date.new(year, *WRITING_TERM_END), latest ].min
+    september = Date.new(year, 9, 1)..[ Date.new(year, 9, 30), latest ].min
+    range = september.begin <= september.end && rng.rand < WRITING_SEPTEMBER_SHARE ? september : term
+    range.begin + rng.rand((range.end - range.begin).to_i + 1)
   end
 
   # ── 마무리: 포인트/경험치/시즌점수/뱃지 ─────────────────────────────────
