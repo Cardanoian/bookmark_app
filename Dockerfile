@@ -21,11 +21,15 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment variables and enable jemalloc for reduced memory usage and latency.
+# TZ: 컨테이너 OS 시간대를 앱 시간대(config.time_zone = Asia/Seoul)와 맞춘다. 기본값 UTC 에서는
+# Date#to_time 같은 OS 시간대 기준 변환이 개발(KST)과 9시간 어긋나고, recurring.yml 의 "at 4am every day"
+# 가 한국 시각 오후 1시에 돌았다. 서울 시간대 데이터(tzdata)는 ruby slim 기반 이미지에 기본 포함돼 있다.
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development" \
-    LD_PRELOAD="/usr/local/lib/libjemalloc.so"
+    LD_PRELOAD="/usr/local/lib/libjemalloc.so" \
+    TZ="Asia/Seoul"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build

@@ -19,8 +19,10 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # 개발 모드(모든 젬 그룹 설치). 비밀키가 필요 없도록 development 로 고정.
+# TZ 는 운영 Dockerfile 과 같은 서울 시간대(앱 config.time_zone 과 일치, tzdata 는 기반 이미지에 포함).
 ENV RAILS_ENV="development" \
-    BUNDLE_PATH="/usr/local/bundle"
+    BUNDLE_PATH="/usr/local/bundle" \
+    TZ="Asia/Seoul"
 
 # 젬 먼저 설치해 레이어 캐시 활용
 COPY Gemfile Gemfile.lock ./
