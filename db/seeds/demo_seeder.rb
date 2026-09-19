@@ -817,7 +817,9 @@ class DemoSeeder
 
     students.each_with_index do |st, i|
       if (intro = st[:sd]["book_intro"]).present? && intro.to_s.strip.length >= 10
-        bi = BookIntro.create!(user: st[:user], book: pool_book(i + 1), classroom:, body: intro.to_s.strip[0, 1000])
+        written_at = writing_time(st[:user], writing_date(st[:user], "template-intro"))
+        bi = BookIntro.create!(user: st[:user], book: pool_book(i + 1), classroom:, body: intro.to_s.strip[0, 1000],
+                               created_at: written_at, updated_at: written_at)
         vote_from(users, st[:user]) { |u| BookIntroVote.create!(book_intro: bi, user: u); @totals[:book_intro_votes] += 1 }
         @totals[:book_intros] += 1
       end
@@ -827,10 +829,12 @@ class DemoSeeder
 
       # 템플릿 학급의 뒷이야기는 모두 담임이 승인한 상태로 둔다(코멘트는 담임 승인 뒤에만 학생에게 보인다).
       # 승인 대기 글을 보여 줄 학급은 정본 book_sequels 에 reviewed: false 로 직접 적는다.
+      written_at = writing_time(st[:user], writing_date(st[:user], "template-sequel"))
+      reviewed_at = [ written_at + 1.day, Time.current ].min
       bs = BookSequel.create!(
         user: st[:user], book: pool_book(i + 5), classroom:, body: seq.to_s.strip[0, 2000],
-        ai_status: :done, ai_comment: "상상력이 돋보이는 이야기예요! 인물의 마음을 잘 이어 썼어요.",
-        reviewed_at: Time.current, reviewed_by: classroom.teacher
+        ai_status: :done, ai_comment: GAME_SEQUEL_COMMENT,
+        reviewed_at:, reviewed_by: classroom.teacher, created_at: written_at, updated_at: reviewed_at
       )
       vote_from(users, st[:user]) { |u| BookSequelVote.create!(book_sequel: bs, user: u); @totals[:book_sequel_votes] += 1 }
       @totals[:book_sequels] += 1
@@ -873,10 +877,15 @@ class DemoSeeder
       raise ArgumentError, "뒷이야기 도우미 코멘트가 없습니다: #{definition.fetch('book_title')}" if comment.empty?
 
       reviewed = definition.fetch("reviewed", true)
+      # 승인한 글은 다른 글과 같은 날짜 규칙, 담임 검토를 기다리는 글은 막 낸 글이라 가장 최근 며칠.
+      key = "curated-#{definition.fetch('book_title')}"
+      written_at = writing_time(author, reviewed ? writing_date(author, key) : recent_writing_date(author, key))
+      reviewed_at = [ written_at + 1.day, Time.current ].min if reviewed
       sequel = BookSequel.create!(
         user: author, book:, classroom:, body:,
         ai_status: :done, ai_comment: comment,
-        reviewed_at: (Time.current if reviewed), reviewed_by: (classroom.teacher if reviewed)
+        reviewed_at:, reviewed_by: (classroom.teacher if reviewed),
+        created_at: written_at, updated_at: reviewed_at || written_at
       )
       vote_from(users, author) do |user|
         BookSequelVote.create!(book_sequel: sequel, user:)
@@ -889,7 +898,7 @@ class DemoSeeder
   # 게임 완료 기록과 같은 책·같은 날의 글. 본문은 책별 예시 글 풀(book_social.yml)에서 온다.
   def write_game_entry!(gtype, user, classroom, book, played_on)
     texts = social_texts.fetch(book.isbn)
-    written_at = played_on.in_time_zone.change(hour: 9) + ((user.id * 37) % 420).minutes
+    written_at = writing_time(user, played_on)
     case gtype
     when :book
       BookIntro.create!(user:, book:, classroom:, body: texts.fetch("book_intro").to_s.strip[0, 1000],
@@ -933,17 +942,35 @@ class DemoSeeder
     @social_texts ||= File.exist?(SOCIAL_TEXTS_PATH) ? YAML.load_file(SOCIAL_TEXTS_PATH) : {}
   end
 
-  # 글 쓰는 게임의 날짜 — 1학기(5/1~7/20)에 주로, 9월에 조금(WRITING_SEPTEMBER_SHARE), 8월은 없다.
-  # 오늘 이후 날짜는 만들지 않고, 올해 1학기가 아직 오지 않았으면(3~4월에 시드) 지난해 것을 쓴다.
-  # 학생·순번으로 정해지는 난수라 학급 공용 @rng 의 순서를 바꾸지 않는다(다른 시드 결과가 그대로다).
-  def writing_date(user, index)
-    rng = Random.new(Zlib.crc32("writing-date-#{user.id}-#{index}"))
+  # 시드가 만드는 글(책 소개·뒷이야기)의 날짜 규칙 — 1학기(5/1~7/20)에 주로, 9월에 조금(WRITING_SEPTEMBER_SHARE),
+  # 8월(여름방학)은 없다. 적재한 순간의 날짜로 찍히면 반 전체 글이 한날에 몰린다.
+  # [1학기, 9월] — 오늘 전까지만, 올해 1학기가 아직 오지 않았으면(3~4월에 시드) 지난해 것.
+  def writing_ranges
     latest = Date.current - 1
     year = Date.new(latest.year, *WRITING_TERM_START) > latest ? latest.year - 1 : latest.year
-    term = Date.new(year, *WRITING_TERM_START)..[ Date.new(year, *WRITING_TERM_END), latest ].min
-    september = Date.new(year, 9, 1)..[ Date.new(year, 9, 30), latest ].min
+    [ Date.new(year, *WRITING_TERM_START)..[ Date.new(year, *WRITING_TERM_END), latest ].min,
+      Date.new(year, 9, 1)..[ Date.new(year, 9, 30), latest ].min ]
+  end
+
+  # key 는 학생 안에서 글마다 다른 값(게임 순번·"template-intro"·정본 책 제목 등). 학생·key 로 정해지는 난수라
+  # 학급 공용 @rng 의 순서를 바꾸지 않는다(다른 시드 결과가 그대로다).
+  def writing_date(user, key)
+    rng = Random.new(Zlib.crc32("writing-date-#{user.id}-#{key}"))
+    term, september = writing_ranges
     range = september.begin <= september.end && rng.rand < WRITING_SEPTEMBER_SHARE ? september : term
     range.begin + rng.rand((range.end - range.begin).to_i + 1)
+  end
+
+  # 담임 검토를 기다리는 글은 막 낸 글이라 허용 범위의 가장 최근 며칠(8월은 여기서도 없다).
+  def recent_writing_date(user, key)
+    rng = Random.new(Zlib.crc32("recent-writing-date-#{user.id}-#{key}"))
+    range = writing_ranges.reverse.find { |candidate| candidate.begin <= candidate.end }
+    [ range.end - rng.rand(4), range.begin ].max
+  end
+
+  # 그날 수업 시간대(09:00~15:59)의 시각.
+  def writing_time(user, date)
+    date.in_time_zone.change(hour: 9) + ((user.id * 37) % 420).minutes
   end
 
   # ── 마무리: 포인트/경험치/시즌점수/뱃지 ─────────────────────────────────

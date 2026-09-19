@@ -159,6 +159,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_equal 10, result.dig(:after, :book_sequels)
     assert_curated_book_sequels!
     assert_demo_sequel_reviews!
+    assert_writing_dates!
     assert_equal 3, Mission.where(classroom: @classroom).count
     assert_equal 101, GamePlay.where(user_id: @students.map(&:id)).count
     assert_equal 10, LibraryLoan.where(school: @school).count
@@ -201,11 +202,25 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     awaiting = @seed_data.fetch("book_sequels").reject { |definition| definition.fetch("reviewed", true) }.map { |definition| definition.fetch("student_name") }
     assert_equal awaiting.sort, BookSequel.where(classroom: @classroom).awaiting_review.map { |sequel| sequel.user.name }.sort,
                  "시드가 쓴 뒷이야기는 승인된 글이라 담임 검토 대기는 정본 글만"
-    dates = BookSequel.where(classroom: @classroom).where.not(body: curated.map(&:last)).map { |sequel| sequel.created_at.to_date }
-    assert dates.none? { |date| date.month == 8 }, "시드 글 날짜에 8월(방학)은 없다"
+    assert_writing_dates!
   end
 
   private
+
+  # 시드 글(책 소개·뒷이야기)의 날짜 — 적재한 날로 한데 몰리지 않고 1학기(5/1~7/20)에 주로, 9월에 조금,
+  # 8월(방학)은 없다. 담임 검토를 기다리는 정본 글은 막 낸 글이라 허용 범위의 가장 최근 며칠에 있다.
+  def assert_writing_dates!
+    writings = BookSequel.where(classroom: @classroom).to_a + BookIntro.where(classroom: @classroom).to_a
+    dates = writings.map { |writing| writing.created_at.to_date }
+    assert dates.all? { |date| date < Date.current }, "적재한 날짜로 찍힌 글이 없어야 합니다"
+    assert dates.none? { |date| date.month == 8 }, "8월(방학) 날짜의 글은 없어야 합니다"
+    assert_operator dates.count { |date| date.month == 9 }, :<, dates.size / 2, "9월 글은 조금만"
+
+    latest = DemoSeeder.new(io: StringIO.new).send(:writing_ranges).reverse.find { |range| range.begin <= range.end }
+    BookSequel.where(classroom: @classroom).awaiting_review.each do |sequel|
+      assert_includes (latest.end - 3)..latest.end, sequel.created_at.to_date, "검토 대기 글은 최근에 낸 글"
+    end
+  end
 
   def assert_curated_book_sequels!
     expected = @seed_data.fetch("book_sequels").map do |definition|
