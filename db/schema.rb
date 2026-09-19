@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_000002) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -305,6 +305,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_000003) do
     t.integer "hidden_by_id"
     t.integer "likes_count", default: 0, null: false
     t.integer "reports_count", default: 0, null: false
+    t.integer "stance"
     t.text "text"
     t.integer "topic_id", null: false
     t.datetime "updated_at", null: false
@@ -636,6 +637,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_000003) do
     t.integer "forum_posts_count", default: 0, null: false
     t.boolean "hidden", default: false, null: false
     t.integer "hidden_by_id"
+    t.integer "kind", default: 0, null: false
     t.integer "school_id"
     t.integer "scope", default: 0, null: false
     t.string "title"

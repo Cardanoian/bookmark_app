@@ -25,6 +25,8 @@ class TopicsController < ApplicationController
     @liked_post_ids = current_user ? ForumPostLike.where(forum_post: @forum_posts, user: current_user).pluck(:forum_post_id).to_set : Set.new
     # 신고 여부도 한 번에 조회(자기 글·이미 신고한 글은 신고 버튼 숨김).
     @reported_post_ids = current_user ? ForumPostReport.where(forum_post: @forum_posts, user: current_user).pluck(:forum_post_id).to_set : Set.new
+    # 찬반 토론은 이미 불러온 글을 입장별로 나눠 찬성·반대 칸에 모은다(추가 쿼리 없음).
+    @posts_by_stance = @forum_posts.group_by(&:stance) if @topic.debate?
   end
 
   def create
@@ -68,6 +70,6 @@ class TopicsController < ApplicationController
   end
 
   def topic_params
-    params.require(:topic).permit(:title, :scope, :book_id)
+    params.require(:topic).permit(:title, :scope, :kind, :book_id)
   end
 end

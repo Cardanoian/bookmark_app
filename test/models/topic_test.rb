@@ -18,6 +18,19 @@ class TopicTest < ActiveSupport::TestCase
     assert topic.errors.of_kind?(:scope, :inclusion)
   end
 
+  # 토론방 유형은 기본이 자유 의견이라 kind 도입 전 토론방과 화면이 같다.
+  test "kind defaults to free" do
+    assert @topic.free?
+    assert Topic.new(classroom: @classroom, title: "유형 확인").free?
+  end
+
+  test "an unknown kind is a validation error instead of an exception" do
+    topic = Topic.new(classroom: @classroom, title: "유형 확인")
+    assert_nothing_raised { topic.kind = "bogus" }
+    assert_not topic.valid?
+    assert topic.errors.of_kind?(:kind, :inclusion)
+  end
+
   test "creating a forum post increments the topic counter cache" do
     assert_difference -> { @topic.reload.forum_posts_count }, 1 do
       @topic.forum_posts.create!(user: @student, text: "첫 글")

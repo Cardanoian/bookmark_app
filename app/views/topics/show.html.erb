@@ -8,25 +8,62 @@
     <h1 class="page-title"><%= @topic.title %></h1>
     <p class="flex flex-wrap items-center gap-2">
       <span class="badge badge-neutral"><%= @topic.classroom? ? "우리 반 토론" : "우리 학교 토론" %></span>
+      <% if @topic.debate? %>
+        <span class="badge badge-info"><%= Topic::KIND_LABELS.fetch("debate") %></span>
+      <% end %>
       <% if @topic.book %>
         <span class="inline-flex items-center gap-1 text-sm text-steel"><%= ui_icon :book_open, class_name: "h-4 w-4" %> <%= @topic.book.title %></span>
       <% end %>
     </p>
   </header>
 
-  <section class="space-y-3">
-    <% if @forum_posts.any? %>
-      <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post,
-            locals: { liked_post_ids: @liked_post_ids, reported_post_ids: @reported_post_ids } %>
-    <% else %>
-      <%= render "shared/empty_state", message: "첫 글을 남겨 보세요.", icon: :writing %>
+  <% if @topic.debate? %>
+    <%# 찬반 토론: 같은 입장끼리 모은 두 칸. lg(1024px) 이상은 좌우, 폰·태블릿 세로는 위아래(찬성 먼저). %>
+    <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <% ForumPost.stances.each_key do |stance| %>
+        <%= render "topics/stance_column", stance: stance, posts: @posts_by_stance.fetch(stance, []),
+              liked_post_ids: @liked_post_ids, reported_post_ids: @reported_post_ids %>
+      <% end %>
+    </div>
+    <%# 입장 없는 글(데이터 이상)도 사라지지 않게 칸 아래에 따로 보인다. %>
+    <% if @posts_by_stance[nil].present? %>
+      <section class="space-y-3" aria-labelledby="stance_none_heading">
+        <h2 id="stance_none_heading" class="text-base font-semibold text-ink">그 밖의 의견</h2>
+        <%= render partial: "topics/forum_post", collection: @posts_by_stance[nil], as: :forum_post,
+              locals: { liked_post_ids: @liked_post_ids, reported_post_ids: @reported_post_ids } %>
+      </section>
     <% end %>
-  </section>
+  <% else %>
+    <section class="space-y-3">
+      <% if @forum_posts.any? %>
+        <%= render partial: "topics/forum_post", collection: @forum_posts, as: :forum_post,
+              locals: { liked_post_ids: @liked_post_ids, reported_post_ids: @reported_post_ids } %>
+      <% else %>
+        <%= render "shared/empty_state", message: "첫 글을 남겨 보세요.", icon: :writing %>
+      <% end %>
+    </section>
+  <% end %>
 
   <%= form_with model: @forum_post, url: topic_forum_posts_path(@topic), method: :post, class: "card space-y-3" do |f| %>
+    <% if @topic.debate? %>
+      <%# 입장은 꼭 고른다(기본 선택 없음). 고른 필의 색이 글이 들어갈 칸의 색과 같다. %>
+      <fieldset>
+        <legend class="text-sm font-semibold text-ink">내 생각은?</legend>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <% { "pro" => [ "has-[:checked]:border-brand-blue has-[:checked]:bg-blue-soft-deep has-[:checked]:text-blue-pressed", "accent-brand-blue" ],
+               "con" => [ "has-[:checked]:border-brand-coral has-[:checked]:bg-coral-light has-[:checked]:text-coral-dark", "accent-coral-dark" ] }.each do |stance, (checked_tone, dot_tone)| %>
+            <label class="flex min-h-[2.75rem] cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-hairline-strong px-3 text-base font-semibold text-ink <%= checked_tone %>">
+              <%= f.radio_button :stance, stance, required: true, class: dot_tone %>
+              <%= ForumPost::STANCE_LABELS.fetch(stance) %>
+            </label>
+          <% end %>
+        </div>
+      </fieldset>
+    <% end %>
     <%= f.text_area :text, rows: 3, required: true,
           minlength: ForumPost::TEXT_LENGTH.min, maxlength: ForumPost::TEXT_LENGTH.max,
-          placeholder: "생각을 나눠 보세요. 친구를 존중하는 고운 말로 써요.", class: "form-textarea" %>
+          placeholder: @topic.debate? ? "왜 그렇게 생각하는지 까닭을 써 보세요. 친구를 존중하는 고운 말로 써요." : "생각을 나눠 보세요. 친구를 존중하는 고운 말로 써요.",
+          class: "form-textarea" %>
     <div class="flex justify-end">
       <%= f.submit "글 남기기", class: "btn btn-yellow btn-sm" %>
     </div>

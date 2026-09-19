@@ -167,18 +167,20 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     titles_by_key = @seed_data.fetch("topics").to_h { |topic| [ topic.fetch("key"), topic.fetch("title") ] }
     expected = @seed_data.fetch("students").flat_map do |student|
       Array(student["forum_posts"]).map do |post|
-        [ titles_by_key.fetch(post.fetch("topic")), post.fetch("text") ]
+        [ titles_by_key.fetch(post.fetch("topic")), post.fetch("stance"), post.fetch("text") ]
       end
     end.sort
     actual = Topic.where(classroom: @classroom).includes(:forum_posts).flat_map do |topic|
-      topic.forum_posts.map { |post| [ topic.title, post.text ] }
+      topic.forum_posts.map { |post| [ topic.title, post.stance, post.text ] }
     end.sort
 
     assert_equal @seed_data.fetch("topics").pluck("title").sort,
                  Topic.where(classroom: @classroom).pluck(:title).sort
+    # 공개 체험 논제는 모두 찬반 토론이라, 검수된 입장이 그대로 저장돼 찬성·반대 칸으로 나뉜다.
+    assert_equal [ "debate" ], Topic.where(classroom: @classroom).distinct.pluck(:kind)
     assert_equal expected, actual
     assert_equal actual.size, actual.map(&:last).uniq.size, "같은 학급에 똑같은 토론 글이 두 번 보이면 안 됩니다"
-    assert actual.none? { |_title, text| text.match?(/[『』「」“”‘’—…·]/) },
+    assert actual.none? { |_title, _stance, text| text.match?(/[『』「」“”‘’—…·]/) },
            "토론 글은 학생이 직접 친 글처럼 책 제목 괄호·특수 문장부호를 쓰지 않습니다"
     assert_balanced_stances!
   end

@@ -112,6 +112,8 @@
             <%= f.hidden_field :scope, value: "classroom" %>
             <%= f.text_field :title, value: truncate("《#{@book.title}》 이야기", length: Topic::TITLE_LENGTH.max),
                   maxlength: Topic::TITLE_LENGTH.max, "aria-label": "토론 주제", class: "form-input flex-1" %>
+            <%= f.select :kind, Topic::KIND_LABELS.map { |kind, label| [ label, kind ] }, {},
+                  class: "form-select w-auto", aria: { label: "토론 방식" } %>
             <%= f.submit "토론 열기", class: "btn btn-yellow btn-sm" %>
           <% end %>
         <% end %>

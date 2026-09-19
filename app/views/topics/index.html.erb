@@ -24,6 +24,9 @@
                 { include_blank: "학급 선택" }, class: "form-select w-auto" %>
         <% end %>
         <%= f.select :scope, [ [ "우리 반", "classroom" ], [ "우리 학교", "school" ] ], {}, class: "form-select w-auto" %>
+        <%# 찬반 토론은 글마다 찬성·반대를 골라 두 칸으로 나눠 보인다. 기본은 지금처럼 자유 의견. %>
+        <%= f.select :kind, Topic::KIND_LABELS.map { |kind, label| [ label, kind ] }, {},
+              class: "form-select w-auto", aria: { label: "토론 방식" } %>
         <%= f.submit "토론방 열기", class: "btn btn-yellow btn-sm" %>
       </div>
     <% end %>
@@ -39,6 +42,9 @@
           <% end %>
           <p class="mt-auto flex flex-wrap items-center gap-2 text-xs text-steel">
             <span class="badge badge-neutral"><%= topic.classroom? ? "우리 반" : "우리 학교" %></span>
+            <% if topic.debate? %>
+              <span class="badge badge-info"><%= Topic::KIND_LABELS.fetch("debate") %></span>
+            <% end %>
             <span class="inline-flex items-center gap-1"><%= ui_icon :discussion, class_name: "h-3.5 w-3.5" %> 글 <%= topic.forum_posts_count %>개</span>
           </p>
         </article>

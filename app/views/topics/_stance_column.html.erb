@@ -1,0 +1,22 @@
+<%# 찬반 토론의 입장 칸(찬성 / 반대). 같은 입장의 글을 한 칸에 모으고 상단 띠에 입장 이름을 보인다.
+    show 가 lg(1024px) 이상에선 두 칸을 좌우로, 그보다 좁으면(폰·태블릿 세로) 위아래로 놓는다.
+    local: stance("pro"|"con"), posts, liked_post_ids, reported_post_ids %>
+<% label = ForumPost::STANCE_LABELS.fetch(stance) %>
+<%# 찬성은 블루, 반대는 코랄 — 반대를 파괴적 행동색(danger)으로 칠하지 않는다. %>
+<% tone = { "pro" => { band: "bg-blue-soft-deep text-blue-pressed", frame: "border-blue-soft-deep" },
+            "con" => { band: "bg-coral-light text-coral-dark", frame: "border-coral-light" } }.fetch(stance) %>
+<section id="stance_<%= stance %>" aria-labelledby="stance_<%= stance %>_heading"
+         class="overflow-hidden rounded-card border-2 <%= tone[:frame] %> bg-surface">
+  <h2 id="stance_<%= stance %>_heading" class="flex items-center justify-between gap-2 px-4 py-3 <%= tone[:band] %>">
+    <span class="text-lg font-bold"><%= label %></span>
+    <span class="text-sm font-semibold">글 <%= posts.size %>개</span>
+  </h2>
+  <div class="space-y-3 p-3">
+    <% if posts.any? %>
+      <%= render partial: "topics/forum_post", collection: posts, as: :forum_post,
+            locals: { liked_post_ids: liked_post_ids, reported_post_ids: reported_post_ids } %>
+    <% else %>
+      <p class="px-1 py-4 text-center text-sm text-steel">아직 <%= label %> 의견이 없어요.</p>
+    <% end %>
+  </div>
+</section>

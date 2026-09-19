@@ -181,6 +181,18 @@ class ReadingDiscussionTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "이 책으로 토론하기", response.body
     assert_match "책토론", response.body
+    # 책에서 바로 여는 토론방도 자유 의견 / 찬반 토론을 고른다.
+    assert_select "select[name='topic[kind]'] option[value='debate']", text: "찬반 토론"
+  end
+
+  test "a debate topic opened from the reading activity page keeps the book" do
+    login_as @student1
+    assert_difference "Topic.count", 1 do
+      post topics_path, params: { topic: { title: "이 책 찬반", scope: "classroom", kind: "debate", book_id: @book.id } }
+    end
+    topic = Topic.last
+    assert topic.debate?
+    assert_equal @book, topic.book
   end
 
   test "topics views render the student nav so students do not feel stranded" do

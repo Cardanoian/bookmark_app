@@ -6,6 +6,10 @@ class Topic < ApplicationRecord
 
   # validate: 없는 값(조작한 topic[scope]=bogus)은 대입 때 ArgumentError(→ 500) 대신 검증 오류가 된다.
   enum :scope, { classroom: 0, school: 1 }, default: :classroom, validate: true
+  # 토론방 유형. 찬반 토론(debate)은 글마다 입장(ForumPost#stance)을 받아 찬성·반대 칸으로 나눠 보인다.
+  enum :kind, { free: 0, debate: 1 }, default: :free, validate: true
+
+  KIND_LABELS = { "free" => "자유 의견", "debate" => "찬반 토론" }.freeze
 
   belongs_to :classroom, optional: true
   belongs_to :school, optional: true

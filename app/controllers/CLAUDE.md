@@ -26,8 +26,8 @@
 - `board_posts_controller.rb` — 우수작 게시판(`index`/`show`). 학생 화면에서 숨김 글 제외(정책 스코프).
 - `cheers_controller.rb` — 응원 👏(`create`/`destroy`). 1인 1회(unique) + Turbo Stream 버튼 갱신.
 - `stickers_controller.rb` — 문장 스티커 동료평가(`create`). report 에 스티커 append(Turbo Stream).
-- `topics_controller.rb` — 토론방(`index`/`show`/`create`, reading_discussion). `require_reading_discussion!` 게이트(플래그 off 시 진입 차단). 학급/학교 스코프 경계로 생성하되 **교사는 담당 학급을 폼에서 골라 확정**(`resolve_classroom_id` — 위조 학급은 nil→모델 검증이 거부; 교사는 classroom_id nil이라 학생 규칙 재사용 불가). show 는 좋아요·신고 여부를 Set 로 일괄 조회(N+1 방지).
-- `forum_posts_controller.rb` — 토론 글 작성(`create`, reading_discussion 게이트). 토픽 경계 안 사용자만 가능. 작성 성공 시 `evaluate_monster_unlocks`로 `topic_posts` 해금 지표를 재평가한다(학생만, flash 안내 — dex 03 뾰족이 도달성의 핵심 트리거).
+- `topics_controller.rb` — 토론방(`index`/`show`/`create`, reading_discussion). `require_reading_discussion!` 게이트(플래그 off 시 진입 차단). 학급/학교 스코프 경계로 생성하되 **교사는 담당 학급을 폼에서 골라 확정**(`resolve_classroom_id` — 위조 학급은 nil→모델 검증이 거부; 교사는 classroom_id nil이라 학생 규칙 재사용 불가). show 는 좋아요·신고 여부를 Set 로 일괄 조회(N+1 방지). 개설 파라미터에 `kind`(자유 의견/찬반 토론)를 받고, 찬반 토론 `show` 는 이미 불러온 글을 `@posts_by_stance`(입장별 group_by, 추가 쿼리 없음)로 나눠 찬성·반대 칸에 넘긴다(2026-09-19).
+- `forum_posts_controller.rb` — 토론 글 작성(`create`, reading_discussion 게이트). 토픽 경계 안 사용자만 가능. `stance`(찬성/반대)를 받으며, 토론방 방식과 맞지 않으면(찬반 토론인데 입장 없음 등) 모델 검증 오류로 alert redirect. 작성 성공 시 `evaluate_monster_unlocks`로 `topic_posts` 해금 지표를 재평가한다(학생만, flash 안내 — dex 03 뾰족이 도달성의 핵심 트리거).
 - `forum_posts_controller.rb`·`forum_post_likes_controller.rb`·`forum_post_reports_controller.rb` 모두 `require_reading_discussion!` 게이트를 건다(뷰 은닉만으론 URL 직접 요청을 못 막으므로 컨트롤러에서 강제 — kill switch 실효).
 - `forum_post_likes_controller.rb` — 토론 글 좋아요 토글(`create`/`destroy`). 1인 1좋아요(unique, RecordNotUnique 무해 처리) + Turbo Stream 버튼 갱신(cheer 패턴).
 - `forum_post_reports_controller.rb` — 토론 글 신고(`create`, reading_discussion). 토픽 경계 안에서 볼 수 있는 **남의 글만** 신고(ForumPostReportPolicy, 자기 글 금지). 1인 1신고(unique, 중복 무해). **자동 숨김 없이** 저자 학급 담임 대시보드 사후 검토 신호가 된다.

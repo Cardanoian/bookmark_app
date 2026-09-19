@@ -641,6 +641,7 @@ class DemoSeeder
           classroom:,
           scope: :classroom,
           title: definition.fetch(:title),
+          kind: definition.fetch(:kind),
           book: discussion_book(definition[:book_title])
         )
       end
@@ -655,6 +656,8 @@ class DemoSeeder
 
       [ definition.fetch(:key), topic || topics.fetch(definition.fetch(:index) % topics.size) ]
     end
+    # 레거시 문자열형 글은 입장이 없으므로 찬반 토론방(사용자가 연 것 포함)에는 배정하지 않는다.
+    legacy_topics = topics.reject(&:debate?)
 
     posts = []
     students.each do |st|
@@ -668,9 +671,14 @@ class DemoSeeder
             raise ArgumentError, "알 수 없는 토론 주제 key: #{entry.fetch('topic')}"
           end
         else
-          topics[(st[:user].id + i) % topics.size]
+          next if legacy_topics.empty?
+
+          legacy_topics[(st[:user].id + i) % legacy_topics.size]
         end
-        fp = ForumPost.create!(topic:, user: st[:user], text: text.to_s.strip[0, 500])
+        # 찬반 토론 글은 검수된 입장(pro/con)을 그대로 저장한다. 레거시 문자열형 글과, 증원 경로가
+        # 재사용한 예전 자유 의견 토론방(kind 도입 전 생성)의 글은 입장을 두지 않는다.
+        stance = entry["stance"].presence if structured && topic.debate?
+        fp = ForumPost.create!(topic:, user: st[:user], text: text.to_s.strip[0, 500], stance:)
         fp.update_columns(created_at: backdate(rand_int(1, 40)))
         posts << fp
         @totals[:forum_posts] += 1
@@ -691,11 +699,12 @@ class DemoSeeder
         key: entry.fetch("key").to_s,
         title: entry.fetch("title").to_s,
         book_title: entry["book_title"].presence,
+        kind: entry["kind"].presence || "free",
         index:,
         structured: true
       }
     else
-      { key: index.to_s, title: entry.to_s, book_title: nil, index:, structured: false }
+      { key: index.to_s, title: entry.to_s, book_title: nil, kind: "free", index:, structured: false }
     end
   end
 

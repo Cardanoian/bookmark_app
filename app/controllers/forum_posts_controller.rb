@@ -23,6 +23,6 @@ class ForumPostsController < ApplicationController
   end
 
   def forum_post_params
-    params.require(:forum_post).permit(:text)
+    params.require(:forum_post).permit(:text, :stance)
   end
 end
