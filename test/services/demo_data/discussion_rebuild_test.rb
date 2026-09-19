@@ -76,7 +76,7 @@ class DemoData::DiscussionRebuildTest < ActiveSupport::TestCase
   test "only debate seed classrooms are targets" do
     files = DemoData::DiscussionRebuild.new(io: StringIO.new).send(:targets).map { |target| target[:filename] }
 
-    assert_includes files, "sample_3_1.yml"
+    assert_includes files, "sample_6_1.yml"
     assert_includes files, "noeul_3_1.yml"
     assert_not_includes files, "danbi_5_3.yml"
   end

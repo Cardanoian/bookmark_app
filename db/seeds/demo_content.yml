@@ -1,6 +1,6 @@
 # 체험(데모) 계정이 만든 것처럼 보이는 추가 콘텐츠 시드.
 #
-#   · teacher_quizzes      : 담임 김지은(jieun@gbeai.net)이 3-1 학급에 낸 독서 퀴즈(mcq).
+#   · teacher_quizzes      : 담임 김지은(jieun@gbeai.net)이 6-1 학급에 낸 독서 퀴즈(mcq).
 #   · student_contributions: 학생 이도현이 낸 문제 기여(mcq = 독서 퀴즈 / hint_reveal = 나는 누구게?).
 #                            approved 는 담임 승인 → 전국 공유 풀로 물질화, pending 은 검토 큐에 남는다.
 #   · featured_reports     : 이미 있는 승인 독후감 일부를 우수작 게시판에 올리고 응원(좋아요)을 채우는 규칙.
@@ -14,7 +14,7 @@ teacher:
 student:
   name: 이도현
 
-# ── 담임 김지은이 3-1 학급에 낸 독서 퀴즈(문항 5개씩) ────────────────────────
+# ── 담임 김지은이 6-1 학급에 낸 독서 퀴즈(문항 5개씩) ────────────────────────
 teacher_quizzes:
   - isbn: "9788986621136"
     title: 강아지똥 독서 퀴즈

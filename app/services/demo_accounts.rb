@@ -1,4 +1,4 @@
-# 체험 계정(샘플 학교 = 가상 학교 「테스트초등학교」, 3-1 학급) 조회의 단일 진실.
+# 체험 계정(샘플 학교 = 가상 학교 「테스트초등학교」, 6-1 학급) 조회의 단일 진실.
 #
 # `db/seeds/accounts.yml` 의 sample_accounts 와 **같은 신원 규약**을 쓴다 — 학생은 (학교 neis_code +
 # 학년/반 + 이름), 교직원은 이메일. 시드·개명 마이그레이션(20260727000001)이 쓰는 키와 동일하므로
@@ -15,7 +15,7 @@ module DemoAccounts
   # 실제 구성원과 섞이고 제출물·화면에 실학교명이 새어 나오므로, 체험 자료는 전부 이 학교에 모은다.
   # 학교 행 자체는 `db/seeds/accounts.yml` 의 sample_accounts.school 이 단일 진실이다.
   SCHOOL_NEIS_CODE = "9999999" # 테스트초등학교(세종특별자치시교육청, data_source=manual)
-  GRADE = 3
+  GRADE = 6
   CLASS_NO = 1
   STUDENT_NAME = "이도현"
   TEACHER_EMAIL = "jieun@gbeai.net"

@@ -7,7 +7,7 @@ module DemoData
   # 찬반 토론(2026-09-19) 도입 뒤, 이미 적재된 데모 학급의 토론을 현재 시드 정본으로 되돌리는 일회성 운영 정비.
   # 대상은 시드 정의에 찬반 토론 주제(kind: debate)가 있는 학급이고, 그 학급의 토론방·글·좋아요·신고만
   # 지우고 다시 만든다(학생·독후감·게임·몬스터·미션 같은 다른 활동은 그대로 둔다).
-  # 공개 체험 3-1 을 통째로 되돌리는 PublicClassroomRefresh 와 같은 이중 가드·백업·결과 검증을 쓴다.
+  # 공개 체험 6-1 을 통째로 되돌리는 PublicClassroomRefresh 와 같은 이중 가드·백업·결과 검증을 쓴다.
   class DiscussionRebuild
     CONFIRMATION = "REBUILD_DEMO_DISCUSSIONS_2026"
     SEED_ROOT = Rails.root.join("db/seeds/demo")

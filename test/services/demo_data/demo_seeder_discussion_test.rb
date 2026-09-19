@@ -45,7 +45,7 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
     end
   end
 
-  # 활동량이 high 인 학급(공개 체험 3-1 포함)은 템플릿 글을 그대로 쓴다.
+  # 활동량이 high 인 학급(공개 체험 6-1 포함)은 템플릿 글을 그대로 쓴다.
   test "high-activity noeul-template classrooms keep every template post" do
     seeder = DemoSeeder.new(io: StringIO.new)
     template = YAML.safe_load_file(Rails.root.join("db/seeds/demo/noeul_3_1.yml"))
@@ -69,8 +69,8 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
   # 증원 경로는 kind 도입 전에 만든 자유 의견 토론방을 재사용한다 — 입장을 싣지 않아 create! 가 실패하지 않는다.
   test "top-up reusing legacy free topics stores posts without stances" do
     teacher = User.create!(school: @school, name: "김지은", role: :teacher, email: "jieun@gbeai.net", password: "x123456")
-    classroom = Classroom.create!(school: @school, teacher:, academic_year: Classroom.current_academic_year, grade: 3, class_no: 1)
-    seed = DemoSeeder.new(io: StringIO.new).seed_data_for("sample_3_1.yml")
+    classroom = Classroom.create!(school: @school, teacher:, academic_year: Classroom.current_academic_year, grade: 6, class_no: 1)
+    seed = DemoSeeder.new(io: StringIO.new).seed_data_for("sample_6_1.yml")
     existing = seed.fetch("students").last(2).map do |student|
       User.create!(school: @school, classroom:, name: student.fetch("name"), password: "x123456")
     end
@@ -79,7 +79,7 @@ class DemoData::DemoSeederDiscussionTest < ActiveSupport::TestCase
     # 정본 뒷이야기는 제목이 정확히 같은 카탈로그 도서에 연결한다(없으면 시더가 멈춘다).
     seed.fetch("book_sequels").each { |definition| Book.create!(title: definition.fetch("book_title")) }
 
-    DemoSeeder.new(io: StringIO.new, only_files: [ "sample_3_1.yml" ]).call
+    DemoSeeder.new(io: StringIO.new, only_files: [ "sample_6_1.yml" ]).call
 
     topics = Topic.where(classroom:)
     assert_equal [ "free" ], topics.distinct.pluck(:kind)

@@ -35,10 +35,10 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
       school: @school,
       teacher: @teacher,
       academic_year: 2026,
-      grade: 3,
+      grade: 6,
       class_no: 1
     )
-    @seed_data = DemoSeeder.new(io: StringIO.new).seed_data_for("sample_3_1.yml")
+    @seed_data = DemoSeeder.new(io: StringIO.new).seed_data_for("sample_6_1.yml")
     @students = @seed_data.fetch("students").map do |student_data|
       User.create!(
         school: @school,
@@ -161,7 +161,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_reviewed_discussions!
     assert_story_book_discussions!
     # 토론만 다시 만드는 운영 도구(demo_data:discussion_audit)도 책 토론방까지 시드와 같다고 본다.
-    rebuild = DemoData::DiscussionRebuild.new(io: StringIO.new, only_files: [ "sample_3_1.yml" ])
+    rebuild = DemoData::DiscussionRebuild.new(io: StringIO.new, only_files: [ "sample_6_1.yml" ])
     row = rebuild.send(:target_preview, rebuild.send(:targets).sole)
     assert row[:topics_match] && row[:kinds_match] && row[:stances_match], row.inspect
     assert_equal row[:expected_posts], row[:posts]

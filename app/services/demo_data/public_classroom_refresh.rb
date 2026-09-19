@@ -10,7 +10,7 @@ module DemoData
   # 세션별 복제나 주기 실행용이 아니며, 대상 학급·학생 명단·확인 문자열을 모두 검증한 뒤에만 쓴다.
   class PublicClassroomRefresh
     CONFIRMATION = "REBUILD_PUBLIC_DEMO_2026"
-    SEED_FILENAME = "sample_3_1.yml"
+    SEED_FILENAME = "sample_6_1.yml"
     SEED_ROOT = Rails.root.join("db/seeds/demo")
     ACCOUNTS_PATH = Rails.root.join("db/seeds/accounts.yml")
 
