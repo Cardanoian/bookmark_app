@@ -67,16 +67,21 @@
           </div>
 
           <% if student_feedback[:grow].any? %>
-            <div class="space-y-3">
-              <span class="form-label">성장 제안</span>
+            <fieldset class="min-w-0 space-y-3">
+              <legend class="form-label">성장 제안</legend>
               <% student_feedback[:grow].each_with_index do |grow, i| %>
-                <div class="rounded-md border border-hairline-soft p-3">
-                  <%= text_area_tag "report[teacher_feedback][grow][#{i}][text]", grow[:text], rows: 2, class: "form-textarea" %>
+                <% grow_input_id = "report_teacher_feedback_grow_#{i}_text" %>
+                <% grow_standard_id = "#{grow_input_id}_standard" %>
+                <div>
+                  <%= label_tag grow_input_id, "성장 제안 #{i + 1}", class: "sr-only" %>
+                  <%= text_area_tag "report[teacher_feedback][grow][#{i}][text]", grow[:text],
+                        id: grow_input_id, rows: 3, class: "form-textarea",
+                        aria: { describedby: grow_standard_id } %>
                   <%= hidden_field_tag "report[teacher_feedback][grow][#{i}][standard_code]", grow[:standard_code] %>
-                  <p class="mt-1 text-xs text-stone">성취기준: <%= grow[:standard_code].presence || "-" %></p>
+                  <p id="<%= grow_standard_id %>" class="form-hint">성취기준: <%= grow[:standard_code].presence || "-" %></p>
                 </div>
               <% end %>
-            </div>
+            </fieldset>
           <% end %>
         </div>
 

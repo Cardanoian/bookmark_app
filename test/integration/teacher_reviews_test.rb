@@ -214,6 +214,29 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     assert_match "성장 제안 예시", response.body
   end
 
+  test "teacher feedback textareas have matching sizes and accessible growth labels" do
+    @report.update!(rubric: { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4,
+      praise: [ "AI 칭찬" ], fix: [ "AI 보완" ],
+      grow: [ { text: "첫 제안", standard_code: "2국05-01" },
+              { text: "둘째 제안", standard_code: "2국05-02" } ] })
+
+    login_as @teacher
+    get teacher_review_path(@report)
+
+    assert_response :success
+    assert_select "textarea.form-textarea[rows='3']", count: 5
+    assert_select "fieldset" do
+      assert_select "legend", text: "성장 제안"
+      2.times do |index|
+        input_id = "report_teacher_feedback_grow_#{index}_text"
+        standard_id = "#{input_id}_standard"
+        assert_select "label[for=?]", input_id, text: "성장 제안 #{index + 1}"
+        assert_select "textarea##{input_id}[aria-describedby=?]", standard_id
+        assert_select "p##{standard_id}.form-hint", text: /성취기준:/
+      end
+    end
+  end
+
   # grow 는 항목별 고정 입력(text만 편집)이라 standard_code 는 위조 파라미터를 무시하고
   # 서버가 원본 rubric 의 코드로 재설정해야 한다(오정렬·위조 이중 방지).
   test "update saves teacher-edited feedback text and resets grow standard_code from the original rubric" do
