@@ -166,5 +166,70 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  # ── 승인 글만 인쇄(2026-09-19) ─────────────────────────────────────
+  # 인쇄 문서는 학생·보호자에게 나간다. 승인 전 글·미제출 초안이 섞이면 교사가 확인하지 않은 AI 등급이
+  # "대표 독후감"으로 찍히고(컨설팅 오류 3: 승인 0편 학생의 표창장에 '등급 B'), 편수·평균도 부풀었다.
+  # 점수는 교사 조정을 반영한 최종 점수여야 학생 '나의 성장'과 같은 숫자가 된다.
+  def create_print_report(title:, level:, reviewed:, submitted: true, teacher_rubric: nil, reviewed_at: nil)
+    Report.create!(
+      user: @student, classroom: @classroom, book_title: title,
+      rubric: { "content" => 2, "emotion" => 2, "life" => 2, "structure" => 2, "spelling" => 2 },
+      teacher_rubric: teacher_rubric, avg: 2.0, level: level, ai_status: :done,
+      submitted_at: (submitted ? 2.days.ago : nil), reviewed: reviewed, reviewed_at: reviewed_at
+    )
+  end
+
+  test "award uses the most recently approved report, never an unapproved one or a draft" do
+    create_print_report(title: "승인한책", level: "B", reviewed: true, reviewed_at: 1.day.ago)
+    create_print_report(title: "검토대기책", level: "A", reviewed: false)
+    create_print_report(title: "초안책", level: "A", reviewed: false, submitted: false)
+
+    login_as @teacher
+    get award_teacher_prints_path(student_id: @student.id)
+    assert_response :success
+    assert_match "대표 독후감 「승인한책」 · 등급 B", response.body
+    assert_no_match "검토대기책", response.body
+    assert_no_match "초안책", response.body
+  end
+
+  test "award has no representative report when nothing is approved yet" do
+    login_as @teacher
+    get award_teacher_prints_path(student_id: @student.id) # setup 의 글은 제출·승인 전이다
+    assert_response :success
+    assert_no_match "대표 독후감", response.body
+    assert_no_match "인쇄책", response.body
+  end
+
+  test "home letter, portfolio and class report count only approved reports with final scores" do
+    create_print_report(title: "승인한책", level: "B", reviewed: true, reviewed_at: 1.day.ago,
+                        teacher_rubric: { "content" => 5 })
+    create_print_report(title: "검토대기책", level: "A", reviewed: false)
+    login_as @teacher
+
+    get home_letter_teacher_prints_path(student_id: @student.id)
+    assert_response :success
+    assert_match "<strong>1편</strong>", response.body
+    assert_match "5.0 / 5", response.body # 내용 이해: 교사 조정 5점(AI 원점수 2점이 아니다)
+
+    get portfolio_teacher_prints_path(student_id: @student.id)
+    assert_response :success
+    assert_match "선생님이 확인한 독후감 1편", response.body
+    assert_match "승인한책", response.body
+    assert_no_match "검토대기책", response.body
+    assert_no_match "인쇄책", response.body
+    assert_match "평균 2.6 · B", response.body # (5+2+2+2+2)/5 — 교사 조정 반영, '나의 성장'과 같은 값
+
+    get class_report_teacher_prints_path(classroom_id: @classroom.id)
+    assert_response :success
+    assert_match "확인한 독후감 1편", response.body
+  end
+
+  test "home letter says nothing is approved yet instead of counting drafts" do
+    login_as @teacher
+    get home_letter_teacher_prints_path(student_id: @student.id)
+    assert_response :success
+    assert_match "아직 담임교사가 확인한 독후감이 없습니다", response.body
+  end
+
   private
 end

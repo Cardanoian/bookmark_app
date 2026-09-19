@@ -19,6 +19,9 @@ class Report < ApplicationRecord
 
   # 제출된 글만. 교사 검토 큐·대시보드 집계처럼 "학생이 낸 글"을 세는 모든 지점의 진입 스코프다.
   scope :submitted, -> { where.not(submitted_at: nil) }
+  # 교사가 승인한 제출 글. 표창장·가정통신문·포트폴리오·학급 리포트처럼 학생·보호자에게 나가는 인쇄 문서는
+  # 이 경계만 쓴다 — 승인 전 글이 섞이면 교사가 확인하지 않은 AI 등급·점수가 "대표 독후감"으로 인쇄된다.
+  scope :approved, -> { submitted.where(reviewed: true) }
 
   before_validation :normalize_book_title
 
@@ -77,6 +80,12 @@ class Report < ApplicationRecord
     ReadingDomain::RUBRIC_AXES.index_with do |axis|
       adjusted_scores[axis].nil? ? ai_scores.fetch(axis) : adjusted_scores[axis].to_i
     end
+  end
+
+  # 최종 5축(final_rubric_scores)의 단순 평균(소수 첫째 자리). '나의 성장'과 교사 인쇄 문서가 같은 값을 쓴다.
+  def final_average
+    scores = final_rubric_scores
+    (scores.values.sum.to_f / scores.size).round(1)
   end
 
   # 학생 대면 AI 첨삭 산출물 표시의 **유일한 판정**. 교사가 검토·승인(reviewed)한 뒤에만

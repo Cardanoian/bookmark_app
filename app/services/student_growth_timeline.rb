@@ -51,9 +51,7 @@ class StudentGrowthTimeline
          .select { |report| report.rubric.present? }
          .reverse
          .map do |report|
-      scores = report.final_rubric_scores
-      average = (scores.values.sum.to_f / scores.size).round(1)
-      Entry.new(report: report, scores: scores, average: average)
+      Entry.new(report: report, scores: report.final_rubric_scores, average: report.final_average)
     end
   end
 

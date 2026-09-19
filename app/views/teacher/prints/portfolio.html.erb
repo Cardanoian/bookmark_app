@@ -10,7 +10,7 @@
   <header class="border-b border-hairline pb-4">
     <p class="text-sm text-brand-blue">책갈피 독서 포트폴리오</p>
     <h1 class="mt-1 text-2xl font-bold text-ink"><%= @student.name %></h1>
-    <p class="mt-1 text-sm text-steel"><%= @classroom.label %> · 독후감 <%= @reports.size %>편</p>
+    <p class="mt-1 text-sm text-steel"><%= @classroom.label %> · 선생님이 확인한 독후감 <%= @reports.size %>편</p>
   </header>
 
   <section class="grid gap-6 md:grid-cols-2">
@@ -52,11 +52,14 @@
 
   <section>
     <h2 class="mb-2 text-sm font-semibold text-ink">독후감 목록</h2>
+    <% if @reports.empty? %>
+      <p class="text-sm text-steel">아직 선생님이 확인한 독후감이 없어요.</p>
+    <% end %>
     <ul class="divide-y divide-hairline-soft rounded-lg border border-hairline">
       <% @reports.each do |report| %>
         <li class="flex items-center justify-between p-3 text-sm">
           <span class="text-ink"><%= report.book&.title.presence || report.book_title %></span>
-          <span class="text-steel">평균 <%= report.avg %> · <%= report.level %></span>
+          <span class="text-steel">평균 <%= report.final_average %> · <%= report.level %></span>
         </li>
       <% end %>
     </ul>
