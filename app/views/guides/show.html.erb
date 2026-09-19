@@ -1,7 +1,8 @@
 <%# 사용방법 안내(학생 도움말, 정적). 상단 학생 메뉴 "사용방법"의 목적지.
     수치·명칭(5축·등급 포인트·게임 이름·퀴즈 포인트)은 컨트롤러가 도메인 상수에서 파생해 넘긴
     값만 쓰고 화면에 다시 적지 않는다. 화면 문구는 학생 대면 관례를 따라 "AI 선생님"이 아니라
-    "선생님"으로 부른다(reports/_report_detail 미러). %>
+    "선생님"으로 부른다(reports/_report_detail 미러). 다만 AI 를 쓰는 사실은 '첨삭과 포인트'에서
+    밝힌다(ai_assisted_for? — Anthropic 미성년자 지침의 AI 사용 고지). %>
 <% content_for :title, "사용방법 · 책갈피" %>
 
 <div class="page-shell page-shell-content space-y-6">
@@ -165,6 +166,14 @@
       </ul>
       <p class="mt-2 text-sm text-slate">첨삭 화면에서는 <strong class="font-semibold text-ink">잘한 점 · 보완할 점 · 성장 제안</strong>도 함께 알려 줘요.</p>
     </div>
+
+    <p class="text-sm text-slate">
+      <% if ai_assisted_for?(Current.user) %>
+        첨삭은 <strong class="font-semibold text-ink">AI(인공지능)가 먼저 살펴보고</strong>, 선생님이 읽고 고친 뒤에 보여 줘요.
+      <% else %>
+        첨삭은 정해진 규칙으로 먼저 살펴보고, 선생님이 읽고 고친 뒤에 보여 줘요.
+      <% end %>
+    </p>
 
     <p class="state-banner state-banner--info">
       <%= ui_icon :info %>

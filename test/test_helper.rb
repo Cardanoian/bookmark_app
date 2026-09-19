@@ -107,6 +107,17 @@ module ActiveSupport
       ENV["RESEND_API_KEY"] = original
     end
 
+    # Claude 키가 설정된 상태(`Ai::ClaudeClient#configured?`)로 화면을 렌더한다 — 학생 화면의 AI 사용
+    # 고지(ai_assisted_for?)처럼 **키 유무만 보는** 표시 분기 검증용. 가짜 키라 실제 호출은 인증 오류로
+    # 끝나지만, 잡을 실행(perform_enqueued_jobs)하는 테스트는 이 헬퍼로 감싸지 않는다.
+    def with_claude_key_configured
+      original = ENV["ANTHROPIC_API_KEY"]
+      ENV["ANTHROPIC_API_KEY"] = "sk-ant-test-only-not-a-real-key"
+      yield
+    ensure
+      ENV["ANTHROPIC_API_KEY"] = original
+    end
+
     # 역할별 로그인 헬퍼(통합 테스트 공용). 로그인 표면이 둘로 나뉘었다(sessions_controller):
     #   - 학생: (학교·학급·이름) 튜플 + 비밀번호 → student_login_path.
     #   - 교직원(교사·교무관리자·사서·총괄관리자): 이메일 + 비밀번호 → staff_login_path.

@@ -46,6 +46,18 @@ class GuideTest < ActionDispatch::IntegrationTest
     assert_no_match "AI 선생님", response.body
   end
 
+  test "AI로 첨삭받는 학생에게는 첨삭을 AI가 먼저 살펴본다고 밝힌다" do
+    get guide_path
+    assert_match "첨삭은 정해진 규칙으로 먼저 살펴보고", response.body
+    assert_no_match "AI(인공지능)가 먼저 살펴보고", response.body
+
+    @student.update!(ai_consent: true, privacy_consent_at: Time.current)
+    with_claude_key_configured { get guide_path }
+    assert_response :success
+    assert_match "AI(인공지능)가 먼저 살펴보고", response.body
+    assert_no_match "AI 선생님", response.body
+  end
+
   test "비학생은 사용방법 화면에서 홈으로 돌아가고 메뉴에도 노출되지 않는다" do
     delete session_path
     teacher = User.create!(school: @school, classroom: @classroom, name: "안내교사",

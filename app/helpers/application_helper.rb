@@ -92,4 +92,11 @@ module ApplicationHelper
 
     "#{seconds / 60}분"
   end
+
+  # 이 학생의 첨삭·코멘트를 AI(Claude)가 만드는가 — 서비스가 외부 AI 호출 여부를 정하는 게이트와 같은 판정.
+  # 학생 화면의 AI 사용 고지(Anthropic 미성년자 지침의 필수 항목)를 켤지 정한다. 글마다 출처를 저장하지
+  # 않으므로 응답 오류로 규칙 기반이 된 드문 글에도 고지가 붙는다(고지가 빠지는 쪽보다 낫다).
+  def ai_assisted_for?(user)
+    Ai::ConsentGate.llm_allowed?(user, client: Ai::ClaudeClient.new)
+  end
 end

@@ -156,6 +156,20 @@ class GamesSequelTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "읽는 중"
   end
 
+  test "the helper is labelled as AI only for a student whose comments come from Claude" do
+    sequel = create_sequel(@student_a, body: "주인공이 다시 만난 이야기를 상상했어요.")
+    sequel.update!(ai_status: :done, ai_comment: "상상력이 반짝이는 뒷이야기예요!")
+    login_as @student_a
+
+    with_claude_key_configured { get games_sequel_play_path(book_id: @book.id) }
+    refute_includes response.body, "(AI)", "보호자 AI 동의가 없으면 규칙 기반 코멘트라 AI 표시도 없다"
+
+    @student_a.update!(ai_consent: true, privacy_consent_at: Time.current)
+    with_claude_key_configured { get games_sequel_play_path(book_id: @book.id) }
+    assert_includes response.body, "책갈피 도우미 (AI)"
+    assert_includes response.body, "책갈피 도우미(AI)가 네 글을 읽고"
+  end
+
   # ── 도달성: quiz·whoami·book·sequel 4종 플레이 시 distinct_games == 4 ────────
   test "playing all four active game types reaches distinct_games == 4" do
     today = Date.new(2026, 6, 1)

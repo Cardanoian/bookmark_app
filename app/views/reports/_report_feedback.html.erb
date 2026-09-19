@@ -5,6 +5,9 @@
 <div class="space-y-6">
   <section class="card">
     <h2 class="mb-3 text-lg font-semibold text-ink">선생님의 5축 첨삭</h2>
+    <% if ai_assisted_for?(report.user) %>
+      <p class="-mt-2 mb-3 text-sm text-steel">AI(인공지능)가 먼저 살펴보고 선생님이 확인한 첨삭이에요.</p>
+    <% end %>
     <%= render "reports/rubric", report: report %>
 
     <% if feedback[:praise].any? %>

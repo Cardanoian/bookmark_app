@@ -195,6 +195,27 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
       "재제출된 승인본이 담임 검토 목록으로 복귀해야 한다"
   end
 
+  # AI 사용 고지(Anthropic 미성년자 지침의 필수 항목) — 첨삭 서비스와 같은 동의·키 게이트로 켜진다.
+  test "승인된 첨삭은 AI로 첨삭받는 학생에게만 AI가 먼저 살펴본 첨삭임을 밝힌다" do
+    note = "AI(인공지능)가 먼저 살펴보고 선생님이 확인한 첨삭이에요."
+    report = unreviewed_report(reviewed: true, reviewed_at: Time.current)
+    login_as @student
+
+    with_claude_key_configured do
+      get report_path(report)
+      assert_response :success
+      assert_match "선생님의 5축 첨삭", response.body
+      assert_no_match note, response.body, "보호자 AI 동의가 없으면 규칙 기반 첨삭이라 AI 고지도 없다"
+
+      @student.update!(ai_consent: true, privacy_consent_at: Time.current)
+      get report_path(report)
+      assert_match note, response.body
+    end
+
+    get report_path(report)
+    assert_no_match note, response.body, "키가 없으면 규칙 기반 첨삭이라 AI 고지도 없다"
+  end
+
   private
 
   def build_reviewed_rubric(praise: [ "정말 잘 썼어요" ], fix: [ "다음엔 더 자세히 써 볼까요" ],
