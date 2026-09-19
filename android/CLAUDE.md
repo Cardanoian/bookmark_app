@@ -4,7 +4,7 @@
 화면·업무 로직을 Kotlin 으로 재작성하지 않습니다 — **Rails 가 렌더하는 HTML 이 화면의 단일 진실**이고,
 이 모듈은 배포된 Rails 화면을 공유 WebView 에 띄우고 **Android 고유 기능만** 담당합니다.
 
-개발자용 빌드·서명 절차는 [`README.md`](README.md), 전체 단계별 계획은
+개발자용 빌드·서명 절차와 지원 기기(최소 사양) 문구는 [`README.md`](README.md), 전체 단계별 계획은
 [`../docs/HOTWIRE_NATIVE_ANDROID_PLAN.md`](../docs/HOTWIRE_NATIVE_ANDROID_PLAN.md) 를 봅니다.
 
 ## 이 모듈이 하는 일 / 하지 않는 일
