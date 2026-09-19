@@ -26,6 +26,16 @@
         <span class="hidden min-w-0 max-w-[10rem] truncate text-base font-bold text-ink sm:block"><%= current_user.name %><span class="font-medium text-slate">님</span></span>
         <div class="flex shrink-0 items-center gap-2">
           <% if current_user.student? %>
+          <%# 보상 효과음 켜기/끄기(sfx_toggle_controller, 기기 단위 기억). JS 없으면 숨긴 채로 둔다. %>
+          <button type="button" class="btn btn-primary btn-sm hidden shrink-0 px-3"
+                  data-controller="sfx-toggle" data-action="sfx-toggle#toggle"
+                  aria-pressed="true" aria-label="소리 끄기" title="소리 끄기">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 5 6 9H2v6h4l5 4V5z" />
+              <path data-sfx-toggle-target="on" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
+              <path data-sfx-toggle-target="off" class="hidden" d="m22 9-6 6M16 9l6 6" />
+            </svg>
+          </button>
           <%= link_to profile_path,
                 class: "btn btn-primary btn-sm shrink-0 px-3",
                 aria: { current: (current_page?(profile_path) ? "page" : nil), label: "마이페이지" } do %>

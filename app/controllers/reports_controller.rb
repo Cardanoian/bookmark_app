@@ -88,7 +88,7 @@ class ReportsController < ApplicationController
       when :duplicate then continue_report(report_for_autosave_key)
       when true
         submit_for_review(@report)
-        redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
+        redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요.", flash: { sfx: "submit" }
       else
         render :new, status: :unprocessable_entity
       end
@@ -160,10 +160,10 @@ class ReportsController < ApplicationController
       render :edit, status: :unprocessable_entity
     when :first_submission
       AiReviewJob.perform_later(@report)
-      redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요."
+      redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요.", flash: { sfx: "submit" }
     when :resubmission
       AiReviewJob.perform_later(@report)
-      redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요."
+      redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요.", flash: { sfx: "submit" }
     else
       redirect_to @report, notice: "독후감을 저장했어요."
     end

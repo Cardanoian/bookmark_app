@@ -5,6 +5,7 @@ pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
+pin "sfx" # 학생 보상 순간 효과음(Web Audio 합성, 자체 코드)
 
 # Hotwire Native 앱 전용 브리지. **자체 호스팅**(vendor/javascript)이라 CSP 의 script-src :self 를
 # 유지한 채 쓴다 — 외부 CDN 을 추가하면 초등 대상 서비스의 네트워크 표면이 넓어진다.

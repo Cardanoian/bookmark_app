@@ -24,6 +24,8 @@ module Games
       Missions::EvaluateProgress.new(current_user).on_game_play(play) if play
       Challenges::EvaluateProgress.new(current_user).on_game_play(play) if play
       discovered = play ? evaluate_monster_unlocks(current_user) : []
+      # 포인트를 실제로 얻었을 때만 보상 효과음(layouts/application 이 학생에게 렌더).
+      flash[:sfx] = "reward" if attempt.awarded_delta.to_i.positive?
       redirect_to redirect_target(params[:game], quiz), notice: with_discovery(result_notice(attempt), discovered)
     end
 

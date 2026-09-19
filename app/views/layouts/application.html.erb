@@ -22,6 +22,10 @@
     <%= render "shared/app_header" %>
     <%= render "shared/seasonal_banner" %>
     <%= render "shared/flash" %>
+    <%# 보상 순간 효과음(sfx_controller) — 학생에게만, 알려진 이름만. 울린 뒤 요소는 스스로 지워진다. %>
+    <% if current_user&.student? && %w[submit reward].include?(flash[:sfx]) %>
+      <div hidden data-controller="sfx" data-sfx-name-value="<%= flash[:sfx] %>"></div>
+    <% end %>
     <%= render "shared/email_verification_banner" %>
     <%# 유동형 페이지 셸: 고정 mt-28/브레이크포인트 컨테이너 캡 제거. 앱 전체를
         1536px(shell-max-wide)로 상한·중앙정렬하고, 가로 거터(16→24→32px)와 세로

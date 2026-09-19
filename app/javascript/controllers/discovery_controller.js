@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { play } from "sfx"
 
 // 몬스터 발견 축하 모달(영속 드레인). 미연출 UserMonster 큐를 순차로 축하하고,
 // 표시되는 즉시 acknowledge 로 celebrated_at 을 마킹해 재노출을 막는다(오프라인/교사
@@ -38,6 +39,7 @@ export default class extends Controller {
 
     // 현재 카드 스프라이트를 잠깐 통통 튀게 하는 등장 연출(monster_care 패턴).
     const sprite = this.cardTargets[this.index]?.querySelector("[data-sprite]")
+    play("discover")
     if (sprite) {
       sprite.classList.add("animate-bounce")
       setTimeout(() => sprite.classList.remove("animate-bounce"), 1000)

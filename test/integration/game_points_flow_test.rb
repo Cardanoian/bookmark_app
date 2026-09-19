@@ -65,11 +65,15 @@ class GamePointsFlowTest < ActionDispatch::IntegrationTest
     play_all_correct(@quiz)
     assert_equal 25, @student.reload.points, "첫 만점은 전액 적립"
     assert_match "25포인트를 얻었어요", flash[:notice], "첫 만점은 획득 안내"
+    assert_equal "reward", flash[:sfx], "포인트를 얻으면 보상 효과음"
+    follow_redirect!
+    assert_select "[data-controller='sfx'][data-sfx-name-value='reward']", 1
 
     play_all_correct(@quiz)
     assert_equal 25, @student.reload.points, "같은 퀴즈 재플레이는 추가 적립 없음(파밍 차단)"
     assert_match "추가 포인트는 없어요", flash[:notice], "재플레이 델타 0 은 정직하게 안내(획득 문구 금지)"
     refute_match "얻었어요", flash[:notice], "델타 0 일 때 '얻었어요'라고 말하지 않는다"
+    assert_nil flash[:sfx], "추가 포인트가 없으면 효과음도 없다"
 
     play_all_correct(@quiz)
     assert_equal 3, ReadingStats.new(@student).quizzes, "플레이 횟수(quizzes) 자체는 계속 증가"

@@ -25,6 +25,26 @@ class ReportsTest < ActionDispatch::IntegrationTest
     assert_redirected_to report_path(report)
   end
 
+  # 보상 순간 효과음(2026-09-19): 제출하면 다음 화면에 한 번 울릴 sfx 요소가 학생에게 렌더된다.
+  test "submitting a report renders the submit sound once for the student" do
+    login_as @student
+    post reports_path, params: { report: { book_title: "책", body: "나는 이 책을 읽었다.", input_mode: "keyboard" } }
+    assert_equal "submit", flash[:sfx]
+
+    follow_redirect!
+    assert_select "[data-controller='sfx'][data-sfx-name-value='submit']", 1
+    assert_select "button[data-controller='sfx-toggle']", 1, "학생 헤더에 소리 켜기/끄기 버튼"
+
+    get report_path(@student.reports.last)
+    assert_select "[data-controller='sfx']", 0, "flash 라 다음 화면에서는 다시 울리지 않는다"
+  end
+
+  test "staff never get the sound toggle" do
+    login_as @teacher
+    get root_path
+    assert_select "[data-controller='sfx-toggle']", 0
+  end
+
   # 빈 글은 내지 않는다. 책 제목 칸의 Enter 가 곧 제출이라(자동완성 필드), 제목만 고르고 Enter 를 누른 아이가
   # 빈 글을 내 AI 첨삭이 돌고 교사 큐에 올랐다(자동 저장 5차 리뷰가 범위 밖으로 보고, 2026-09-13).
   test "submitting a new report with a blank body is sent back without creating it" do
