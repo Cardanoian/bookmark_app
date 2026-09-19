@@ -627,23 +627,49 @@ class DemoSeeder
   # ── 토론방 + 토론 글 + 좋아요 ───────────────────────────────────────────
   # peers 를 주면 좋아요 풀을 그 학급 전원으로 넓힌다(top-up 시 기존 학생도 또래로 참여).
   # 토론방은 학급에 이미 있으면 재사용하고 없을 때만 만든다(멱등).
-  def seed_topics_and_forum(topic_titles, classroom, students, peers: nil)
+  def seed_topics_and_forum(topic_entries, classroom, students, peers: nil)
+    definitions = topic_entries.map.with_index { |entry, index| discussion_topic_definition(entry, index) }
+    duplicate_keys = definitions.group_by { |definition| definition.fetch(:key) }.select { |_key, rows| rows.many? }.keys
+    raise ArgumentError, "토론 주제 key 중복: #{duplicate_keys.join(', ')}" if duplicate_keys.any?
+
     topics = Topic.where(classroom:).order(:id).to_a
     if topics.empty?
-      return if topic_titles.empty?
+      return if definitions.empty?
 
-      topics = topic_titles.map.with_index do |title, i|
-        Topic.create!(classroom:, scope: :classroom, title: title.to_s, book: pool_book(i + 3))
+      topics = definitions.map do |definition|
+        Topic.create!(
+          classroom:,
+          scope: :classroom,
+          title: definition.fetch(:title),
+          book: discussion_book(definition[:book_title])
+        )
       end
       @totals[:topics] += topics.size
     end
 
+    topics_by_key = definitions.to_h do |definition|
+      topic = topics.find { |candidate| candidate.title == definition.fetch(:title) }
+      if definition[:structured] && topic.nil?
+        raise ArgumentError, "구조화 토론 주제를 기존 학급에서 찾을 수 없습니다: #{definition.fetch(:title)}"
+      end
+
+      [ definition.fetch(:key), topic || topics.fetch(definition.fetch(:index) % topics.size) ]
+    end
+
     posts = []
     students.each do |st|
-      Array(st[:sd]["forum_posts"]).each_with_index do |text, i|
+      Array(st[:sd]["forum_posts"]).each_with_index do |entry, i|
+        structured = entry.is_a?(Hash)
+        text = structured ? entry.fetch("text") : entry
         next if text.to_s.strip.length < 2
 
-        topic = topics[(st[:user].id + i) % topics.size]
+        topic = if structured
+          topics_by_key.fetch(entry.fetch("topic").to_s) do
+            raise ArgumentError, "알 수 없는 토론 주제 key: #{entry.fetch('topic')}"
+          end
+        else
+          topics[(st[:user].id + i) % topics.size]
+        end
         fp = ForumPost.create!(topic:, user: st[:user], text: text.to_s.strip[0, 500])
         fp.update_columns(created_at: backdate(rand_int(1, 40)))
         posts << fp
@@ -657,6 +683,26 @@ class DemoSeeder
       likers = users.reject { |u| u.id == fp.user_id }.shuffle(random: @rng).first(rand_int(0, 6))
       likers.each { |u| ForumPostLike.create!(forum_post: fp, user: u); @totals[:forum_post_likes] += 1 }
     end
+  end
+
+  def discussion_topic_definition(entry, index)
+    if entry.is_a?(Hash)
+      {
+        key: entry.fetch("key").to_s,
+        title: entry.fetch("title").to_s,
+        book_title: entry["book_title"].presence,
+        index:,
+        structured: true
+      }
+    else
+      { key: index.to_s, title: entry.to_s, book_title: nil, index:, structured: false }
+    end
+  end
+
+  def discussion_book(title)
+    return if title.blank?
+
+    Book.find_by(title:) || Book.where("title LIKE ?", "#{Book.sanitize_sql_like(title)}%").order(:id).first
   end
 
   # ── 우수작 게시판 + 응원 ─────────────────────────────────────────────────

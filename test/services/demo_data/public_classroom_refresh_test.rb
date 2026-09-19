@@ -149,6 +149,7 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     assert_equal 102, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
     assert_equal 31, result.dig(:after, :forum_posts)
+    assert_reviewed_discussions!
     assert_equal 10, result.dig(:after, :book_intros)
     assert_equal 10, result.dig(:after, :book_sequels)
     assert_equal 3, Mission.where(classroom: @classroom).count
@@ -161,6 +162,37 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_reviewed_discussions!
+    titles_by_key = @seed_data.fetch("topics").to_h { |topic| [ topic.fetch("key"), topic.fetch("title") ] }
+    expected = @seed_data.fetch("students").flat_map do |student|
+      Array(student["forum_posts"]).map do |post|
+        [ titles_by_key.fetch(post.fetch("topic")), post.fetch("text") ]
+      end
+    end.sort
+    actual = Topic.where(classroom: @classroom).includes(:forum_posts).flat_map do |topic|
+      topic.forum_posts.map { |post| [ topic.title, post.text ] }
+    end.sort
+
+    assert_equal @seed_data.fetch("topics").pluck("title").sort,
+                 Topic.where(classroom: @classroom).pluck(:title).sort
+    assert_equal expected, actual
+    assert_equal actual.size, actual.map(&:last).uniq.size, "같은 학급에 똑같은 토론 글이 두 번 보이면 안 됩니다"
+    assert actual.none? { |_title, text| text.match?(/[『』「」“”‘’—…·]/) },
+           "토론 글은 학생이 직접 친 글처럼 책 제목 괄호·특수 문장부호를 쓰지 않습니다"
+    assert_balanced_stances!
+  end
+
+  # 찬반 논제라 한쪽 입장이 8할을 넘으면 토론처럼 보이지 않는다(2026-09-19 사용자 기준).
+  def assert_balanced_stances!
+    posts = @seed_data.fetch("students").flat_map { |student| Array(student["forum_posts"]) }
+    posts.group_by { |post| post.fetch("topic") }.each do |topic, rows|
+      stances = rows.map { |post| post.fetch("stance") }
+      assert_equal [], stances - %w[pro con], "#{topic}: stance는 pro/con 중 하나여야 합니다"
+      minority = stances.tally.values_at("pro", "con").map(&:to_i).min
+      assert minority * 5 >= stances.size, "#{topic}: 소수 의견이 20% 미만입니다 (#{stances.tally})"
+    end
+  end
 
   def build_service(confirmation: nil, demo_seed: -> { }, content_seed: -> { })
     DemoData::PublicClassroomRefresh.new(
