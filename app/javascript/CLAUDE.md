@@ -6,7 +6,7 @@
 - `application.js` — 진입점. `@hotwired/turbo-rails`와 `controllers`를 import해 Turbo·Stimulus 부팅
 - `sfx.js` — **학생 보상 순간 효과음(2026-09-19)** 공용 모듈(`config/importmap.rb` 의 `pin "sfx"`). 소리 파일 없이 **Web Audio 오실레이터로 합성**한다(라이선스·NOTICE 표기·자산 없음, CSP 불변). `play(name)`(`evolve`·`discover`·`reward`·`submit`, 1초 미만·gain 0.15), `isMuted`/`setMuted`(기본 켜짐, 끄기는 `localStorage["chaekgalpi:sfx-muted"]` 에 **기기 단위**로 기억 — 아이 글이 아니라 sessionStorage 원칙 대상 아님), `isPreview`(Turbo 캐시 미리보기에서는 울리지 않음). 자동 재생 정책 때문에 첫 `pointerdown`/`keydown` 에서 AudioContext 를 풀어 둔다. 모든 실패는 조용히 무음. **범위는 보상 순간뿐** — 교실 25대 태블릿 소음 때문에 일반 버튼에는 넣지 않기로 했다(사용자 결정)
 - `controllers/sfx_controller.js` — 서버가 `flash[:sfx]`(독후감 제출·고쳐쓰기 제출 = `submit`, 게임에서 포인트를 실제로 얻음 = `reward`)로 알린 순간 `layouts/application` 이 **학생에게만** 렌더한 숨은 요소에 붙어 한 번 울리고 **요소를 스스로 지운다**(스냅샷에 남지 않아 뒤로 가기에 다시 울리지 않음)
-- `controllers/sfx_toggle_controller.js` — 학생 헤더(`shared/_app_header`)의 소리 켜기/끄기 버튼. `hidden` 클래스로 렌더돼 JS 가 붙어야 드러나고, `aria-pressed`·`aria-label`·아이콘(on/off 타깃)을 맞춘다. 켤 때 `reward` 를 한 번 들려준다
+- `controllers/sfx_toggle_controller.js` — **마이페이지(`profiles/show`) '효과음' 스위치**(`role="switch"`, 이름은 `aria-labelledby`). `hidden` 클래스로 렌더돼 JS 가 붙어야 드러나고, `aria-checked`·'켜짐/꺼짐' 글자(label 타깃)·아이콘(on/off 타깃)을 맞춘다. 켤 때 `reward` 를 한 번 들려준다. 처음에는 학생 헤더에 있었으나 390px 폭에서 헤더 버튼이 넘쳐 가로 스크롤이 생기고 자주 바꾸는 설정도 아니어서 마이페이지로 옮겼다(2026-09-19)
 - `controllers/index.js` — `controllers/**/*_controller`를 eager-load해 Stimulus에 자동 등록
 - `controllers/application.js` — Stimulus `Application` 인스턴스 생성·export(`window.Stimulus`)
 - `controllers/hello_controller.js` — Rails 기본 예제 컨트롤러(동작 확인용)

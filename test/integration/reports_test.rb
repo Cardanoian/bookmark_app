@@ -33,7 +33,7 @@ class ReportsTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
     assert_select "[data-controller='sfx'][data-sfx-name-value='submit']", 1
-    assert_select "button[data-controller='sfx-toggle']", 1, "학생 헤더에 소리 켜기/끄기 버튼"
+    assert_select "[data-controller='sfx-toggle']", 0, "효과음 스위치는 헤더가 아니라 마이페이지에 있다"
 
     get report_path(@student.reports.last)
     assert_select "[data-controller='sfx']", 0, "flash 라 다음 화면에서는 다시 울리지 않는다"
@@ -41,6 +41,19 @@ class ReportsTest < ActionDispatch::IntegrationTest
 
   test "staff never get the sound toggle" do
     login_as @teacher
+    get root_path
+    assert_select "[data-controller='sfx-toggle']", 0
+  end
+
+  # 효과음 켜기/끄기는 마이페이지에 둔다(2026-09-19) — 헤더에 두었을 때 390px 폭에서 버튼이 넘쳤다.
+  # 이름은 aria-labelledby('효과음'), 상태는 role=switch 의 aria-checked 와 '켜짐/꺼짐' 글자다.
+  test "the student sound switch lives on the profile page, not in the header" do
+    login_as @student
+    get profile_path
+    assert_select "button[data-controller='sfx-toggle'][role='switch'][aria-labelledby='profile-sfx-title']", 1
+    assert_select "#profile-sfx-title", text: "효과음"
+    assert_select "header [data-controller='sfx-toggle']", 0
+
     get root_path
     assert_select "[data-controller='sfx-toggle']", 0
   end
