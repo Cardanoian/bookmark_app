@@ -13,6 +13,12 @@
 
   <% first_submit = @report.persisted? && @report.first_submission? %>
 
+  <%# 고쳐쓰기는 고치는 동안 이전 글과 선생님이 승인한 조언을 옆에 둔다(제출 뒤 상세의 전/후 비교만으로는
+      고칠 때 참고할 수 없었다). 편집 영역(판독 상태 + _form)은 한 번만 그리고 배치만 바꾼다 — 고쳐쓰기가
+      아니면 지금까지와 같은 마크업이다. 참고 패널은 모바일=편집창 위 <details>, md 이상=편집창 옆 <aside>
+      로 두 번 렌더한다(teacher/_nav 와 같은 관용구). 조언 게이트는 _revision_reference 가 원본 기준으로 건다. %>
+  <% original = @report.revision_of %>
+  <% editor = capture do %>
   <% if @report.ocr? %>
     <div id="ocr_reading_status" aria-live="polite" class="mb-4">
       <% if @report.failed? %>
@@ -41,4 +47,31 @@
 
   <%= render "reports/form", report: @report, first_submit: first_submit, conflict: @draft_conflict,
                               submitted_conflict: @submitted_conflict %>
+  <% end %>
+
+  <% if original %>
+    <details class="group mb-6 md:hidden" data-role="revision-reference">
+      <summary class="card flex cursor-pointer list-none items-center justify-between gap-2 py-3 [&::-webkit-details-marker]:hidden">
+        <span class="flex items-center gap-2 text-sm font-semibold text-ink">
+          <%= ui_icon :document, class_name: "h-4 w-4" %>
+          <%= original.feedback_visible? ? "이전 글과 선생님 조언 보기" : "이전 글 보기" %>
+        </span>
+        <%= ui_icon :chevron_down, class_name: "h-4 w-4 text-steel transition-transform group-open:rotate-180" %>
+      </summary>
+      <div class="mt-3 max-h-[60vh] overflow-y-auto">
+        <%= render "reports/revision_reference", original: original %>
+      </div>
+    </details>
+
+    <div class="md:grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start md:gap-6">
+      <div class="min-w-0"><%= editor %></div>
+      <%# 글이 길어도 참고 패널은 헤더(sticky) 아래에 붙어 따로 스크롤한다 — 편집창을 내려도 조언이 보이게. %>
+      <aside class="hidden md:sticky md:top-20 md:block md:max-h-[calc(100vh-6rem)] md:overflow-y-auto"
+             aria-label="이전 글과 선생님 조언" data-role="revision-reference">
+        <%= render "reports/revision_reference", original: original %>
+      </aside>
+    </div>
+  <% else %>
+    <%= editor %>
+  <% end %>
 </div>

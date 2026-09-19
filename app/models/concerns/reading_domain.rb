@@ -748,6 +748,17 @@ module ReadingDomain
     STANDARDS_ALLOWLISTS.fetch(band, STANDARDS_ALLOWLISTS.fetch(DEFAULT_BAND))
   end
 
+  # 학년군별 성취기준 코드 목록(대괄호 포함 표기, 예: "[6국05-06]"). 프롬프트 allowlist 와 같은
+  # CURRICULUM_STANDARDS_BY_BAND 에서 뽑는다 — Ai::ReviewService 가 모델이 준 standard_code 를 이 목록으로
+  # 서버에서 다시 거른다(학년군 제한을 프롬프트 지시에만 맡기지 않는다). 미지원 band → :g56 폴백.
+  STANDARD_CODES_BY_BAND = BANDS.index_with do |band|
+    CURRICULUM_STANDARDS_BY_BAND.fetch(band).values.flatten(1).map(&:first).freeze
+  end.freeze
+
+  def self.standard_codes(band = DEFAULT_BAND)
+    STANDARD_CODES_BY_BAND.fetch(band, STANDARD_CODES_BY_BAND.fetch(DEFAULT_BAND))
+  end
+
   # 학년군별 프롬프트를 로드 시점에 1회 빌드해 동결(요청마다 재생성하지 않음).
   RUBRIC_PROMPTS = BANDS.index_with { |band| build_rubric_prompt(band).freeze }.freeze
   QUIZGEN_PROMPTS = BANDS.index_with { |band| build_quizgen_prompt(band).freeze }.freeze

@@ -57,7 +57,7 @@ module Ai
         rubric: rubric,
         praise: Array(response["praise"]).map(&:to_s),
         fix: Array(response["fix"]).map(&:to_s).first(limits[:fix]),
-        grow: normalize_grow(response["grow"]).first(limits[:grow]),
+        grow: normalize_grow(response["grow"], band).first(limits[:grow]),
         pts: ReadingDomain::LEVEL_POINTS.fetch(level)
       }
     end
@@ -77,12 +77,20 @@ module Ai
       end
     end
 
-    def normalize_grow(raw)
+    # grow[].standard_code 는 학생 학년군의 성취기준 목록(ReadingDomain.standard_codes)에 있는 코드만 저장한다.
+    # 학년군 제한을 프롬프트 지시에만 맡기지 않는 서버 검증이다 — 목록 밖 코드(다른 학년군·지어낸 코드)는
+    # 빈 문자열로 바꾸고 제안 문장(text)은 살린다(학생에게 줄 조언까지 버리지 않는다).
+    # 표기 흔들림은 정규화한 뒤 대조한다: 공백과 대괄호를 걷어 "6국05-06"·"[ 6국05-06 ]"도 "[6국05-06]"로
+    # 알아본다. 정규화는 표기만 맞출 뿐 대조 대상은 그대로 목록이라 목록 밖 코드가 들어올 길은 없고,
+    # 저장은 목록 표기(대괄호 포함)로 통일해 학생 화면·교사 편집이 같은 모양을 본다.
+    def normalize_grow(raw, band)
+      allowed = ReadingDomain.standard_codes(band).index_by { |code| code.delete("[]") }
       Array(raw).filter_map do |entry|
         next unless entry.is_a?(Hash)
 
         hash = entry.symbolize_keys
-        { text: hash[:text].to_s, standard_code: hash[:standard_code].to_s }
+        code = hash[:standard_code].to_s.gsub(/[\s\[\]]/, "")
+        { text: hash[:text].to_s, standard_code: allowed.fetch(code, "") }
       end
     end
   end

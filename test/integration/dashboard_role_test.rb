@@ -38,6 +38,36 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
     assert_match "도서관 담당", response.body
   end
 
+  # 교무관리자·사서 홈의 메뉴는 링크 없는 글자였다("전교 통계 / 계정 관리", "도서관 / 인기 대출") —
+  # 홈에서 역할 전용 화면으로 갈 길이 없었고, 교무관리자에게 없는 "계정 관리"를 가리켰다.
+  # 홈의 진입 링크가 실제 라우트를 가리키고, 그 역할이 그 화면을 열 수 있어야(200) 한다.
+  test "school_admin home links to the school admin tools it can open" do
+    login_as create_user(name: "링크교무", role: :school_admin, classroom: nil)
+    get root_path
+    assert_response :success
+
+    assert_no_match "계정 관리", response.body, "교무관리자에게 없는 기능을 가리키지 않는다"
+    [ school_admin_stats_path, school_admin_neis_path, challenges_path ].each do |path|
+      assert_select "nav[aria-label=?] a[href=?]", "교무관리자 메뉴", path, count: 1
+      get path
+      assert_response :success, "교무관리자가 #{path} 를 열 수 있어야 한다"
+      get root_path
+    end
+  end
+
+  test "librarian home links to the librarian tools it can open" do
+    login_as create_user(name: "링크사서", role: :librarian, classroom: nil)
+    get root_path
+    assert_response :success
+
+    [ librarian_dashboard_path, librarian_loans_path, librarian_events_path, challenges_path ].each do |path|
+      assert_select "nav[aria-label=?] a[href=?]", "사서 메뉴", path, count: 1
+      get path
+      assert_response :success, "사서가 #{path} 를 열 수 있어야 한다"
+      get root_path
+    end
+  end
+
   test "superadmin is redirected to the admin console" do
     admin = User.create!(name: "역할총괄", role: :superadmin, password: "password")
     login_as admin
@@ -70,6 +100,8 @@ class DashboardRoleTest < ActionDispatch::IntegrationTest
       get root_path
       follow_redirect! while response.redirect?
 
+      # 화면 읽기 프로그램·번역기가 한국어로 읽도록 레이아웃(application·admin)이 언어를 밝힌다.
+      assert_select "html[lang=ko]", 1, "#{label}: 레이아웃이 lang=\"ko\" 를 밝혀야 한다"
       assert_select "header.app-header form[action=?][method=post]", session_path, count: 1,
                     message: "#{label}: 헤더에 로그아웃이 1개여야 한다"
       assert_select "header.app-header form[action=?] button.btn.btn-primary", session_path, count: 1,

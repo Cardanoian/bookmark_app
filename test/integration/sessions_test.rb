@@ -29,6 +29,14 @@ class SessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # 첫 화면 배너의 연구 제목은 연구보고서 제목과 같아야 한다(외부 검토에서 옛 제목 "학교 독서교육 모델"이 지적됨).
+  test "the landing contest banner uses the research report title" do
+    get new_session_path
+
+    assert_select "[data-role=contest-banner]", text: /AI 첨삭과 게이미피케이션을 활용한 초등 독서교육 플랫폼 「책갈피」 개발과 적용/
+    assert_no_match "학교 독서교육 모델", response.body
+  end
+
   # 출처 표기는 비로그인 상태에서 닿을 수 있어야 의미가 있다(OFL 은 폰트 재배포 시 고지를 요구하고,
   # 오픈API·공공데이터도 사용 화면에 출처를 밝힌다). 앱에 전역 푸터가 없어 로그인 표면 3화면이
   # 유일한 지면이므로, 셋 모두에서 렌더되는지와 표기 항목이 빠지지 않았는지를 함께 고정한다.

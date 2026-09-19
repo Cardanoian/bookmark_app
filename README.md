@@ -67,7 +67,7 @@
 | 외부 HTTP                  | Faraday (+ faraday-retry)                                                             |
 | AI                         | Anthropic Claude (5축 첨삭 · 퀴즈 생성 · 손글씨 OCR)                        |
 | Android                    | Hotwire Native 1.3.1 · Kotlin 2.3 · AGP 8.13 · minSdk 28 (**웹앱과 동시 운영**)        |
-| 배포                       | Docker · Kamal 2 · Thruster (DigitalOcean 대상)                                       |
+| 배포                       | Docker · Kamal 2 · Thruster (NHN 클라우드 대상)                                       |
 | 품질                       | Minitest · Capybara · RuboCop(omakase) · Brakeman · bundler-audit                     |
 
 ---
@@ -310,7 +310,7 @@ bin/ci                  # 위 검사 일괄 실행 (CI 파이프라인)
 
 ## 배포
 
-DigitalOcean + Kamal 2 (Docker) 기준입니다.
+NHN 클라우드(Ubuntu) + Kamal 2 (Docker) 기준입니다.
 
 ```bash
 kamal setup     # 최초 1회 (서버 프로비저닝 + 첫 배포)

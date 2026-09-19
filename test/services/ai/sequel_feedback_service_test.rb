@@ -89,6 +89,37 @@ class Ai::SequelFeedbackServiceTest < ActiveSupport::TestCase
     assert_includes client.system_instruction, "격려"
   end
 
+  # 외부 전송 최소화: 격려 코멘트 요청도 실제 HTTP 본문을 포착해, 학생을 알아볼 수 있는 값(이름·이메일·
+  # 닉네임·학교 이름·user id)이 없고 학생에게서 나온 내용은 뒷이야기 본문뿐임을 확인한다(책 제목·지은이는 맥락).
+  test "sends only the book context and story body to Claude — no student name, email, nickname, school or user id" do
+    school = School.create!(name: "뒷이야기개인정보초등학교")
+    classroom = Classroom.create!(school: school, grade: 4, class_no: 2)
+    author = User.create!(id: 987_654_322, school: school, classroom: classroom, name: "김다온", password: "password",
+                          email: "daon.kim@example.com", nickname: "상상대장",
+                          ai_consent: true, privacy_consent_at: Time.current)
+    sequel = BookSequel.create!(user: author, book: @book, classroom: classroom,
+                                body: "강아지똥은 봄이 오자 민들레 친구들과 소풍을 떠났어요.")
+    captured = {}
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.post(Ai::ClaudeClient::ENDPOINT) do |env|
+        captured[:raw] = env.body.dup # Faraday 가 env.body 를 응답으로 덮으므로 블록 안에서 복사한다.
+        captured[:body] = JSON.parse(env.body)
+        [ 200, {}, { "type" => "message", "role" => "assistant",
+                     "content" => [ { "type" => "text", "text" => { comment: "좋아요" }.to_json } ] }.to_json ]
+      end
+    end
+    client = Ai::ClaudeClient.new(api_key: "test-key", connection: Faraday.new { |f| f.adapter :test, stubs })
+
+    assert_equal "좋아요", Ai::SequelFeedbackService.new(client: client).call(sequel), "스텁 응답(LLM 경로)을 썼는지 확인"
+
+    assert_equal %w[max_tokens messages model system], captured[:body].keys.sort, "metadata(user_id 등)를 보내지 않는다"
+    assert_equal "책 제목: 코멘트책\n지은이: 지은이\n\n학생이 이어 쓴 뒷이야기:\n#{sequel.body}",
+                 captured[:body]["messages"].sole["content"].sole["text"]
+    [ "김다온", "daon.kim@example.com", "상상대장", "뒷이야기개인정보초등학교", "987654322" ].each do |pii|
+      assert_not_includes captured[:raw], pii, "Claude 요청에 #{pii} 가 들어가면 안 된다"
+    end
+  end
+
   # 베타 리뷰: '테스트테스트…'에 "뒷이야기를 이어 쓰고 싶었던 마음이 잘 전해져요"라고 칭찬했다.
   # 뒷이야기가 아닌 글은 칭찬 없이 1~2문장으로 진짜 이어쓰기를 부탁해야 한다(서툰 진짜 글은 예외).
   test "system instruction refuses to praise non-stories and asks for a real continuation" do

@@ -29,8 +29,9 @@
       <div class="mt-3">
         <h3 class="mb-1 text-sm font-semibold text-brand-blue">성장 제안</h3>
         <ul class="list-inside list-disc text-sm text-slate">
+          <%# 성취기준 코드는 학년군 목록 밖이면 서버가 비워 저장한다(Ai::ReviewService#normalize_grow) — 빈 코드는 꼬리표를 그리지 않는다. %>
           <% feedback[:grow].each do |grow| %>
-            <li><%= grow[:text] %> <span class="text-xs text-stone"><%= grow[:standard_code] %></span></li>
+            <li><%= grow[:text] %><% if grow[:standard_code].present? %> <span class="text-xs text-stone"><%= grow[:standard_code] %></span><% end %></li>
           <% end %>
         </ul>
       </div>

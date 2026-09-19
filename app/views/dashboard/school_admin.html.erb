@@ -11,22 +11,27 @@
     </div>
   </header>
 
-  <nav class="mb-8 flex gap-4 text-sm font-medium text-steel">
-    <span class="text-ink">전교 통계</span>
-    <span>계정 관리</span>
+  <%# 교무관리자 전용 화면(SchoolAdmin::*, 역할 게이트 require_school_admin!)과 챌린지로 가는 진입 카드.
+      예전에는 "전교 통계 / 계정 관리"가 링크 없는 글자였고, 교무관리자에게 계정 관리 기능은 없다
+      (계정은 담임이 학생관리에서, 총괄관리자가 /admin 에서 다룬다). 전교 통계가 따로 있는데도
+      "표시할 전교 통계가 아직 없습니다" 빈 화면을 띄우던 것도 걷었다. %>
+  <% entries = [
+       [ "전교 통계", "학년·학급별 참여율과 5축 평균, 약점 영역을 봐요.", :chart, school_admin_stats_path ],
+       [ "NEIS 생기부 요약", "학생 독후감으로 독서활동상황 문장을 만들어 복사해요.", :document, school_admin_neis_path ],
+       [ "챌린지 관리", "우리 학교 챌린지를 만들고 관리해요.", :flame, challenges_path ]
+     ] %>
+  <nav aria-label="교무관리자 메뉴" class="grid gap-4 md:grid-cols-3">
+    <% entries.each do |label, description, icon, path| %>
+      <%= link_to path, class: "card flex items-center justify-between gap-3 hover:border-primary/40" do %>
+        <span class="flex min-w-0 items-center gap-3">
+          <%= ui_icon icon, class_name: "h-7 w-7" %>
+          <span class="min-w-0">
+            <span class="block font-semibold text-ink"><%= label %></span>
+            <span class="block text-sm text-steel"><%= description %></span>
+          </span>
+        </span>
+        <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
+      <% end %>
+    <% end %>
   </nav>
-
-  <%= link_to challenges_path, class: "card mb-6 flex items-center justify-between gap-3 hover:border-primary/40" do %>
-    <span class="flex min-w-0 items-center gap-3">
-      <%= ui_icon :flame, class_name: "h-7 w-7" %>
-      <span class="min-w-0">
-        <span class="block font-semibold text-ink">챌린지 관리</span>
-        <span class="block text-sm text-steel">우리 학교 챌린지를 만들고 관리해요.</span>
-      </span>
-    </span>
-    <%= ui_icon :arrow_right, class_name: "h-5 w-5 text-steel" %>
-  <% end %>
-
-  <%= render "shared/empty_state",
-        message: "표시할 전교 통계가 아직 없습니다.", icon: :chart %>
 </div>

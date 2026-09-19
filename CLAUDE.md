@@ -17,7 +17,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 
 전체 개요·실행법·역할표는 [`README.md`](README.md), 설계 문서는 [`docs/`](docs/CLAUDE.md) 참고.
 폰트·이미지·데이터·AI 모델의 **출처 표기는 [`NOTICE.md`](NOTICE.md)** 가 단일 진실이며, 화면 판본
-(`app/views/shared/_credits_footer.html.erb`)·체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)과 함께 갱신한다.
+(`app/views/shared/_credits_footer.html.erb`)과 함께 갱신한다. 체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)은 `frontend/` 가 유지 중단되어(2026-09-19) 더 이상 맞추지 않는다.
 
 ## 디렉토리 인덱스 (마트료시카)
 
@@ -27,7 +27,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 |------|------|------|
 | `app/` | 애플리케이션 코드 (MVC + 서비스·정책·잡·프런트) | [app/CLAUDE.md](app/CLAUDE.md) |
 | `android/` | **Hotwire Native Android 셸** (Rails 화면을 공유 WebView 로 재사용, Gradle·Kotlin, 웹앱과 동시 운영) | [android/CLAUDE.md](android/CLAUDE.md) |
-| `frontend/` | 심사 제출용 **오프라인 체험판** (React+Vite → 단일 `index.html`, 앱 런타임과 분리) | [frontend/CLAUDE.md](frontend/CLAUDE.md) |
+| `frontend/` | 심사 제출용 **오프라인 체험판** (React+Vite → 단일 `index.html`, 앱 런타임과 분리). ⚠️ **2026-09-19 부터 유지하지 않는다(폐기 예정)** — 앱을 고칠 때 이 사본을 함께 고치지 않는다 | [frontend/CLAUDE.md](frontend/CLAUDE.md) |
 | `config/` | Rails 설정 · 라우트 · 환경 · credentials | [config/CLAUDE.md](config/CLAUDE.md) |
 | `db/` | 스키마 · 마이그레이션 · 시드 | [db/CLAUDE.md](db/CLAUDE.md) |
 | `lib/tasks/` | rake 시드 태스크 (몬스터·뱃지·도서·학교·퀴즈) | [lib/tasks/CLAUDE.md](lib/tasks/CLAUDE.md) |
