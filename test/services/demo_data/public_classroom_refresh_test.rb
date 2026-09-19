@@ -63,6 +63,17 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # 첨삭의 성취기준 꼬리표는 학급 학년군 목록 안이어야 한다(학급을 3-1 에서 6-1 로 옮긴 뒤 [4국] 코드가 남았던 회귀).
+  test "reviewed seed standard codes belong to the classroom grade band" do
+    allowed = ReadingDomain.standard_codes(ReadingDomain.band_for(@seed_data.dig("classroom", "grade")))
+    codes = @seed_data.fetch("students").flat_map do |student|
+      Array(student["reports"]).flat_map { |report| Array(report.dig("feedback", "grow")).map { |grow| grow["standard_code"].to_s } }
+    end.compact_blank
+
+    assert_not_empty codes
+    assert_empty codes - allowed
+  end
+
   test "preview is read-only and reports the difference from the reviewed seed" do
     create_dirty_activity!
     service = build_service
