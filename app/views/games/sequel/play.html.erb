@@ -1,5 +1,4 @@
 <% content_for :title, "뒷이야기 이어쓰기 · 책갈피" %>
-
 <div class="page-shell page-shell-content space-y-6">
   <header class="page-header">
     <div class="flex items-start gap-3">
@@ -13,24 +12,22 @@
       <%= link_to icon_text(:arrow_left, "게임 고르기"), games_catalog_path, class: "inline-flex items-center gap-1 text-sm text-steel hover:text-ink" %>
     </div>
   </header>
-
   <% if flash[:notice] %>
     <div class="state-banner state-banner--success"><%= flash[:notice] %></div>
   <% end %>
-
   <%# ── 뒷이야기 작성 폼 ── %>
   <section class="card">
     <h2 class="text-sm font-semibold text-ink">내 뒷이야기 쓰기</h2>
     <ul class="mt-2 mb-3 list-disc space-y-1 pl-5 text-sm text-steel">
-      <% @tips.each do |tip| %><li><%= tip %></li><% end %>
+      <% @tips.each do |tip| %>
+        <li><%= tip %></li>
+      <% end %>
     </ul>
-
     <% if @sequel.errors.any? %>
       <div class="state-banner state-banner--error mb-3">
         <%= @sequel.errors.full_messages.to_sentence %>
       </div>
     <% end %>
-
     <%= form_with url: games_sequel_entries_path, method: :post, scope: :book_sequel, class: "space-y-3" do |f| %>
       <%= f.hidden_field :book_id, value: @book.id %>
       <%= f.text_area :body, rows: 6, value: @sequel.body,
@@ -40,7 +37,6 @@
       <%= f.submit "뒷이야기 올리기", class: "btn btn-primary" %>
     <% end %>
   </section>
-
   <%# ── 또래 뒷이야기 목록(득표순) ── %>
   <section>
     <h2 class="mb-3 text-sm font-semibold text-ink">우리 반 친구들의 뒷이야기</h2>
