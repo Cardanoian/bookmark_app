@@ -10,12 +10,13 @@ Rails 웹앱 「책갈피」를 **웹앱과 동시 운영**하기 위한 Android
 
 ## 지원 기기 (최소 사양)
 
-설치 안내문·제출 문서에는 아래 문구를 그대로 쓴다. **최소 사양**(APK·서버가 요구하는 조건)과
-**권장 사양**(기준 기기)을 나눠 적는다 — 요구 조건과 확인한 환경이 서로 다르기 때문이다.
+설치 안내문·제출 문서에는 아래 문구를 그대로 쓴다. APK 의 기술적 설치 하한은 Android 9
+(`minSdk = 28`)이지만, 검증 범위와 WebView 지원 수명을 고려해 **문서상 지원 기준은 안전하게
+Android 10 이상으로 안내한다.**
 
 ```text
 [최소 사양]
-- 운영체제: Android 9 이상
+- 운영체제: Android 10 이상
 - Android System WebView 120 이상 (낮으면 앱을 켤 때 업데이트 안내가 나옵니다)
 - 인터넷 연결 필수 (오프라인에서는 동작하지 않습니다)
 - 저장 공간: 설치 파일 약 17MB (여유 공간 100MB 이상 권장)
@@ -30,41 +31,41 @@ Rails 웹앱 「책갈피」를 **웹앱과 동시 운영**하기 위한 Android
 ※ WebView 업데이트 안내가 나오면 Play 스토어에서 'Android System WebView'와 'Chrome'을 업데이트합니다.
 ```
 
-| 항목 | 근거 | 바꿀 때 |
-|---|---|---|
-| Android 9 | `app/build.gradle.kts` 의 `minSdk = 28`(Hotwire Native 하한) | 내리지 않는다 |
+| 항목        | 근거                                                                                                                                                | 바꿀 때                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Android 10  | 보고서·설치 안내의 지원 하한. APK 의 기술적 설치 하한은 `minSdk = 28`(Android 9)이지만 Android 9 지원을 보장하지 않는다                              | 실기기 검증 없이 내리지 않는다       |
 | WebView 120 | 서버 `allow_browser versions: :modern`(Rails 8.1 정의: Chrome 120)과 `MainActivity.REQUIRED_WEBVIEW_VERSION = 120`. 미달이면 서버가 406 으로 막는다 | 두 값을 함께 바꾸고 이 문구도 고친다 |
-| 인터넷 필수 | 화면 전부를 서버가 렌더하고 오프라인 폴백이 없다 | |
-| 약 17MB | `index.apk` 17,107,832바이트(1.0.1). 100MB 는 WebView 캐시·사진 임시 파일 여유분이며 **측정값이 아니다** | 재빌드로 크기가 크게 바뀌면 고친다 |
-| 권한·카메라 | Manifest 권한 `INTERNET` 하나, 카메라 `uses-feature required=false` | |
+| 인터넷 필수 | 화면 전부를 서버가 렌더하고 오프라인 폴백이 없다                                                                                                    |                                      |
+| 약 17MB     | `index.apk` 17,107,756바이트(1.0.1). 100MB 는 WebView 캐시·사진 임시 파일 여유분이며 **측정값이 아니다**                                            | 재빌드로 크기가 크게 바뀌면 고친다   |
+| 권한·카메라 | Manifest 권한 `INTERNET` 하나, 카메라 `uses-feature required=false`                                                                                 |                                      |
 
 네이티브 라이브러리가 없어 CPU(ARM·x86, 32·64비트) 제한은 없다. 사양표에는 적지 않는다.
 
-> ⚠️ **"Android 9 이상"은 설치된다는 뜻이지 확인했다는 뜻이 아니다.** 실행을 확인한 환경은
-> Android 15 에뮬레이터(WebView 124)뿐이고, SM-P610 실기기 검증([`DEVICE_VERIFICATION.md`](DEVICE_VERIFICATION.md))은
-> 아직 하지 않았다. 확인하기 전까지 문구에 "검증"·"확인" 같은 표현을 넣지 않는다.
+> ✅ **Galaxy Tab S6 Lite(SM-P610) 실기기 검증을 완료했다.** 세부 검증 항목은
+> [`DEVICE_VERIFICATION.md`](DEVICE_VERIFICATION.md)를 따른다. 보고서와 설치 안내에는 기기의
+> 기술적 설치 가능 범위와 구분해 **"Android 10 이상"**으로 적는다.
 >
-> **최소 RAM 은 측정한 적이 없다.** 숫자를 지어 넣지 말고 권장 기기로 대신한다(고해상도 사진의
-> 메모리 압박도 실기기 🔴 항목이다).
+> **최소 RAM 은 별도로 산정하지 않았다.** 한 기기에서 정상 동작했다는 결과만으로 최소 용량을
+> 정하지 말고, 숫자 대신 검증한 권장 기기를 제시한다.
 >
 > **Android 9 의 WebView 는 138 에서 멈춘다** — Chrome·WebView 139 부터 Android 10 이상만 지원한다.
-> 지금 임계값 120 은 넘지만, Rails 업그레이드로 `:modern` 이 139 이상을 요구하게 되면 Android 9 기기가
-> 서버에서 막힌다. 그때는 최소 사양을 Android 10 으로 올린다. Android 9 에서는 Chrome 이 WebView 역할을
-> 맡으므로 업데이트 안내에 Chrome 을 함께 적었다.
+> 현재 앱의 임계값 120 은 넘지만 Rails 업그레이드로 `:modern` 이 139 이상을 요구하면 Android 9 기기는
+> 서버에서 막힌다. 이 지원 수명 차이도 문서상 최소 사양을 Android 10 으로 잡은 이유다. 일부 기기에서는
+> Chrome 이 WebView 역할을 맡으므로 업데이트 안내에는 Chrome 을 함께 적는다.
 
 ---
 
 ## 툴체인 (고정)
 
-| 항목 | 버전 | 비고 |
-|---|---|---|
-| JDK | Temurin **17** | `.mise.toml` 로 고정 |
-| Gradle | **8.14.5** | Wrapper 로 고정. `./gradlew` 만 사용 |
-| AGP | **8.13.2** | Gradle 8.13+ 요구 |
-| Kotlin | **2.3.0** | `dev.hotwire:core` 의 `kotlin-stdlib 2.3.0` 에 맞춤 |
-| compileSdk / targetSdk | **35** | |
-| minSdk | **28** | Hotwire Native 하한. 기준 기기 SM-P610 은 API 29 |
-| Hotwire Native | **1.3.1** | `core` + `navigation-fragments` |
+| 항목                   | 버전           | 비고                                                |
+| ---------------------- | -------------- | --------------------------------------------------- |
+| JDK                    | Temurin **17** | `.mise.toml` 로 고정                                |
+| Gradle                 | **8.14.5**     | Wrapper 로 고정. `./gradlew` 만 사용                |
+| AGP                    | **8.13.2**     | Gradle 8.13+ 요구                                   |
+| Kotlin                 | **2.3.0**      | `dev.hotwire:core` 의 `kotlin-stdlib 2.3.0` 에 맞춤 |
+| compileSdk / targetSdk | **35**         |                                                     |
+| minSdk                 | **28**         | Hotwire Native 하한. 기준 기기 SM-P610 은 API 29    |
+| Hotwire Native         | **1.3.1**      | `core` + `navigation-fragments`                     |
 
 > 버전을 올릴 때는 **AGP · Gradle wrapper · Kotlin** 셋을 함께 검토한다.
 > 동적 버전(`1.+`, `latest.release`)은 쓰지 않는다 — 재현 가능한 빌드가 원칙이다.
@@ -97,10 +98,10 @@ echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # 커밋하지 않는다
 
 ### 시작 URL 규칙
 
-| build type | START_URL | 비고 |
-|---|---|---|
-| debug | `http://10.0.2.2:3000` (덮어쓰기 가능) | `src/debug/AndroidManifest.xml` 이 cleartext 를 허용 |
-| release | `https://chaekgalpi.net` | **고정.** 아래 가드가 강제 |
+| build type | START_URL                              | 비고                                                 |
+| ---------- | -------------------------------------- | ---------------------------------------------------- |
+| debug      | `http://10.0.2.2:3000` (덮어쓰기 가능) | `src/debug/AndroidManifest.xml` 이 cleartext 를 허용 |
+| release    | `https://chaekgalpi.net`               | **고정.** 아래 가드가 강제                           |
 
 `assembleRelease` 는 두 검증을 통과해야만 실행된다.
 
