@@ -16,6 +16,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 - **배포/품질**: Docker · Kamal 2 · Thruster / Minitest · RuboCop(omakase) · Brakeman
 
 전체 개요·실행법·역할표는 [`README.md`](README.md), 설계 문서는 [`docs/`](docs/CLAUDE.md) 참고.
+2026-09-20 점검에서 재현한 게임 보상·AI 첨삭 오류 4건의 수정 순서·데이터 전환·회귀 테스트 계획은 [`BUG_FIX_PLAN.md`](BUG_FIX_PLAN.md)에 정리되어 있다(계획 작성 완료·구현 전).
 폰트·이미지·데이터·AI 모델의 **출처 표기는 [`NOTICE.md`](NOTICE.md)** 가 단일 진실이며, 화면 판본
 (`app/views/shared/_credits_footer.html.erb`)과 함께 갱신한다. 체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)은 `frontend/` 가 유지 중단되어(2026-09-19) 더 이상 맞추지 않는다.
 
