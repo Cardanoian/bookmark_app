@@ -92,18 +92,18 @@ AI가 생성한 첨삭 문구는 담임교사의 검토·승인을 거친 뒤에
 「책갈피」는 다음 오픈소스 위에서 동작하며, 각 프로젝트의 라이선스를 따릅니다.
 전체 목록과 정확한 버전은 [`Gemfile.lock`](Gemfile.lock) · [`frontend/package-lock.json`](frontend/package-lock.json)에 있습니다.
 
-| 소프트웨어                                                                                              | 용도                              | 라이선스      |
-| ------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------- |
-| [Ruby on Rails](https://rubyonrails.org)                                                                | 애플리케이션 프레임워크           | MIT           |
-| [Hotwire (Turbo · Stimulus)](https://hotwired.dev)                                                      | 프런트엔드 상호작용               | MIT           |
-| [Tailwind CSS](https://tailwindcss.com)                                                                 | 스타일 시스템                     | MIT           |
-| [Propshaft](https://github.com/rails/propshaft) · [Importmap](https://github.com/rails/importmap-rails) | 자산 파이프라인                   | MIT           |
-| [Pundit](https://github.com/varvet/pundit)                                                              | 역할별 인가                       | MIT           |
-| [Solid Queue · Solid Cache · Solid Cable](https://github.com/rails)                                     | 잡·캐시·실시간                    | MIT           |
-| [Faraday](https://lostisland.github.io/faraday/)                                                        | 외부 API 클라이언트               | MIT           |
-| [bcrypt-ruby](https://github.com/bcrypt-ruby/bcrypt-ruby)                                               | 비밀번호 해시                     | MIT           |
-| [SQLite](https://sqlite.org)                                                                            | 데이터베이스                      | Public Domain |
-| [React](https://react.dev) · [Vite](https://vite.dev)                                                   | 오프라인 체험판(`frontend/`) 빌드 | MIT           |
+| 소프트웨어                                                                                              | 용도                    | 라이선스      |
+| ------------------------------------------------------------------------------------------------------- | ----------------------- | ------------- |
+| [Ruby on Rails](https://rubyonrails.org)                                                                | 애플리케이션 프레임워크 | MIT           |
+| [Hotwire (Turbo · Stimulus)](https://hotwired.dev)                                                      | 프런트엔드 상호작용     | MIT           |
+| [Tailwind CSS](https://tailwindcss.com)                                                                 | 스타일 시스템           | MIT           |
+| [Propshaft](https://github.com/rails/propshaft) · [Importmap](https://github.com/rails/importmap-rails) | 자산 파이프라인         | MIT           |
+| [Pundit](https://github.com/varvet/pundit)                                                              | 역할별 인가             | MIT           |
+| [Solid Queue · Solid Cache · Solid Cable](https://github.com/rails)                                     | 잡·캐시·실시간          | MIT           |
+| [Faraday](https://lostisland.github.io/faraday/)                                                        | 외부 API 클라이언트     | MIT           |
+| [bcrypt-ruby](https://github.com/bcrypt-ruby/bcrypt-ruby)                                               | 비밀번호 해시           | MIT           |
+| [SQLite](https://sqlite.org)                                                                            | 데이터베이스            | Public Domain |
+
 
 ---
 
