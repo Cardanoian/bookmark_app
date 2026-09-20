@@ -13,3 +13,6 @@ windows/*.bat text eol=crlf
 windows/*.ps1 text eol=crlf
 windows/*.txt text eol=crlf
 windows/*.sh  text eol=lf
+
+# 루트 개발 환경 스크립트 — Linux/macOS/WSL2 bash 용이라 LF 강제 (CRLF 로 체크아웃되면 bash 가 \r 에 걸린다)
+setup.sh text eol=lf
