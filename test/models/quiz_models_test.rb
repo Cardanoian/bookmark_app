@@ -145,4 +145,38 @@ class QuizModelsTest < ActiveSupport::TestCase
     assert_equal @student, attempt.user
     assert_includes @student.quiz_attempts, attempt
   end
+  # F4(BUG_FIX_PLAN §3.1): 완료 원장에 남길 게임 종류는 검증한 퀴즈 유형에서 정한다.
+  test "play_game_type is decided from the verified content axis and question types" do
+    mcq = ->(q) { q.quiz_questions.create!(prompt: "객관식", choices: %w[가 나 다 라], answer_index: 0, position: 1) }
+    hint = ->(q) { q.quiz_questions.create!(question_type: :hint_reveal, prompt: "누구게", answer: "정답", content: { hints: %w[힌트1 힌트2] }, position: 1) }
+
+    teacher_quiz = quiz.tap(&mcq)
+    assert_nil teacher_quiz.content_axis, "교사 퀴즈는 축을 저장하지 않는다"
+    assert_equal "quiz", teacher_quiz.play_game_type
+
+    assert_equal "quiz", quiz(origin: :system, content_axis: :mcq, band: :g56).tap(&mcq).play_game_type
+    assert_equal "whoami", quiz(origin: :system, content_axis: :hint_reveal, band: :g56).tap(&hint).play_game_type
+
+    assert_nil quiz(origin: :system, content_axis: :matching, band: :g56).tap(&mcq).play_game_type, "휴면 matching 축"
+    assert_nil quiz(origin: :system, content_axis: :hint_reveal, band: :g56).tap(&mcq).play_game_type, "축과 문항이 어긋남"
+    assert_nil quiz(origin: :system, content_axis: :mcq, band: :g56).tap(&mcq).tap(&hint).play_game_type, "문항 유형이 섞임"
+    assert_nil quiz(origin: :system, content_axis: nil, band: :g56).tap(&mcq).play_game_type, "축을 모르는 system 퀴즈"
+    assert_nil quiz.play_game_type, "문항 없는 퀴즈"
+  end
+
+  test "a finalized attempt no longer accepts hint reveals" do
+    q = quiz(origin: :system, content_axis: :hint_reveal, band: :g56)
+    question = q.quiz_questions.create!(question_type: :hint_reveal, prompt: "누구게", answer: "정답", content: { hints: %w[힌트1 힌트2] }, position: 1)
+    attempt = q.quiz_attempts.create!(user: @student, hint_reveals: {}, score: 0, points_awarded: 0)
+
+    assert attempt.reveal_hint!(question)
+    assert attempt.reveal_hint!(question)
+    assert_not attempt.reveal_hint!(question), "힌트를 다 공개했으면 더 올리지 않는다"
+    assert_equal 2, attempt.reload.revealed_count(question)
+
+    done = q.quiz_attempts.create!(user: @student, hint_reveals: {}, score: 1, points_awarded: 5, played_at: Time.current)
+    assert done.finalized?
+    assert_not done.reveal_hint!(question)
+    assert_equal 0, done.reload.revealed_count(question)
+  end
 end

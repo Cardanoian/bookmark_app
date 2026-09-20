@@ -1,11 +1,17 @@
 <%# 검토 목록 행. AiReviewJob 방송 대상이므로 current_user 미사용. local: report
-    검토완료(reviewed) 행은 열람 전용 — 체크박스·승인 버튼을 렌더하지 않는다. %>
+    검토완료(reviewed) 행은 열람 전용 — 체크박스·승인 버튼을 렌더하지 않는다.
+    **첨삭이 준비되지 않은 행(대기·처리 중·실패)도** 체크박스·승인 버튼을 렌더하지 않고 상태만 알린다
+    (Report#review_ready? — 다시 낸 글의 평균·등급은 이전 제출의 것이라 함께 숨긴다).
+    승인 컨트롤은 **이 행에 보이던 제출 버전**을 함께 보낸다 — 화면을 연 뒤 학생이 다시 냈으면 서버가 승인하지 않는다. %>
+<% approvable = report.review_ready? && !report.reviewed? %>
 <article id="<%= dom_id(report) %>" class="card flex items-center justify-between gap-3 p-3">
   <label class="flex min-w-0 items-center gap-3">
-    <% unless report.reviewed? %>
+    <% if approvable %>
       <%= check_box_tag "report_ids[]", report.id, false,
             form: "batch_approve_reports",
             class: "shrink-0 rounded border-hairline-strong" %>
+      <%= hidden_field_tag "review_versions[#{report.id}]", report.review_version,
+            id: dom_id(report, :review_version), form: "batch_approve_reports" %>
     <% end %>
     <span class="min-w-0">
       <span class="flex min-w-0 items-center gap-1.5 font-medium text-ink">
@@ -18,7 +24,13 @@
         <% end %>
       </span>
       <span class="block text-xs text-steel">
-        평균 <%= report.avg %>
+        <% if report.review_ready? %>
+          평균 <%= report.avg %>
+        <% elsif report.failed? %>
+          AI 첨삭 실패
+        <% else %>
+          AI 첨삭 준비 중
+        <% end %>
         <% if report.reviewed? && report.reviewed_at %>
           · <%= report.reviewed_at.strftime("%Y.%m.%d") %> 승인
         <% end %>
@@ -27,13 +39,17 @@
   </label>
 
   <div class="flex shrink-0 items-center gap-2">
-    <%= level_badge(report.level) %>
+    <%= level_badge(report.level) if report.review_ready? %>
     <% if report.reviewed? %>
       <span class="badge badge-success">검토완료</span>
       <%= link_to "검토 내용 보기", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
-    <% else %>
+    <% elsif approvable %>
       <%= link_to "검토", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
-      <%= button_to "승인", approve_teacher_review_path(report), method: :post, class: "btn btn-blue btn-sm" %>
+      <%= button_to "승인", approve_teacher_review_path(report), method: :post, class: "btn btn-blue btn-sm",
+            params: { review_version: report.review_version } %>
+    <% else %>
+      <span class="badge <%= report.failed? ? "badge-danger" : "badge-neutral" %>"><%= report.failed? ? "첨삭 실패" : "첨삭 준비 중" %></span>
+      <%= link_to "보기", teacher_review_path(report), class: "btn btn-secondary btn-sm" %>
     <% end %>
   </div>
 </article>

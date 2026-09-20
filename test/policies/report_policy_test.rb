@@ -89,7 +89,7 @@ class ReportPolicyTest < ActiveSupport::TestCase
   end
 
   test "share? allows the author and owning teacher once reviewed" do
-    @report1.update!(submitted_at: Time.current, reviewed: true, reviewed_at: Time.current)
+    @report1.update!(review_ready_attributes(reviewed: true, reviewed_at: Time.current))
 
     assert ReportPolicy.new(@student1, @report1).share?
     assert ReportPolicy.new(@teacher1, @report1).share?
@@ -99,6 +99,43 @@ class ReportPolicyTest < ActiveSupport::TestCase
 
   # fail-safe: 승인이 풀린 공유 글이라도 '공유 취소'는 가능해야 한다. 막으면 미검토 본문이
   # 게시판에 박제된다(정상 흐름에서는 submit_for_review 가 먼저 공유를 걷는다).
+  # F3(BUG_FIX_PLAN §5.1): 승인 표시만 남고 그 승인이 확인한 첨삭이 지금 글의 것이 아니면 새로 공유할 수 없다.
+  test "share? blocks a reviewed report whose current version has no completed review" do
+    @report1.update!(review_ready_attributes(reviewed: true, reviewed_at: Time.current,
+                                             review_version: 2, completed_review_version: 1))
+
+    assert_not ReportPolicy.new(@student1, @report1).share?
+    assert_not ReportPolicy.new(@teacher1, @report1).share?
+  end
+
+  # F3: 승인은 담임 권한 + **지금 제출의 첨삭이 완성된 글**에만.
+  test "approve? needs the owning teacher and a completed review of the current version" do
+    @report1.update!(review_ready_attributes)
+    assert ReportPolicy.new(@teacher1, @report1).approve?
+    assert_not ReportPolicy.new(@teacher2, @report1).approve?, "다른 반 담임"
+    assert_not ReportPolicy.new(@student1, @report1).approve?
+
+    {
+      pending: { ai_status: :pending }, processing: { ai_status: :processing }, failed: { ai_status: :failed },
+      draft: { submitted_at: nil }, resubmitted: { review_version: 2 }
+    }.each do |state, override|
+      @report1.update!(review_ready_attributes(**override))
+      assert_not ReportPolicy.new(@teacher1, @report1).approve?, "#{state} 상태는 승인할 수 없다"
+    end
+  end
+
+  # F2 §4.4: 실패했거나 멈춘 첨삭은 글쓴이와 담임이 같은 버전으로 다시 요청할 수 있다.
+  test "retry_review? allows the author and owning teacher only while the review is failed or stalled" do
+    @report1.update!(ai_status: :failed, submitted_at: Time.current, review_version: 1)
+    assert ReportPolicy.new(@student1, @report1).retry_review?
+    assert ReportPolicy.new(@teacher1, @report1).retry_review?
+    assert_not ReportPolicy.new(@student2, @report1).retry_review?
+    assert_not ReportPolicy.new(@teacher2, @report1).retry_review?
+
+    @report1.update!(review_ready_attributes)
+    assert_not ReportPolicy.new(@student1, @report1).retry_review?, "완성된 첨삭은 다시 요청하지 않는다"
+  end
+
   test "share? still allows unsharing when a shared report is no longer reviewed" do
     @report1.update!(submitted_at: Time.current, reviewed: false, shared: true)
 

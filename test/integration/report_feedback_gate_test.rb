@@ -45,11 +45,11 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "재첨삭 향상도는 승인 전 학생 show 에 노출되지 않는다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 2.0, level: "B",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
     revision = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "고쳐 쓴 본문", revision_of: original, prev_avg: original.avg,
       ai_status: :done, avg: 4.5, level: "A", improvement: 2.5,
-      rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
 
     login_as @student
     get report_path(revision)
@@ -60,17 +60,17 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "승인 후 학생은 교사 편집본 첨삭·등급·향상도를 본다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 2.0, level: "B",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
     revision = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "고쳐 쓴 본문", revision_of: original, prev_avg: original.avg,
       ai_status: :done, avg: 4.5, level: "A", improvement: 2.5,
       rubric: build_reviewed_rubric,
       teacher_feedback: { praise: [ "교사가 다듬은 칭찬" ], fix: [ "교사가 다듬은 보완" ],
                            grow: [ { text: "교사가 다듬은 성장", standard_code: "2국05-01" } ] },
-      reviewed: false, submitted_at: Time.current)
+      reviewed: false, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
 
     login_as @teacher
-    post approve_teacher_review_path(revision)
+    approve_as_teacher(revision)
     assert revision.reload.reviewed?
 
     delete session_path
@@ -91,7 +91,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
     report = unreviewed_report
 
     login_as @teacher
-    patch teacher_review_path(report), params: { report: { teacher_comment: "코멘트만 저장됨" } }
+    patch teacher_review_path(report), params: { review_version: report.review_version, report: { teacher_comment: "코멘트만 저장됨" } }
     report.reload
     assert_not report.reviewed?
     assert_equal "코멘트만 저장됨", report.teacher_comment
@@ -105,7 +105,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
 
     delete session_path
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
 
     delete session_path
     login_as @student
@@ -120,7 +120,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
   test "재첨삭 실패 시 상속된 부모 첨삭이 노출되지 않고 크래시 없이 오류 배너를 보여준다" do
     original = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "원본 본문", ai_status: :done, avg: 4.5, level: "A",
-      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
+      rubric: build_reviewed_rubric, reviewed: true, reviewed_at: Time.current, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
 
     login_as @student
     post revise_report_path(original)
@@ -158,7 +158,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
                            grow: [ { text: "교사가 다듬은 성장", standard_code: "2국05-01" } ] },
       teacher_rubric: { content: 3, emotion: 3, life: 3, structure: 3, spelling: 3 },
       teacher_comment: "교사가 남긴 코멘트",
-      reviewed: true, reviewed_at: Time.current, submitted_at: Time.current)
+      reviewed: true, reviewed_at: Time.current, submitted_at: Time.current, review_version: 1, completed_review_version: 1)
 
     login_as @student
     perform_enqueued_jobs do
@@ -230,7 +230,7 @@ class ReportFeedbackGateTest < ActionDispatch::IntegrationTest
     Report.create!(
       { user: @student, classroom: @classroom, book_title: "책",
         body: "본문 내용입니다.", ai_status: :done, avg: 4.5, level: "A",
-        rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current }.merge(attrs)
+        rubric: build_reviewed_rubric, reviewed: false, submitted_at: Time.current, review_version: 1, completed_review_version: 1 }.merge(attrs)
     )
   end
 

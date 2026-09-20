@@ -185,7 +185,8 @@ class Ai::ReviewServiceTest < ActiveSupport::TestCase
     response = review_response(grow: [ { "text" => "인물의 마음을 더 써 봐요", "standard_code" => "[4국05-01]" } ])
     service = Ai::ReviewService.new(client: StubClient.new(configured: true, response: response))
 
-    stub_new(Ai::ReviewService, service) { AiReviewJob.perform_now(@report) }
+    @report.record_submission!
+    stub_new(Ai::ReviewService, service) { perform_ai_review(@report) }
 
     assert_equal [ { "text" => "인물의 마음을 더 써 봐요", "standard_code" => "" } ], @report.reload.rubric["grow"]
   end

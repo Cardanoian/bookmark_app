@@ -6,6 +6,11 @@ class Teacher::ReviewsController < ApplicationController
   PER_PAGE = 20
   # 목록 상단 필터. 미지정·위조값은 pending(미검토)으로 폴백해 교사의 기본 워크플로를 유지한다.
   STATUS_FILTERS = %w[all pending reviewed].freeze
+  # 저장·승인을 받지 않은 까닭(교사 안내). 버전이 없거나 다른 요청은 :stale 로 안내한다.
+  REJECTION_NOTICES = {
+    stale: "학생이 그사이 글을 다시 냈어요. 최신 글과 첨삭을 확인한 뒤 다시 해 주세요.",
+    not_ready: "아직 첨삭이 준비되지 않은 글이에요. 첨삭이 끝난 뒤에 승인하거나 저장할 수 있어요."
+  }.freeze
 
   # 담임 학급의 검토 목록. 기본은 미검토지만 status 로 검토완료·전체도 열람한다.
   # 검토완료가 합류하면 1년치가 수백 행이 되므로 페이지네이션한다(reports#index 관용구).
@@ -30,48 +35,109 @@ class Teacher::ReviewsController < ApplicationController
   end
 
   # 5축 ±조정 + 교사 코멘트 저장. md §4 "최종 등급을 변경한 뒤" 해금 재평가 지점.
+  #
+  # **교사가 화면에서 확인한 버전에만 저장한다**(BUG_FIX_PLAN F3 §5.2). 폼이 실어 온 review_version 이 지금
+  # 버전과 다르면(화면을 연 뒤 학생이 다시 냈다) 이전 글을 보고 쓴 코멘트·편집본을 최신 글에 덮어쓰지 않는다.
+  # 버전이 없으면 서버의 현재 버전으로 채우지 않고 거절한다. 첨삭이 완성되지 않은 글(대기·처리 중·실패)도
+  # 저장하지 않는다 — 그 화면의 편집 칸은 이전 제출의 첨삭에서 채워진 것이라, 저장하면 새 첨삭이 끝난 뒤
+  # student_feedback 이 그 옛 편집본을 우선 노출한다. 확인과 저장은 같은 잠금 안에서 한다.
   def update
     authorize @report, :review?
 
-    if @report.update(review_params)
+    outcome = @report.with_lock do
+      next :stale unless seen_review_version == @report.review_version
+      next :not_ready unless @report.review_ready?
+
+      @report.update(review_params) ? :saved : :invalid
+    end
+
+    case outcome
+    when :saved
       # 미승인(reviewed false) 편집은 방송하지 않는다(학생 비노출 유지). 승인 후 정정(reviewed true)
       # 은 학생이 이미 볼 수 있는 첨삭이므로 즉시 라이브 반영해 스테일을 막는다.
       @report.broadcast_detail_refresh if @report.reviewed?
       discovered = evaluate_monster_unlocks(@report.user)
       redirect_to teacher_review_path(@report), notice: with_discovery("검토 내용을 저장했어요.", discovered)
-    else
+    when :invalid
       render :show, status: :unprocessable_entity
+    else
+      redirect_to teacher_review_path(@report), alert: REJECTION_NOTICES.fetch(outcome)
     end
   end
 
-  # 승인 → reviewed 기록 + 학생 화면 실시간 갱신(P3.9).
+  # 승인 → reviewed 기록 + 학생 화면 실시간 갱신(P3.9). 교사가 확인한 버전의 완성된 첨삭만(Report#approve!).
+  # 인가는 `review?`(담임 권한)로 하고 "완성된 첨삭인가"는 approve! 의 결과로 본다 — `approve?` 로 인가하면
+  # 화면을 연 뒤 학생이 다시 내 준비 중이 된 글의 승인이 안내 없는 403 이 된다. 일괄 승인은 `approve?` 로 거른다.
   def approve
-    authorize @report, :approve?
+    authorize @report, :review?
+    # 미제출 초안은 검토 대상이 아니다 — 목록에도 없으니 URL 직접 요청이다(예전 approve? 정책과 같은 403).
+    raise Pundit::NotAuthorizedError, "drafts cannot be approved" if @report.draft?
 
-    discovered = finalize_approval(@report)
-    redirect_to teacher_reviews_path,
-                notice: with_discovery("#{@report.user.name} 학생의 독후감을 승인했어요.", discovered)
+    case @report.approve!(seen_version: seen_review_version)
+    when :approved
+      discovered = run_approval_effects(@report)
+      redirect_to teacher_reviews_path,
+                  notice: with_discovery("#{@report.user.name} 학생의 독후감을 승인했어요.", discovered)
+    when :already
+      # 같은 버전의 재승인(두 번 누름·다른 탭)은 성공한 기존 결과로 안내한다 — 승인 시각·보상·방송은 다시 일으키지 않는다.
+      redirect_to teacher_reviews_path, notice: "#{@report.user.name} 학생의 독후감은 이미 승인했어요."
+    when :not_ready
+      redirect_to teacher_review_path(@report), alert: REJECTION_NOTICES.fetch(:not_ready)
+    else
+      redirect_to teacher_review_path(@report), alert: REJECTION_NOTICES.fetch(:stale)
+    end
   end
 
+  # 선택한 글을 하나씩 검증해 승인하고, **승인한 건수와 제외한 건수를 따로** 알린다 — 준비 중·버전이 바뀐 글·
+  # 이미 승인된 글까지 "모두 승인했다"고 말하지 않는다. 폼은 선택한 글마다 화면에 보이던 버전을 함께 보낸다
+  # (review_versions[<id>]) — id 목록만으로 현재 버전을 대신 승인하지 않는다. 권한 밖 id 는 스코프에서 빠져
+  # 제외 건수에도 세지 않는다(그런 글이 있는지조차 알리지 않는다).
   def batch_approve
     ensure_reviewer!
 
+    versions = params[:review_versions].respond_to?(:to_unsafe_h) ? params[:review_versions].to_unsafe_h : {}
     discovered = []
-    pending_scope.where(id: Array(params[:report_ids])).find_each do |report|
-      next unless ReportPolicy.new(Current.user, report).approve?
+    approved = skipped = 0
+    classroom_scope.where(id: Array(params[:report_ids])).find_each do |report|
+      # 정책(approve? = 담임 권한 + 완성된 첨삭)으로 먼저 거르고, 확인한 버전과의 대조·전이는 approve! 가 한다.
+      unless ReportPolicy.new(Current.user, report).approve? &&
+             report.approve!(seen_version: versions[report.id.to_s]) == :approved
+        skipped += 1
+        next
+      end
 
-      discovered.concat(finalize_approval(report))
+      approved += 1
+      discovered.concat(run_approval_effects(report))
     end
-    redirect_to teacher_reviews_path, notice: with_discovery("선택한 독후감을 승인했어요.", discovered)
+
+    redirect_to teacher_reviews_path, notice: with_discovery(batch_notice(approved, skipped), discovered)
   end
 
   private
 
-  # 승인 확정: reviewed 기록 + 학생 실시간 갱신 + 승인 시점에 바뀌는 승인-기준
-  # 진화/뱃지 조건(reports·a_grades 등) 재계산 + 몬스터 해금 재평가.
+  # 교사가 화면에서 확인한 제출 버전(폼의 숨은 칸). 없거나 숫자가 아니면 nil — 어떤 버전과도 같지 않다.
+  def seen_review_version
+    params[:review_version].to_s[/\A\d{1,9}\z/]&.to_i
+  end
+
+  def batch_notice(approved, skipped)
+    return "승인한 독후감이 없어요. 첨삭이 준비 중이거나 학생이 다시 낸 글, 이미 승인한 글은 승인하지 않아요." if approved.zero?
+    return "독후감 #{approved}편을 승인했어요." if skipped.zero?
+
+    "독후감 #{approved}편을 승인했어요. #{skipped}편은 첨삭이 준비 중이거나 학생이 다시 냈거나 이미 승인한 글이라 승인하지 않았어요."
+  end
+
+  # 승인이 **실제로 전이한 뒤**(Report#approve! == :approved, 이미 커밋됨)의 후속 처리: 학생 화면 실시간 갱신 +
+  # 승인 시점에 바뀌는 승인-기준 진화/뱃지 조건(reports·a_grades 등) 재계산 + 미션·챌린지 + 몬스터 해금 재평가.
   # 반환: 이번 승인으로 새로 발견한 몬스터(UserMonster) 목록(호출부가 flash 안내에 사용).
-  def finalize_approval(report)
-    report.update!(reviewed: true, reviewed_at: Time.current)
+  #
+  # 여기서 나는 예외로 승인을 되돌리거나 요청을 500 으로 끝내지 않는다 — 승인은 이미 확정됐고, 후속 평가는
+  # 모두 멱등이라 다시 평가된다(미션은 Missions::ReevaluateJob, 몬스터 해금은 도감 조회 self-heal, 뱃지는
+  # 다음 포인트 변동). 일괄 승인에서 한 글의 후속 실패가 나머지 승인을 막지도 않는다.
+  def run_approval_effects(report)
+    # 방송·후속 평가는 **지금 DB 의 글**로 한다(§4.4) — 승인 커밋 직후 학생이 다시 냈다면 메모리의 승인된
+    # 객체로 그린 목록 행이 "교사 승인 완료"와 이전 제출의 등급을 밀어 넣는다(상세 방송은 모델이 다시 읽는다).
+    report.reload
     # 검색 캐시(searched)로 유입된 도서라도 승인 독후감이 붙으면 정식 카탈로그로 승격해
     # 독서활동 허브·자동완성·발견에서 정상 도서로 취급되게 한다(Book#promote_from_search!, 멱등).
     report.book&.promote_from_search!
@@ -88,6 +154,9 @@ class Teacher::ReviewsController < ApplicationController
     # 챌린지 진행 평가(챌린지 목표화). 미션과 동형으로 몬스터 해금 앞에 둔다(같은 요청 반영).
     Challenges::EvaluateProgress.new(report.user).on_report_approved(report)
     evaluate_monster_unlocks(report.user)
+  rescue StandardError => e
+    Rails.logger.error("Teacher::ReviewsController approval effects failed report=#{report.id}: #{e.class}: #{e.message}")
+    []
   end
 
   def set_report
@@ -147,8 +216,9 @@ class Teacher::ReviewsController < ApplicationController
     Report.submitted.where(classroom_id: Classroom.where(teacher_id: Current.user.id).select(:id))
   end
 
-  # 담임 학급의 미검토 독후감. index 기본 필터이자 **batch_approve 의 승인 대상 게이트**로,
-  # 이미 승인한 글이 다시 finalize_approval 캐스케이드를 타지 않게 막는다(의미를 넓히지 말 것).
+  # 담임 학급의 미검토 독후감(index 기본 필터). 이미 승인한 글이 승인 캐스케이드를 다시 타지 않게 막는
+  # 게이트는 이제 Report#approve! 의 조건부 전이(`reviewed = false` 일 때만)다 — batch_approve 는 학급 경계
+  # (classroom_scope)만 걸고 글마다 그 전이 결과를 본다(이미 승인된 글은 제외 건수로 센다).
   def pending_scope
     classroom_scope.where(reviewed: false)
   end
@@ -168,12 +238,16 @@ class Teacher::ReviewsController < ApplicationController
     raise Pundit::NotAuthorizedError unless Current.user.teacher? || Current.user.superadmin?
   end
 
+  # 목록 행도 방송 직전에 다시 읽은 글로 그린다(상세 방송 Report#broadcast_detail_refresh 와 같은 규칙, §4.4).
   def broadcast_to_student(report)
-    report.broadcast_replace_to(
-      [ report.user, :reports ],
-      target: ActionView::RecordIdentifier.dom_id(report),
+    latest = Report.find_by(id: report.id)
+    return unless latest
+
+    latest.broadcast_replace_to(
+      [ latest.user, :reports ],
+      target: ActionView::RecordIdentifier.dom_id(latest),
       partial: "reports/report",
-      locals: { report: report, show_delete: true }
+      locals: { report: latest, show_delete: true }
     )
   end
 end

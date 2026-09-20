@@ -97,6 +97,8 @@ module Teacher
       @revision_counts ||= grouped { Report.where(user_id: ids).where.not(revision_of_id: nil).group(:user_id).count }
     end
 
+    # '승인'은 `reviewed` 플래그다(담임의 승인 건수 — `Report.approved` 의 "첨삭이 완성된 승인 글"과 다르다.
+    # 첨삭 없이 승인된 옛 글이 남아 있는 동안 학생 '나의 성장'의 편수와 어긋날 수 있다, BUG_FIX_PLAN §10.4).
     def approved_counts
       @approved_counts ||= grouped { original_reports.where(reviewed: true).group(:user_id).count }
     end

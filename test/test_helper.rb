@@ -74,6 +74,41 @@ module ActiveSupport
       end
     end
 
+    # **지금 제출의 첨삭이 완성된 제출 글**(Report#review_ready?)의 속성(BUG_FIX_PLAN F2·F3). 승인·학생 공개를
+    # 다루는 테스트는 버전 컬럼 기본값(review_version 0 · completed_review_version NULL)에 기대지 않고 이것을
+    # 쓴다 — 기본값으로는 review_ready? 가 거짓이라 승인할 수 없고 승인된 첨삭도 학생에게 숨는다.
+    #   Report.create!(user:, classroom:, book_title: "책", **review_ready_attributes)                  # 검토 대기
+    #   Report.create!(..., **review_ready_attributes(reviewed: true, reviewed_at: Time.current))      # 승인됨
+    # rubric·level·avg 등은 넘긴 값이 기본값을 덮는다.
+    REVIEW_READY_RUBRIC = {
+      "content" => 3, "emotion" => 3, "life" => 3, "structure" => 3, "spelling" => 3,
+      "praise" => [ "줄거리를 차례대로 잘 정리했어요." ], "fix" => [ "느낀 점을 한 문장 더 써 보세요." ],
+      "grow" => [ { "text" => "책 속 인물의 마음을 떠올려 보세요.", "standard_code" => "" } ]
+    }.freeze
+
+    def review_ready_attributes(**overrides)
+      { ai_status: :done, submitted_at: Time.current, review_version: 1, completed_review_version: 1,
+        rubric: REVIEW_READY_RUBRIC.deep_dup }.merge(overrides)
+    end
+
+    # 제출 버전이 있는 AiReviewJob 을 그 글의 **현재 버전**으로 바로 돌린다(제출 → 첨삭 완료 흉내).
+    def perform_ai_review(report)
+      AiReviewJob.perform_now(report, expected_review_version: report.reload.review_version)
+    end
+
+    # 첨삭 잡을 돌리지 않고 "지금 제출의 첨삭이 끝난" 상태로만 만든다(**첨삭 포인트 적립 없음**) —
+    # 미션·챌린지처럼 보상 액수를 정확히 세는 테스트가 첨삭 보상과 섞이지 않게 할 때 쓴다.
+    def mark_review_ready!(report)
+      report.reload.update_columns(ai_status: Report.ai_statuses[:done], rubric: REVIEW_READY_RUBRIC.deep_dup,
+                                   completed_review_version: report.review_version)
+    end
+
+    # 통합 테스트(담임으로 로그인한 상태): 검토 화면의 승인 버튼처럼 **그 글의 현재 제출 버전**을 실어 승인한다.
+    # HTTP 로 제출한 글은 먼저 perform_ai_review 로 첨삭을 끝내야 승인된다(완성된 첨삭만 승인 — F3).
+    def approve_as_teacher(report)
+      post approve_teacher_review_path(report), params: { review_version: report.reload.review_version }
+    end
+
     # ISBN 필수 DB 제약 도입 전 레거시 중복 정리기의 회귀 테스트 전용. CHECK만 잠시 무시하고
     # 모델 콜백/검증을 우회해 과거 형식(하이픈·공란) 행을 재현한다. NOT NULL은 그대로 유지한다.
     def create_legacy_book!(title:, isbn:, category: :recommended, **attributes)

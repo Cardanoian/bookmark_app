@@ -27,7 +27,9 @@ module ReportsHelper
   # 재시도가 유일한 다음 행동이라 그대로 앞에 남긴다(OCR 판독 실패 = 다시 찍기).
   def student_status_badge(report)
     label, variant =
-      if report.reviewed?
+      if report.feedback_visible?
+        # 승인 표시만 있고 지금 제출의 첨삭이 완성되지 않은 글(첨삭 없이 승인된 옛 글)은 "확인 완료"가 아니다 —
+        # 첨삭이 안 보이는데 확인 완료라고 하면 아이는 왜 안 보이는지 알 수 없다.
         [ "확인 완료", "badge-success" ]
       elsif report.ai_status == "failed"
         [ "다시 시도", "badge-danger" ]
@@ -42,7 +44,9 @@ module ReportsHelper
         end
       elsif report.draft?
         [ "작성 중", "badge-neutral" ]
-      elsif report.ai_status == "done"
+      elsif report.review_ready?
+        # 지금 제출의 첨삭이 완성돼 선생님 확인만 남았다. ai_status 만 보지 않는다 — 고쳐 다시 낸 글은 새 첨삭이
+        # 끝나기 전에도 이전 제출의 결과가 남아 있다(Report#review_ready?).
         [ "선생님 확인 중", "badge-yellow" ]
       else
         [ "첨삭 준비 중", "badge-neutral" ]

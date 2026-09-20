@@ -17,7 +17,7 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 
 전체 개요·실행법·역할표는 [`README.md`](README.md), 설계 문서는 [`docs/`](docs/CLAUDE.md) 참고.
 개발 환경 준비(Linux·macOS·WSL2 공통: 시스템 패키지→mise→Ruby 4.0.5 precompiled→`bin/setup`)는 루트 [`setup.sh`](setup.sh) 한 번이며, 절차 설명은 README「환경 설정」에 있다.
-2026-09-20 점검에서 재현한 게임 보상·AI 첨삭 오류 4건의 수정 순서·데이터 전환·회귀 테스트 계획은 [`BUG_FIX_PLAN.md`](BUG_FIX_PLAN.md)에 정리되어 있다(계획 작성 완료·구현 전).
+2026-09-20 점검에서 재현한 게임 보상·AI 첨삭 오류 4건(F1 같은 게임 결과 중복 보상·F2 이전 AI 작업이 최신 첨삭을 덮어씀·F3 AI 처리 중 승인으로 미검토 첨삭 공개·F4 요청값으로 게임 완료 종류 조작)의 원인·수정 규칙·회귀 테스트·데이터 전환과 **구현 결과(§10)** 는 [`BUG_FIX_PLAN.md`](BUG_FIX_PLAN.md)에 정리되어 있다(2026-09-20 구현·검증 완료, **운영 배포 전** — 배포는 §7.2 의 점검 시간 절차를 따른다).
 폰트·이미지·데이터·AI 모델의 **출처 표기는 [`NOTICE.md`](NOTICE.md)** 가 단일 진실이며, 화면 판본
 (`app/views/shared/_credits_footer.html.erb`)과 함께 갱신한다. 체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)은 `frontend/` 가 유지 중단되어(2026-09-19) 더 이상 맞추지 않는다.
 

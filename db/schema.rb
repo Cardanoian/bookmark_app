@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_000002) do
   create_table "account_merges", force: :cascade do |t|
     t.integer "consumed_user_id"
     t.datetime "created_at", null: false
@@ -551,12 +551,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_000001) do
     t.integer "challenge_id"
     t.integer "cheers_count", default: 0, null: false
     t.integer "classroom_id", null: false
+    t.integer "completed_review_version"
     t.datetime "created_at", null: false
     t.float "improvement"
     t.integer "input_mode", default: 0, null: false
     t.string "level", limit: 1
     t.integer "points_awarded", default: 0, null: false
     t.float "prev_avg"
+    t.integer "review_version", default: 0, null: false
     t.boolean "reviewed", default: false, null: false
     t.datetime "reviewed_at"
     t.integer "revision_of_id"

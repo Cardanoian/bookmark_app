@@ -4,7 +4,9 @@
   <%# 첨삭·재첨삭 완료 시 AiReviewJob 이 상세 영역을 실시간 교체한다(수동 새로고침 불필요). %>
   <%= turbo_stream_from @report %>
 
-  <%= render "reports/report_detail", report: @report %>
+  <%# retry_button — 실패했거나 멈춘 첨삭을 다시 요청할 수 있는 사람(글쓴이·담임)에게만 버튼을 그린다.
+      방송으로 다시 그려질 때는 이 값이 없어 링크로 대신한다(_report_detail 주석). %>
+  <%= render "reports/report_detail", report: @report, retry_button: policy(@report).retry_review? %>
 
   <%# 사진(OCR) 독후감의 원본은 상태와 무관한 불변 자원이라 라이브 교체 영역(_report_detail)
       **밖**, show 스캐폴드에 둔다(방송 파티셜 표면 최소화). %>

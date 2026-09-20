@@ -14,13 +14,14 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     @other_classroom.update!(teacher: @other_teacher)
 
     @student = User.create!(school: @school, classroom: @classroom, name: "검토학생", password: "password")
+    # 둘 다 **지금 제출의 첨삭이 완성된** 글이다(review_ready_attributes — 버전 컬럼 기본값에 기대지 않는다).
     @report = Report.create!(
       user: @student, classroom: @classroom, book_title: "책", body: "본문",
-      ai_status: :done, avg: 3.0, level: "B", reviewed: false, submitted_at: Time.current
+      avg: 3.0, level: "B", reviewed: false, **review_ready_attributes
     )
     @reviewed_report = Report.create!(
       user: @student, classroom: @classroom, book_title: "이미검토한책", body: "검토완료 본문",
-      ai_status: :done, avg: 4.0, level: "A", reviewed: true, reviewed_at: 1.day.ago, submitted_at: Time.current
+      avg: 4.0, level: "A", reviewed: true, reviewed_at: 1.day.ago, **review_ready_attributes
     )
   end
 
@@ -85,17 +86,18 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", teacher_reviews_path(status: "reviewed")
   end
 
-  # 검토완료 글이 목록에 노출되면서 id 를 알아내기 쉬워졌다. batch_approve 는 pending_scope
-  # 게이트로 이미 승인된 글을 다시 finalize_approval 캐스케이드에 태우지 않아야 한다.
+  # 검토완료 글이 목록에 노출되면서 id 를 알아내기 쉬워졌다. batch_approve 는 이미 승인된 글을 다시 승인
+  # 캐스케이드에 태우지 않아야 한다(Report#approve! 의 조건부 전이 — reviewed = false 일 때만).
   test "batch_approve ignores already reviewed reports" do
     original_reviewed_at = @reviewed_report.reviewed_at
     login_as @teacher
 
-    post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id, @reviewed_report.id ] }
+    post batch_approve_teacher_reviews_path, params: batch_params(@report, @reviewed_report)
 
     assert @report.reload.reviewed?
     assert_equal original_reviewed_at.to_i, @reviewed_report.reload.reviewed_at.to_i,
       "이미 승인한 독후감은 batch_approve 로 재승인되지 않아야 한다"
+    assert_match "독후감 1편을 승인했어요. 1편은", flash[:notice], "승인한 건수와 제외한 건수를 따로 알린다"
   end
 
   test "the list paginates and carries the status filter to the next page" do
@@ -154,6 +156,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
   test "update saves the teacher rubric adjustment and comment" do
     login_as @teacher
     patch teacher_review_path(@report), params: {
+      review_version: @report.review_version,
       report: { teacher_comment: "잘했어요",
                 teacher_rubric: { content: 5, emotion: 4, life: 4, structure: 3, spelling: 4 } }
     }
@@ -167,7 +170,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     login_as @teacher
 
     broadcasts = capture_turbo_stream_broadcasts([ @student, :reports ]) do
-      post approve_teacher_review_path(@report)
+      post approve_teacher_review_path(@report), params: { review_version: @report.review_version }
     end
 
     @report.reload
@@ -182,21 +185,166 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     login_as @teacher
 
     assert_not_includes @student.badges.pluck(:key), "first"
-    post approve_teacher_review_path(@report)
+    post approve_teacher_review_path(@report), params: { review_version: @report.review_version }
 
     assert_includes @student.badges.reload.pluck(:key), "first",
       "승인 시점에 first(독후감 1편) 뱃지가 부여돼야 한다"
   end
 
 
-  test "batch_approve approves all selected reports" do
-    other = Report.create!(user: @student, classroom: @classroom, book_title: "책2", ai_status: :done, reviewed: false, submitted_at: Time.current)
+  # F3(BUG_FIX_PLAN §5): 첨삭이 만들어지기 전에는 승인할 수 없다.
+  # 재현: AI 처리 중인 글이 승인되고, 그 뒤 첨삭이 저장되는 순간 교사가 읽지 않은 채 학생에게 공개됐다 —
+  # approve? 가 ai_status 를 보지 않았고 feedback_visible? 는 reviewed? && rubric.present? 였다.
+  test "AI 첨삭이 끝나기 전의 글은 승인되지 않고, 나중에 생긴 첨삭도 확인 없이 공개되지 않는다 (F3)" do
+    waiting = Report.create!(user: @student, classroom: @classroom, book_title: "대기책",
+                             body: "나는 이 책을 읽고 우리의 삶을 생각했다. 감동을 느꼈다.",
+                             ai_status: :pending, submitted_at: Time.current)
+    waiting.update_columns(review_version: 1) # 제출된 글(첨삭 대기)
     login_as @teacher
 
-    post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id, other.id ] }
+    post approve_teacher_review_path(waiting), params: { review_version: 1 }
+    assert_not waiting.reload.reviewed?, "첨삭이 만들어지기 전에는 승인되지 않는다"
+    assert_match "아직 첨삭이 준비되지 않은", flash[:alert]
+
+    perform_ai_review(waiting)
+
+    waiting.reload
+    assert waiting.done?
+    assert_not waiting.feedback_visible?, "교사가 확인하지 않은 첨삭은 학생에게 공개되지 않는다"
+
+    post approve_teacher_review_path(waiting), params: { review_version: 1 }
+    assert waiting.reload.feedback_visible?, "완성된 첨삭을 확인하고 승인한 뒤에 공개된다"
+  end
+
+  # 준비 중·처리 중·실패·초안은 단건·일괄 어느 쪽으로도 승인되지 않는다(직접 요청 포함). 보상·공개도 없다.
+  test "준비 중·처리 중·실패·초안은 단건으로도 일괄로도 승인되지 않는다 (F3)" do
+    seed_badges!
+    not_ready = {
+      pending: { ai_status: :pending, submitted_at: Time.current, review_version: 1 },
+      processing: { ai_status: :processing, submitted_at: Time.current, review_version: 1 },
+      failed: { ai_status: :failed, submitted_at: Time.current, review_version: 1 },
+      # 고쳐 다시 낸 글: 이전 제출의 루브릭·done 이 남아 있지만 새 버전의 첨삭은 아직이다.
+      resubmitted: { ai_status: :pending, submitted_at: Time.current, review_version: 2, completed_review_version: 1,
+                     rubric: REVIEW_READY_RUBRIC.deep_dup },
+      draft: { ai_status: :done, rubric: REVIEW_READY_RUBRIC.deep_dup } # 미제출 초안(버전 0)
+    }.transform_values { |attrs| Report.create!(user: @student, classroom: @classroom, book_title: "준비중", body: "본문", **attrs) }
+    Report.where(id: [ @report.id, @reviewed_report.id ]).delete_all # 이 학생의 승인 가능 글을 치워 보상 여부를 본다
+    login_as @teacher
+
+    not_ready.each_value do |report|
+      post approve_teacher_review_path(report), params: { review_version: report.review_version }
+    end
+    post batch_approve_teacher_reviews_path, params: batch_params(*not_ready.values)
+
+    not_ready.each do |state, report|
+      assert_not report.reload.reviewed?, "#{state} 상태는 승인되지 않는다"
+      assert_not report.feedback_visible?
+    end
+    assert_match "승인한 독후감이 없어요", flash[:notice]
+    assert_empty @student.badges.reload.pluck(:key), "승인 캐스케이드(뱃지)가 돌지 않는다"
+  end
+
+  # 준비 중인 글은 목록·상세에 승인 컨트롤도, 이전 제출의 첨삭·등급도 보이지 않는다.
+  test "준비 중·실패한 글은 승인 컨트롤 없이 상태만 보인다 (F3)" do
+    resubmitted = Report.create!(user: @student, classroom: @classroom, book_title: "다시낸책", body: "새 본문",
+                                 avg: 4.5, level: "A", **review_ready_attributes(ai_status: :pending, review_version: 2))
+    failed = Report.create!(user: @student, classroom: @classroom, book_title: "실패한책", body: "본문",
+                            ai_status: :failed, submitted_at: 1.hour.ago, review_version: 1)
+    login_as @teacher
+
+    get teacher_reviews_path
+    [ resubmitted, failed ].each do |report|
+      assert_select "article#report_#{report.id}" do
+        assert_select "input[name='report_ids[]']", count: 0
+        assert_select "form[action=?]", approve_teacher_review_path(report), count: 0
+      end
+    end
+    assert_select "article#report_#{resubmitted.id}", text: /첨삭 준비 중/
+    assert_select "article#report_#{resubmitted.id}", { text: /평균 4.5/, count: 0 }, "이전 제출의 평균을 보이지 않는다"
+    assert_select "article#report_#{failed.id}", text: /첨삭 실패/
+
+    get teacher_review_path(resubmitted)
+    assert_select "form[action=?]", approve_teacher_review_path(resubmitted), count: 0
+    assert_select "form[action=?][method=post] input[name=_method][value=patch]", teacher_review_path(resubmitted), count: 0
+    assert_no_match "줄거리를 차례대로 잘 정리했어요.", response.body, "이전 제출의 첨삭을 보이지 않는다"
+    assert_match "AI 첨삭을 준비하고 있어요", response.body
+
+    get teacher_review_path(failed)
+    assert_match "AI 첨삭에 실패했어요", response.body
+    assert_select "form[action=?]", retry_review_report_path(failed), { count: 1 }, "실패한 글은 같은 버전으로 다시 요청할 수 있다"
+  end
+
+  # 화면을 연 뒤 학생이 다시 냈다 — 옛 화면의 승인·저장은 최신 글에 닿지 않는다. 버전이 없는 요청도 같다.
+  test "오래된 화면의 승인·교사 편집과 버전 없는 요청은 최신 글을 바꾸지 않는다 (F3)" do
+    login_as @teacher
+    get teacher_review_path(@report)
+    assert_select "form[action=?] input[name=review_version][value='1']", approve_teacher_review_path(@report)
+    assert_select "input#review_form_version[name=review_version][value='1']"
+
+    # 그사이 학생이 고쳐 다시 냈고 새 첨삭까지 끝났다.
+    @report.record_submission!
+    perform_ai_review(@report)
+    assert @report.reload.review_ready?
+
+    stale_edit = { report: { teacher_comment: "옛 글을 보고 쓴 코멘트", teacher_feedback: { praise: "옛 칭찬", fix: "" } } }
+    [ { review_version: 1 }, {} ].each do |seen|
+      post approve_teacher_review_path(@report), params: seen
+      assert_redirected_to teacher_review_path(@report)
+      patch teacher_review_path(@report), params: seen.merge(stale_edit)
+      assert_match "학생이 그사이 글을 다시 냈어요", flash[:alert]
+    end
+    post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id ], review_versions: { @report.id => 1 } }
+    post batch_approve_teacher_reviews_path, params: { report_ids: [ @report.id ] } # 버전 없는 일괄 승인
+
+    @report.reload
+    assert_not @report.reviewed?, "새 제출은 미승인으로 남는다"
+    assert_nil @report.teacher_comment
+    assert_nil @report.teacher_feedback, "옛 편집본이 최신 글에 덮이지 않는다"
+
+    post approve_teacher_review_path(@report), params: { review_version: 2 }
+    assert @report.reload.reviewed?, "최신 화면에서 확인한 버전은 승인된다"
+  end
+
+  # 같은 버전의 재승인은 성공한 기존 결과로 안내하되 승인 시각·보상·방송을 다시 일으키지 않는다.
+  test "같은 버전을 다시 승인해도 승인 시각과 방송이 되풀이되지 않는다 (F3)" do
+    login_as @teacher
+    post approve_teacher_review_path(@report), params: { review_version: 1 }
+    approved_at = @report.reload.reviewed_at
+
+    # assert_no_turbo_stream_broadcasts 는 테스트 시작부터의 방송을 모두 세므로(첫 승인 포함) 새 방송만 잡는다.
+    rebroadcasts = travel 1.minute do
+      capture_turbo_stream_broadcasts([ @student, :reports ]) do
+        post approve_teacher_review_path(@report), params: { review_version: 1 }
+      end
+    end
+    assert_empty rebroadcasts, "재승인은 학생 화면 방송을 다시 일으키지 않는다"
+
+    assert_redirected_to teacher_reviews_path
+    assert_match "이미 승인했어요", flash[:notice]
+    assert_equal approved_at, @report.reload.reviewed_at
+  end
+
+  # 다른 반 글은 일괄 승인의 제외 건수에도 세지 않는다(그런 글이 있는지 알리지 않는다).
+  test "batch_approve 는 권한 밖 글을 승인하지도 세지도 않는다 (F3)" do
+    foreign = Report.create!(user: User.create!(school: @school, classroom: @other_classroom, name: "다른반학생", password: "password"),
+                             classroom: @other_classroom, book_title: "다른반책", **review_ready_attributes)
+    login_as @teacher
+
+    post batch_approve_teacher_reviews_path, params: batch_params(@report, foreign)
+
+    assert_not foreign.reload.reviewed?
+    assert_equal "독후감 1편을 승인했어요.", flash[:notice]
+  end
+
+  test "batch_approve approves all selected reports" do
+    other = Report.create!(user: @student, classroom: @classroom, book_title: "책2", reviewed: false, **review_ready_attributes)
+    login_as @teacher
+
+    post batch_approve_teacher_reviews_path, params: batch_params(@report, other)
 
     assert @report.reload.reviewed?
     assert other.reload.reviewed?
+    assert_equal "독후감 2편을 승인했어요.", flash[:notice]
   end
 
   # --- report-review-gate: 교사 첨삭 텍스트 편집 + 승인 전 방송 억제 ---
@@ -246,6 +394,7 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
 
     login_as @teacher
     patch teacher_review_path(@report), params: {
+      review_version: @report.review_version,
       report: {
         teacher_feedback: {
           praise: "교사 칭찬1\n교사 칭찬2",
@@ -269,17 +418,22 @@ class TeacherReviewsTest < ActionDispatch::IntegrationTest
     login_as @teacher
 
     assert_no_turbo_stream_broadcasts(@report) do
-      patch teacher_review_path(@report), params: { report: { teacher_comment: "미승인 편집" } }
+      patch teacher_review_path(@report), params: { review_version: 1, report: { teacher_comment: "미승인 편집" } }
     end
     assert_not @report.reload.reviewed?
 
-    post approve_teacher_review_path(@report)
+    post approve_teacher_review_path(@report), params: { review_version: @report.review_version }
     assert @report.reload.reviewed?
 
     assert_turbo_stream_broadcasts(@report) do
-      patch teacher_review_path(@report), params: { report: { teacher_comment: "승인 후 편집" } }
+      patch teacher_review_path(@report), params: { review_version: 1, report: { teacher_comment: "승인 후 편집" } }
     end
   end
 
   private
+
+  # 일괄 승인 폼이 보내는 모양: 선택한 글 id + 그 행에 보이던 제출 버전.
+  def batch_params(*reports)
+    { report_ids: reports.map(&:id), review_versions: reports.to_h { |report| [ report.id, report.review_version ] } }
+  end
 end

@@ -56,11 +56,14 @@ class ReportPolicy < ApplicationPolicy
   # 경위로든 미검토 상태가 되면(레거시 행·수동 조작) 공유를 걷을 방법이 없어 게시판에 박제된다.
   # ReportsController#submit_for_review 가 재제출 시 공유를 자동 해제하므로 정상 흐름에서는
   # 이 분기에 도달하지 않는다 — 핵심 방어가 아니라 마지막 안전장치다.
+  #
+  # 새로 공유하려면 **지금 제출(현재 버전)에 대한 유효한 승인**이어야 한다(`feedback_visible?` =
+  # reviewed? && review_ready?) — 승인 표시만 남고 그 승인이 확인한 첨삭이 현재 글의 것이 아니면 막는다.
   def share?
     return false unless user
-    return false unless record.user_id == user.id || teacher_of_classroom? || user.superadmin?
+    return false unless author? || teacher_of_classroom? || user.superadmin?
 
-    record.reviewed? || record.shared?
+    record.feedback_visible? || record.shared?
   end
 
   # 검토·승인은 학급 담임(또는 superadmin)만.
@@ -70,14 +73,31 @@ class ReportPolicy < ApplicationPolicy
     teacher_of_classroom? || user.superadmin?
   end
 
-  # 승인은 **학생이 제출한 글**에만. 목록(`Teacher::ReviewsController#classroom_scope`)이 이미
-  # 초안을 거르지만, 승인은 되돌릴 수 없는 확정(포인트·뱃지·진화·미션 캐스케이드)이라 URL 직접
-  # 요청·batch_approve 의 id 배열 위조에 대해 정책에서도 fail-closed 로 막는다.
+  # 승인은 **현재 버전의 첨삭이 완성된 제출 글**에만(`Report#review_ready?` — 제출됨 + done + 루브릭 +
+  # 완료 버전 == 현재 버전). 목록(`Teacher::ReviewsController#classroom_scope`)이 이미 초안을 거르고 화면이
+  # 준비 중인 글의 승인 버튼을 숨기지만, 승인은 되돌릴 수 없는 확정(포인트·뱃지·진화·미션 캐스케이드)이라
+  # URL 직접 요청·batch_approve 의 id 배열 위조에 대해 정책에서도 fail-closed 로 막는다.
+  # `submitted?` 만 보던 때는 AI 처리 중인 글이 승인됐고, 그 뒤 저장된 첨삭이 교사가 읽지 않은 채 학생에게
+  # 공개됐다(BUG_FIX_PLAN F3). 교사가 **확인한 버전**과의 대조는 요청값이 필요해 Report#approve! 가 한다.
+  # 호출부: 일괄 승인은 이 술어로 거른 뒤 approve! 를 부르고, 단건 승인은 `review?` 로 인가한 뒤 approve! 의
+  # 결과(:not_ready/:stale)로 안내한다(같은 조건을 approve! 가 트랜잭션 안에서 다시 본다 — 어느 쪽도 우회 못 한다).
   def approve?
-    review? && record.submitted?
+    review? && record.review_ready?
+  end
+
+  # 같은 버전으로 첨삭을 다시 요청(실패했거나 대기·처리 중에 멈춘 글의 복구, F2 §4.4). 글쓴이와 담임.
+  def retry_review?
+    return false unless user
+    return false unless author? || teacher_of_classroom? || user.superadmin?
+
+    record.review_retryable?
   end
 
   private
+
+  def author?
+    record.user_id == user.id
+  end
 
   def teacher_of_classroom?
     user.teacher? && record.classroom&.teacher_id == user.id

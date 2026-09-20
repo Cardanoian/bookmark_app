@@ -25,11 +25,11 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "approving a report discovers a monster and announces it in the flash" do
-    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", ai_status: :done, submitted_at: Time.current)
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", **review_ready_attributes)
     login_as @teacher
 
     assert_difference -> { @student.user_monsters.count }, 1 do
-      post approve_teacher_review_path(report)
+      approve_as_teacher(report)
     end
     assert @student.user_monsters.exists?(dex_no: 9), "승인 독후감 1편 → dex 09(콩닥이) 해금"
     assert_includes flash[:notice], "새 몬스터"
@@ -49,16 +49,22 @@ class MonsterUnlockFlowTest < ActionDispatch::IntegrationTest
     assert_equal Time.current.in_time_zone("Asia/Seoul").to_date, play.played_on
   end
 
-  # 신뢰 경계: allowlist(quiz/classic/whoami/book) 밖 game 값은 원장에 기록하지 않는다(채점은 정상).
-  test "a game surface outside the allowlist is not recorded in the ledger" do
+  # F4(BUG_FIX_PLAN §3.1): 완료 종류는 요청값(game)이 아니라 서버가 검증한 퀴즈 유형에서 정한다.
+  # 재현: 객관식 퀴즈 하나에 game 값만 바꿔 보내 5종 완료 기록을 만들었다(책 소개·뒷이야기 글은 0개) —
+  # distinct_games 해금 지표를 글 한 줄 안 쓰고 채울 수 있었다.
+  test "객관식 퀴즈에 game 값을 바꿔 보내도 실제 퀴즈 종류(quiz)로만 기록된다 (F4)" do
     quiz = build_published_quiz
     login_as @student
 
-    assert_no_difference -> { GamePlay.count } do
-      assert_difference -> { QuizAttempt.count }, 1 do
-        post games_attempts_path, params: { quiz_id: quiz.id, game: "hacker", answers: correct_answers(quiz) }
-      end
+    %w[book sequel classic whoami hacker].each do |forged|
+      post games_attempts_path, params: { quiz_id: quiz.id, game: forged, answers: correct_answers(quiz) }
+      assert_redirected_to games_quiz_path(quiz), "이동 경로도 요청값이 아니라 실제 퀴즈 종류를 따른다(game=#{forged})"
     end
+    post games_attempts_path, params: { quiz_id: quiz.id, answers: correct_answers(quiz) } # game 생략
+
+    assert_equal [ "quiz" ], @student.game_plays.reload.map(&:game_type).uniq, "완료 원장에는 quiz 만 남는다"
+    assert_equal 1, @student.game_plays.count, "같은 날 같은 책 재플레이는 일일 유니크로 1행"
+    assert_equal 0, BookIntro.where(user: @student).count + BookSequel.where(user: @student).count
   end
 
   test "same quiz replayed the same day is deduped to one ledger row (farming block)" do

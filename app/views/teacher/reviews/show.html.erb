@@ -12,7 +12,8 @@
           </h1>
           <p class="page-subtitle"><%= @report.user.name %></p>
         </div>
-        <%= level_badge(@report.level) %>
+        <%# 등급은 **지금 제출의 첨삭이 완성됐을 때만** 보인다 — 다시 낸 글에는 이전 제출의 등급이 남아 있다. %>
+        <%= level_badge(@report.level) if @report.review_ready? %>
       </header>
 
       <section class="card">
@@ -23,6 +24,10 @@
       <%# 사진(OCR) 독후감이면 원본 손글씨를 함께 놓아 교사가 본문과 대조하며 검토한다. %>
       <%= render "reports/ocr_photo", report: @report %>
 
+      <%# 지금 제출(현재 버전)의 첨삭이 완성된 글만 첨삭 내용·편집 칸·승인을 보인다(Report#review_ready?).
+          다시 낸 글에는 **이전 제출의 첨삭**이 남아 있어, 준비 중에 그것을 보여 주면 교사가 옛 첨삭을 읽고
+          새 글을 승인하게 된다. 준비 중·실패는 상태만 알리고, 실패·멈춤은 같은 버전으로 다시 요청할 수 있다. %>
+      <% if @report.review_ready? %>
       <section class="card">
         <h2 class="mb-3 text-lg font-semibold text-ink">AI 첨삭</h2>
         <%= render "reports/rubric", report: @report %>
@@ -30,6 +35,8 @@
 
 
       <%= form_with model: @report, url: teacher_review_path(@report), method: :patch, class: "card space-y-4 bg-surface-featured" do |f| %>
+        <%# 교사가 이 화면에서 확인한 제출 버전. 화면을 연 뒤 학생이 다시 냈으면 서버가 저장을 받지 않는다. %>
+        <%= hidden_field_tag :review_version, @report.review_version, id: "review_form_version" %>
         <h2 class="text-lg font-semibold text-brand-blue">5축 조정 · 코멘트</h2>
         <% teacher_scores = @report.teacher_rubric_scores %>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -87,6 +94,17 @@
 
         <%= f.submit "저장", class: "btn btn-primary" %>
       <% end %>
+      <% elsif @report.failed? %>
+        <div class="state-banner state-banner--error">
+          <%= ui_icon :warning %>
+          <span>AI 첨삭에 실패했어요. 첨삭이 만들어진 뒤에 검토하고 승인할 수 있어요.</span>
+        </div>
+      <% else %>
+        <div class="state-banner">
+          <%= ui_icon :writing %>
+          <span>AI 첨삭을 준비하고 있어요. 첨삭이 끝나면 이 화면에서 검토하고 승인할 수 있어요.</span>
+        </div>
+      <% end %>
 
       <%# 승인은 reviewed_at 을 덮어쓰고 뱃지·진화·미션·챌린지·몬스터 해금 캐스케이드를 통째로
           재실행하므로, 검토완료 글에는 노출하지 않는다(목록 검토완료 탭에서 이 화면에 도달 가능).
@@ -99,8 +117,12 @@
       <% end %>
 
       <div class="flex flex-wrap items-center gap-3">
-        <% unless @report.reviewed? %>
-          <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue" %>
+        <% if @report.review_ready? && !@report.reviewed? %>
+          <%= button_to "승인", approve_teacher_review_path(@report), method: :post, class: "btn btn-blue",
+                params: { review_version: @report.review_version } %>
+        <% end %>
+        <% if policy(@report).retry_review? %>
+          <%= button_to "AI 첨삭 다시 요청", retry_review_report_path(@report), method: :post, class: "btn btn-blue" %>
         <% end %>
         <%= link_to "목록으로 돌아가기", teacher_reviews_path, class: "btn btn-secondary" %>
       </div>

@@ -35,18 +35,15 @@ module Games
     # reveal_hint=공개 요청마다 **서버 카운터 1 증가**(attempt.hint_reveals). Turbo 요청에는 해당
     # 문항의 힌트 카드만 교체해 아직 제출하지 않은 답안 입력값을 보존하고, 일반 HTML 요청은 show 로
     # 되돌린다. 잔여 힌트수·정답은 노출하지 않는다. 클라이언트 주장 힌트수는 무시된다.
+    #
+    # **미완료 attempt 에만 공개한다** — 확정된 기록은 그대로 두고 같은 화면을 다시 보여 준다
+    # (QuizAttempt#reveal_hint!, BUG_FIX_PLAN F1 §3.3).
     def reveal_hint
       @attempt = current_user.quiz_attempts.find(params[:attempt])
       authorize @attempt, :update?
       @question = @attempt.quiz.quiz_questions.find(params[:question_id])
 
-      reveals = (@attempt.hint_reveals || {}).dup
-      key = @question.id.to_s
-      revealed = reveals[key].to_i
-      if revealed < @question.hints_list.length
-        reveals[key] = revealed + 1
-        @attempt.update!(hint_reveals: reveals)
-      end
+      @attempt.reveal_hint!(@question)
 
       @question_number = @attempt.quiz.quiz_questions.index(@question) + 1
 

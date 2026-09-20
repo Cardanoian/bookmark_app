@@ -1,8 +1,11 @@
 <%# 재첨삭 완료 시 AiReviewJob 이 이 영역만 Turbo 로 교체한다(라이브 갱신). local: report
     데스크톱은 본문/보조 정보(좌) + AI 5축 첨삭·피드백(우)로 분할하고, 모바일은 세로 스택. %>
-<%# has_feedback = 학생에게 AI 첨삭(5축·칭찬/보완/성장·맞춤법)을 보일지의 단일 게이트.
-    교사 검토·승인(reviewed) 전에는 검수 안 된 AI 산출물을 노출하지 않는다(feedback_visible?). %>
+<%# has_feedback = 학생에게 AI 첨삭(5축·칭찬/보완/성장·맞춤법·등급·향상도)을 보일지의 단일 게이트.
+    교사가 **현재 제출의 완성된 첨삭**을 검토·승인하기 전에는 AI 산출물을 노출하지 않는다(feedback_visible?).
+    local retry_button(선택): 첨삭을 다시 요청할 수 있는 사람이 보는 HTTP 화면에서만 참(show 가 policy 로 정해
+    넘긴다). 이 파셜은 뷰어 없는 방송에서도 렌더되므로 여기서 current_user·policy 를 쓰지 않는다. %>
 <% has_feedback = report.feedback_visible? %>
+<% retry_button = local_assigns.fetch(:retry_button, false) %>
 <div id="<%= dom_id(report, :detail) %>" class="space-y-6">
   <header class="page-header">
     <div class="flex min-w-0 items-start gap-3">
@@ -20,18 +23,30 @@
       </div>
     </div>
     <div class="page-actions">
-      <%# 등급(level)은 AI 판정이므로 교사 승인 후에만 노출한다. %>
-      <% if report.reviewed? %>
+      <%# 등급(level)은 AI 판정이므로 교사가 현재 제출의 첨삭을 승인한 뒤에만 노출한다. %>
+      <% if has_feedback %>
         <%= level_badge(report.level) %>
       <% end %>
       <%= student_status_badge(report) %>
     </div>
   </header>
 
+  <%# 실패한 첨삭은 같은 제출로 다시 요청할 수 있다(reports#retry_review). 방송으로 그려질 때는 뷰어를 몰라
+      버튼 대신 이 화면을 다시 여는 링크를 둔다 — 다시 열면 요청할 수 있는 사람에게 버튼이 보인다.
+      미제출 초안의 실패(사진 판독 실패)는 첨삭 요청 대상이 아니라 예전 안내 그대로다. %>
   <% if report.ai_status == "failed" %>
     <div class="state-banner state-banner--error">
       <%= ui_icon :warning %>
-      <span>첨삭에 실패했어요. 잠시 후 다시 시도해 주세요.</span>
+      <% if report.draft? %>
+        <span>첨삭에 실패했어요. 잠시 후 다시 시도해 주세요.</span>
+      <% else %>
+        <span>첨삭에 실패했어요. 첨삭을 다시 요청할 수 있어요.</span>
+        <% if retry_button %>
+          <%= button_to "첨삭 다시 요청", retry_review_report_path(report), method: :post, class: "btn btn-blue btn-sm" %>
+        <% else %>
+          <%= link_to "다시 요청하러 가기", report_path(report), class: "btn btn-secondary btn-sm" %>
+        <% end %>
+      <% end %>
     </div>
   <%# 미제출 초안(사진 판독은 끝났지만 아직 안 낸 글)은 ai_status 가 done 이라 아래 분기에 걸리면
       "선생님이 확인하고 있어요"라고 거짓말을 한다. 남은 행동은 학생의 제출뿐이므로 그것만 말한다.
@@ -43,10 +58,15 @@
       <%= ui_icon :writing %>
       <span>아직 제출하지 않았어요. 제출해야 선생님 첨삭이 시작돼요.</span>
     </div>
-  <% elsif report.ai_status != "done" %>
+  <%# 지금 제출의 첨삭이 아직 완성되지 않았다(대기·처리 중). ai_status 만 보지 않는다 — 고쳐 다시 낸 글은
+      새 첨삭이 끝나기 전에도 이전 제출의 결과가 남아 있다(Report#review_ready?). %>
+  <% elsif !report.review_ready? %>
     <div class="state-banner">
       <%= ui_icon :writing %>
       <span>선생님이 첨삭 중이에요. 조금만 기다려 주세요.</span>
+      <% if retry_button %>
+        <%= button_to "첨삭 다시 요청", retry_review_report_path(report), method: :post, class: "btn btn-secondary btn-sm" %>
+      <% end %>
     </div>
   <% elsif !report.reviewed? %>
     <div class="state-banner">
@@ -78,7 +98,7 @@
           <h2 class="mb-3 text-lg font-semibold text-ink">고쳐쓰기 전 / 후</h2>
           <%# 향상도는 등급 파생 수치라 승인 전에는 숨긴다(등급 변화 방향·크기 누출 차단).
               diff 본문·추가표현은 학생 본인 글이라 그대로 노출한다. %>
-          <% if report.reviewed? && report.improvement.present? %>
+          <% if has_feedback && report.improvement.present? %>
             <p class="mb-3 text-sm font-medium text-brand-blue">
               향상도: <%= report.improvement >= 0 ? "+" : "" %><%= report.improvement %>점
             </p>

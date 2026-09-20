@@ -168,6 +168,13 @@ class DemoData::PublicClassroomRefreshTest < ActionDispatch::IntegrationTest
 
     assert_equal 102, result.dig(:after, :reports)
     assert_equal 0, result.dig(:after, :drafts)
+    # 시드가 직접 만든 글도 제출 버전 규칙을 만족한다(BUG_FIX_PLAN F3 §5.1) — 버전 컬럼을 기본값(0·NULL)으로 두면
+    # 승인된 첨삭이 학생에게 숨고 검토 대기 글은 승인할 수 없다.
+    seeded = Report.where(classroom: @classroom)
+    assert seeded.all?(&:review_ready?), "시드의 제출된 글은 모두 지금 제출의 첨삭이 완성된 상태다"
+    assert seeded.where(reviewed: true).all?(&:feedback_visible?), "승인된 첨삭은 학생에게 보인다"
+    assert seeded.where(reviewed: false).all? { |report| ReportPolicy.new(@classroom.teacher, report).approve? },
+           "검토 대기 글은 담임이 승인할 수 있다"
     assert_equal expected_forum_post_count, result.dig(:after, :forum_posts)
     assert_reviewed_discussions!
     assert_story_book_discussions!

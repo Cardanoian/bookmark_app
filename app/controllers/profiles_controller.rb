@@ -3,6 +3,8 @@ class ProfilesController < ApplicationController
     authorize :profile, :show?
 
     @report_count = current_user.reports.count
+    # '선생님 확인' 편수 = `reviewed` 플래그(목록의 `reports?reviewed=true` 필터와 같은 기준).
+    # 첨삭을 보여 줘도 되는 글의 경계(`Report.approved`)와는 다르다 — BUG_FIX_PLAN §10.4.
     @reviewed_report_count = current_user.reports.where(reviewed: true).count
     @badge_count = current_user.badges.count
     @game_count = current_user.quiz_attempts.count

@@ -62,7 +62,10 @@ class ReportDraftSubmissionTest < ActionDispatch::IntegrationTest
     submitted = submitted_report
     login_as @teacher
 
-    post batch_approve_teacher_reviews_path, params: { report_ids: [ draft.id, submitted.id ] }
+    post batch_approve_teacher_reviews_path, params: {
+      report_ids: [ draft.id, submitted.id ],
+      review_versions: { draft.id => draft.review_version, submitted.id => submitted.review_version }
+    }
 
     assert submitted.reload.reviewed?, "제출된 글은 정상 승인된다"
     assert_not draft.reload.reviewed?
@@ -252,10 +255,10 @@ class ReportDraftSubmissionTest < ActionDispatch::IntegrationTest
                    input_mode: :ocr, body: "사진에서 읽어낸 본문이에요.", ai_status: :done)
   end
 
+  # 제출했고 지금 제출의 첨삭까지 끝난 글(승인할 수 있는 상태).
   def submitted_report(**attrs)
     Report.create!({ user: @student, classroom: @classroom, book_title: "제출한 책",
-                     body: "직접 써서 제출한 본문이에요.", ai_status: :done,
-                     submitted_at: Time.current }.merge(attrs))
+                     body: "직접 써서 제출한 본문이에요.", **review_ready_attributes }.merge(attrs))
   end
 
   def rubric_hash

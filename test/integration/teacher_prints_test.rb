@@ -175,7 +175,9 @@ class TeacherPrintsTest < ActionDispatch::IntegrationTest
       user: @student, classroom: @classroom, book_title: title,
       rubric: { "content" => 2, "emotion" => 2, "life" => 2, "structure" => 2, "spelling" => 2 },
       teacher_rubric: teacher_rubric, avg: 2.0, level: level, ai_status: :done,
-      submitted_at: (submitted ? 2.days.ago : nil), reviewed: reviewed, reviewed_at: reviewed_at
+      submitted_at: (submitted ? 2.days.ago : nil), reviewed: reviewed, reviewed_at: reviewed_at,
+      # 제출된 글은 지금 제출의 첨삭까지 끝난 상태다(Report.approved 는 그 첨삭이 승인된 글만 센다).
+      review_version: (submitted ? 1 : 0), completed_review_version: (submitted ? 1 : nil)
     )
   end
 

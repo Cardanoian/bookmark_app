@@ -91,8 +91,10 @@ class GrowthsTest < ActionDispatch::IntegrationTest
 
   private
 
+  # 제출했고 지금 제출의 첨삭까지 끝난 글(성장 화면은 교사가 그 첨삭을 승인한 글만 쓴다 — Report.approved).
   def create_report(**attrs)
-    Report.create!({ user: @student, classroom: @classroom, ai_status: :done }.merge(attrs))
+    Report.create!({ user: @student, classroom: @classroom, **review_ready_attributes(submitted_at: nil) }
+                     .merge(submitted_at: attrs[:created_at] || Time.current).merge(attrs))
   end
 
   def scores(value)

@@ -1,5 +1,5 @@
 class ReportsController < ApplicationController
-  before_action :set_report, only: [ :show, :edit, :update, :destroy, :revise, :share ]
+  before_action :set_report, only: [ :show, :edit, :update, :destroy, :revise, :share, :retry_review ]
 
   PER_PAGE = 20
   # 자동 저장이 새 글 화면에서 만든 초안을 그 화면 주소로 다시 열어 주는 기간. 새로고침·뒤로 가기·
@@ -84,10 +84,19 @@ class ReportsController < ApplicationController
     else
       return render_blank_submission(:new) if @report.body.blank?
 
-      case insert_report
+      # 새 글 저장과 제출 기록(제출 버전 발급·검토 상태 초기화)을 한 트랜잭션에 둔다 — 따로 커밋하면 그 사이에
+      # 끊겼을 때 "제출하기"를 누른 글이 초안으로 남는다. AI 첨삭은 커밋이 끝난 뒤, **여기서 발급한 버전으로** 예약한다.
+      version = nil
+      saved = Report.transaction do
+        result = insert_report
+        version = @report.record_submission! if result == true
+        result
+      end
+
+      case saved
       when :duplicate then continue_report(report_for_autosave_key)
       when true
-        submit_for_review(@report)
+        AiReviewJob.enqueue_for(@report, version)
         redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요.", flash: { sfx: "submit" }
       else
         render :new, status: :unprocessable_entity
@@ -115,6 +124,7 @@ class ReportsController < ApplicationController
     # 본문 저장과 제출 기록(submitted_at)을 **한 잠금 안에서** 한다. 둘이 따로 커밋되던 때는 그 사이에
     # 끼어든 자동 저장(update_as_draft)이 "아직 초안"을 보고 옛 본문을 써, 선생님께 옛 글이 갔다.
     # AI 첨삭 예약은 잠금(트랜잭션)이 끝난 뒤에 한다 — 커밋 전에 잡이 돌면 제출 전 상태를 읽는다.
+    review_version = nil
     outcome = @report.with_lock do
       # **초안일 때 연 화면**(버전 칸이 있는 폼)은 그사이 제출된 글을 바꾸지 않는다(3차 리뷰 H1). 버전
       # 검사를 초안에만 걸던 때는, 집에서 이미 낸 글을 학교 태블릿의 옛 탭 '제출하기'가 옛 글로 덮고
@@ -128,10 +138,17 @@ class ReportsController < ApplicationController
       # 판정은 저장 **전** 상태로 한다 — 제출이 곧 submitted_at 을 찍으므로 저장 뒤에는 초안인지 알 수 없다.
       # 잠근 뒤 다시 읽은 값이라 같은 순간 먼저 끝난 요청의 결과를 본다.
       was_draft = @report.draft?
+      inputs_before = review_inputs(@report)
       @report.assign_attributes(attrs)
+      @review_input_changed = inputs_before != review_inputs(@report)
       # 빈 글은 내지도 저장하지도 않는다(render_blank_submission) — 글쓴이의 이 요청은 제출('제출하기'·'수정하기')이고,
       # 담임이 학생 글을 비워 저장할 까닭도 없다.
       next :blank if @report.body.blank?
+      # 제출된 글의 첨삭 입력(본문·책)은 **글쓴이만** 바꾼다(BUG_FIX_PLAN §4.2-4). 담임의 저장은 재제출이
+      # 아니라서 새 버전을 발급하지 않는데, 그대로 받으면 바뀐 본문에 이전 첨삭과 승인이 남는다. 담임은
+      # 검토 화면에서 첨삭 내용을 고친다. 초안은 버전·승인이 없어 예전처럼 담임도 고칠 수 있다.
+      # 첨부(사진·그림·음성)도 같다 — 첨삭 입력은 아니지만 손글씨 원본 사진은 담임이 본문과 대조하는 근거다.
+      next :review_input_locked if !was_draft && !author? && (review_input_changed? || @report.attachment_changes.any?)
       # 초안에 쓰면 "마지막으로 쓴 화면"을 이 요청으로 바꾼다 — 담임처럼 표 없이 쓴 저장은 비운다(M2).
       stamp_autosave_writer(@report) if was_draft
       next :invalid unless @report.save
@@ -139,10 +156,10 @@ class ReportsController < ApplicationController
       # 첫 제출을 먼저 본다. 자동 저장된 새 초안을 내면서 본문을 조금 더 고쳤다고 "고쳐 썼어요"라고
       # 안내하면, 고쳐쓰기를 한 적 없는 아이에게 틀린 말이 된다.
       if first_review? && @report.body.present?
-        record_submission!(@report)
+        review_version = @report.record_submission!
         :first_submission
       elsif resubmit?(was_draft)
-        record_submission!(@report)
+        review_version = @report.record_submission!
         :resubmission
       else
         :saved
@@ -158,11 +175,15 @@ class ReportsController < ApplicationController
       render_blank_submission(:edit)
     when :invalid
       render :edit, status: :unprocessable_entity
+    when :review_input_locked
+      @report.errors.add(:base, "이미 제출된 글의 내용과 책은 글을 쓴 학생만 고칠 수 있어요. 첨삭 내용은 검토 화면에서 고쳐 주세요.")
+      render :edit, status: :unprocessable_entity
     when :first_submission
-      AiReviewJob.perform_later(@report)
+      # 잠금 안에서 발급한 버전으로 예약한다(예약 직전에 다시 읽은 버전으로 바꾸지 않는다).
+      AiReviewJob.enqueue_for(@report, review_version)
       redirect_to @report, notice: "독후감을 제출했어요. 선생님이 확인한 뒤 첨삭 결과를 볼 수 있어요.", flash: { sfx: "submit" }
     when :resubmission
-      AiReviewJob.perform_later(@report)
+      AiReviewJob.enqueue_for(@report, review_version)
       redirect_to @report, notice: "고쳐 썼어요! 선생님이 다시 확인해요.", flash: { sfx: "submit" }
     else
       redirect_to @report, notice: "독후감을 저장했어요."
@@ -210,12 +231,37 @@ class ReportsController < ApplicationController
     authorize @report, :share?
 
     if @report.shared?
-      unshare!(@report)
+      @report.unshare!
       redirect_to @report, notice: "공유를 취소했어요."
     else
       @report.update!(shared: true)
       board_post = BoardPost.find_or_create_by!(report: @report)
       redirect_to board_post_path(board_post), notice: "우수작으로 공유했어요."
+    end
+  end
+
+  # 첨삭 다시 요청: 현재 버전이 실패로 끝났거나 대기·처리 중에 멈춘 글을 **같은 버전으로** 다시 예약한다
+  # (BUG_FIX_PLAN F2 §4.4). 제출된 글은 본문을 바꿔야만 재첨삭이 예약됐는데, 승인이 "완성된 첨삭"을 요구하게
+  # 되면서(F3) 실패한 글이 그 상태로 멈출 수 있게 됐다. 버전을 올리지 않으므로 검토 상태·교사 편집본은 그대로고,
+  # 늦게 끝난 원래 작업과 겹쳐도 AiReviewJob 의 확정 조건이 결과·보상을 한 번만 반영한다.
+  # 글쓴이와 담임이 쓴다(ReportPolicy#retry_review? — 실패·멈춤 상태일 때만 참).
+  def retry_review
+    authorize @report, :retry_review?
+
+    # pending 으로 되돌려 화면이 "첨삭 중"으로 바뀌고 멈춤 판정 시계(updated_at)가 다시 돈다. 같은 버전이
+    # 그사이 확정됐다면 건드리지 않는다.
+    requeued = Report.where(id: @report.id, review_version: @report.review_version)
+                     .where("completed_review_version IS NULL OR completed_review_version <> review_version")
+                     .update_all(ai_status: Report.ai_statuses[:pending], updated_at: Time.current)
+    queued = requeued == 1 && AiReviewJob.enqueue_for(@report, @report.review_version)
+    @report.reload.broadcast_detail_refresh if requeued == 1
+
+    if queued
+      redirect_back fallback_location: report_path(@report), allow_other_host: false,
+                    notice: "첨삭을 다시 요청했어요. 조금만 기다려 주세요."
+    else
+      redirect_back fallback_location: report_path(@report), allow_other_host: false,
+                    alert: "지금은 첨삭을 다시 요청할 수 없어요. 잠시 뒤에 다시 해 주세요."
     end
   end
 
@@ -265,48 +311,6 @@ class ReportsController < ApplicationController
     return nil if id.nil?
 
     Book.exists?(id) ? id : nil
-  end
-
-  # 제출/재제출: 검토 상태를 완전히 리셋(미검토로 되돌리고 교사 편집본 클리어)한 뒤 AiReviewJob 을 예약한다.
-  # 승인본(reviewed=true)을 학생이 직접 편집·재제출하면 reviewed 를 false 로 되돌려 첨삭 비공개 게이트
-  # (feedback_visible?)에 재진입시키고, 담임 재검토 목록(pending_scope, reviewed:false)으로 복귀시킨다.
-  # 본문이 바뀌어 새 AI 첨삭이 생성되므로, 옛 본문을 대상으로 한 교사 편집본
-  # (teacher_feedback/teacher_rubric/teacher_comment)은 스테일이라 함께 클리어한다
-  # (클리어하지 않으면 재승인 후 student_feedback 이 스테일 teacher_feedback 을 우선 노출하는 2차 버그).
-  # create(신규)·OCR 초안·revise(새 레코드)는 이미 reviewed=false·교사필드 nil 이라 no-op(무해).
-  #
-  # `submitted_at` 은 **여기가 유일한 기록 지점**이다. OCR 초안은 사진 업로드 시점에 이미 영속화
-  # 되므로(OcrController#create) "레코드가 있다 = 제출했다"가 성립하지 않는다. 제출 사실을
-  # ai_status 로 추론하면 OcrJob 이 찍은 done 이 첨삭 완료로 오인돼 교사 큐에 초안이 새고,
-  # 그대로 승인되면 rubric 없는 독후감이 확정된다(Report#submitted? 주석 참조).
-  # 재제출은 시각을 갱신하지 않는다 — 술어(`submitted?`)에는 갱신이 불필요하고, 덮어쓰면
-  # "언제 처음 냈는가"라는 되살릴 수 없는 사실만 잃는다.
-  def submit_for_review(report)
-    record_submission!(report)
-    AiReviewJob.perform_later(report)
-  end
-
-  # 제출 기록(DB 쓰기만). update 는 이것을 본문 저장과 같은 잠금 안에서 부르고, AI 첨삭 예약은
-  # 잠금이 끝난 뒤에 따로 한다(submit_for_review 는 둘을 이어 부르는 create 용).
-  def record_submission!(report)
-    report.update!(ai_status: :pending, reviewed: false, reviewed_at: nil,
-                   submitted_at: report.submitted_at || Time.current,
-                   teacher_feedback: nil, teacher_rubric: nil, teacher_comment: nil)
-    # 승인이 풀리는 지점이므로 공유도 함께 걷는다. 안 걷으면 학생이 승인본을 고쳐 다시 낸 순간
-    # **미검토 본문이 게시판에 그대로 공개된 채** 남는다(ReportPolicy#share? 의 승인 게이트를
-    # 우회하는 유일한 구멍이었다). 공유 중이 아니면 no-op.
-    unshare!(report) if report.shared?
-    # 검색으로 고른 책은 낸 순간 정식 카탈로그로 올린다(report_params_with_registered_book 주석). no-op 이면 무해.
-    report.book&.promote_from_search!
-  end
-
-  # 공유 해제 + 게시물 파기. share 액션의 취소 분기와 submit_for_review 가 공용한다.
-  # board_post 파기 → 응원(cheers)이 cascade 삭제된다. 스티커는 report 소속이라 유지.
-  # cheers_count 는 콜백 없는 수동 카운터라 여기서 0 으로 초기화해야 재공유·스탯 집계가
-  # 어긋나지 않는다(ReadingStats#cheers_received 과대 집계 방지).
-  def unshare!(report)
-    report.board_post&.destroy
-    report.update!(shared: false, cheers_count: 0)
   end
 
   # "임시 저장" 버튼(name="save_draft")으로 들어온 요청인지. 제출 버튼과 같은 폼을 쓰되 이름으로만
@@ -542,11 +546,36 @@ class ReportsController < ApplicationController
   # 글이 선생님께 영영 가지 않는다. 그래서 초안이면 원본(revision_of) 본문과 비교한다 — 원본과
   # 같으면 여전히 재첨삭을 건너뛴다(revise 의 "동일 본문 AI 재호출 낭비" 방지 유지).
   # 이미 낸 글을 다시 고친 경우만 이번 요청의 변경을 본다.
+  #
+  # 이미 낸 글은 **첨삭 입력(본문·책 제목)** 이 바뀌었는지를 본다(BUG_FIX_PLAN §4.2-4). 본문만 보던 때는 책·제목만
+  # 바꾼 저장이 재제출이 아니어서, 다른 책에 대한 이전 첨삭과 승인이 그대로 남았다. 고쳐쓰기 초안도 같은
+  # 입력으로 원본과 비교한다(본문은 그대로 두고 책만 바꾼 고쳐쓰기도 첨삭 입력이 달라진 것이다).
   def resubmit?(was_draft)
-    return false unless Current.user.id == @report.user_id
-    return @report.saved_change_to_body? unless was_draft && @report.revision?
+    return false unless author?
+    return review_input_changed? unless was_draft && @report.revision?
 
-    normalized_body(@report.body) != normalized_body(@report.revision_of&.body)
+    review_inputs(@report) != review_inputs(@report.revision_of)
+  end
+
+  # AI 첨삭이 실제로 받는 입력: 본문과 **책 제목(연결한 책이 있으면 그 책의 제목 — Ai::ReviewService 와 같은 규칙)**.
+  # 열(book_id·book_title)의 변경이 아니라 이 값으로 비교한다. 편집 폼은 제목 칸을 `report.book_title` 이 아니라
+  # 연결한 책의 제목으로 채우므로, 둘이 다른 글(책 제목이 나중에 정리된 글)은 아무것도 안 고친 저장에도
+  # book_title 열이 바뀐다 — 열로 판정하면 그 저장이 재제출이 되어 승인·교사 편집본·공유가 사라지고,
+  # 담임의 저장은 이유 없이 거부된다. 브라우저의 CRLF·앞뒤 공백 차이도 변경으로 보지 않는다.
+  # 제목이 같은 다른 판본·별권으로 연결만 바꾼 저장도 변경이 아니다 — AI 가 받는 값이 같아 첨삭은 그대로 유효하다.
+  def review_inputs(report)
+    return [] unless report
+
+    [ normalized_body(report.body), (report.book&.title || report.book_title).to_s.squish ]
+  end
+
+  # 이번 요청이 첨삭 입력을 바꿨나(update 가 값을 대입하기 전과 후를 비교해 둔다).
+  def review_input_changed?
+    @review_input_changed
+  end
+
+  def author?
+    Current.user.id == @report.user_id
   end
 
   # 브라우저는 textarea 줄바꿈을 CRLF 로 보낸다. 앞뒤 공백·줄바꿈 차이만으로 "고쳤다"고 보지 않는다.
@@ -558,6 +587,6 @@ class ReportsController < ApplicationController
   # 원본이 있는 revise 초안은 제외되므로 "동일 본문 재첨삭 스킵"이 유지된다.
   # update 는 submitted_at 을 건드리지 않으므로 저장 뒤에 불러도 draft? 는 저장 전과 같다.
   def first_review?
-    Current.user.id == @report.user_id && @report.first_submission?
+    author? && @report.first_submission?
   end
 end

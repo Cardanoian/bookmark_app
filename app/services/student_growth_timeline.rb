@@ -12,7 +12,9 @@ class StudentGrowthTimeline
 
   def initialize(user)
     @user = user
-    scope = user.reports.where(reviewed: true)
+    # 교사가 **현재 제출의 완성된 첨삭을** 승인한 글만(Report.approved = feedback_visible? 의 SQL 판). `reviewed` 만
+    # 보면 글 화면은 숨기는 첨삭(첨삭 없이 승인된 옛 글·이전 제출의 루브릭)의 5축 점수가 성장 화면에는 보인다.
+    scope = user.reports.approved
     @approved_report_count = scope.count
     @entries = build_entries(scope)
   end

@@ -1,7 +1,7 @@
-<%# 독서게임 공통 4지선다 폼(mcq 표면 quiz). locals: quiz, game, submit_label %>
+<%# 독서게임 공통 4지선다 폼(mcq 표면 quiz). locals: quiz, submit_label
+    게임 종류는 싣지 않는다 — 서버가 퀴즈 유형에서 정한다(Quiz#play_game_type). %>
 <%= form_with url: games_attempts_path, method: :post, class: "space-y-5" do |f| %>
   <%= f.hidden_field :quiz_id, value: quiz.id %>
-  <%= f.hidden_field :game, value: game %>
 
   <% quiz.quiz_questions.each_with_index do |question, index| %>
     <%# 복수 정답(mcq_multi)은 체크박스 그룹으로 받는다. `required` 는 라디오에만 쓴다 —

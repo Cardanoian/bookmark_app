@@ -38,8 +38,9 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
 
     # 교사 승인 → finalize_approval → EvaluateProgress → Rewarder(완료·보상).
     delete session_path
+    mark_review_ready!(report) # 첨삭이 끝난 글만 승인된다(첨삭 포인트는 이 테스트의 관심 밖)
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
     assert report.reload.reviewed?
 
     part = MissionParticipation.find_by(mission: @mission, user: @student)
@@ -105,8 +106,9 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     assert draft.reload.submitted?, "제출하기로 낸 글"
     delete session_path
 
+    mark_review_ready!(draft)
     login_as @teacher
-    post approve_teacher_review_path(draft)
+    approve_as_teacher(draft)
     assert draft.reload.reviewed?
 
     part = MissionParticipation.find_by(mission: @mission, user: @student)
@@ -122,8 +124,9 @@ class MissionParticipationTest < ActionDispatch::IntegrationTest
     post reports_path, params: { report: { book_id: book.id, book_title: book.title, body: "#{book.title} 독후감 본문입니다." } }
     report = @student.reports.order(:created_at).last
     delete session_path
+    mark_review_ready!(report)
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
     delete session_path
     report
   end

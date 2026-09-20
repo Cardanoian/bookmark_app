@@ -28,4 +28,24 @@ class Quiz < ApplicationRecord
   validates :title, presence: true
 
   scope :published, -> { where(published: true) }
+
+  # 객관식 채점타입(mcq 콘텐츠축 안의 두 가지).
+  MCQ_QUESTION_TYPES = %w[mcq_single mcq_multi].freeze
+
+  # 이 퀴즈를 마쳤을 때 완료 원장(GamePlay)에 남길 게임 종류. **요청값이 아니라 검증한 퀴즈 유형에서**
+  # 정한다 — 객관식 제출에 game 값만 바꿔 보내 5종 완료 기록을 만들던 조작을 막는다(BUG_FIX_PLAN F4).
+  # 제출 컨트롤러(안내·이동 경로)와 채점 서비스(원장 기록)가 이 한 곳의 결과를 함께 쓴다.
+  #   mcq 축, 또는 축을 저장하지 않는 교사 퀴즈 → "quiz"(문항이 모두 객관식일 때)
+  #   hint_reveal 축                          → "whoami"(문항이 모두 hint_reveal 일 때)
+  #   matching(휴면)·알 수 없는 축·축과 문항 구성이 어긋난 퀴즈·문항 없는 퀴즈 → nil(제출을 받지 않는다)
+  def play_game_type
+    types = quiz_questions.map(&:question_type).uniq
+    return nil if types.empty?
+
+    if hint_reveal?
+      "whoami" if types == %w[hint_reveal]
+    elsif mcq? || (content_axis.nil? && origin == "teacher")
+      "quiz" if (types - MCQ_QUESTION_TYPES).empty?
+    end
+  end
 end

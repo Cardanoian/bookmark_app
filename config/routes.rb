@@ -74,6 +74,8 @@ Rails.application.routes.draw do
     member do
       post :revise
       post :share
+      # 실패했거나 멈춘 첨삭을 **같은 제출 버전으로** 다시 요청한다(BUG_FIX_PLAN F2 §4.4 — 버전을 올리지 않는다).
+      post :retry_review
     end
   end
   resource :ocr, only: [ :create ], controller: "ocr"

@@ -184,6 +184,9 @@ class ReadingStats
 
   private
 
+  # 여기의 '승인'은 `reviewed` 플래그(담임이 승인한 글 수라는 **활동 사실**)다. `Report.approved`(지금 제출의 첨삭이
+  # 완성된 승인 글 — 첨삭을 **보여 줘도 되는가**의 경계)와 일부러 다르게 둔다: 몬스터 해금·뱃지 조건을 그 기준으로
+  # 좁히면 첨삭 없이 승인된 옛 글을 가진 학생의 진행도가 퇴행한다(BUG_FIX_PLAN §7.3·§10.4).
   def approved_reports
     @user.reports.where(reviewed: true)
   end

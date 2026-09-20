@@ -209,7 +209,7 @@ class ReportsTest < ActionDispatch::IntegrationTest
 
     delete session_path
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
     assert report.reload.reviewed?
 
     delete session_path
@@ -296,9 +296,10 @@ class ReportsTest < ActionDispatch::IntegrationTest
   test "completing a review broadcasts a live replace to the report's own stream" do
     report = Report.create!(user: @student, classroom: @classroom, book_title: "책",
       body: "나는 우리의 삶을 떠올리며 감동을 느꼈다.", ai_status: :pending)
+    version = report.record_submission!
 
     broadcasts = capture_turbo_stream_broadcasts(report) do
-      perform_enqueued_jobs { AiReviewJob.perform_later(report) }
+      perform_enqueued_jobs { AiReviewJob.enqueue_for(report, version) }
     end
 
     assert report.reload.done?

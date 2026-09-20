@@ -77,10 +77,29 @@ class Games::PointAwardTest < ActiveSupport::TestCase
     play(system_quiz(content_version: 1, content_axis: :mcq))
     assert_equal 25, @student.reload.points
 
-    # 다른 콘텐츠축(matching)은 별도 상한 — 추가 적립 가능.
-    other = play(system_quiz(content_version: 1, content_axis: :matching))
-    assert_equal 25, other.awarded_delta, "다른 축은 상한이 독립"
-    assert_equal 50, @student.reload.points
+    # 다른 콘텐츠축(hint_reveal)은 별도 상한 — 추가 적립 가능. (matching 축은 휴면이라 제출을 받지 않는다.)
+    whoami = whoami_quiz
+    attempt = whoami.quiz_attempts.create!(user: @student, hint_reveals: {}, score: 0, points_awarded: 0)
+    answers = whoami.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer }
+    other = Games::QuizPlay.new(quiz: whoami, user: @student, attempt: attempt).record!(answers)
+
+    assert_equal 15, other.awarded_delta, "다른 축은 상한이 독립"
+    assert_equal 40, @student.reload.points
+  end
+
+  # F4: 받을 수 없는 유형(휴면 matching 축·축과 문항 구성이 어긋난 퀴즈)은 저장·채점·보상 전에 거부한다.
+  test "an unsupported quiz type is refused before anything is saved or awarded" do
+    matching = system_quiz(content_version: 1, content_axis: :matching)
+    mismatched = system_quiz(content_version: 2, content_axis: :hint_reveal) # 축은 hint_reveal 인데 문항은 객관식
+
+    [ matching, mismatched ].each do |quiz|
+      assert_nil quiz.play_game_type
+      assert_no_difference -> { QuizAttempt.count } do
+        assert_raises(Games::QuizPlay::UnsupportedQuiz) { play(quiz) }
+      end
+    end
+    assert_equal 0, @student.reload.points
+    assert_equal 0, @student.game_plays.count
   end
 
   private
@@ -102,6 +121,19 @@ class Games::PointAwardTest < ActiveSupport::TestCase
     )
     5.times do |i|
       quiz.quiz_questions.create!(prompt: "문제#{i}", choices: %w[정답 오답1 오답2 오답3], answer_index: 0, position: i + 1)
+    end
+    quiz
+  end
+
+  # hint_reveal 3문항(만점 15점) system 퀴즈.
+  def whoami_quiz
+    quiz = Quiz.create!(
+      title: "적립 누구게 #{SecureRandom.hex(3)}", created_by: @teacher, book: @book, scope: :global,
+      published: true, origin: :system, content_axis: :hint_reveal, band: :g56, content_version: 1
+    )
+    3.times do |i|
+      quiz.quiz_questions.create!(question_type: :hint_reveal, prompt: "누구게#{i}", answer: "정답#{i}",
+                                  content: { hints: %w[힌트1 힌트2] }, position: i + 1)
     end
     quiz
   end

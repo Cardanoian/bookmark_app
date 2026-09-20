@@ -28,7 +28,6 @@
 
   <%= form_with url: games_attempts_path, method: :post, class: "card space-y-4" do |f| %>
     <%= f.hidden_field :quiz_id, value: @quiz.id %>
-    <%= f.hidden_field :game, value: "whoami" %>
     <%= f.hidden_field :attempt_id, value: @attempt.id %>
 
     <% @quiz.quiz_questions.each_with_index do |question, index| %>

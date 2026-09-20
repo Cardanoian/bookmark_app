@@ -93,7 +93,7 @@ class ReportReviseEditorTest < ActionDispatch::IntegrationTest
         rubric: { content: 3, emotion: 4, life: 2, structure: 3, spelling: 4,
                   praise: [ "AI 원본 칭찬" ], fix: [ "AI 원본 보완" ],
                   grow: [ { text: "AI 원본 성장", standard_code: "6국05-04" } ] },
-        submitted_at: Time.current }.merge(attrs)
+        submitted_at: Time.current, review_version: 1, completed_review_version: 1 }.merge(attrs)
     )
   end
 

@@ -110,15 +110,118 @@ class ReportTest < ActiveSupport::TestCase
 
   # --- report-review-gate: feedback_visible?/student_feedback/broadcast_detail_refresh ---
 
-  test "feedback_visible? requires both reviewed and a present rubric" do
+  test "feedback_visible? requires a teacher approval of the completed review of the current version" do
     report = build_report(book_title: "게이트책")
     assert_not report.feedback_visible?, "미첨삭·미검토 상태는 노출 대상이 아니다"
 
-    report.rubric = { content: 4, emotion: 4, life: 4, structure: 4, spelling: 4 }
-    assert_not report.feedback_visible?, "reviewed 가 아니면 rubric 이 있어도 숨겨야 한다"
+    report.assign_attributes(review_ready_attributes)
+    assert report.review_ready?
+    assert_not report.feedback_visible?, "reviewed 가 아니면 첨삭이 완성돼도 숨겨야 한다"
 
     report.reviewed = true
-    assert report.feedback_visible?, "reviewed && rubric 이면 노출한다"
+    assert report.feedback_visible?, "현재 버전의 완성된 첨삭을 승인하면 노출한다"
+  end
+
+  # F3(BUG_FIX_PLAN §5.1): "지금 제출의 첨삭이 완성됐는가"는 done·루브릭만으로 판단하지 않는다.
+  test "review_ready? needs a submitted report whose completed version equals the current version" do
+    ready = review_ready_attributes
+    assert build_report(ready).review_ready?
+
+    {
+      "초안(미제출)" => { submitted_at: nil },
+      "대기" => { ai_status: :pending }, "처리 중" => { ai_status: :processing }, "실패" => { ai_status: :failed },
+      "루브릭 없음" => { rubric: nil }, "빈 루브릭" => { rubric: {} },
+      "버전 0" => { review_version: 0, completed_review_version: 0 },
+      "완료 버전 없음" => { completed_review_version: nil },
+      # 고쳐 다시 낸 글: 이전 제출의 done·루브릭이 남아 있어도 새 버전은 아직 확정되지 않았다.
+      "다시 낸 글(이전 결과만 있음)" => { review_version: 2, completed_review_version: 1 }
+    }.each do |label, override|
+      report = build_report(ready.merge(override).merge(reviewed: true))
+      assert_not report.review_ready?, "#{label}: 완성된 첨삭이 아니다"
+      assert_not report.feedback_visible?, "#{label}: 승인 표시가 있어도 학생에게 보이지 않는다"
+    end
+  end
+
+  test "record_submission! issues the next version and resets the review state" do
+    report = build_report(book_title: "버전책", body: "본문")
+    report.save!
+    assert_equal [ 0, nil ], [ report.review_version, report.completed_review_version ], "초안은 버전 0"
+
+    assert_equal 1, report.record_submission!
+    first_submitted_at = report.reload.submitted_at
+    assert report.pending?
+    assert_not report.review_ready?
+
+    report.update_columns(review_ready_attributes(submitted_at: first_submitted_at).merge(
+      ai_status: Report.ai_statuses[:done], reviewed: true, reviewed_at: Time.current, shared: true,
+      teacher_comment: "옛 코멘트", teacher_feedback: { "praise" => [ "옛 칭찬" ] }, teacher_rubric: { "content" => 5 }
+    ))
+    BoardPost.create!(report: report)
+    assert report.reload.feedback_visible?
+
+    travel 1.hour do
+      assert_equal 2, report.record_submission!, "재제출마다 버전이 1 오른다"
+    end
+
+    report.reload
+    assert_equal 1, report.completed_review_version, "완료 버전은 새 결과가 확정될 때까지 현재 버전과 어긋난다"
+    assert_not report.review_ready?, "이전 제출의 루브릭이 남아 있어도 완성된 첨삭이 아니다"
+    assert_not report.reviewed?, "이전 승인은 풀린다"
+    assert_nil report.reviewed_at
+    assert_equal [ nil, nil, nil ], [ report.teacher_comment, report.teacher_feedback, report.teacher_rubric ]
+    assert_not report.shared?, "공유도 함께 걷는다"
+    assert_nil report.board_post
+    assert_equal first_submitted_at.to_i, report.submitted_at.to_i, "처음 낸 시각은 그대로다"
+  end
+
+  # 이 객체를 읽은 뒤에 다른 요청이 승인했어도(메모리의 reviewed 는 false) 새 제출은 미승인으로 기록된다.
+  test "record_submission! resets an approval it has not seen in memory" do
+    report = build_report(review_ready_attributes)
+    report.save!
+    stale = Report.find(report.id)
+    assert_equal :approved, Report.find(report.id).approve!(seen_version: 1)
+
+    stale.record_submission!
+
+    assert_not report.reload.reviewed?
+    assert_equal 2, report.review_version
+  end
+
+  test "approve! only approves the version the teacher has seen" do
+    report = build_report(review_ready_attributes)
+    report.save!
+
+    assert_equal :stale, report.approve!(seen_version: nil), "버전을 싣지 않은 요청은 현재 버전으로 채워 승인하지 않는다"
+    assert_equal :stale, report.approve!(seen_version: 2)
+    assert_equal :stale, report.approve!(seen_version: "abc")
+    assert_not report.reload.reviewed?
+
+    assert_equal :approved, report.approve!(seen_version: "1")
+    approved_at = report.reload.reviewed_at
+    assert report.reviewed?
+
+    travel 1.minute do
+      assert_equal :already, report.approve!(seen_version: 1)
+    end
+    assert_equal approved_at, report.reload.reviewed_at, "재승인은 승인 시각을 덮어쓰지 않는다"
+
+    report.record_submission!
+    assert_equal :stale, report.approve!(seen_version: 1), "다시 낸 글은 옛 화면에서 승인되지 않는다"
+    assert_equal :not_ready, report.approve!(seen_version: 2), "새 버전의 첨삭이 끝나기 전에는 승인되지 않는다"
+    assert_not report.reload.reviewed?
+  end
+
+  test "review_retryable? is true for a failed or stalled current version only" do
+    fresh = build_report(ai_status: :pending, submitted_at: Time.current, review_version: 1)
+    fresh.save!
+    assert_not fresh.review_retryable?, "방금 낸 글은 작업을 기다리는 중이다"
+
+    fresh.update_columns(updated_at: (Report::REVIEW_STALLED_AFTER + 1.minute).ago)
+    assert fresh.review_retryable?, "오래 멈춘 대기 글은 다시 요청할 수 있다"
+
+    assert build_report(ai_status: :failed, submitted_at: Time.current, review_version: 1).review_retryable?
+    assert_not build_report(review_ready_attributes).review_retryable?, "완성된 첨삭은 다시 요청하지 않는다"
+    assert_not build_report(ai_status: :failed).review_retryable?, "미제출 초안(사진 판독 실패)은 대상이 아니다"
   end
 
   test "feedback_visible? is false when reviewed but rubric is blank" do
@@ -181,12 +284,37 @@ class ReportTest < ActiveSupport::TestCase
   test "broadcast_detail_refresh swallows broadcast failures without raising or flipping ai_status" do
     report = build_report(book_title: "방송실패", ai_status: :done, rubric: { content: 5 }, reviewed: true).tap(&:save!)
 
-    def report.broadcast_replace_to(*)
+    # broadcast_detail_refresh 는 방송 직전에 DB 에서 다시 읽은 **다른 인스턴스**로 방송한다 — 이 객체의 싱글턴을
+    # 스텁하면 걸리지 않아 테스트가 공허하게 통과한다. 클래스 단위로 덮었다가 지운다(Turbo 모듈의 원래 메서드로 복귀).
+    raised = false
+    Report.define_method(:broadcast_replace_to) do |*, **|
+      raised = true
       raise "boom"
     end
+    begin
+      assert_nothing_raised { report.broadcast_detail_refresh }
+    ensure
+      Report.send(:remove_method, :broadcast_replace_to)
+    end
 
-    assert_nothing_raised { report.broadcast_detail_refresh }
+    assert raised, "방송이 실제로 시도됐고 그 예외를 삼켰다"
     assert report.reload.done?
+  end
+
+  # `scope :review_ready`(SQL)와 `review_ready?`(Ruby)는 같은 판정이다 — 한쪽만 고치면 글 화면과 성장 화면·인쇄 문서가 어긋난다.
+  test "the review_ready scope and predicate agree across the state matrix" do
+    ready = review_ready_attributes
+    [
+      {}, { reviewed: true }, { submitted_at: nil }, { ai_status: :pending }, { ai_status: :processing },
+      { ai_status: :failed }, { rubric: nil }, { rubric: {} }, { review_version: 0, completed_review_version: 0 },
+      { completed_review_version: nil }, { review_version: 2, completed_review_version: 1 },
+      { review_version: 3, completed_review_version: 3 }
+    ].each { |override| build_report(ready.merge(override)).save! }
+
+    by_predicate = Report.order(:id).select(&:review_ready?).map(&:id)
+    assert_equal by_predicate, Report.review_ready.order(:id).pluck(:id)
+    assert_equal 3, by_predicate.size
+    assert_equal Report.order(:id).select(&:feedback_visible?).map(&:id), Report.approved.order(:id).pluck(:id)
   end
 
   # --- OCR 사진 표시(display_photo / display_photo?) ---

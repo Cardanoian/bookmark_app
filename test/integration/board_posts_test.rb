@@ -13,7 +13,7 @@ class BoardPostsTest < ActionDispatch::IntegrationTest
     # report_policy_test.rb(4상태)와 아래 "검토 전에는 공유할 수 없다" 테스트가 지킨다.
     @report = Report.create!(user: @author, classroom: @classroom, book_title: "우수작 책",
                              body: "정말 좋은 독후감입니다.",
-                             submitted_at: Time.current, reviewed: true, reviewed_at: Time.current)
+                             **review_ready_attributes(reviewed: true, reviewed_at: Time.current))
   end
 
   test "검토 전 독후감은 작성자도 우수작으로 공유할 수 없다" do

@@ -55,27 +55,16 @@ module Games
       false
     end
 
-    # 게임 완료 활동 원장 1행을 멱등 기록한다(monster_unlocks.md §게임 판정, Phase 3B).
-    # 같은 학생·게임·(책)·일자의 재제출은 부분 유니크 인덱스가 1회로 dedup 한다(RecordNotUnique 무해).
+    # 글을 저장하는 게임(book·sequel)의 완료 활동 원장 1행을 멱등 기록한다(monster_unlocks.md §게임 판정,
+    # Phase 3B). 같은 학생·게임·책·일자의 재제출은 부분 유니크 인덱스가 1회로 dedup 한다.
     # 새로 기록했으면 그 GamePlay 를, 중복/스킵이면 nil 을 반환한다(호출부는 신규 기록 시에만 해금 재평가).
     #
-    # game_type 신뢰 경계: 퀴즈 표면(quiz/whoami)은 서버가 Quiz 행만으론 표면을 권위적으로 구분할 수
-    # 없어(md §69) **검증된 클라이언트 선언(params[:game], GamePlay.game_types allowlist)**을 표면으로
-    # 기록한다 — md §69 "서버 결정 영속화" 이상과의 의도적 편차(저위험 자기이득). book 은 라우트로 서버 확정.
-    # allowlist 밖 값은 기록하지 않는다(위조·미지 표면 방어). vocab 은 enum 에서 빠져 자동 거부되고,
-    # classic 은 enum 에 남아(과거 기록 보존) 옛 경로가 무해하다. 학생만 기록한다(도감은 학생 전용).
+    # **game_type 은 호출 컨트롤러가 상수로 넘긴다**(라우트가 서버에서 확정 — 요청값을 넘기지 말 것).
+    # 퀴즈 표면(quiz·whoami)은 이 메서드를 쓰지 않는다 — attempt 확정·적립과 같은 트랜잭션에서
+    # Games::QuizPlay 가 `Quiz#play_game_type` 으로 기록한다(BUG_FIX_PLAN F4). 기록 규칙(학생만·enum 안의
+    # 값만·일일 유니크)은 GamePlay.record_daily! 한 곳에 있다.
     def record_game_play!(game_type:, book_id:)
-      game_type = game_type.to_s
-      return nil unless current_user&.student?
-      return nil unless GamePlay.game_types.key?(game_type)
-
-      current_user.game_plays.create!(
-        game_type: game_type,
-        book_id: book_id,
-        played_on: Time.current.in_time_zone("Asia/Seoul").to_date
-      )
-    rescue ActiveRecord::RecordNotUnique
-      nil
+      GamePlay.record_daily!(user: current_user, game_type: game_type, book_id: book_id)
     end
   end
 end

@@ -142,6 +142,93 @@ class GamesOndemandTest < ActionDispatch::IntegrationTest
            "attempt_id 를 빼고 제출해도 힌트 페널티를 우회해 만점받을 수 없다(H1)"
   end
 
+  # ── F1(BUG_FIX_PLAN §3): 완료된 attempt 는 다시 확정되지 않는다 ─────────────────────
+  # 재현: 같은 attempt_id 를 두 번 제출하면 기록은 1개인데 포인트가 두 번 지급됐다 — persist_attempt 가
+  # 확정된 행을 다시 update! 하고, PointAward 가 바로 그 행을 상한에서 빼 상한이 0 으로 돌아갔다.
+  test "같은 whoami attempt 를 다시 제출해도 보상은 한 번만 지급된다 (F1)" do
+    quiz, attempt = start_whoami
+    submit_whoami_all_correct(quiz, attempt)
+    first_points = @student.reload.points
+    assert_operator first_points, :>, 0
+    finalized = attempt.reload.attributes.slice("score", "answers", "points_awarded", "played_at", "hint_reveals")
+
+    assert_no_difference -> { GamePlay.count } do
+      submit_whoami_all_correct(quiz, attempt)
+    end
+
+    assert_equal first_points, @student.reload.points, "같은 attempt 재전송은 포인트를 다시 주지 않는다"
+    assert_equal first_points, @student.experience, "경험치도 다시 오르지 않는다"
+    assert_equal finalized, attempt.reload.attributes.slice(*finalized.keys), "확정된 기록은 그대로다"
+    assert_equal 1, @student.quiz_attempts.where(quiz: quiz).count, "기록은 1개"
+    assert_match "이미 제출한 결과예요", flash[:notice]
+  end
+
+  # 확정한 뒤 답을 바꿔 다시 보내도 기록·보상이 바뀌지 않고, 확정된 기록에는 힌트도 더 열리지 않는다.
+  test "완료된 whoami attempt 는 다른 답안 재전송·힌트 공개로 바뀌지 않는다 (F1)" do
+    quiz, attempt = start_whoami
+    wrong = quiz.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = "틀린답" }
+    post games_attempts_path, params: { quiz_id: quiz.id, attempt_id: attempt.id, answers: wrong }
+    assert_equal 0, attempt.reload.points_awarded
+
+    submit_whoami_all_correct(quiz, attempt)
+    reveal_hint(attempt, quiz.quiz_questions.first)
+
+    attempt.reload
+    assert_equal 0, attempt.score, "확정된 답안·점수는 그대로다"
+    assert_equal 0, attempt.points_awarded
+    assert_equal 0, attempt.revealed_count(quiz.quiz_questions.first), "확정된 기록에는 힌트를 더 공개하지 않는다"
+    assert_equal 0, @student.reload.points
+  end
+
+  # ── F4(BUG_FIX_PLAN §3.1): 명시한 attempt_id 가 본인·같은 퀴즈의 기록이 아니면 새 attempt 로 바꿔 받지 않는다 ──
+  test "잘못된 attempt_id·다른 학생·다른 퀴즈의 attempt 로는 채점·기록·보상이 일어나지 않는다 (F4)" do
+    quiz, = start_whoami
+    other = User.create!(school: @school, classroom: @classroom, name: "온디다른학생", password: "password")
+    foreign = quiz.quiz_attempts.create!(user: other, hint_reveals: {}, score: 0, points_awarded: 0)
+    get games_quiz_play_path(book_id: @book.id)
+    mcq = Quiz.where(origin: :system, book_id: @book.id, content_axis: :mcq).last
+    mcq_answers = mcq.quiz_questions.each_with_object({}) { |q, h| h[q.id.to_s] = q.answer_index }
+    own_whoami_attempt = @student.quiz_attempts.find_by!(quiz: quiz)
+
+    assert_no_difference [ -> { QuizAttempt.count }, -> { GamePlay.count }, -> { @student.reload.points } ] do
+      post games_attempts_path, params: { quiz_id: quiz.id, attempt_id: 0, answers: correct_answers(quiz) }
+      assert_redirected_to games_whoami_play_path(book_id: @book.id)
+      post games_attempts_path, params: { quiz_id: quiz.id, attempt_id: foreign.id, answers: correct_answers(quiz) }
+      assert_redirected_to games_whoami_play_path(book_id: @book.id)
+      # 객관식에 다른 퀴즈(whoami)의 내 attempt 번호를 실어 보내도 새 판으로 바꿔 받지 않는다.
+      post games_attempts_path, params: { quiz_id: mcq.id, attempt_id: own_whoami_attempt.id, answers: mcq_answers }
+      assert_redirected_to games_quiz_play_path(book_id: @book.id)
+    end
+    assert_not foreign.reload.finalized?, "남의 기록은 건드리지 않는다"
+    assert_not own_whoami_attempt.reload.finalized?
+    assert_equal "게임을 처음부터 다시 시작해 주세요.", flash[:alert]
+  end
+
+  test "지원하지 않는 유형의 퀴즈 제출은 저장·채점·보상 전에 거부된다 (F4)" do
+    teacher = User.create!(school: @school, classroom: @classroom, name: "온디교사", role: :teacher, password: "password")
+    matching = Quiz.create!(title: "휴면 짝맞추기", created_by: teacher, book: @book, scope: :global, published: true,
+                            origin: :system, content_axis: :matching, band: :g56, content_version: 1)
+    matching.quiz_questions.create!(prompt: "문항", choices: %w[가 나 다 라], answer_index: 0, position: 1)
+
+    assert_no_difference [ -> { QuizAttempt.count }, -> { GamePlay.count }, -> { @student.reload.points } ] do
+      post games_attempts_path, params: { quiz_id: matching.id, game: "quiz", answers: { matching.quiz_questions.first.id => 0 } }
+    end
+    assert_redirected_to games_catalog_path
+    assert_equal "이 퀴즈는 지금 풀 수 없어요.", flash[:alert]
+  end
+
+  # 정상 책 소개·뒷이야기는 그 글을 저장하는 전용 경로에서만 완료로 기록되고, 과거 classic 기록은 보존된다.
+  test "책 소개·뒷이야기 완료는 전용 경로에서만 생기고 과거 classic 기록은 그대로 읽힌다 (F4)" do
+    legacy = @student.game_plays.create!(game_type: :classic, book: @book, played_on: Date.new(2026, 5, 1))
+
+    post games_book_intros_path, params: { book_intro: { book_id: @book.id, body: "이 책은 모험을 떠나는 소년의 이야기라 정말 재미있어요." } }
+    post games_sequel_entries_path, params: { book_sequel: { book_id: @book.id, body: "소년은 집으로 돌아와 새로운 모험을 준비하기 시작했어요." } }
+
+    assert_equal %w[book classic sequel], @student.game_plays.reload.map(&:game_type).sort
+    assert_equal "classic", legacy.reload.game_type, "enum 정수값과 과거 기록을 보존한다"
+    assert_equal 3, ReadingStats.new(@student).distinct_games
+  end
+
   # 제출 후 결과 안내(flash)가 새 판 show 까지 살아남는다(play→show 이중 리다이렉트에도 keep).
   test "whoami result notice survives to the fresh game page after submit" do
     quiz, attempt = start_whoami

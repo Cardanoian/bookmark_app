@@ -34,7 +34,7 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
     # 2) 교사: 로그인 + 승인
     delete session_path
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
 
     report.reload
     assert report.reviewed?, "승인 후 reviewed 여야 한다"
@@ -48,10 +48,10 @@ class ReportReviewFlowTest < ActionDispatch::IntegrationTest
     searched = Book.create!(title: "검색으로 찾은 무명책", author: "공자장",
                             isbn: "9791112114198", category: :searched)
     report = Report.create!(user: @student, classroom: @classroom, book: searched,
-                            book_title: searched.title, body: "본문", ai_status: :done, submitted_at: Time.current)
+                            book_title: searched.title, body: "본문", **review_ready_attributes)
 
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
 
     assert report.reload.reviewed?, "승인되어야 한다"
     assert searched.reload.recommended?, "승인된 검색 캐시 도서는 정식 카탈로그로 승격돼야 한다"

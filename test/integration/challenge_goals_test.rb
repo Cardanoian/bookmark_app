@@ -48,8 +48,9 @@ class ChallengeGoalsTest < ActionDispatch::IntegrationTest
     post reports_path, params: params
     report = student.reports.order(:created_at).last
     delete session_path
+    mark_review_ready!(report) # 첨삭이 끝난 글만 승인된다(첨삭 포인트는 이 테스트의 관심 밖)
     login_as student.classroom.teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
     delete session_path
     report
   end
@@ -116,8 +117,9 @@ class ChallengeGoalsTest < ActionDispatch::IntegrationTest
     assert_operator draft.submitted_at, :>, part.joined_at, "제출은 참여 후"
     delete session_path
 
+    mark_review_ready!(draft)
     login_as @teacher
-    post approve_teacher_review_path(draft)
+    approve_as_teacher(draft)
     delete session_path
 
     part.reload

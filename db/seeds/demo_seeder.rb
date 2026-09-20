@@ -544,7 +544,11 @@ class DemoSeeder
       report.save!
       # 데모 독후감은 모두 학생이 '제출한' 글이다. submitted_at 이 비면 Report.submitted 를 쓰는 곳
       # (교사 검토 큐·대시보드·연속 제출일·최근 활동일·챌린지 순위)에서 미제출 초안으로 빠진다.
-      report.update_columns(created_at: created, updated_at: created, submitted_at: created)
+      # 제출 버전도 함께 적는다(마이그레이션 20260920000002 의 백필과 같은 규칙 — 제출된 글 1, 첨삭이 있는 글의
+      # 완료 버전 1). 기본값(0·NULL)으로 두면 Report#review_ready? 가 거짓이라 승인된 첨삭이 학생에게 숨고
+      # 검토 대기 글은 승인할 수 없으며, 공개 체험 학급 재적재 검증(feedback_visible?)이 실패한다.
+      report.update_columns(created_at: created, updated_at: created, submitted_at: created,
+                            review_version: 1, completed_review_version: 1)
 
       st[:report_points] += report.points_awarded.to_i
       st[:reports] << report

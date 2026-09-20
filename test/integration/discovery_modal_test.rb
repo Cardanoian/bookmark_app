@@ -84,9 +84,9 @@ class DiscoveryModalTest < ActionDispatch::IntegrationTest
   end
 
   test "a teacher approval discovers a monster that the student sees on the next load" do
-    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", ai_status: :done, submitted_at: Time.current)
+    report = Report.create!(user: @student, classroom: @classroom, book_title: "책", **review_ready_attributes)
     login_as @teacher
-    post approve_teacher_review_path(report)
+    approve_as_teacher(report)
     assert @student.user_monsters.pending_celebration.exists?, "승인으로 미연출 몬스터가 생긴다"
 
     login_as @student
