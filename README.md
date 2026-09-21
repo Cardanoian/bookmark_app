@@ -349,7 +349,7 @@ bin/rails quizzes:seed     # 샘플 퀴즈
 
 | credentials 키                            | 발급처                 | 켜지는 기능                       | 폴백                                          |
 | ----------------------------------------- | ---------------------- | --------------------------------- | --------------------------------------------- |
-| `claude.api_key`                          | Google AI Studio       | OCR · 5축 첨삭 · 퀴즈 생성        | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
+| `claude.api_key`                          | Claude                 | OCR · 5축 첨삭 · 퀴즈 생성        | 규칙 기반 첨삭 / 오프라인 퀴즈 (OCR만 비활성) |
 | `naver.client_id` · `naver.client_secret` | Naver Developers       | 도서 검색(단독 제공자)            | 로컬 카탈로그 LIKE 검색                       |
 | `data4library.api_key`                    | 정보나루               | 인기대출 동기화                   | CSV 업로드                                    |
 | `neis.api_key`                            | NEIS 교육정보 개방포털 | 학교 스냅샷 갱신(`schools:fetch`) | 커밋된 CSV 오프라인 시드                      |
@@ -367,8 +367,6 @@ bin/rails runner '
 ```
 
 > `config/master.key`(개발) / `RAILS_MASTER_KEY`(프로덕션)로 복호화됩니다. `master.key`는 **절대 커밋하지 마세요**(gitignore 처리됨). 암호문 `config/credentials.yml.enc`는 커밋해도 안전합니다.
->
-> 자세한 내용은 [`docs/API_KEYS.md`](docs/API_KEYS.md) 참고.
 
 ---
 
@@ -410,18 +408,12 @@ app/
 android/         Hotwire Native Android 셸 (Kotlin · Gradle, 웹앱과 동시 운영)
 db/seeds/        monsters.yml (24라인 72폼)
 lib/tasks/       monsters · badges · books · schools · quizzes rake 시드
-docs/            설계·구현·운영 문서 (아래)
 ```
 
-| 문서                                                                         | 내용                                                    |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------- |
-| [`DESIGN.md`](DESIGN.md)                                                     | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형)   |
-| [`docs/CLOUD_DEPLOYMENT_COMPARISON.md`](docs/CLOUD_DEPLOYMENT_COMPARISON.md) | DigitalOcean·NAVER Cloud·AWS·Oracle 배포 및 메일러 비교 |
-| [`docs/monsters.md`](docs/monsters.md)                                       | 반려 몬스터 도감 시드 설계 + AI 이미지 생성 가이드      |
-| [`docs/API_KEYS.md`](docs/API_KEYS.md)                                       | 외부 API 키 주입·폴백 가이드                            |
-| [`android/README.md`](android/README.md)                                     | Android 빌드·서명·versionCode 정책                      |
-| [`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md)           | 실기기 검증 체크리스트(에뮬레이터 실측분과 미확인 구분) |
-| [`NOTICE.md`](NOTICE.md)                                                     | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기        |
-| [`TODO.md`](TODO.md)                                                         | 남은 작업(배포·에셋·모니터링)                           |
-</content>
-</invoke>
+| 문서                                                               | 내용                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------- |
+| [`DESIGN.md`](DESIGN.md)                                           | 「책갈피」 디자인 시스템(토큰·컴포넌트·타이포·반응형)   |
+| [`android/README.md`](android/README.md)                           | Android 빌드·서명·versionCode 정책                      |
+| [`android/DEVICE_VERIFICATION.md`](android/DEVICE_VERIFICATION.md) | 실기기 검증 체크리스트(에뮬레이터 실측분과 미확인 구분) |
+| [`NOTICE.md`](NOTICE.md)                                           | 폰트·이미지·데이터·AI 모델 출처 및 라이선스 표기        |
+| [`TODO.md`](TODO.md)                                               | 남은 작업(배포·에셋·모니터링)                           |

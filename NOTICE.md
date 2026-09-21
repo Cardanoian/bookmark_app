@@ -36,8 +36,9 @@
 - **제작**: **생성형 AI로 제작한 이미지**입니다. OpenAI **ChatGPT**의 이미지 생성으로 만들었습니다.
 
 ### UI 아이콘 · 브랜드 로고
-- **위치**: `app/assets/images/ui-icons.svg`(공용 symbol 스프라이트, 57종), `public/icon.png`(브랜드 로고)
-- **제작**: **생성형 AI로 제작한 이미지**입니다. OpenAI **ChatGPT**의 이미지 생성으로 만들었습니다.
+- **위치**: `app/assets/images/ui-icons.svg`(공용 symbol 스프라이트, 57종),
+  `public/icon.png`·`public/icon.svg`(브랜드 로고)
+- **제작**: OpenAI **ChatGPT**를 활용해 제작했습니다.
 
 ### 도서 표지 이미지
 - **출처**: **네이버 도서 검색 오픈API**(https://openapi.naver.com) 가 제공하는 이미지 URL

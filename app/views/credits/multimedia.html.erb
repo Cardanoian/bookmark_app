@@ -1,0 +1,80 @@
+<% content_for :title, "멀티미디어 교육자료 목록 · 책갈피" %>
+
+<div class="page-shell space-y-6">
+  <header class="card">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold text-brand-blue tracking-wide">제20회 디지털교육연구대회 보고서 [붙임 6]</p>
+        <h1 class="text-2xl font-bold text-ink mt-1">멀티미디어 교육자료 목록</h1>
+        <p class="mt-2 text-sm text-slate">
+          초등 독서교육 플랫폼 「책갈피」 개발 및 적용에 활용된 멀티미디어 교육자료(그림, 애니메이션, 폰트 등)의 세부 명세입니다.
+        </p>
+      </div>
+      <div class="shrink-0">
+        <span class="inline-flex items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-slate">
+          총 <%= @items.size %>개 품목
+        </span>
+      </div>
+    </div>
+
+    <div class="mt-4 rounded-xl border border-hairline-soft bg-surface-soft p-3.5 text-xs text-steel flex items-start gap-2.5">
+      <div class="shrink-0 mt-0.5 text-slate">
+        <%= ui_icon :info, class_name: "h-4 w-4" %>
+      </div>
+      <div>
+        <p class="font-medium text-ink">음향(효과음) 안내</p>
+        <p class="mt-0.5 leading-relaxed">
+          ※ 효과음은 Web Audio API의 오실레이터로 실시간 합성하므로 별도의 음원 파일이 없습니다.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <section class="card overflow-hidden p-0">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[50rem] text-sm text-left border-collapse">
+        <thead>
+          <tr class="border-b border-hairline bg-surface text-steel text-xs font-semibold">
+            <th scope="col" class="py-3 px-4 w-16 text-center">번호</th>
+            <th scope="col" class="py-3 px-4 w-28">자료형태</th>
+            <th scope="col" class="py-3 px-4 w-48">파일명</th>
+            <th scope="col" class="py-3 px-4 w-28 text-right pr-6">크기(MB)</th>
+            <th scope="col" class="py-3 px-4">자료 설명(키워드)</th>
+            <th scope="col" class="py-3 px-4 w-40">비고(출처 등)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-hairline-soft">
+          <% @items.each do |item| %>
+            <tr class="hover:bg-surface-soft transition">
+              <td class="py-2.5 px-4 text-center font-medium text-steel text-xs"><%= item[:number] %></td>
+              <td class="py-2.5 px-4">
+                <% case item[:type] %>
+                <% when "그림" %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-soft text-brand-blue">
+                    그림
+                  </span>
+                <% when "애니메이션" %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-coral text-coral-dark">
+                    애니메이션
+                  </span>
+                <% when "폰트" %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-mint text-moss-dark">
+                    폰트
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-slate">
+                    <%= item[:type] %>
+                  </span>
+                <% end %>
+              </td>
+              <td class="py-2.5 px-4 font-mono text-xs text-ink break-all"><%= item[:filename] %></td>
+              <td class="py-2.5 px-4 text-right pr-6 text-xs text-slate font-mono"><%= item[:size] %></td>
+              <td class="py-2.5 px-4 text-xs sm:text-sm text-ink"><%= item[:description] %></td>
+              <td class="py-2.5 px-4 text-xs text-slate"><%= item[:source] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

@@ -23,6 +23,9 @@ Rails.application.routes.draw do
   # 체험 계정 원클릭 로그인 — role(student|teacher)만 받고 계정은 서버가 확정(비밀번호 미전송).
   post "login/demo",    to: "sessions#demo_create",    as: :demo_login
 
+  # 멀티미디어 출처(보고서 [붙임 6] 멀티미디어 교육자료 목록 표).
+  get "multimedia_credits", to: "credits#multimedia", as: :multimedia_credits
+
   # 교직원 비밀번호 재설정(이메일 링크). **학생은 대상이 아니다** — 학생은 이메일 로그인 대상이
   # 아니고(튜플 로그인) 담임이 teacher/students#reset_password 로 직접 초기화한다. 컨트롤러가
   # `User#password_reset_eligible?`(staff? && email? && !suspended?)로 fail-closed 판정하며,

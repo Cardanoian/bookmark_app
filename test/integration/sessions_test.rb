@@ -56,6 +56,9 @@ class SessionsTest < ActionDispatch::IntegrationTest
       ].each do |source|
         assert_includes response.body, source, "#{path} 출처 표기에 #{source} 누락"
       end
+
+      assert_select "a[href='#{multimedia_credits_path}'][target='_blank']", text: /멀티미디어 출처 자세히 보기/
+      assert_includes response.body, "Web Audio API의 오실레이터로 실시간 합성하므로 별도의 음원 파일이 없습니다"
     end
   end
 
