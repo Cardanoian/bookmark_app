@@ -4,7 +4,7 @@ module Ai
   # 손글씨 사진 → 텍스트(서버 Claude Vision). 키가 없으면 Unavailable 을 던져
   # 호출자가 사진(OCR) 입력 모드를 비활성화하도록 한다. Tesseract 폴백 없음.
   #
-  # **모델은 OCR 만 `claude-sonnet-5` 다**(나머지 AI 는 `ClaudeClient::MODEL` = Haiku 4.5). Haiku 는
+  # **모델은 OCR 만 `claude-sonnet-5-5` 다**(나머지 AI 는 `ClaudeClient::MODEL` = Haiku 5.5). Haiku 는
   # 손글씨 한글 인식이 무너져(한글 CER 51%) OCR 에 쓸 수 없고, Sonnet 5 는 현행이던 Gemini
   # 3.5-flash-lite 와 같거나 낫다(0.47% vs 0.84%) — 실측은 docs/AI_MODEL_SELECTION.md §9.
   # Gemini 는 약관이 18세 미만 대상 서비스를 금지해 걷어냈다.
@@ -17,7 +17,7 @@ module Ai
     # 키 미설정 → 사진 모드 비활성 신호.
     class Unavailable < StandardError; end
 
-    MODEL = "claude-sonnet-5".freeze
+    MODEL = "claude-sonnet-5-5".freeze
     EFFORT = "low".freeze
     # 1024 까지는 정확도가 유지되고 768 부터 무너졌다(강아지똥 CER 5%, 512 는 57%). 멀리서 찍은 사진·
     # 작은 글씨에 여유를 두려고 1568 에서 멈춘다.

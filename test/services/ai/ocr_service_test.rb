@@ -39,14 +39,14 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
     assert_equal "인식된 손글씨 본문", service.call(@report.photo.blob)
   end
 
-  # OCR 만 Haiku 가 아니라 Sonnet 5 를 쓴다(Haiku 는 손글씨 한글 CER 51%). effort 를 low 로 묶지 않으면
+  # OCR 만 Haiku 가 아니라 Sonnet 5.5 를 쓴다(Haiku 는 손글씨 한글 CER 51%). effort 를 low 로 묶지 않으면
   # 흐린 사진에서 생각이 길어져 비용이 불고 30s 타임아웃을 넘는다 — docs/AI_MODEL_SELECTION.md §9.
   test "requests the OCR model at low effort without sampling params" do
     client = StubClient.new(configured: true, response: { "text" => "본문" })
     Ai::OcrService.new(client: client).call(@report.photo.blob)
 
     config = client.generate_args.fetch(:generation_config)
-    assert_equal "claude-sonnet-5", config[:model]
+    assert_equal "claude-sonnet-5-5", config[:model]
     assert_equal({ effort: "low" }, config[:output_config])
     assert_not config.key?(:temperature), "Sonnet 5 는 temperature 를 보내면 400 이다"
   end

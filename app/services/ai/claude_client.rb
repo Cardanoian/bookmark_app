@@ -26,9 +26,9 @@ module Ai
     ENDPOINT = "/v1/messages".freeze
     # Anthropic 은 요청마다 이 헤더를 요구한다(모델 버전이 아니라 API 스키마 버전이라 고정).
     API_VERSION = "2023-06-01".freeze
-    MODEL = "claude-haiku-4-5".freeze
+    MODEL = "claude-haiku-5-5".freeze
     # Anthropic 은 max_tokens 가 **필수**다(Gemini 는 선택이라 없었다). 5축 첨삭 JSON·퀴즈 세트를
-    # 덮는 값(손글씨 OCR 은 `OcrService::MAX_TOKENS` 를 따로 넘긴다). Haiku 4.5 의 출력 상한이 64K 라 여유가 크다.
+    # 덮는 값(손글씨 OCR 은 `OcrService::MAX_TOKENS` 를 따로 넘긴다). Haiku 5.5 의 출력 상한이 128K 라 여유가 크다.
     DEFAULT_MAX_TOKENS = 4096
 
     # 키 존재 여부만으로 사용 가능 판단(네트워크 호출 없음).
