@@ -16,6 +16,8 @@ module Ai
   class OcrService
     # 키 미설정 → 사진 모드 비활성 신호.
     class Unavailable < StandardError; end
+    # 사진을 다시 쓰지 못해 메타데이터를 지울 수 없다 → 보내지 않는다(판독 실패, OcrJob 이 안내).
+    class ImageNotPrepared < StandardError; end
 
     MODEL = "claude-sonnet-5-5".freeze
     EFFORT = "low".freeze
@@ -68,16 +70,23 @@ module Ai
     # 사본을 스토리지에 하나 더 남길 이유가 없다. JPEG 로 다시 쓰는 김에 두 가지가 따라온다:
     # Claude 가 받지 않는 형식(HEIC 등)이 풀리고, 메타데이터(촬영 위치 등)가 빠진다(방향은 먼저 바로잡는다).
     #
-    # 축소가 안 되면 원본을 그대로 보낸다. libvips 가 없는 호스트에서는 ruby-vips 로딩이 `LoadError`
-    # (StandardError 가 아니다)를 던지므로 함께 잡는다(ReportPhotosController#send_variant 와 같은 이유).
+    # 다시 쓰지 못하면 **원본을 보내지 않고** ImageNotPrepared 로 판독을 실패시킨다(2026-11-09). 원본에는
+    # 촬영 위치 같은 메타데이터가 남아 있을 수 있는데, 개인정보 처리방침(제7조 ②·부록 1)이 사진 파일 정보를
+    # 지운 뒤 보낸다고 약속한다. 예전에는 원본으로 이어 갔다. libvips 가 없는 호스트에서는 ruby-vips 로딩이
+    # `LoadError`(StandardError 가 아니다)를 던지므로 함께 잡는다(ReportPhotosController#send_variant 와 같은 이유).
     def image_payload(image_blob)
       [ "image/jpeg", image_blob.open { |file| resized_jpeg(file) } ]
+    rescue ImageNotPrepared
+      raise
     rescue StandardError, LoadError => e
-      Rails.logger.warn("OCR image resize skipped, sending original: #{e.class}")
-      [ image_blob.content_type, image_blob.download ]
+      raise ImageNotPrepared, "photo could not be re-encoded without metadata (#{e.class}); not sent"
     end
 
     def resized_jpeg(file)
+      encode_jpeg(file).tap { |bytes| ensure_metadata_removed!(bytes) }
+    end
+
+    def encode_jpeg(file)
       resized = ImageProcessing::Vips.source(file)
         .resize_to_limit(MAX_EDGE, MAX_EDGE)
         .convert("jpg")
@@ -86,6 +95,19 @@ module Ai
       File.binread(resized.path)
     ensure
       resized&.close!
+    end
+
+    METADATA_FIELDS = %w[exif-data xmp-data iptc-data].freeze
+
+    # 다시 쓴 결과를 읽어 메타데이터가 정말 빠졌는지 본다. image_processing 은 saver 가 모르는 옵션을 예외 없이
+    # 버리고 `strip` 은 libvips 8.15 부터 deprecated 라, 언젠가 옵션이 조용히 무시되면 촬영 위치가 붙은 사진이
+    # 실패 없이 나간다(실패해야 막히는 위의 rescue 를 비켜 간다). 2026-11-09 운영과 같은 libvips 8.16.1 에서
+    # `strip: true` 가 EXIF 를 지우는 것을 실측했다 — 이 확인은 그 동작이 바뀔 때를 위한 것이다.
+    def ensure_metadata_removed!(bytes)
+      leftover = METADATA_FIELDS & ::Vips::Image.new_from_buffer(bytes, "").get_fields
+      return if leftover.empty?
+
+      raise ImageNotPrepared, "metadata survived re-encoding (#{leftover.join(', ')}); not sent"
     end
   end
 end

@@ -41,7 +41,8 @@
             제안되게 한다 — 그래야 원격 Path Configuration 의 download 규칙(`\.pdf$`)이 잡아 저장한다. %>
         <% open_pdf_in_new_tab = !hotwire_native_app? %>
         <%= submit_tag "학생 추가", class: "btn btn-primary" %>
-        <%= link_to icon_text(:download, "동의서 양식 내려받기 (PDF)"), "/agree.pdf",
+        <%# 지문 붙은 자산 주소라 동의서를 고치면 주소도 바뀐다 — 1년 캐시된 옛 판이 나가지 않는다. %>
+        <%= link_to icon_text(:download, "동의서 양식 내려받기 (PDF)"), asset_path("agree.pdf"),
               target: (open_pdf_in_new_tab ? "_blank" : nil), rel: (open_pdf_in_new_tab ? "noopener" : nil),
               class: "btn btn-secondary" %>
       <% end %>

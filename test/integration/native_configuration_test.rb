@@ -127,15 +127,23 @@ class NativeConfigurationTest < ActionDispatch::IntegrationTest
   # 아무도 받지 못한 파일이 내려받아진 것으로 기록된다. 그래서 규칙 존재 여부를 테스트로 고정한다.
 
   DOWNLOAD_PATHS = {
-    "/admin/analytics/export" => "총괄 전국 통계 CSV",
-    "/agree.pdf" => "보호자 동의서 PDF"
+    "/admin/analytics/export" => "총괄 전국 통계 CSV"
   }.freeze
+
+  # 동의서는 지문이 붙은 자산(/assets/agree-<지문>.pdf)이라 문자열로 박지 않고 실제로 만들어지는 주소로 검사한다.
+  def download_paths
+    DOWNLOAD_PATHS.merge(consent_form_path => "보호자 동의서 PDF")
+  end
+
+  def consent_form_path
+    ActionController::Base.helpers.asset_path("agree.pdf")
+  end
 
   test "다운로드 대상 경로가 download 규칙에 매칭된다" do
     get android_v1_configuration_path
     rules = JSON.parse(response.body).fetch("rules")
 
-    DOWNLOAD_PATHS.each do |path, label|
+    download_paths.each do |path, label|
       matched = rules.any? do |rule|
         rule.dig("properties", "download") == true &&
           rule.fetch("patterns").any? { |pattern| Regexp.new(pattern).match?(path) }
@@ -149,7 +157,8 @@ class NativeConfigurationTest < ActionDispatch::IntegrationTest
     # 위 테스트는 문자열 경로를 검사한다. 라우트가 바뀌면 그 문자열도 함께 낡으므로,
     # 헬퍼가 만드는 실제 경로와 대조해 둘이 같이 늙지 않게 한다.
     assert_equal "/admin/analytics/export", admin_analytics_export_path
-    assert Rails.public_path.join("agree.pdf").exist?, "동의서 PDF 가 public/ 에 있어야 한다"
+    assert Rails.root.join("app/assets/documents/agree.pdf").exist?, "동의서 PDF 가 app/assets/documents/ 에 있어야 한다"
+    assert_match %r{\A/assets/agree-\h+\.pdf\z}, consent_form_path, "동의서 주소는 .pdf 로 끝나는 지문 자산이어야 한다"
   end
 
   test "일반 화면 경로는 download 규칙에 걸리지 않는다" do

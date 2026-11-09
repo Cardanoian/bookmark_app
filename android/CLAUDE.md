@@ -125,7 +125,7 @@
 | `POST /ocr` (`ocr[photo]` multipart) | 사진 OCR 업로드 계약 |
 | `GET /reports/:id/photo` | 인증 프록시 사진 |
 | `GET /reports/:id/photo/zoom` | **앱 전용** 사진 확대 HTML 화면(웹은 `target="_blank"` 로 바이트를 새 탭에 연다) |
-| `GET /admin/analytics/export` · `/agree.pdf` | 원격 설정의 `download` 규칙 대상(교사 원자료 엑셀 `^/teacher/exports/reports_xlsx$` 규칙은 기능과 함께 2026-09-16 에 삭제) |
+| `GET /admin/analytics/export` · 동의서 PDF(`/assets/agree-<지문>.pdf` — 2026-11-09 지문 자산으로 옮김, 옛 `/agree.pdf` 는 302) | 원격 설정의 `download` 규칙 대상(경로가 `.pdf` 로 끝나 `\.pdf$` 에 그대로 걸린다. 교사 원자료 엑셀 `^/teacher/exports/reports_xlsx$` 규칙은 기능과 함께 2026-09-16 에 삭제) |
 | `hotwire_native_app?` 분기 뷰 | native 전용 링크 표현 |
 
 호환성이 깨지는 Path Configuration 변경은 기존 파일을 덮어쓰지 않고 `android_v2.json` 을 **추가**한다.

@@ -15,6 +15,25 @@ class TeacherStudentsTest < ActionDispatch::IntegrationTest
     @student = User.create!(school: @school, classroom: @classroom, name: "관리학생", password: "password")
   end
 
+  # 동의서 PDF 는 지문이 붙은 자산이다(2026-11-09). public/agree.pdf 는 1년 캐시라 고친 동의서를 같은 이름으로 내면
+  # 브라우저·Cloudflare 에 걸린 옛 판(국외 이전 안내가 없는 것)이 계속 나간다. 예전 주소는 지금 판으로 보낸다.
+  test "consent form link points at the fingerprinted PDF and the old address redirects to it" do
+    path = ActionController::Base.helpers.asset_path("agree.pdf")
+    assert_match %r{\A/assets/agree-\h+\.pdf\z}, path
+
+    login_as @teacher
+    get teacher_students_path
+    assert_select "a[href=?]", path, text: /동의서 양식 내려받기/
+
+    get path
+    assert_response :success
+    assert_equal "application/pdf", response.media_type
+
+    get "/agree.pdf"
+    assert_response :found, "판이 바뀌면 목적지도 바뀌므로 영구 이동(301)이면 안 된다"
+    assert_redirected_to path
+  end
+
   test "index filters by 이름 검색 and keeps the classroom boundary" do
     other_student = User.create!(school: @school, classroom: @other_classroom, name: "타반학생", password: "password")
     mate = User.create!(school: @school, classroom: @classroom, name: "관리동무", password: "password")

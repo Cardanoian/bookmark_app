@@ -1,6 +1,6 @@
-# 사진 업로드 → 비동기 손글씨 OCR → report.body 초안. 키 없으면 Unavailable, API 호출
-# 실패·빈 응답이면 ClaudeClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에
-# 영구히 묶이지 않게 한다. (§9.3, P3.4)
+# 사진 업로드 → 비동기 손글씨 OCR → report.body 초안. 키 없으면 Unavailable, 사진을 메타데이터 없이
+# 다시 쓰지 못하면 ImageNotPrepared(원본은 보내지 않는다), API 호출 실패·빈 응답이면
+# ClaudeClient::ApiError → 어느 쪽이든 :failed 로 전이시켜 pending 에 영구히 묶이지 않게 한다. (§9.3, P3.4)
 #
 # 다른 AI 잡과 같은 Claude 키를 보되 모델만 OCR 전용(`Ai::OcrService::MODEL`)이다.
 class OcrJob < ApplicationJob
@@ -52,7 +52,7 @@ class OcrJob < ApplicationJob
 
     report.update!(body: text, ai_status: :done)
     broadcast_ocr_ready(report)
-  rescue Ai::OcrService::Unavailable, Ai::ClaudeClient::ApiError => e
+  rescue Ai::OcrService::Unavailable, Ai::OcrService::ImageNotPrepared, Ai::ClaudeClient::ApiError => e
     Rails.logger.error("OcrJob failed for report #{report&.id}: #{e.class}: #{e.message}")
     # 이미 낸 글은 실패로도 건드리지 않는다 — ai_status 는 그 글의 첨삭 상태를 가리키고 있다.
     return if report.nil? || report.reload.submitted_at.present?

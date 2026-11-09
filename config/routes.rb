@@ -27,6 +27,11 @@ Rails.application.routes.draw do
   get "multimedia_credits", to: "credits#multimedia", as: :multimedia_credits
   # 개인정보 처리방침(공개). 공개본 config/privacy_policy.md(편집 원본 docs/PRIVACY_POLICY.md 의 제목 줄부터) — `PrivacyPolicyDocument`.
   get "privacy", to: "privacy_policies#show", as: :privacy_policy
+  # 보호자 동의서 PDF 는 지문이 붙은 자산(app/assets/documents/agree.pdf → /assets/agree-<지문>.pdf)이다.
+  # public/ 파일은 1년 캐시라 같은 이름으로 고치면 옛 동의서가 계속 나간다(2026-11-09). 예전 주소는
+  # 지금 판으로 보낸다 — 판이 바뀌면 목적지도 바뀌므로 영구 이동(301)이 아니라 302.
+  get "agree.pdf", format: false,
+      to: redirect(status: 302) { ActionController::Base.helpers.asset_path("agree.pdf") }
 
   # 교직원 비밀번호 재설정(이메일 링크). **학생은 대상이 아니다** — 학생은 이메일 로그인 대상이
   # 아니고(튜플 로그인) 담임이 teacher/students#reset_password 로 직접 초기화한다. 컨트롤러가

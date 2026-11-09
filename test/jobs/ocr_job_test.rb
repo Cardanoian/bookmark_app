@@ -66,6 +66,16 @@ class OcrJobTest < ActiveJob::TestCase
     assert @report.reload.failed?
   end
 
+  # 메타데이터를 지우지 못한 사진은 보내지 않는다(OcrService). 그때도 '읽는 중'에 묶이지 않고 실패로 끝난다.
+  test "marks the report failed when the photo cannot be re-encoded without metadata" do
+    stub_new(Ai::OcrService, RaisingStub.new(Ai::OcrService::ImageNotPrepared.new("not sent"))) do
+      OcrJob.perform_now(@report)
+    end
+
+    assert @report.reload.failed?
+    assert_nil @report.body.presence
+  end
+
   test "sets the body and marks done when OCR succeeds (stubbed)" do
     stub_new(Ai::OcrService, OcrStub.new("인식된 손글씨 본문")) do
       OcrJob.perform_now(@report)
