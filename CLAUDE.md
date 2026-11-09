@@ -19,7 +19,8 @@ Ruby on Rails 8.1 모놀리식 앱이며, 학생·담임교사·교무관리자�
 개발 환경 준비(Linux·macOS·WSL2 공통: 시스템 패키지→mise→Ruby 4.0.5 precompiled→`bin/setup`)는 루트 [`setup.sh`](setup.sh) 한 번이며, 절차 설명은 README「환경 설정」에 있다.
 2026-09-20 점검에서 재현한 게임 보상·AI 첨삭 오류 4건(F1 같은 게임 결과 중복 보상·F2 이전 AI 작업이 최신 첨삭을 덮어씀·F3 AI 처리 중 승인으로 미검토 첨삭 공개·F4 요청값으로 게임 완료 종류 조작)의 원인·수정 규칙·회귀 테스트·데이터 전환과 **구현 결과(§10)** 는 [`BUG_FIX_PLAN.md`](BUG_FIX_PLAN.md)에 정리되어 있다(2026-09-20 구현·검증·**운영 배포 완료** — §7.2 의 점검 시간 절차로 배포했고 기록은 §10.8).
 폰트·이미지·데이터·AI 모델의 **출처 표기는 [`NOTICE.md`](NOTICE.md)** 가 단일 진실이며, 화면 판본
-(`app/views/shared/_credits_footer.html.erb`)과 함께 갱신한다. 체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)은 `frontend/` 가 유지 중단되어(2026-09-19) 더 이상 맞추지 않는다.
+(`app/views/shared/_credits_footer.html.erb`)과 함께 갱신한다.
+개인정보 처리방침은 [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md) 가 편집 원본(운영자 메모 포함, 배포 안 됨)이고, 공개 화면 `/privacy`(로그인 화면 '출처·라이선스' 바로 아래 버튼)는 그 **제목 줄부터**를 옮긴 공개본 `config/privacy_policy.md` 를 읽는다 — 원본을 고치면 `bin/rails privacy_policy:publish` 로 공개본을 다시 만들어 커밋·배포한다(규칙은 [`docs/CLAUDE.md`](docs/CLAUDE.md)). 체험판 판본(`frontend/src/ui.jsx` 의 `CREDITS`)은 `frontend/` 가 유지 중단되어(2026-09-19) 더 이상 맞추지 않는다.
 
 ## 디렉토리 인덱스 (마트료시카)
 

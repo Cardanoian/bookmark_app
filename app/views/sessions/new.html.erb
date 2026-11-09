@@ -25,8 +25,10 @@
         <% end %>
       </div>
     </div>
-    <%= render "shared/credits_footer" %>
   <% end %>
+  <%# 출처·라이선스 + 개인정보 처리방침 버튼. 체험 섹션 바로 아래(로그인 카드 위)에 두되 체험 계정 유무와
+      상관없이 그린다 — 처리방침은 늘 닿을 수 있어야 하고, 출처 표기도 마찬가지다. %>
+  <%= render "shared/credits_footer" %>
   <h1 class="text-3xl font-bold text-ink">로그인</h1>
   <p class="mt-2 mb-8 text-slate">어떻게 로그인할까요?</p>
   <div class="space-y-4">

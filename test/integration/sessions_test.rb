@@ -59,6 +59,10 @@ class SessionsTest < ActionDispatch::IntegrationTest
 
       assert_select "a[href='#{multimedia_credits_path}'][target='_blank']", text: /멀티미디어 출처 자세히 보기/
       assert_includes response.body, "Web Audio API의 오실레이터로 실시간 합성하므로 별도의 음원 파일이 없습니다"
+
+      # 출처·라이선스 바로 아래 개인정보 처리방침 버튼. 앱 WebView 가 target=_blank 를 무시하므로 같은 화면에서 연다.
+      assert_select "footer details + a[data-role=privacy-policy-link][href='#{privacy_policy_path}']:not([target])",
+        text: /개인정보 처리방침/, count: 1
     end
   end
 

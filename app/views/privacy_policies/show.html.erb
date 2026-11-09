@@ -1,0 +1,77 @@
+<%# 개인정보 처리방침(공개). 내용은 PrivacyPolicyDocument 가 공개본 config/privacy_policy.md 에서 읽은 블록이다 —
+    문구를 여기 다시 적지 않는다. 첫 블록(제목)은 머리글로, 나머지는 카드 안에 블록 종류별로 그린다.
+    인라인 서식(굵게·표 칸 줄바꿈)은 policy_inline 이 이스케이프한 뒤 그린다. %>
+<% content_for :title, "개인정보 처리방침 · 책갈피" %>
+<% title, *blocks = @blocks %>
+<div class="page-shell page-shell-reading space-y-6">
+  <header>
+    <%= link_to (logged_in? ? root_path : new_session_path),
+          class: "inline-flex items-center gap-1.5 text-sm font-medium text-brand-blue hover:underline" do %>
+      <%= ui_icon :arrow_left, class_name: "h-4 w-4" %>
+      <span><%= logged_in? ? "홈으로" : "로그인 화면으로" %></span>
+    <% end %>
+    <h1 class="page-title mt-3"><%= policy_inline(title.text) %></h1>
+  </header>
+
+  <article class="card space-y-4 text-base leading-relaxed text-slate" data-role="privacy-policy">
+    <% blocks.each do |block| %>
+      <% if block.is_a?(PrivacyPolicyDocument::Heading) %>
+        <%# 조·부록 제목만 앵커(id)를 갖는다 — 목차 링크의 목적지. 앵커 없는 제목엔 빈 id 를 두지 않는다. %>
+        <% if block.level <= 2 %>
+          <%= tag.h2 policy_inline(block.text), id: block.anchor,
+                class: "scroll-mt-24 border-b border-hairline pt-6 pb-2 text-xl font-bold text-ink" %>
+        <% else %>
+          <%= tag.h3 policy_inline(block.text), id: block.anchor, class: "scroll-mt-24 pt-4 text-lg font-bold text-ink" %>
+        <% end %>
+      <% elsif block.is_a?(PrivacyPolicyDocument::Paragraph) %>
+        <%# ▶ 로 시작하는 줄은 원본에서 소제목 구실을 한다(▶ 개인정보 보호책임자 등). %>
+        <%= tag.p policy_inline(block.text), class: ("font-semibold text-ink" if block.text.start_with?("▶")) %>
+      <% elsif block.is_a?(PrivacyPolicyDocument::ListBlock) %>
+        <%= content_tag (block.ordered ? :ol : :ul),
+              class: [ "space-y-1.5 pl-6", block.ordered ? "list-decimal" : "list-disc" ],
+              start: (block.start if block.ordered && block.start != 1) do %>
+          <% block.items.each do |item| %>
+            <li>
+              <% anchor = PrivacyPolicyDocument.anchor_for(item.text) if block.toc %>
+              <% if anchor %>
+                <%= link_to policy_inline(item.text), "##{anchor}", class: "text-brand-blue hover:underline" %>
+              <% else %>
+                <%= policy_inline(item.text) %>
+              <% end %>
+              <% if item.children.any? %>
+                <ul class="mt-1.5 space-y-1">
+                  <% item.children.each do |child| %>
+                    <li><%= policy_inline(child) %></li>
+                  <% end %>
+                </ul>
+              <% end %>
+            </li>
+          <% end %>
+        <% end %>
+      <% elsif block.is_a?(PrivacyPolicyDocument::Table) %>
+        <div class="overflow-x-auto rounded-xl border border-hairline">
+          <table class="w-full min-w-[36rem] border-collapse text-left text-sm">
+            <thead class="bg-surface text-ink">
+              <tr>
+                <% block.header.each do |cell| %>
+                  <th scope="col" class="border-b border-hairline px-3 py-2 font-semibold"><%= policy_inline(cell) %></th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% block.rows.each do |row| %>
+                <tr class="border-b border-hairline-soft last:border-b-0">
+                  <% row.each do |cell| %>
+                    <td class="px-3 py-2 align-top"><%= policy_inline(cell) %></td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% elsif block.is_a?(PrivacyPolicyDocument::Rule) %>
+        <hr class="border-hairline">
+      <% end %>
+    <% end %>
+  </article>
+</div>

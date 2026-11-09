@@ -25,6 +25,8 @@ Rails.application.routes.draw do
 
   # 멀티미디어 출처(보고서 [붙임 6] 멀티미디어 교육자료 목록 표).
   get "multimedia_credits", to: "credits#multimedia", as: :multimedia_credits
+  # 개인정보 처리방침(공개). 공개본 config/privacy_policy.md(편집 원본 docs/PRIVACY_POLICY.md 의 제목 줄부터) — `PrivacyPolicyDocument`.
+  get "privacy", to: "privacy_policies#show", as: :privacy_policy
 
   # 교직원 비밀번호 재설정(이메일 링크). **학생은 대상이 아니다** — 학생은 이메일 로그인 대상이
   # 아니고(튜플 로그인) 담임이 teacher/students#reset_password 로 직접 초기화한다. 컨트롤러가

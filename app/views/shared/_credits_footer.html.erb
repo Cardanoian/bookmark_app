@@ -2,7 +2,10 @@
     폰트(OFL)·오픈API·공공데이터는 서비스 화면에 출처를 밝혀야 하는데 앱에는 전역 푸터가 없어
     비로그인 상태에서 누구나 닿는 로그인 화면을 표기 지면으로 삼는다. 판본은 3곳(이 파일 · 저장소
     NOTICE.md · 체험판 frontend/src/ui.jsx 의 CREDITS)이며 함께 갱신한다.
-    기본은 접힌 <details> — 로그인 동선을 가리지 않으면서 전문을 담는다. %>
+    기본은 접힌 <details> — 로그인 동선을 가리지 않으면서 전문을 담는다.
+    그 바로 아래 '개인정보 처리방침' 버튼(privacy_policies#show)도 같은 이유로 여기 둔다 — 처리방침은
+    가입 전 교사·보호자처럼 로그인하지 않은 사람이 읽을 수 있어야 한다. 앱(WebView)은 target="_blank" 를
+    무시하므로 새 탭이 아니라 같은 화면에서 연다. %>
 <footer class="mx-auto my-10 w-full max-w-md">
   <%# .card 는 자체 padding(1.5rem)을 갖는데 여기선 summary·본문이 각자 여백을 가져야 해서
       같은 토큰(surface·hairline·radius-card)을 유틸로 직접 쓴다. %>
@@ -54,4 +57,10 @@
       </p>
     </div>
   </details>
+  <%# 위 summary 줄과 같은 모양(테두리 상자·왼쪽 아이콘·오른쪽 화살표)으로 짝을 맞춘다. %>
+  <%= link_to privacy_policy_path, data: { role: "privacy-policy-link" },
+        class: "mt-3 flex items-center justify-between gap-2 rounded-card border border-hairline bg-surface px-5 py-4 text-sm font-bold text-ink hover:bg-surface-soft" do %>
+    <span class="inline-flex items-center gap-2"><%= ui_icon :lock, class_name: "h-5 w-5" %> 개인정보 처리방침</span>
+    <%= ui_icon :arrow_right, class_name: "h-4 w-4 text-steel" %>
+  <% end %>
 </footer>
