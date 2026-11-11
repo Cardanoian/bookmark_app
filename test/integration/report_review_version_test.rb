@@ -266,17 +266,22 @@ class ReportReviewVersionTest < ActionDispatch::IntegrationTest
     assert_equal 1, revision.review_version
   end
 
-  # 첨부(손글씨 원본 사진 등)는 첨삭 입력은 아니지만 담임이 본문과 대조하는 근거다 — 제출된 글에서는 담임이 못 바꾼다.
+  # 첨부(손글씨 원본 사진 등)는 첨삭 입력은 아니지만 담임이 본문과 대조하는 근거다 — 제출된 글에서는 담임이 못
+  # 바꾼다. 2026-11-11 부터 이 경로는 첨부를 아예 받지 않으므로(사진은 OcrController 로만, 촬영 정보를 지운 사본)
+  # 첨부는 버려지고 승인도 그대로다(아무것도 안 고친 저장).
   test "담임은 제출된 글의 첨부도 바꿀 수 없다" do
     report = approved_report
     login_as @teacher
 
     patch report_path(report), params: {
-      report: { body: report.body, photo: fixture_file_upload("handwriting.png", "image/png") }
+      report: { body: report.body, photo: fixture_file_upload("handwriting.png", "image/png"),
+                drawing: fixture_file_upload("handwriting.png", "image/png") }
     }
 
-    assert_response :unprocessable_entity
-    assert_not report.reload.photo.attached?
+    report.reload
+    assert_not report.photo.attached?
+    assert_not report.drawing.attached?
+    assert report.reviewed?, "첨부를 버린 저장은 아무것도 안 고친 저장이다"
   end
 
   # 승인된 객체를 들고 있는 사이 학생이 다시 냈다 — 그 낡은 객체로 방송해도 이전 제출의 첨삭이 실리지 않는다(§4.4).

@@ -281,8 +281,11 @@ class ReportsController < ApplicationController
     attrs
   end
 
+  # 첨부(사진·그림·음성)는 받지 않는다 — 손글씨 사진은 OcrController 로만 올리고, 거기서 촬영 정보를 지운
+  # 사본을 저장한다(PhotoSanitizer, 2026-11-11). 여기서 받으면 그 정리를 비켜 원본이 저장된다(그림 칸에 사진을
+  # 넣어도 같다). 화면·앱 어디에도 이 칸들이 없다.
   def report_params
-    permitted = params.require(:report).permit(:book_id, :book_title, :body, :input_mode, :photo, :drawing, :audio)
+    permitted = params.require(:report).permit(:book_id, :book_title, :body, :input_mode)
     permitted[:book_id] = resolved_book_id(permitted[:book_id]) if permitted.key?(:book_id)
     permitted
   end

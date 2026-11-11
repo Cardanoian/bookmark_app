@@ -153,6 +153,42 @@ module ActiveSupport
       ENV["ANTHROPIC_API_KEY"] = original
     end
 
+    # 업로드 사진 정리(PhotoSanitizer)를 대역으로 둔다 — 다시 쓰지 않고 올린 바이트를 정리 결과 모양(파일 이름
+    # `photo.jpg` 의 해시)으로 돌려준다. `fixtures/files/handwriting.png` 는 진짜 이미지가 아닌 53바이트 자리표시자라
+    # 정리하면 거절되므로, 업로드 뒤 흐름(초안·책 연결·잡 예약)만 보는 통합 테스트가 감싼다. 원본 대신 정리 결과를
+    # 붙이는지는 파일 이름으로 libvips 없이도 본다(ocr_test). 정리 자체는 photo_sanitizer_test·ocr_photo_sanitizing_test.
+    # minitest 6 에는 Object#stub 이 없어 원본 메서드를 보관했다가 복원한다(ocr_test 의 with_ocr_available 관례).
+    def with_photo_sanitizing_skipped
+      original = PhotoSanitizer.method(:call)
+      PhotoSanitizer.define_singleton_method(:call) do |upload|
+        { io: StringIO.new(upload.read), filename: PhotoSanitizer::FILENAME, content_type: "image/jpeg" }
+      end
+      yield
+    ensure
+      PhotoSanitizer.define_singleton_method(:call, original)
+    end
+
+    # 진짜 이미지 처리(libvips)가 필요한 테스트. libvips 가 없는 개발기에서는 건너뛰고 CI(libvips 설치)·운영
+    # 이미지에서 돈다.
+    def require_libvips!
+      require "vips"
+    rescue LoadError
+      skip "libvips 가 없는 호스트 — CI·운영 이미지에서 돈다"
+    end
+
+    # 촬영 기기 정보(EXIF IFD0 Make="Test", orientation 을 주면 Orientation 도)를 APP1 으로 심은 JPEG.
+    # libvips 로 만든 JPEG 의 SOI 바로 뒤에 끼운다. require_libvips! 뒤에 부른다.
+    def jpeg_with_exif(width: 64, height: 48, orientation: nil)
+      jpeg = (Vips::Image.black(width, height) + 200).cast(:uchar).bandjoin([ 200, 200 ]).jpegsave_buffer(Q: 90)
+      count = orientation ? 2 : 1
+      value_offset = 8 + 2 + (12 * count) + 4 # TIFF 머리 + 항목 수 + 항목들 + 다음 IFD 위치 뒤에 Make 값
+      ifd = [ count ].pack("v") + [ 0x010F, 2, 5, value_offset ].pack("vvVV")
+      ifd += [ 0x0112, 3, 1, orientation, 0 ].pack("vvVvv") if orientation
+      tiff = "II*\x00".b + [ 8 ].pack("V") + ifd + [ 0 ].pack("V") + "Test\x00".b
+      payload = "Exif\x00\x00".b + tiff
+      jpeg.byteslice(0, 2) + "\xFF\xE1".b + [ payload.bytesize + 2 ].pack("n") + payload + jpeg.byteslice(2..)
+    end
+
     # 역할별 로그인 헬퍼(통합 테스트 공용). 로그인 표면이 둘로 나뉘었다(sessions_controller):
     #   - 학생: (학교·학급·이름) 튜플 + 비밀번호 → student_login_path.
     #   - 교직원(교사·교무관리자·사서·총괄관리자): 이메일 + 비밀번호 → staff_login_path.

@@ -32,14 +32,17 @@ class OcrTest < ActionDispatch::IntegrationTest
     login_as @student
 
     with_ocr_available do
-      assert_enqueued_with(job: OcrJob) do
-        post ocr_path, params: { ocr: { book_title: "책", photo: uploaded_photo } }
+      with_photo_sanitizing_skipped do
+        assert_enqueued_with(job: OcrJob) do
+          post ocr_path, params: { ocr: { book_title: "책", photo: uploaded_photo } }
+        end
       end
     end
 
     draft = @student.reports.order(:created_at).last
     assert_not_nil draft
     assert_redirected_to edit_report_path(draft)
+    assert_equal "photo.jpg", draft.photo.filename.to_s, "올린 원본이 아니라 정리한 사본을 붙인다"
 
     # 업로드 시점의 본문 지문을 함께 실어야 늦게 끝난 판독이 그사이 아이가 쓴 글을 덮지 않는다.
     enqueued = enqueued_jobs.find { |job| job["job_class"] == "OcrJob" }

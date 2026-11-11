@@ -46,10 +46,19 @@ class OcrController < ApplicationController
       return
     end
 
+    # 촬영 정보(촬영 일시·기기·위치)를 지운 사본만 저장한다(PhotoSanitizer, 2026-11-11). 지우지 못한 사진은
+    # 원본을 남기지 않고 draft 생성 전에 돌려보낸다(빈 첨부 고아 draft 방지와 같은 자리).
+    photo, rejection = sanitized_photo(params[:ocr][:photo])
+    unless photo
+      skip_authorization
+      redirect_back fallback_location: new_report_path(input_mode: :ocr), alert: rejection
+      return
+    end
+
     @report = find_or_build_draft(book_id)
     authorize @report, :update?
 
-    @report.photo.attach(params[:ocr][:photo])
+    @report.photo.attach(photo)
     @report.update!(ai_status: :pending, input_mode: :ocr)
     # 지금 본문 지문을 함께 넘긴다. 판독이 끝날 때까지 아이가 같은 글을 직접 고쳐 쓰거나 제출할 수
     # 있는데, 그때 판독 결과가 그 글을 덮으면 아이가 낸 글이 사진 원문으로 되돌아간다(2026-09-16).
@@ -60,6 +69,18 @@ class OcrController < ApplicationController
   end
 
   private
+
+  # [정리한 사진, 거절 안내]. PII 보호: 사진 바이트·파일 이름은 남기지 않고 실패 이유(예외 클래스·크기·형식)만
+  # 기록한다. 너무 큰 사진은 같은 파일로 다시 올려도 같으니 카메라로 다시 찍게 안내한다(앱 화면이 줄여 보낸다).
+  def sanitized_photo(upload)
+    [ PhotoSanitizer.call(upload), nil ]
+  rescue PhotoSanitizer::TooLarge => e
+    Rails.logger.warn("ocr photo rejected: #{e.message}")
+    [ nil, "사진이 너무 커요. 카메라로 다시 찍어서 올려 주세요." ]
+  rescue PhotoSanitizer::Failed => e
+    Rails.logger.warn("ocr photo rejected: #{e.message}")
+    [ nil, "사진을 열지 못했어요. 다시 찍어서 올려 주세요." ]
+  end
 
   # 기존 초안(내 글) 을 쓰거나, 없으면 사진 독후감 초안을 새로 만든다. 도서 참조 가드를 이미
   # 통과했으므로 book_id/book_title 중 하나는 유효하다("사진 독후감" placeholder 불필요).

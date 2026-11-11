@@ -206,7 +206,7 @@ bin/setup --skip-server
 - Fedora 계열: `sudo dnf install -y gcc gcc-c++ make git curl pkgconf-pkg-config libyaml-devel sqlite sqlite-devel vips`
 - Arch 계열: `sudo pacman -S --needed base-devel git curl libyaml sqlite libvips`
 - Alpine 등 musl 배포판은 미리 컴파일된 Ruby 가 없습니다 — `ruby.compile` 줄을 빼고 소스 빌드로 두세요.
-- `libvips` 는 손글씨 사진 축소·이미지 변형용입니다. 없어도 앱은 뜨고 사진 표시는 원본으로 폴백하지만, **손글씨 인식(OCR)은 동작하지 않습니다** — 촬영 위치 등 사진 파일 정보를 지울 수 없으면 원본을 AI 로 보내지 않기 때문입니다(개인정보 처리방침 제7조 ②).
+- `libvips` 는 손글씨 사진 축소·이미지 변형용입니다. 없어도 앱은 뜨지만 **손글씨 사진을 올릴 수 없습니다**("사진을 열지 못했어요") — 촬영 위치 등 사진 파일 정보를 지운 사본만 저장하고, AI 에도 그 정보를 지운 사진만 보내기 때문입니다(개인정보 처리방침 제3조 ③ 3호·제7조 ②). 그 전에 올라온 사진의 표시는 원본으로 폴백합니다.
 
 #### macOS
 

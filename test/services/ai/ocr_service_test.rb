@@ -150,20 +150,6 @@ class Ai::OcrServiceTest < ActiveSupport::TestCase
     end
   end
 
-  def require_libvips!
-    require "vips"
-  rescue LoadError
-    skip "libvips 가 없는 호스트 — CI·운영 이미지에서 돈다"
-  end
-
-  # 촬영 기기 정보(EXIF IFD0 Make="Test")를 APP1 으로 심은 JPEG. libvips 로 만든 JPEG 의 SOI 바로 뒤에 끼운다.
-  def jpeg_with_exif
-    jpeg = (Vips::Image.black(64, 48) + 200).cast(:uchar).bandjoin([ 200, 200 ]).jpegsave_buffer(Q: 90)
-    tiff = "II*\x00".b + [ 8 ].pack("V") + [ 1 ].pack("v") + [ 0x010F, 2, 5, 26 ].pack("vvVV") + [ 0 ].pack("V") + "Test\x00".b
-    payload = "Exif\x00\x00".b + tiff
-    jpeg.byteslice(0, 2) + "\xFF\xE1".b + [ payload.bytesize + 2 ].pack("n") + payload + jpeg.byteslice(2..)
-  end
-
   def image_part(client)
     client.generate_args.fetch(:contents).first[:parts].find { |part| part[:inlineData] }[:inlineData]
   end

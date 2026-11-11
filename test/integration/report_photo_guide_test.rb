@@ -42,8 +42,10 @@ class ReportPhotoGuideTest < ActionDispatch::IntegrationTest
     login_as @student
 
     with_ocr_available do
-      assert_enqueued_with(job: OcrJob) do
-        post ocr_path, params: { ocr: { book_id: @book.id, photo: uploaded_photo } }
+      with_photo_sanitizing_skipped do
+        assert_enqueued_with(job: OcrJob) do
+          post ocr_path, params: { ocr: { book_id: @book.id, photo: uploaded_photo } }
+        end
       end
     end
 

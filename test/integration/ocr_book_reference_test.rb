@@ -33,8 +33,10 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
     login_as @student
 
     with_ocr_available do
-      assert_enqueued_with(job: OcrJob) do
-        post ocr_path, params: { ocr: { book_title: "어린왕자", photo: uploaded_photo } }
+      with_photo_sanitizing_skipped do
+        assert_enqueued_with(job: OcrJob) do
+          post ocr_path, params: { ocr: { book_title: "어린왕자", photo: uploaded_photo } }
+        end
       end
     end
 
@@ -57,9 +59,11 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
           thumbnail: "https://example.com/ocr.jpg", isbn: isbn, description: "설명"
         })
 
-        assert_difference "Book.count", 1 do
-          assert_enqueued_with(job: OcrJob) do
-            post ocr_path, params: { ocr: { book_id: "", remote_isbn: isbn, photo: uploaded_photo } }
+        with_photo_sanitizing_skipped do
+          assert_difference "Book.count", 1 do
+            assert_enqueued_with(job: OcrJob) do
+              post ocr_path, params: { ocr: { book_id: "", remote_isbn: isbn, photo: uploaded_photo } }
+            end
           end
         end
       end
@@ -83,9 +87,11 @@ class OcrBookReferenceTest < ActionDispatch::IntegrationTest
     login_as @student
 
     with_ocr_available do
-      assert_no_difference "Book.count" do
-        assert_enqueued_with(job: OcrJob) do
-          post ocr_path, params: { ocr: { remote_isbn: "9780000000002", book_title: "무키 폴백책", photo: uploaded_photo } }
+      with_photo_sanitizing_skipped do
+        assert_no_difference "Book.count" do
+          assert_enqueued_with(job: OcrJob) do
+            post ocr_path, params: { ocr: { remote_isbn: "9780000000002", book_title: "무키 폴백책", photo: uploaded_photo } }
+          end
         end
       end
     end
